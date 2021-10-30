@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Colm Networks</title>
+    <description></description>
+    <link>http://www.colm.net/</link>
+    <atom:link href="http://www.colm.net/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Mon, 15 Feb 2021 18:27:23 -0500</pubDate>
+    <lastBuildDate>Mon, 15 Feb 2021 18:27:23 -0500</lastBuildDate>
+    <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Additional Target Languages Return to Ragel 7</title>
+        <description>&lt;p&gt;It was previously reported that Ragel 7 will support only a small set of
+host languages. I'm happy to report that support for extra host languages has
+been added back to Ragel 7.&lt;/p&gt;
+
+&lt;p&gt;When I dropped support I had an open problem in the form of managing code
+cloning in multiple fronteneds. Since ragel is embedded in a host language,
+there is a need for host-language specific parsing. Developing a frontend for
+each host language was a real problem and I could not see a suitable
+solution. It became too much to manage.&lt;/p&gt;
+
+&lt;p&gt;With some new advances in Colm I'm able to now combine grammar fragments and
+reduction actions to compose frontends using a common ragel grammar and a small
+set of rules specific to the frontend. This makes maintenace of the additional
+frontends as new features are added much simpler and allows me keep this aspect
+of the project going.&lt;p&gt;
+&lt;/p&gt;&lt;/p&gt;
+</description>
+        <pubDate>Fri, 18 May 2018 00:00:00 -0400</pubDate>
+        <link>http://www.colm.net/news/2018/05/18/new-target-langs.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2018/05/18/new-target-langs.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Changes to Ragel in Response to the Cloudflare Incident</title>
+        <description>&lt;h1 id=&quot;intro&quot;&gt;Intro&lt;/h1&gt;
+
+&lt;p&gt;If you’re reading this, then you’re likely familiar with the Cloudflare
+incident that was disclosed a few days ago. A lot has been written about the
+problem, following a very detailed blog post by Cloudflare. Unfortunately, due
+to the initial wording of that blog post, there was a lot of blame placed on
+Ragel by people who are unfamiliar with Ragel and the realities of using it to
+produce parsers.&lt;/p&gt;
+
+&lt;h1 id=&quot;ragel-fgoto-command&quot;&gt;Ragel fgoto Command&lt;/h1&gt;
+
+&lt;p&gt;Ragel is a state machine compiler. It helps you specify a state machine using
+regular language constructs. In the Ragel model it is possible to jump from
+sub-sections of a state machine with an fgoto command in an action. This alters
+the current state. This is outside of the regular lagnuage model and is
+something you do once in a while.&lt;/p&gt;
+
+&lt;p&gt;An fgoto command does not affect the input increment operation. When you issue
+an fgoto, processing resumes on the next input character. If you want this,
+then you just use fgoto. If you want to resume processing on the current
+character you issue an fhold first. If you want to resume somewhere else, you
+can as well.&lt;/p&gt;
+
+&lt;h1 id=&quot;ragel-error-actions&quot;&gt;Ragel Error Actions&lt;/h1&gt;
+
+&lt;p&gt;Ragel allows the programmer to embed actions into a state machines. These
+execute in various circumstances. Actions are blocks of code written in the
+host language (in this case C). The Cloudflare incident involved error actions.
+Error actions execute when the state machine cannot continue normal processing.
+They are executed in two distinct cases.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Failure occurs on the current character.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Failure occurs at EOF (not terminating in a final state).&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&quot;combining-error-actions-and-fgoto-command&quot;&gt;Combining Error Actions and fgoto Command&lt;/h1&gt;
+
+&lt;p&gt;In the first error action case it is okay to not issue an fhold before fgoto.
+In the second case it is not. Since we are already past the end of the buffer,
+we must fix the input. This is true for any kind of action that executes in the EOF case.&lt;/p&gt;
+
+&lt;p&gt;This requirement is where things went wrong. There was a missing fhold before
+the fgoto, however, since Cloudflare was never telling Ragel where the end of
+the input was, the action was not executing in the EOF case.&lt;/p&gt;
+
+&lt;p&gt;Cloudflare would have heavily tested the buggy error action when it executed in
+the first case and it would have worked just fine. However, turn on the second
+case and that’s where the problem arises.&lt;/p&gt;
+
+&lt;p&gt;The fact that error actions execute in two distinct cases is certainly a part
+of working with Ragel that requies some attention. A single construct has two
+contexts of sort, and it’s possible to get a false sense of security when your
+code works okay in one of those contexts, the more commonly occuring one.&lt;/p&gt;
+
+&lt;p&gt;This is part of Ragel’s design that I have debated over the years. However, I
+maintain that this design is better than the alternative, which would be for a
+parsing error handler to not execute because it occurred on EOF and not on an
+input character. It is better for “error action” to cover all senses of
+“error”.&lt;/p&gt;
+
+&lt;h1 id=&quot;changes-to-ragel&quot;&gt;Changes to Ragel&lt;/h1&gt;
+
+&lt;p&gt;What can be done here without really altering existing programs much is to
+enhance the generated fgoto code in the context of EOF actions. Such a change
+would catch failures to fixup the input pointer when it is vital and forgotten.&lt;/p&gt;
+
+&lt;p&gt;The alternative is a warning on a lack of fhold when an fgoto is present in an
+EOF action, however there could be no static guarantee that the fhold was
+correctly placed and it would be possible for bad code to make it through with
+no warning.&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 28 Feb 2017 00:00:00 -0500</pubDate>
+        <link>http://www.colm.net/news/2017/02/28/changes-to-ragel-cloudflare.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2017/02/28/changes-to-ragel-cloudflare.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Ragel will Target C, C++ and ASM Only</title>
+        <description>&lt;p&gt;Unfortunately I must report that after release 7.0.0.9, Ragel will target C,
+C++ and ASM languages only.&lt;/p&gt;
+
+&lt;p&gt;Ragel is now developed by Colm Networks, a network security business
+dedicated to producing best-in-class network security solutions. While
+eliminating previous code generation initiatives is regretable, it is necessary
+for sustaining the project. Focusing our open source development efforts in
+areas that support our business will allow us to ensure Ragel remains a
+high-quality tool for the target languages it supports.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 31 Jul 2016 00:00:00 -0400</pubDate>
+        <link>http://www.colm.net/news/2016/07/31/ragel-target-langs.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2016/07/31/ragel-target-langs.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Third Development Version of Ragel 7 Released</title>
+        <description>&lt;p&gt; The third development version of Ragel 7 has been released. See the
+first development version &lt;a href=&quot;/news/2015/09/26/first-dev-version-of-ragel-7-released.html&quot;&gt;news item&lt;/a&gt; for an overview of the changes.
+Additional information about dependencies
+&lt;a href=&quot;/news/2016/01/28/second-dev-version-of-ragel-7-released.html&quot;&gt;here&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Grab it here:
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-7.0.0.8.tar.gz&quot;&gt;ragel-7.0.0.8.tar.gz&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Dependencies:&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/colm/colm-0.13.0.4.tar.gz&quot;&gt;colm-0.13.0.4.tar.gz&lt;/a&gt;&lt;br /&gt;
+Optional Deps:&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-6.9.tar.gz&quot;&gt;ragel-6.9.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/kelbt/kelbt-0.16.tar.gz&quot;&gt;kelbt-0.16.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;/p&gt;
+</description>
+        <pubDate>Mon, 11 Jul 2016 00:00:00 -0400</pubDate>
+        <link>http://www.colm.net/news/2016/07/11/third-dev-version-of-ragel-7-released.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2016/07/11/third-dev-version-of-ragel-7-released.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Second Development Version of Ragel 7 Released</title>
+        <description>&lt;p&gt; The second development version of Ragel 7 has been released. See the
+previous development version &lt;a href=&quot;/news/2015/09/26/first-dev-version-of-ragel-7-released.html&quot;&gt;news item&lt;/a&gt; for an overview of the changes.
+&lt;/p&gt;
+
+&lt;p&gt;
+Grab it here:
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-7.0.0.6.tar.gz&quot;&gt;ragel-7.0.0.6.tar.gz&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Kelbt and Ragel are now optional dependencies. Building with those packages
+adds the original Ragel 6 parser. It becomes accessible with the option
+--kelbt-frontend.
+&lt;/p&gt;
+
+&lt;p&gt;
+In Ragel 7 colm is a mandatory dependency. It is used to build two new ragel
+parsers. The default is a reduction-based parser, very similar to the original
+ragel+kelbt parser. The alternate is recursive-descent load of Colm parse
+trees. It is much slower and still used for non-C languages. It will be phased
+out eventually.
+&lt;/p&gt;
+
+&lt;p&gt;
+Deps:&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-6.9.tar.gz&quot;&gt;ragel-6.9.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/kelbt/kelbt-0.16.tar.gz&quot;&gt;kelbt-0.16.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/colm/colm-0.13.0.3.tar.gz&quot;&gt;colm-0.13.0.3.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;/p&gt;
+</description>
+        <pubDate>Thu, 28 Jan 2016 00:00:00 -0500</pubDate>
+        <link>http://www.colm.net/news/2016/01/28/second-dev-version-of-ragel-7-released.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2016/01/28/second-dev-version-of-ragel-7-released.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>First Development Version of Ragel 7 Released</title>
+        <description>&lt;p&gt;
+The first development version of Ragel 7 has been released. There are some
+major changes packed into this release.
+
+&lt;ul&gt;
+
+&lt;li&gt;A condition implementation overhaul. Rather than augment the input char
+with the result of condition evaluation, the input char transition is found,
+then the condition is evaluated and the transition further refined.
+This is conditions done right.&lt;/li&gt;
+
+&lt;li&gt;An intermediate codegen language. 
+It is now possible to add languages without understanding
+ragel internals. All that is needed is a translation from a simple intermediate
+psudo-code.&lt;/li&gt;
+
+&lt;li&gt;NFA features for those hard-to-parse constructs and giant unions.
+(Supported by Barracuda Networks Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+Target Languages:
+
+&lt;table style=&quot;padding-left: 30px;&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;
+&lt;td&gt; C&lt;/td&gt;
+&lt;td&gt; C++&lt;/td&gt;
+&lt;td&gt; Obj-C&lt;/td&gt;
+&lt;td&gt; C# &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt; ASM &lt;/td&gt;
+&lt;td&gt; D &lt;/td&gt;
+&lt;td&gt; Go &lt;/td&gt;
+&lt;td&gt; Java &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt; Ruby &lt;/td&gt;
+&lt;td&gt; OCaml &lt;/td&gt;
+&lt;td&gt; Crack &lt;/td&gt;
+&lt;td&gt; Rust &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt; Julia &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;/p&gt;
+
+&lt;p&gt;
+Grab it here:
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-7.0.0.5.tar.gz&quot;&gt;ragel-7.0.0.5.tar.gz&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+You'll need these dependencies:&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/ragel/ragel-6.9.tar.gz&quot;&gt;ragel-6.9.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/kelbt/kelbt-0.16.tar.gz&quot;&gt;kelbt-0.16.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;a href=&quot;http://www.colm.net/files/colm/colm-0.13.0.2.tar.gz&quot;&gt;colm-0.13.0.2.tar.gz&lt;/a&gt;&lt;br /&gt;
+&lt;/p&gt;
+</description>
+        <pubDate>Sat, 26 Sep 2015 00:00:00 -0400</pubDate>
+        <link>http://www.colm.net/news/2015/09/26/first-dev-version-of-ragel-7-released.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2015/09/26/first-dev-version-of-ragel-7-released.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Barracuda Networks Supports Ragel Development</title>
+        <description>&lt;p&gt;&lt;a href=&quot;http://www.barracuda.com&quot;&gt;Barracuda Networks, Inc&lt;/a&gt;. (NYSE: CUDA), a world leader in network security and storage solutions, is generously supporting development of Ragel. Improvements to Ragel will target Barracuda applications, but are also more widely applicable and represent general advancements to the state machine compiler. Thank you to Barracuda for contributing to the open source community!&lt;/p&gt;
+</description>
+        <pubDate>Wed, 21 Jan 2015 15:15:22 -0500</pubDate>
+        <link>http://www.colm.net/news/2015/01/21/barracuda-networks-supports-ragel-development.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2015/01/21/barracuda-networks-supports-ragel-development.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Ragel, Kelbt and Colm Files Back Online</title>
+        <description>&lt;p&gt;I'm happy to report that all the previous releases of ragel and others are now back online. They got left behind in the move to the colm.net domain. You can find them here:&amp;nbsp; &lt;code&gt;&lt;a title=&quot;&amp;#47;files&amp;#47;&quot; href=&quot;/files/&quot;&gt;&amp;#47;files&amp;#47;&lt;/a&gt;&lt;/code&gt;.&lt;/p&gt;
+</description>
+        <pubDate>Fri, 28 Nov 2014 16:14:32 -0500</pubDate>
+        <link>http://www.colm.net/news/2014/11/28/ragel-kelbt-and-colm-files-back-online.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2014/11/28/ragel-kelbt-and-colm-files-back-online.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+      <item>
+        <title>Ragel Now Maintained by Colm Networks</title>
+        <description>&lt;p class=&quot;ProfileTweet-text js-tweet-text u-dir&quot; dir=&quot;ltr&quot; lang=&quot;en&quot; data-aria-label-part=&quot;0&quot;&gt;As of October 2014, Ragel will be maintained by Colm
+Networks.&amp;nbsp; This is a new consulting company founded by Dr. Adrian D.
+Thurston.&lt;/p&gt;
+
+&lt;p class=&quot;ProfileTweet-text js-tweet-text u-dir&quot; dir=&quot;ltr&quot; lang=&quot;en&quot; data-aria-label-part=&quot;0&quot;&gt;Since we cannot operate in the open, the git
+repository for Ragel&amp;nbsp; will no longer be available. The project will be
+published as release (and pre-release) tarballs only. On the upside, Ragel will
+get much more attention.&lt;/p&gt;
+
+&lt;p class=&quot;ProfileTweet-text js-tweet-text u-dir&quot; dir=&quot;ltr&quot; lang=&quot;en&quot; data-aria-label-part=&quot;0&quot;&gt;The license will remain the same: GPLv2 with an
+exception for the generated code derived from Ragel source.&lt;/p&gt;
+</description>
+        <pubDate>Fri, 24 Oct 2014 12:23:33 -0400</pubDate>
+        <link>http://www.colm.net/news/2014/10/24/ragel-now-maintained-by-colm-networks.html</link>
+        <guid isPermaLink="true">http://www.colm.net/news/2014/10/24/ragel-now-maintained-by-colm-networks.html</guid>
+        
+        
+        <category>news</category>
+        
+      </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Changes to Ragel in Response to the Cloudflare Incident</title>
+  <meta name="description" content="Intro">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://www.colm.net/news/2017/02/28/changes-to-ragel-cloudflare.html">
+  <link rel="alternate" type="application/rss+xml" title="Colm Networks" href="http://www.colm.net/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <div class="header-title-block">
+    <div class="header-title"><a class="header-link" href="/">Colm Networks</a></div>
+    <div class="header-tagline">Computer Language Machinery</div>
+    </div>
+
+    <nav class="site-nav">
+      <div class="trigger">
+        <a class="page-link" href="/">About</a>
+        <a class="page-link" href="/news/">News</a>
+        <a class="page-link" href="/open-source/ragel/">Ragel</a>
+        <a class="page-link" href="/open-source/colm/">Colm </a>
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Changes to Ragel in Response to the Cloudflare Incident</h1>
+    <p class="post-meta">Feb 28, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <h1 id="intro">Intro</h1>
+
+<p>If you’re reading this, then you’re likely familiar with the Cloudflare
+incident that was disclosed a few days ago. A lot has been written about the
+problem, following a very detailed blog post by Cloudflare. Unfortunately, due
+to the initial wording of that blog post, there was a lot of blame placed on
+Ragel by people who are unfamiliar with Ragel and the realities of using it to
+produce parsers.</p>
+
+<h1 id="ragel-fgoto-command">Ragel fgoto Command</h1>
+
+<p>Ragel is a state machine compiler. It helps you specify a state machine using
+regular language constructs. In the Ragel model it is possible to jump from
+sub-sections of a state machine with an fgoto command in an action. This alters
+the current state. This is outside of the regular lagnuage model and is
+something you do once in a while.</p>
+
+<p>An fgoto command does not affect the input increment operation. When you issue
+an fgoto, processing resumes on the next input character. If you want this,
+then you just use fgoto. If you want to resume processing on the current
+character you issue an fhold first. If you want to resume somewhere else, you
+can as well.</p>
+
+<h1 id="ragel-error-actions">Ragel Error Actions</h1>
+
+<p>Ragel allows the programmer to embed actions into a state machines. These
+execute in various circumstances. Actions are blocks of code written in the
+host language (in this case C). The Cloudflare incident involved error actions.
+Error actions execute when the state machine cannot continue normal processing.
+They are executed in two distinct cases.</p>
+
+<ol>
+  <li>
+    <p>Failure occurs on the current character.</p>
+  </li>
+  <li>
+    <p>Failure occurs at EOF (not terminating in a final state).</p>
+  </li>
+</ol>
+
+<h1 id="combining-error-actions-and-fgoto-command">Combining Error Actions and fgoto Command</h1>
+
+<p>In the first error action case it is okay to not issue an fhold before fgoto.
+In the second case it is not. Since we are already past the end of the buffer,
+we must fix the input. This is true for any kind of action that executes in the EOF case.</p>
+
+<p>This requirement is where things went wrong. There was a missing fhold before
+the fgoto, however, since Cloudflare was never telling Ragel where the end of
+the input was, the action was not executing in the EOF case.</p>
+
+<p>Cloudflare would have heavily tested the buggy error action when it executed in
+the first case and it would have worked just fine. However, turn on the second
+case and that’s where the problem arises.</p>
+
+<p>The fact that error actions execute in two distinct cases is certainly a part
+of working with Ragel that requies some attention. A single construct has two
+contexts of sort, and it’s possible to get a false sense of security when your
+code works okay in one of those contexts, the more commonly occuring one.</p>
+
+<p>This is part of Ragel’s design that I have debated over the years. However, I
+maintain that this design is better than the alternative, which would be for a
+parsing error handler to not execute because it occurred on EOF and not on an
+input character. It is better for “error action” to cover all senses of
+“error”.</p>
+
+<h1 id="changes-to-ragel">Changes to Ragel</h1>
+
+<p>What can be done here without really altering existing programs much is to
+enhance the generated fgoto code in the context of EOF actions. Such a change
+would catch failures to fixup the input pointer when it is vital and forgotten.</p>
+
+<p>The alternative is a warning on a lack of fhold when an fgoto is present in an
+EOF action, however there could be no static guarantee that the fhold was
+correctly placed and it would be possible for bad code to make it through with
+no warning.</p>
+
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Colm Networks</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Colm Networks</li>
+          <li><a href="mailto:info@colm.net">info@colm.net</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+          <li>
+            <a href="https://twitter.com/ehdtee">
+              <span class="icon  icon--twitter">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809
+                  c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/>
+                </svg>
+              </span>
+
+              <span class="username">ehdtee</span>
+            </a>
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-3">
+        <p class="text"></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
