@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] BUG while processing import directive
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20BUG%20while%20processing%20import%20directive&In-Reply-To=%3CCAD5e4C%3DpW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001393.html">
+   <LINK REL="Next"  HREF="001397.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] BUG while processing import directive</H1>
+    <B>Denis Naumov</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20BUG%20while%20processing%20import%20directive&In-Reply-To=%3CCAD5e4C%3DpW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug%40mail.gmail.com%3E"
+       TITLE="[ragel-users] BUG while processing import directive">alexander.me at gmail.com
+       </A><BR>
+    <I>Tue Jul 19 10:42:25 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001393.html">[ragel-users] BUG while processing import directive
+</A></li>
+        <LI>Next message: <A HREF="001397.html">[ragel-users] BUG while processing import directive
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1396">[ date ]</a>
+              <a href="thread.html#1396">[ thread ]</a>
+              <a href="subject.html#1396">[ subject ]</a>
+              <a href="author.html#1396">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian, Joseph.
+
+I want to express some ideas about cross-platform ragel.
+Joseph may add something, or offer the best solutions require minimal changes.
+
+1. =========================================
+
+ragel Windows specific code somewhere uses _WIN32 define, but
+somewhere _MSC_VER.
+IMHO it is better do not use _MSC_VER because _MSC_VER define is set
+only for Microsoft VC compiler and contain it's version code.
+_WIN32 define is used by all (as far as I know), compilers for Windows.
+
+I myself often use this design:
+somewhere in the general Include file that is included in all *. cpp files using
+
+# Ifndef __WIN32__
+# If defined (_WIN32) | | defined (WIN32)
+# Define __WIN32__
+# Endif
+# Endif
+
+and further where necessary
+
+# Ifdef __WIN32__
+   ...
+# Else
+   ...
+# Endif
+
+2. ==========================================
+
+ I found that in the main.cpp include unistd.h twice.
+ Also, there is no unistd.h header file in Windows, and I and Joseph
+have to create empty file to compile the project.
+ Could you move include unistd.h to use it only for unix-like systems.
+ Something like
+
+# Ifdef __WIN32__
+   ...
+# Else
+   # Include &lt;unistd.h&gt;
+# Endif
+
+  Fix it - 3 seconds.
+
+3. ==========================================
+
+  About the problem with '\' and '/' in paths.
+  I totally agree with Joseph. The first thing you may do - it does
+not handle escape sequences in strings that can are the paths of
+files.
+  This is a strings in &quot;include&quot; and &quot;import&quot; directives.
+
+  The situation on the one hand is simple - if _WIN32 use '\' in a way
+or another, '/', but the other is
+  some exotics. As I understand it when running under Windows in
+Minwig-cigwin-... and other shells, we sometimes get
+  that even so we should strictly be used '/'-unix separator.
+
+  Possible ways how to solve the problem:
+     - Solution 1.
+       all strings that are paths - copy in a separate buffer, and
+always use '\' to '/' replacement for them.
+       when concatenating paths with '/' always.
+       because '/' path work on all systems (windows, * nix, mac). We
+simply adjust the path if the user uses the '\'.
+
+     - Solution 2
+       you can create a global variable that will contain the correct
+path separator character.
+       correct path separator character will detect at startup.
+       For example you can try using argv [0] (first argument - the
+name of the program)
+       to create path like &quot;.\ragel&quot; - and try opening the file read-only.
+       if this is possible - then the system in which we started using
+'\' as path separator.
+       save it in a global variable and use later .
+       Or you can get an environment variable using the getenv (eg
+PATH), which will always contain the path to search.
+       scan the resulting string and find it '/' or '\' - this is the
+path separator.
+
+     - Maybe even some ideas:)))
+
+Best regards.
+Denis.
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001393.html">[ragel-users] BUG while processing import directive
+</A></li>
+	<LI>Next message: <A HREF="001397.html">[ragel-users] BUG while processing import directive
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1396">[ date ]</a>
+              <a href="thread.html#1396">[ thread ]</a>
+              <a href="subject.html#1396">[ subject ]</a>
+              <a href="author.html#1396">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

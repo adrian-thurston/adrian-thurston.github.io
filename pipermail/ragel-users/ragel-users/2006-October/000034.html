@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> fcall legal in scanner?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20fcall%20legal%20in%20scanner%3F&In-Reply-To=%3C4544F59D.2040803%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000033.html">
+   <LINK REL="Next"  HREF="000035.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>fcall legal in scanner?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20fcall%20legal%20in%20scanner%3F&In-Reply-To=%3C4544F59D.2040803%40cs.queensu.ca%3E"
+       TITLE="fcall legal in scanner?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sun Oct 29 18:40:29 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000033.html">fcall legal in scanner?
+</A></li>
+        <LI>Next message: <A HREF="000035.html">fcall legal in scanner?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#34">[ date ]</a>
+              <a href="thread.html#34">[ thread ]</a>
+              <a href="subject.html#34">[ subject ]</a>
+              <a href="author.html#34">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Carlos,
+
+I found the bug. The problem was with fret in scanner actions. The 
+adjustment to p that is needed in some cases was not happening. The 
+attached patch will fix the problem.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+&gt;<i> On 10/27/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> It sounds like a bug. fcall is supposed to work in actions associated with
+</I>&gt;&gt;<i> entire patterns (the lex style actions) but they are illegal in the the
+</I>&gt;&gt;<i> transition/state based embeddings and Ragel is supposed to emit an error.
+</I>&gt;&gt;<i> Could you post or send me some code which exhibits the problem?
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Please, see test2.rl file attached. It's a messy file because it's
+</I>&gt;<i> where I do, testing.
+</I>&gt;<i> 
+</I>&gt;<i> Basically, I'm using a scanner (main) to match 'Organization',
+</I>&gt;<i> 'Authorization' and a general purpose header called extension_header.
+</I>&gt;<i> If there is a header like 'an-extension-header', the scanner should
+</I>&gt;<i> match on the extension_header rule.
+</I>&gt;<i> 
+</I>&gt;<i> Here's a string to match:
+</I>&gt;<i> 
+</I>&gt;<i>             &quot;Authorization: Digest username=\&quot;Alice\&quot;,realm=\&quot;atlanta.com\&quot;\n&quot;
+</I>&gt;<i>             &quot;    , response=\&quot;7587245234b3434cc3412213e5f113a5432\&quot; , \r\n&quot;
+</I>&gt;<i>             &quot;    nonce=\&quot;84a4cc6f3082121f32b42a2187831a9e\&quot; \r\n&quot;
+</I>&gt;<i>             &quot;Organization: Boxes by\r\n Bob  \r\n      \n&quot;
+</I>&gt;<i>             &quot;An-Extension-Header: 10 \n&quot;
+</I>&gt;<i>             &quot;\r\n&quot;;
+</I>&gt;<i> 
+</I>&gt;<i> The scanner performs well with the previous string. Let's try a new string:
+</I>&gt;<i> 
+</I>&gt;<i>             &quot;An-Extension-Header: 10 \n&quot;
+</I>&gt;<i>             &quot;Authorization: Digest username=\&quot;Alice\&quot;,realm=\&quot;atlanta.com\&quot;\n&quot;
+</I>&gt;<i>             &quot;    , response=\&quot;7587245234b3434cc3412213e5f113a5432\&quot; , \r\n&quot;
+</I>&gt;<i>             &quot;    nonce=\&quot;84a4cc6f3082121f32b42a2187831a9e\&quot; \r\n&quot;
+</I>&gt;<i>             &quot;Organization: Boxes by\r\n Bob  \r\n      \n&quot;
+</I>&gt;<i>             &quot;\r\n&quot;;
+</I>&gt;<i> 
+</I>&gt;<i> In this case, the scanner, once it matches the extension header, will
+</I>&gt;<i> continue to match 'Authorization' and 'Organization' as extension
+</I>&gt;<i> headers as well, which didn't happen before.
+</I>&gt;<i> 
+</I>&gt;<i> Note that, if instead of using fcall from the main scanner, I use
+</I>&gt;<i> fgoto (and them fgoto back to main instead of fret), both input
+</I>&gt;<i> strings produce the same, and correct, behavior.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos
+</I>&gt;<i> 
+</I>-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: ragel-5.14.diff
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20061029/312bc914/attachment.ksh">http://www.colm.net/pipermail/ragel/attachments/20061029/312bc914/attachment.ksh</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000033.html">fcall legal in scanner?
+</A></li>
+	<LI>Next message: <A HREF="000035.html">fcall legal in scanner?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#34">[ date ]</a>
+              <a href="thread.html#34">[ thread ]</a>
+              <a href="subject.html#34">[ subject ]</a>
+              <a href="author.html#34">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

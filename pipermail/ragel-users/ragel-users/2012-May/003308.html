@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH] aapl: fix building with gcc-4.7.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20aapl%3A%20fix%20building%20with%20gcc-4.7.0&In-Reply-To=%3C1337729388-10853-1-git-send-email-flameeyes%40flameeyes.eu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003307.html">
+   <LINK REL="Next"  HREF="003309.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH] aapl: fix building with gcc-4.7.0</H1>
+    <B>Diego Elio Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20aapl%3A%20fix%20building%20with%20gcc-4.7.0&In-Reply-To=%3C1337729388-10853-1-git-send-email-flameeyes%40flameeyes.eu%3E"
+       TITLE="[ragel-users] [PATCH] aapl: fix building with gcc-4.7.0">flameeyes at flameeyes.eu
+       </A><BR>
+    <I>Tue May 22 23:29:48 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003307.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+        <LI>Next message: <A HREF="003309.html">[ragel-users] [PATCH] build: do not reset CXXFLAGS.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3308">[ date ]</a>
+              <a href="thread.html#3308">[ thread ]</a>
+              <a href="subject.html#3308">[ subject ]</a>
+              <a href="author.html#3308">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Starting with GCC 4.7, you have to explicit methods inherited from
+base templates, otherwise it will refuse to build.
+
+---
+
+The URL reported in the README is no longer registered, so I couldn't
+find a way to report this to an upstream project.
+
+Signed-off-by: Diego Elio Pettenò &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">flameeyes at flameeyes.eu</A>&gt;
+---
+ aapl/avlcommon.h  |   12 ++++++------
+ aapl/bstcommon.h  |   16 ++++++++--------
+ aapl/bubblesort.h |    2 +-
+ aapl/mergesort.h  |    2 +-
+ 4 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/aapl/avlcommon.h b/aapl/avlcommon.h
+index 06983bc..2e3c190 100644
+--- a/aapl/avlcommon.h
++++ b/aapl/avlcommon.h
+@@ -881,9 +881,9 @@ template &lt;AVLMEL_TEMPDEF&gt; Element *AvlTree&lt;AVLMEL_TEMPUSE&gt;::
+ 		}
+ 
+ #ifdef AVL_BASIC
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this-&gt;compare( *element, *curEl );
+ #else
+-		keyRelation = compare( element-&gt;BASEKEY(getKey()), 
++		keyRelation = this-&gt;compare( element-&gt;BASEKEY(getKey()),
+ 				curEl-&gt;BASEKEY(getKey()) );
+ #endif
+ 
+@@ -920,7 +920,7 @@ template &lt;AVLMEL_TEMPDEF&gt; Element *AvlTree&lt;AVLMEL_TEMPUSE&gt;::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this-&gt;compare( *element, *curEl );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation &lt; 0 )
+@@ -969,7 +969,7 @@ template &lt;AVLMEL_TEMPDEF&gt; Element *AvlTree&lt;AVLMEL_TEMPUSE&gt;::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare( key, curEl-&gt;BASEKEY(getKey()) );
++		keyRelation = this-&gt;compare( key, curEl-&gt;BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation &lt; 0 ) {
+@@ -1023,7 +1023,7 @@ template &lt;AVLMEL_TEMPDEF&gt; Element *AvlTree&lt;AVLMEL_TEMPUSE&gt;::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare(key, curEl-&gt;getKey());
++		keyRelation = this-&gt;compare(key, curEl-&gt;getKey());
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation &lt; 0 ) {
+@@ -1058,7 +1058,7 @@ template &lt;AVLMEL_TEMPDEF&gt; Element *AvlTree&lt;AVLMEL_TEMPUSE&gt;::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( key, curEl-&gt;BASEKEY(getKey()) );
++		keyRelation = this-&gt;compare( key, curEl-&gt;BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation &lt; 0 )
+diff --git a/aapl/bstcommon.h b/aapl/bstcommon.h
+index 888717f..7c53ff3 100644
+--- a/aapl/bstcommon.h
++++ b/aapl/bstcommon.h
+@@ -361,7 +361,7 @@ template &lt;BST_TEMPL_DEF&gt; bool BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this-&gt;compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+@@ -373,12 +373,12 @@ template &lt;BST_TEMPL_DEF&gt; bool BstTable&lt;BST_TEMPL_USE&gt;::
+ 
+ 			lower = mid - 1;
+ 			while ( lower != lowEnd &amp;&amp; 
+-					compare(key, GET_KEY(*lower)) == 0 )
++					this-&gt;compare(key, GET_KEY(*lower)) == 0 )
+ 				lower--;
+ 
+ 			upper = mid + 1;
+ 			while ( upper != highEnd &amp;&amp; 
+-					compare(key, GET_KEY(*upper)) == 0 )
++					this-&gt;compare(key, GET_KEY(*upper)) == 0 )
+ 				upper++;
+ 			
+ 			low = (Element*)lower + 1;
+@@ -419,7 +419,7 @@ template &lt;BST_TEMPL_DEF&gt; Element *BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this-&gt;compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+@@ -457,7 +457,7 @@ template &lt;BST_TEMPL_DEF&gt; Element *BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this-&gt;compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+@@ -508,7 +508,7 @@ template &lt;BST_TEMPL_DEF&gt; Element *BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this-&gt;compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+@@ -603,7 +603,7 @@ template &lt;BST_TEMPL_DEF&gt; Element *BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this-&gt;compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+@@ -662,7 +662,7 @@ template &lt;BST_TEMPL_DEF&gt; Element *BstTable&lt;BST_TEMPL_USE&gt;::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)&gt;&gt;1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this-&gt;compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation &lt; 0 )
+ 			upper = mid - 1;
+diff --git a/aapl/bubblesort.h b/aapl/bubblesort.h
+index bcc2fb6..f0f4ce5 100644
+--- a/aapl/bubblesort.h
++++ b/aapl/bubblesort.h
+@@ -72,7 +72,7 @@ template &lt;class T, class Compare&gt; void BubbleSort&lt;T,Compare&gt;::
+ 		changed = false;
+ 		for ( long i = 0; i &lt; len-pass; i++ ) {
+ 			/* Do we swap pos with the next one? */
+-			if ( compare( data[i], data[i+1] ) &gt; 0 ) {
++			if ( this-&gt;compare( data[i], data[i+1] ) &gt; 0 ) {
+ 				char tmp[sizeof(T)];
+ 
+ 				/* Swap the two items. */
+diff --git a/aapl/mergesort.h b/aapl/mergesort.h
+index 68b8426..8cefa73 100644
+--- a/aapl/mergesort.h
++++ b/aapl/mergesort.h
+@@ -110,7 +110,7 @@ template&lt; class T, class Compare&gt; void MergeSort&lt;T,Compare&gt;::
+ 		}
+ 		else {
+ 			/* Both upper and lower left. */
+-			if ( compare(*lower, *upper) &lt;= 0 )
++			if ( this-&gt;compare(*lower, *upper) &lt;= 0 )
+ 				memcpy( dest++, lower++, sizeof(T) );
+ 			else
+ 				memcpy( dest++, upper++, sizeof(T) );
+-- 
+1.7.8.6
+
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003307.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+	<LI>Next message: <A HREF="003309.html">[ragel-users] [PATCH] build: do not reset CXXFLAGS.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3308">[ date ]</a>
+              <a href="thread.html#3308">[ thread ]</a>
+              <a href="subject.html#3308">[ subject ]</a>
+              <a href="author.html#3308">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

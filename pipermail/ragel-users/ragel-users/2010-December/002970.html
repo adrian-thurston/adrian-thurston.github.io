@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20Fix%20generated%20code%20for%20Ruby%201.9%20compatibility.&In-Reply-To=%3C1292482349-2518-1-git-send-email-flameeyes%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002975.html">
+   <LINK REL="Next"  HREF="002976.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.</H1>
+    <B>Diego Elio Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20Fix%20generated%20code%20for%20Ruby%201.9%20compatibility.&In-Reply-To=%3C1292482349-2518-1-git-send-email-flameeyes%40gmail.com%3E"
+       TITLE="[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.">flameeyes at gmail.com
+       </A><BR>
+    <I>Thu Dec 16 06:52:29 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002975.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+        <LI>Next message: <A HREF="002976.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9	compatibility.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2970">[ date ]</a>
+              <a href="thread.html#2970">[ thread ]</a>
+              <a href="subject.html#2970">[ subject ]</a>
+              <a href="author.html#2970">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>In Ruby 1.9, the String class no longer works as a C-style array of (8-bit)
+characters, but supports multiple encoding. While it is obviously a task
+for the developer to ensure that the data array passed to the
+Ragel-generated code is in a compatible encoding, this also means that the
+simple dereference is not going to work:
+
+% ruby18 -e 'puts &quot;foo&quot;[0].class'
+Fixnum
+% ruby19 -e 'puts &quot;foo&quot;[0].class'
+String
+
+This is easily fixed by calling the #ord method on the dereferenced data,
+which will provide the ASCII ordinal (or UNICODE codepoint) for the single
+character.
+
+The produced code works correctly both on Ruby 1.8 and 1.9.2.
+---
+ ragel/rubycodegen.cpp |    7 +++++--
+ 1 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/ragel/rubycodegen.cpp b/ragel/rubycodegen.cpp
+index 5117823..f329587 100644
+--- a/ragel/rubycodegen.cpp
++++ b/ragel/rubycodegen.cpp
+@@ -307,8 +307,11 @@ string RubyCodeGen::GET_KEY()
+ 		ret &lt;&lt; &quot;)&quot;;
+ 	}
+ 	else {
+-		/* Expression for retrieving the key, use simple dereference. */
+-		ret &lt;&lt; DATA() &lt;&lt; &quot;[&quot; &lt;&lt; P() &lt;&lt; &quot;]&quot;;
++		/* Expression for retrieving the key, use dereference
++		 * and read ordinal, for compatibility with Ruby
++		 * 1.9.
++		 */
++		ret &lt;&lt; DATA() &lt;&lt; &quot;[&quot; &lt;&lt; P() &lt;&lt; &quot;].ord&quot;;
+ 	}
+ 	return ret.str();
+ }
+-- 
+1.7.3.3
+
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002975.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+	<LI>Next message: <A HREF="002976.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9	compatibility.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2970">[ date ]</a>
+              <a href="thread.html#2970">[ thread ]</a>
+              <a href="subject.html#2970">[ subject ]</a>
+              <a href="author.html#2970">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

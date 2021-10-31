@@ -1,0 +1,275 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on 32bit OS on a VM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20colm-0.13.0.5%20fails%20to%20build%20on%20Gentoo%20Prefix%20on%0A%2032bit%20OS%20on%20a%20VM&In-Reply-To=%3CCABVqfw-UHSPDT6rvHNk0JCBS%2BHiwirucLPWxPr0TWd3qD3QfBg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="000195.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on 32bit OS on a VM</H1>
+    <B>Sam Pfeiffer</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20colm-0.13.0.5%20fails%20to%20build%20on%20Gentoo%20Prefix%20on%0A%2032bit%20OS%20on%20a%20VM&In-Reply-To=%3CCABVqfw-UHSPDT6rvHNk0JCBS%2BHiwirucLPWxPr0TWd3qD3QfBg%40mail.gmail.com%3E"
+       TITLE="[colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on 32bit OS on a VM">sammypfeiffer at gmail.com
+       </A><BR>
+    <I>Tue May  1 21:02:37 UTC 2018</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000195.html">[colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on 32bit OS on a VM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#194">[ date ]</a>
+              <a href="thread.html#194">[ thread ]</a>
+              <a href="subject.html#194">[ subject ]</a>
+              <a href="author.html#194">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Oh, docker is wonderful, specially for this kind of &quot;reproduce my case&quot;
+scenarios.
+
+If your machine is veeeeery old... this may not even work cause of missing
+virtualization stuff on your CPU (I have a little server with that problem).
+
+But, in any case, if you are using Ubuntu (16.04 I'd hope), you can follow
+the official guide to install docker:
+<A HREF="https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository">https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository</A>
+
+Shortened is this:
+
+sudo apt-get install -y apt-transport-https ca-certificates curl
+software-properties-common
+curl -fsSL <A HREF="https://download.docker.com/linux/ubuntu/gpg">https://download.docker.com/linux/ubuntu/gpg</A> | sudo apt-key add -
+sudo add-apt-repository \
+   &quot;deb [arch=amd64] <A HREF="https://download.docker.com/linux/ubuntu">https://download.docker.com/linux/ubuntu</A> \
+   $(lsb_release -cs) \
+   stable&quot;
+sudo apt-get update
+sudo apt-get install -y docker-ce
+sudo usermod -aG docker $USER
+
+That's probably 100Mb?
+
+I also installed virtualbox-5.2... I think it installs some kernel modules
+that will be needed by the Docker I made. But I'm not sure. You can try
+without.
+In any case the installation instructions are here:
+<A HREF="https://www.virtualbox.org/wiki/Linux_Downloads">https://www.virtualbox.org/wiki/Linux_Downloads</A>
+
+Or shortened:
+
+sudo su
+wget -q <A HREF="https://www.virtualbox.org/download/oracle_vbox_2016.asc">https://www.virtualbox.org/download/oracle_vbox_2016.asc</A> -O- | sudo
+apt-key add -
+wget -q <A HREF="https://www.virtualbox.org/download/oracle_vbox.asc">https://www.virtualbox.org/download/oracle_vbox.asc</A> -O- | sudo
+apt-key add -
+echo &quot;deb <A HREF="http://download.virtualbox.org/virtualbox/debian">http://download.virtualbox.org/virtualbox/debian</A> xenial contrib&quot;
+&gt;&gt;<i> /etc/apt/sources.list.d/virtualbox.list
+</I>apt-get update
+apt-get install -y --allow-unauthenticated dkms virtualbox-5.2
+virtualbox-dkms
+
+VBOX_VERSION=`dpkg -s virtualbox-5.2 | grep '^Version: ' | sed -e
+'s/Version: \([0-9\.]*\)\-.*/\1/'` ; \
+    wget -q
+<A HREF="http://download.virtualbox.org/virtualbox/${VBOX_VERSION">http://download.virtualbox.org/virtualbox/${VBOX_VERSION</A>}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+; \
+    VBoxManage extpack install
+Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+--accept-license=56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb;
+\
+    rm Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+apt-get install -y linux-headers-generic virtualbox-dkms
+# Change the group of /dev/vbox* to vboxusers
+chgrp vboxusers /dev/vbox*
+# Change permissions
+chmod g+rw /dev/vbox*
+
+Probably another 100Mb there.
+
+But the really big guy is when you do, from the README of the repo:
+<A HREF="https://github.com/awesomebytes/colm_docker">https://github.com/awesomebytes/colm_docker</A>
+
+docker pull awesomebytes/colm_environment:1
+
+That's 5.1GB of an image. It contains a 4GB file which is some kind of
+snapshotted VM with the problem.
+
+Alternatively, I could provide you access via ssh to some machine with the
+system already setup. If that would be more convenient for you, drop me a
+mail privately. Note that I'm in Sydney, we may have quite a challenge on
+timezones.
+
+
+
+
+On Tue, May 1, 2018 at 1:33 AM, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">thurston at colm.net</A>&gt; wrote:
+
+&gt;<i> Okay thanks. I haven't used docker before (although a huge fan of linux
+</I>&gt;<i> namespaces). I'm assuming I need to do a lot of downloading to get this
+</I>&gt;<i> going? I'm not currently on a good internet connection, and I'm stuck on a
+</I>&gt;<i> very old laptop after leaving my good one on the top of my car and getting
+</I>&gt;<i> on the highway. Is there anything about this docker image that expires?
+</I>&gt;<i>
+</I>&gt;<i> On 2018-04-28 01:42, Sam Pfeiffer wrote:
+</I>&gt;<i>
+</I>&gt;<i> Hello,
+</I>&gt;<i>
+</I>&gt;<i> I made a Docker image that you may use to (hopefully) quickly reproduce
+</I>&gt;<i> the bug. The instructions on how to use it are here:
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/awesomebytes/colm_docker">https://github.com/awesomebytes/colm_docker</A>
+</I>&gt;<i>
+</I>&gt;<i> Mainly:
+</I>&gt;<i>
+</I>&gt;<i> docker pull awesomebytes/colm_environment:1
+</I>&gt;<i>
+</I>&gt;<i> docker run --privileged -v $HOME:/shared -it awesomebytes/colm_environment:
+</I>&gt;<i> 1
+</I>&gt;<i>
+</I>&gt;<i> ./COLM-start
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> su - abuild
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> cd ~/rpmbuild/BUILD/colm-0.13.0.5
+</I>&gt;<i> make clean
+</I>&gt;<i> ./configure
+</I>&gt;<i> make
+</I>&gt;<i>
+</I>&gt;<i> Extra info is in the README of the github repo.
+</I>&gt;<i>
+</I>&gt;<i> Thank you for taking a look into it again!
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Sat, Apr 28, 2018 at 8:32 AM, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">thurston at colm.net</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Can I get onto the VM where it can be reproduced?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On 2018-04-26 22:58, Sam Pfeiffer wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hello,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> (Sorry if this mail may be received twice in the list).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I've seen that you had some conversation about that already at:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/pipermail/colm-users/2017-June/000175.html">http://www.colm.net/pipermail/colm-users/2017-June/000175.html</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> But it never got anywhere, I think. The last comment of Adrian Thurston
+</I>&gt;&gt;<i> says that build dependencies are missing.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I tried reproducing the same thing and it did work for me (so I got the
+</I>&gt;&gt;<i> same compilation error). I did miss the first time doing:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> su - abuild
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> As explained in <A HREF="http://www.colm.net/pipermail/">http://www.colm.net/pipermail/</A>
+</I>&gt;&gt;<i> colm-users/2017-June/000175.html by Jan Engelhardt.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Which gave me the same errors mentioned by Adrian.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So, to reproduce it I did (just for clarity):
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> cd tmp
+</I>&gt;&gt;<i> wget <A HREF="http://inai.de/files/colm/COLM-img">http://inai.de/files/colm/COLM-img</A>
+</I>&gt;&gt;<i> wget <A HREF="http://inai.de/files/colm/COLM-initrd">http://inai.de/files/colm/COLM-initrd</A>
+</I>&gt;&gt;<i> wget <A HREF="http://inai.de/files/colm/COLM-kernel">http://inai.de/files/colm/COLM-kernel</A>
+</I>&gt;&gt;<i> wget <A HREF="http://inai.de/files/colm/COLM-start">http://inai.de/files/colm/COLM-start</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> chmod +x COLM-start
+</I>&gt;&gt;<i> ./COLM-start
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> su - abuild
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> cd ~/rpmbuild/BUILD/colm-0.13.0.5
+</I>&gt;&gt;<i> make clean
+</I>&gt;&gt;<i> ./configure
+</I>&gt;&gt;<i> make
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> And I got back to:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> bootstrap1: tree.c:953: colm_tree_downref: Assertion `tree-&gt;refs &gt; 0'
+</I>&gt;&gt;<i> failed.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> (I have a VM where I can reproduce it also, but I can't share it
+</I>&gt;&gt;<i> publicly).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> *Sammy Pfeiffer*
+</I>&gt;&gt;<i> PhD Candidate at The Magic Lab within UTS.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> colm-users mailing <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">listcolm-users at colm.nethttp</A>://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> colm-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">http://www.colm.net/cgi-bin/mailman/listinfo/colm-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i>
+</I>&gt;<i> *Sammy Pfeiffer*
+</I>&gt;<i> PhD Candidate at The Magic Lab within UTS.
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> colm-users mailing <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">listcolm-users at colm.nethttp</A>://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> colm-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">http://www.colm.net/cgi-bin/mailman/listinfo/colm-users</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+*Sammy Pfeiffer*
+PhD Candidate at The Magic Lab within UTS.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/colm-users/attachments/20180502/3fba6406/attachment.html">http://www.colm.net/pipermail/colm-users/attachments/20180502/3fba6406/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000195.html">[colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on 32bit OS on a VM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#194">[ date ]</a>
+              <a href="thread.html#194">[ thread ]</a>
+              <a href="subject.html#194">[ subject ]</a>
+              <a href="author.html#194">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

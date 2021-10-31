@@ -1,0 +1,435 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> ragel and memory usage
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20ragel%20and%20memory%20usage&In-Reply-To=%3C1169329253.204791.3690%4038g2000cwa.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000114.html">
+   <LINK REL="Next"  HREF="000116.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>ragel and memory usage</H1>
+    <B>Damir Nedzibovic</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20ragel%20and%20memory%20usage&In-Reply-To=%3C1169329253.204791.3690%4038g2000cwa.googlegroups.com%3E"
+       TITLE="ragel and memory usage">dam... at gmail.com
+       </A><BR>
+    <I>Sat Jan 20 21:40:53 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000114.html">ragel and memory usage
+</A></li>
+        <LI>Next message: <A HREF="000116.html">[ragel-users] ragel and memory usage
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#115">[ date ]</a>
+              <a href="thread.html#115">[ thread ]</a>
+              <a href="subject.html#115">[ subject ]</a>
+              <a href="author.html#115">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I'm trying to build a grammar for parsing SIP messages (as in rfc3261),
+but I have encountered a problem that I cannot solve - it seems that
+I've hit a state explosion, since ragel just keeps allocating memory
+and finally dies.
+
+Here's my grammar (sorry for pasting it here like this)
+
+--cut--
+%%{
+  machine sip_parser;
+
+  action mark
+  {
+  }
+
+  action req_i
+  {
+  }
+
+  action req_a
+  {
+  }
+
+  action req_o
+  {
+  }
+
+  action req_b
+  {
+  }
+
+  action req_c
+  {
+  }
+
+  action req_r
+  {
+  }
+
+  action create_req
+  {
+  }
+
+  action request_method
+  {
+  }
+
+  action uri_host
+  {
+  }
+
+  action done
+  {
+    fbreak;
+  }
+
+  action uri_port
+  {
+  }
+
+  action uri_pass
+  {
+  }
+
+  action uri_user
+  {
+  }
+
+  action uri_scheme
+  {
+  }
+
+  action set_req_uri
+  {
+  }
+
+  action add_param
+  {
+  }
+
+  action add_param_value
+  {
+  }
+
+  action uri_query
+  {
+  }
+
+#### SIP PROTOCOL GRAMMAR
+
+  CRLF = &quot;\r\n&quot;;
+  SP = &quot; &quot;;
+  HTAB = &quot;\t&quot;;
+  DQUOTE = &quot;\&quot;&quot;;
+  LHEX = digit | [a-f];
+
+  alphanum = [a-zA-Z0-9];
+  reserved = (&quot;;&quot; | &quot;/&quot; | &quot;?&quot; | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; |
+&quot;,&quot;);
+  mark = (&quot;-&quot; | &quot;_&quot; | &quot;.&quot; | &quot;!&quot; | &quot;~&quot; | &quot;*&quot; | &quot;'&quot; | &quot;(&quot; | &quot;)&quot;);
+  unreserved = (alphanum | mark);
+  escaped = (&quot;%&quot; xdigit xdigit);
+
+  LWS = ((&quot; &quot;* CRLF)? &quot; &quot;+);
+  SWS = (LWS?);
+
+  HCOLON = ((&quot; &quot; | &quot;\t&quot;)* &quot;:&quot; SWS);
+
+  token = (alphanum | &quot;-&quot; | &quot;.&quot; | &quot;!&quot; | &quot;%&quot; | &quot;*&quot; | &quot;_&quot; | &quot;+&quot; | &quot;`&quot; |
+&quot;'&quot; | &quot;~&quot; )+;
+  separators = (&quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;@&quot; | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;\\&quot; |
+DQUOTE | &quot;/&quot; | &quot;[&quot; | &quot;]&quot; | &quot;?&quot; | &quot;=&quot; | &quot;{&quot; | &quot;}&quot; | SP | HTAB);
+  word = (alphanum | &quot;-&quot; | &quot;.&quot; | &quot;!&quot; | &quot;%&quot; | &quot;*&quot; | &quot;_&quot; | &quot;+&quot; | &quot;`&quot; |
+&quot;'&quot; | &quot;~&quot; | &quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;:&quot; | &quot;\\&quot; | DQUOTE | &quot;/&quot; | &quot;[&quot; |
+&quot;]&quot; | &quot;?&quot; | &quot;{&quot; | &quot;}&quot;)+;
+
+  STAR   = (SWS &quot;*&quot; SWS);
+  SLASH  = (SWS &quot;/&quot; SWS);
+  EQUAL  = (SWS &quot;=&quot; SWS);
+  LPAREN = (SWS &quot;(&quot; SWS);
+  RPAREN = (SWS &quot;)&quot; SWS);
+  RAQUOT = (&quot;&gt;&quot; SWS);
+  LAQUOT = (SWS &quot;&lt;&quot;);
+  COMMA  = (SWS &quot;,&quot; SWS);
+  SEMI   = (SWS &quot;;&quot; SWS);
+  COLON  = (SWS &quot;:&quot; SWS);
+  LDQUOT = (SWS DQUOTE);
+  RDQUOT = (DQUOTE SWS);
+
+  qdtext = (LWS | 0x21 | 0x23..0x5B | 0x5D..0x7E);
+  quoted_pair = (&quot;\\&quot; (0x00..0x09 | 0x0B..0x0C | 0x0E..0x7F));
+  quoted_string = (SWS DQUOTE (qdtext | quoted_pair)* DQUOTE);
+  ctext    = (0x21..27 | 0x2A..0x5B | 0x5D..0x7E | LWS);
+  comment_r = (LPAREN? (ctext | quoted_pair) RPAREN?);
+  comment  = (LPAREN (comment_r)* RPAREN);
+
+  port = digit+;
+  IPv4address =  (digit{1,3} &quot;.&quot; digit{1,3} &quot;.&quot; digit{1,3} &quot;.&quot;
+digit{1,3});
+  toplabel = (alpha | (alpha (alphanum | &quot;-&quot;)* alphanum));
+  domainlabel = (alphanum | (alphanum (alphanum | &quot;-&quot;)* alphanum));
+  hostname = ((domainlabel &quot;.&quot;)* toplabel &quot;.&quot;?);
+  host = (hostname | IPv4address);
+  hostport = (host &gt;mark %uri_host (&quot;:&quot; port &gt;mark %uri_port)?);
+  password = ((unreserved | escaped | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot; )*);
+  user_unreserved = (&quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot; | &quot;;&quot; | &quot;?&quot; | &quot;/&quot;);
+  user = ((unreserved | escaped | user_unreserved)+);
+  userinfo = (user &gt;mark %uri_user (&quot;:&quot; password &gt;mark %uri_pass)?
+&quot;@&quot;);
+
+  extension_method = token;
+  Method = ((&quot;INVITE&quot; %req_i | &quot;ACK&quot; %req_a | &quot;OPTIONS&quot; %req_o | &quot;BYE&quot;
+%req_b | &quot;CANCEL&quot; %req_c | &quot;REGISTER&quot; %req_r | extension_method)) &gt;mark
+%request_method;
+
+  hnv_unreserved = (&quot;[&quot; | &quot;]&quot; | &quot;|&quot; | &quot;?&quot; | &quot;:&quot; | &quot;+&quot; | &quot;$&quot;);
+  hvalue = ((hnv_unreserved | unreserved | escaped)*);
+  hname = ((hnv_unreserved | unreserved | escaped)+);
+  header = (hname &quot;=&quot; hvalue);
+  headers = (&quot;?&quot; header (&quot;&amp;&quot; header)*);
+  param_unreserved = (&quot;[&quot; | &quot;]&quot; | &quot;/&quot; | &quot;:&quot; | &quot;&amp;&quot; | &quot;+&quot; | &quot;$&quot;);
+  paramchar = (param_unreserved | unreserved | escaped);
+  pvalue = (paramchar+);
+  pname = (paramchar+);
+  other_param = (pname &gt;mark %add_param (&quot;=&quot; pvalue &gt;mark
+%add_param_value)?);
+  lr_param = &quot;lr&quot; &gt;mark %add_param;
+  maddr_param = &quot;maddr&quot; &gt;mark %add_param &quot;=&quot; host &gt;mark
+%add_param_value;
+  method_param = &quot;method&quot; &gt;mark %add_param &quot;=&quot; Method &gt;mark
+%add_param_value;
+  ttl = (digit{1,3});
+  ttl_param = &quot;ttl&quot; &gt;mark %add_param &quot;=&quot; ttl &gt;mark %add_param_value;
+  other_user = token;
+  user_param = &quot;user&quot; &gt;mark %add_param &quot;=&quot; (&quot;phone&quot; | &quot;ip&quot; |
+other_user) &gt;mark %add_param_value;
+  other_transport = token;
+  transport_param = (&quot;transport&quot; &gt;mark %add_param &quot;=&quot; (&quot;udp&quot; | &quot;tcp&quot; |
+&quot;sctp&quot; | &quot;tls&quot; | other_transport) &gt;mark %add_param_value);
+  uri_parameter = (transport_param | user_param | method_param |
+ttl_param | maddr_param | lr_param | other_param);
+  uri_parameters = ((&quot;;&quot; uri_parameter)*);
+  SIP_URI = (&quot;sip:&quot; %{ m_data-&gt;m_uri.scheme() = &quot;sip&quot;; } (userinfo)?
+hostport uri_parameters (headers)?);
+  SIPS_URI = (&quot;sips:&quot; %{ m_data-&gt;m_uri.scheme() = &quot;sips&quot;; } (userinfo)?
+hostport uri_parameters (headers)?);
+
+  x_token = (&quot;x-&quot; token);
+  ietf_token = token;
+  extension_token = (ietf_token | x_token);
+  composite_type = (&quot;message&quot; | &quot;multipart&quot; | extension_token);
+  discrete_type = (&quot;text&quot; | &quot;image&quot; | &quot;audio&quot; | &quot;video&quot; | &quot;application&quot;
+|<i> extension_token);
+</I>  m_type = (discrete_type | composite_type);
+
+  m_value = (token | quoted_string);
+  m_attribute = token;
+  m_parameter = (m_attribute EQUAL m_value);
+  iana_token = token;
+  m_subtype = (extension_token | iana_token);
+
+  uric           = (reserved | unreserved | escaped);
+  query          = (uric*);
+  reg_name       = (unreserved | escaped | &quot;$&quot; | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;@&quot;
+|<i> &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; )+;
+</I>  srvr           = ((userinfo &quot;@&quot;)? hostport)?;
+  authority      = (srvr | reg_name);
+  scheme         = (alpha (alpha | digit | &quot;+&quot; | &quot;-&quot; | &quot;.&quot; )*);
+  pchar          = (unreserved | escaped | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot;
+|<i> &quot;$&quot; | &quot;,&quot;);
+</I>  param          = (pchar*);
+  segment        = (pchar* (&quot;;&quot; param)*);
+  path_segments  = (segment (&quot;/&quot; segment)*);
+  uric_no_slash  = (unreserved | escaped | &quot;;&quot; | &quot;?&quot; | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot;
+|<i> &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot;);
+</I>  opaque_part    = (uric_no_slash uric*);
+  abs_path       = (&quot;/&quot; path_segments);
+  net_path       = (&quot;//&quot; authority (abs_path)?);
+  hier_part      = ((net_path | abs_path) (&quot;?&quot; query &gt;mark
+%uri_query)?);
+  absoluteURI    = (scheme &gt;mark %uri_scheme &quot;:&quot; (hier_part |
+opaque_part));
+
+  gen_value = (token | host | quoted_string);
+  generic_param = (token (EQUAL gen_value)?);
+  qvalue = ((&quot;0&quot; (&quot;.&quot; digit{,3})?) | (&quot;1&quot; (&quot;.&quot; (&quot;0&quot;){,3})?));
+  accept_param = ((&quot;q&quot; EQUAL qvalue) | generic_param);
+  media_range = ((&quot;*&quot; &quot;/&quot; &quot;*&quot; | ( m_type SLASH &quot;*&quot; ) | ( m_type SLASH
+m_subtype )) (SEMI m_parameter)*);
+  accept_range = (media_range (SEMI accept_param)*);
+  Accept = (&quot;Accept&quot; HCOLON (accept_range (COMMA accept_range)*))?;
+
+  content_coding   = (token);
+  codings          = (content_coding | &quot;*&quot;);
+  encoding         = (codings (SEMI accept_param)*);
+  Accept_Encoding  = (&quot;Accept-Encoding&quot; HCOLON (encoding (COMMA
+encoding)*)?);
+
+  language_range   = (((alpha{1,8} (&quot;-&quot; alpha{1,8})*) | &quot;*&quot; ));
+  language         = (language_range (SEMI accept_param)*);
+  Accept_Language  = (&quot;Accept-Language&quot; HCOLON (language (COMMA
+language)*)?);
+
+  alert_param      = (LAQUOT absoluteURI RAQUOT (SEMI generic_param
+)*);
+  Alert_Info       = (&quot;Alert-Info&quot; HCOLON alert_param (COMMA
+alert_param)*);
+
+  Allow            = (&quot;Allow&quot; HCOLON (Method (COMMA Method)*)?);
+
+  opaque           = (&quot;opaque&quot; EQUAL quoted_string);
+  algorithm        = (&quot;algorithm&quot; EQUAL (&quot;MD5&quot; | &quot;MD5-sess&quot; | token));
+  realm_value      = (quoted_string);
+  realm            = (&quot;realm&quot; EQUAL realm_value);
+  auth_scheme      = (token);
+  auth_param_name  = (token);
+  auth_param       = (auth_param_name EQUAL (token | quoted_string));
+  other_response   = (auth_scheme LWS auth_param (COMMA auth_param)*);
+  request_digest   = (LDQUOT LHEX{32} RDQUOT);
+  dresponse        = (&quot;response&quot; EQUAL request_digest);
+  nonce_value      = (quoted_string);
+  nonce            = (&quot;nonce&quot; EQUAL nonce_value);
+  nc_value         = (LHEX{8});
+  nonce_count      = (&quot;nc&quot; EQUAL nc_value);
+  cnonce_value     = (nonce_value);
+  cnonce           = (&quot;cnonce&quot; EQUAL cnonce_value);
+  qop_value        = (&quot;auth&quot; | &quot;auth-int&quot; | token);
+  message_qop      = (&quot;qop&quot; EQUAL qop_value);
+  digest_uri_value = (absoluteURI); # fixme
+  digest_uri       = (&quot;uri&quot; EQUAL LDQUOT digest_uri_value RDQUOT);
+  username_value   = (quoted_string);
+  username         = (&quot;username&quot; EQUAL username_value);
+  dig_resp         = (username | realm | nonce | digest_uri | dresponse
+|<i> algorithm | cnonce | opaque | message_qop | nonce_count |
+</I>auth_param);
+  digest_response  = (dig_resp (COMMA dig_resp)*);
+  credentials      = ((&quot;Digest&quot; LWS digest_response) | other_response);
+  Authorization    = (&quot;Authorization&quot; HCOLON credentials);
+
+  response_digest      = (LDQUOT LHEX* RDQUOT);
+  response_auth        = (&quot;rspauth&quot; EQUAL response_digest);
+  nextnonce            = (&quot;nextnonce&quot; EQUAL nonce_value);
+  ainfo                = (nextnonce | message_qop | response_auth |
+cnonce | nonce_count);
+  Authentication_Info  = (&quot;Authentication-Info&quot; HCOLON ainfo (COMMA
+ainfo)*);
+
+  callid   =  (word (&quot;@&quot; word)?);
+  Call_ID  = (( &quot;Call-ID&quot; | &quot;i&quot; ) HCOLON callid);
+
+  info_param  = ((&quot;purpose&quot; EQUAL (&quot;icon&quot; | &quot;info&quot; | &quot;card&quot; | token)) |
+generic_param);
+  info        = (LAQUOT absoluteURI RAQUOT (SEMI info_param)*);
+  Call_Info   = (&quot;Call-Info&quot; HCOLON info (COMMA info)*);
+
+  delta_seconds      = (digit+);
+  contact_extension  = (generic_param);
+  c_p_expires    = (&quot;expires&quot; EQUAL delta_seconds);
+  c_p_q          = (&quot;q&quot; EQUAL qvalue);
+  contact_params = (c_p_q | c_p_expires);
+  display_name   = ((token LWS)* | quoted_string);
+  addr_spec      = (SIP_URI | SIPS_URI | absoluteURI);
+  name_addr      = ((display_name)? LAQUOT addr_spec RAQUOT);
+  contact_param  = ((name_addr | addr_spec) (SEMI contact_params)*);
+  Contact     = ((&quot;Contact&quot; | &quot;m&quot; ) HCOLON (STAR | (contact_param
+(COMMA contact_param)*)));
+
+  disp_extension_token  = (token);
+  other_handling        = (token);
+  handling_param        = (&quot;handling&quot; EQUAL ( &quot;optional&quot; | &quot;required&quot; |
+other_handling));
+  disp_param            = (handling_param | generic_param);
+  disp_type             = (&quot;render&quot; | &quot;session&quot; | &quot;icon&quot; | &quot;alert&quot; |
+disp_extension_token);
+  Content_Disposition   = (&quot;Content-Disposition&quot; HCOLON disp_type (SEMI
+disp_param)*);
+
+  Content_Encoding  = ((&quot;Content-Encoding&quot; | &quot;e&quot; ) HCOLON
+content_coding (COMMA content_coding)*);
+
+  subtag            = (alpha{1,8});
+  primary_tag       = (alpha{1,8});
+  language_tag      = (primary_tag (&quot;-&quot; subtag)*);
+  Content_Language  = (&quot;Content-Language&quot; HCOLON language_tag (COMMA
+language_tag)*);
+
+  Content_Length    = ((&quot;Content-Length&quot; | &quot;l&quot;) HCOLON digit+);
+
+  media_type        = (m_type SLASH m_subtype (SEMI m_parameter)*);
+  Content_Type      = ((&quot;Content-Type&quot; | &quot;c&quot; ) HCOLON media_type);
+
+  CSeq = (&quot;CSeq&quot; HCOLON digit+ LWS Method);
+
+  message_header = (Accept |
+                    Accept_Encoding |
+                    Accept_Language |
+                    Alert_Info |
+                    Allow |
+                    Authentication_Info |
+                    Authorization |
+                    Call_ID |
+                    Call_Info |
+                    Contact |
+                    Content_Disposition |
+                    Content_Encoding |
+                    Content_Language |
+                    Content_Length |
+                    Content_Type |
+                    CSeq) CRLF;
+
+  SIP_Version    = &quot;SIP&quot; &quot;/&quot; digit &quot;.&quot; digit;
+  Request_URI    = SIP_URI | SIPS_URI | absoluteURI;
+  Request_Line   = Method %create_req SP Request_URI %set_req_uri SP
+SIP_Version CRLF;
+  Request        = Request_Line (message_header)* CRLF;
+
+main := Request;
+}%%
+
+%% write data;
+--cut--
+
+I think that problems is somewhere around this line:
+
+hier_part      = ((net_path | abs_path) (&quot;?&quot; query &gt;mark %uri_query)?);
+
+if I remove the &quot;&gt;mark %uri_query&quot; part, ragel is able to complete the
+operation.
+Can anyone give me some clues what's gone bad?
+
+tia,
+d
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000114.html">ragel and memory usage
+</A></li>
+	<LI>Next message: <A HREF="000116.html">[ragel-users] ragel and memory usage
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#115">[ date ]</a>
+              <a href="thread.html#115">[ thread ]</a>
+              <a href="subject.html#115">[ subject ]</a>
+              <a href="author.html#115">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

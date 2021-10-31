@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Question about nested state charts
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Question%20about%20nested%20state%20charts&In-Reply-To=%3C458A1782.6030507%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000082.html">
+   <LINK REL="Next"  HREF="001847.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Question about nested state charts</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Question%20about%20nested%20state%20charts&In-Reply-To=%3C458A1782.6030507%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Question about nested state charts">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Dec 21 05:11:30 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000082.html">Question about nested state charts
+</A></li>
+        <LI>Next message: <A HREF="001847.html">[ragel-users] Re: Question about nested state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1846">[ date ]</a>
+              <a href="thread.html#1846">[ thread ]</a>
+              <a href="subject.html#1846">[ subject ]</a>
+              <a href="author.html#1846">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Zed,
+
+I think nesting is a really good idea. Though Ragel can't build your 
+machine exactly the way you've specified it. It's a limitation of the 
+Ragel language and not of the underlying machines. When the end of a 
+comma-separated list of machines is found Ragel tries to resolve all 
+epsilon transitions inside it. So the epsilon drawn to Aborting is 
+resolved when the inner join is complete, only the Aborting label 
+doesn't exist at that time. What you want is for it to be resolved on 
+the outer join but the language doesn't give you a way to say that.
+
+But since you've only got one destination on the exit from the inner 
+join you can change it to this:
+
+Connection = (
+
+   start: ( open -&gt; Accepting ),
+
+   Accepting: (
+     start: ( logged_in -&gt; Processing ),
+     Processing: ( receive -&gt; Delivering | close -&gt; final ),
+     Delivering: ( delivered -&gt; Processing ),
+   ) -&gt; Aborting,
+
+   Aborting: ( finalized -&gt; final )
+
+) &gt;begin %finish @!error;
+
+If you need more than one exit then you'll have to subsume the inner 
+state chart.
+
+About the duplication ... I've actually been meaning to add a feature 
+for importing machine definitions. Though I wanted to wait until I 
+finished rewriting the parsers before I start adding to them. I'm 
+currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+there is ... which I'm aware is quite painful to many coders.
+
+Cheers
+  Adrian
+
+Zed A. Shaw wrote:
+&gt;<i> 
+</I>&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I'm looking for some advice on doing a nested state chart.  First, 
+</I>&gt;<i> here's a sample:
+</I>&gt;<i> 
+</I>&gt;<i> Connection = (
+</I>&gt;<i>  start: ( open -&gt; Accepting ),
+</I>&gt;<i> 
+</I>&gt;<i>  Accepting: (
+</I>&gt;<i>    start: ( logged_in -&gt; Processing ),
+</I>&gt;<i>    Processing: ( receive -&gt; Delivering | close -&gt; Connection::Aborting ),
+</I>&gt;<i>    Delivering: ( delivered -&gt; Processing ),
+</I>&gt;<i>  ),
+</I>&gt;<i> 
+</I>&gt;<i>  Aborting: ( finalized -&gt; final )
+</I>&gt;<i> ) &gt;begin %finish @!error;
+</I>&gt;<i> 
+</I>&gt;<i> So my first question is if I'm just crazy for doing it this way?  The 
+</I>&gt;<i> manual doesn't *really* say you can nest state chart style machines like 
+</I>&gt;<i> this, so the &quot;| close -&gt; Aborting&quot; doesn't actually resolve.  The manual 
+</I>&gt;<i> does talk about Resolving Names but &quot;Connection::Aborting&quot; doesn't work 
+</I>&gt;<i> for breaking out of the Accepting::Processing state and into Aborting.
+</I>&gt;<i> 
+</I>&gt;<i> Also, I'm doing this as an experiment in using Ragel machines for 
+</I>&gt;<i> specifying a server's logic execution.  Not sure what the end result 
+</I>&gt;<i> will be, but it's already simplified quite a bit of code.  My only 
+</I>&gt;<i> complaint is that there's tons of duplication between the source and the 
+</I>&gt;<i> ragel file.  For example, I have to say logged_in='L' in the .rl and 
+</I>&gt;<i> then again in a .h somewhere.  It would be nicer if I can tell ragel, 
+</I>&gt;<i> &quot;Anything you can resolve should be used symbolically since I defined it 
+</I>&gt;<i> someplace else.&quot;  Could work for actions too where ragel assumes any 
+</I>&gt;<i> action it knows nothing about is a direct function call with a certain 
+</I>&gt;<i> signature.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000082.html">Question about nested state charts
+</A></li>
+	<LI>Next message: <A HREF="001847.html">[ragel-users] Re: Question about nested state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1846">[ date ]</a>
+              <a href="thread.html#1846">[ thread ]</a>
+              <a href="subject.html#1846">[ subject ]</a>
+              <a href="author.html#1846">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

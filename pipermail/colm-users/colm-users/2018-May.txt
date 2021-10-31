@@ -1,0 +1,1342 @@
+From sammypfeiffer at gmail.com  Tue May  1 21:02:37 2018
+From: sammypfeiffer at gmail.com (Sam Pfeiffer)
+Date: Wed, 2 May 2018 07:02:37 +1000
+Subject: [colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on
+ 32bit OS on a VM
+In-Reply-To: <9a2461856d821fcd039f8d844d5ecde7@mail.colm.net>
+References: <CABVqfw_wWP=N1FJmk12g9+ut4PB4aH5OMNKfQ16TJfGpXogjAA@mail.gmail.com>
+ <f89d9a9a92bbc530d8d4a3d980ffdd47@mail.colm.net>
+ <CABVqfw8cdwDQ9eF-myF=K-qbf4t+HMvU_TjLy3PMdu-u6bf1Sg@mail.gmail.com>
+ <9a2461856d821fcd039f8d844d5ecde7@mail.colm.net>
+Message-ID: <CABVqfw-UHSPDT6rvHNk0JCBS+HiwirucLPWxPr0TWd3qD3QfBg@mail.gmail.com>
+
+Oh, docker is wonderful, specially for this kind of "reproduce my case"
+scenarios.
+
+If your machine is veeeeery old... this may not even work cause of missing
+virtualization stuff on your CPU (I have a little server with that problem).
+
+But, in any case, if you are using Ubuntu (16.04 I'd hope), you can follow
+the official guide to install docker:
+https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository
+
+Shortened is this:
+
+sudo apt-get install -y apt-transport-https ca-certificates curl
+software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+sudo apt-get update
+sudo apt-get install -y docker-ce
+sudo usermod -aG docker $USER
+
+That's probably 100Mb?
+
+I also installed virtualbox-5.2... I think it installs some kernel modules
+that will be needed by the Docker I made. But I'm not sure. You can try
+without.
+In any case the installation instructions are here:
+https://www.virtualbox.org/wiki/Linux_Downloads
+
+Or shortened:
+
+sudo su
+wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo
+apt-key add -
+wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo
+apt-key add -
+echo "deb http://download.virtualbox.org/virtualbox/debian xenial contrib"
+>> /etc/apt/sources.list.d/virtualbox.list
+apt-get update
+apt-get install -y --allow-unauthenticated dkms virtualbox-5.2
+virtualbox-dkms
+
+VBOX_VERSION=`dpkg -s virtualbox-5.2 | grep '^Version: ' | sed -e
+'s/Version: \([0-9\.]*\)\-.*/\1/'` ; \
+    wget -q
+http://download.virtualbox.org/virtualbox/${VBOX_VERSION}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+; \
+    VBoxManage extpack install
+Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+--accept-license=56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb;
+\
+    rm Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+apt-get install -y linux-headers-generic virtualbox-dkms
+# Change the group of /dev/vbox* to vboxusers
+chgrp vboxusers /dev/vbox*
+# Change permissions
+chmod g+rw /dev/vbox*
+
+Probably another 100Mb there.
+
+But the really big guy is when you do, from the README of the repo:
+https://github.com/awesomebytes/colm_docker
+
+docker pull awesomebytes/colm_environment:1
+
+That's 5.1GB of an image. It contains a 4GB file which is some kind of
+snapshotted VM with the problem.
+
+Alternatively, I could provide you access via ssh to some machine with the
+system already setup. If that would be more convenient for you, drop me a
+mail privately. Note that I'm in Sydney, we may have quite a challenge on
+timezones.
+
+
+
+
+On Tue, May 1, 2018 at 1:33 AM, Adrian Thurston <thurston at colm.net> wrote:
+
+> Okay thanks. I haven't used docker before (although a huge fan of linux
+> namespaces). I'm assuming I need to do a lot of downloading to get this
+> going? I'm not currently on a good internet connection, and I'm stuck on a
+> very old laptop after leaving my good one on the top of my car and getting
+> on the highway. Is there anything about this docker image that expires?
+>
+> On 2018-04-28 01:42, Sam Pfeiffer wrote:
+>
+> Hello,
+>
+> I made a Docker image that you may use to (hopefully) quickly reproduce
+> the bug. The instructions on how to use it are here:
+>
+> https://github.com/awesomebytes/colm_docker
+>
+> Mainly:
+>
+> docker pull awesomebytes/colm_environment:1
+>
+> docker run --privileged -v $HOME:/shared -it awesomebytes/colm_environment:
+> 1
+>
+> ./COLM-start
+>
+>
+> su - abuild
+>
+>
+> cd ~/rpmbuild/BUILD/colm-0.13.0.5
+> make clean
+> ./configure
+> make
+>
+> Extra info is in the README of the github repo.
+>
+> Thank you for taking a look into it again!
+>
+>
+> On Sat, Apr 28, 2018 at 8:32 AM, Adrian Thurston <thurston at colm.net>
+> wrote:
+>
+>> Can I get onto the VM where it can be reproduced?
+>>
+>> On 2018-04-26 22:58, Sam Pfeiffer wrote:
+>>
+>> Hello,
+>>
+>> (Sorry if this mail may be received twice in the list).
+>>
+>> I've seen that you had some conversation about that already at:
+>>
+>> http://www.colm.net/pipermail/colm-users/2017-June/000175.html
+>>
+>> But it never got anywhere, I think. The last comment of Adrian Thurston
+>> says that build dependencies are missing.
+>>
+>> I tried reproducing the same thing and it did work for me (so I got the
+>> same compilation error). I did miss the first time doing:
+>>
+>> su - abuild
+>>
+>>
+>> As explained in http://www.colm.net/pipermail/
+>> colm-users/2017-June/000175.html by Jan Engelhardt.
+>>
+>> Which gave me the same errors mentioned by Adrian.
+>>
+>> So, to reproduce it I did (just for clarity):
+>>
+>> cd tmp
+>> wget http://inai.de/files/colm/COLM-img
+>> wget http://inai.de/files/colm/COLM-initrd
+>> wget http://inai.de/files/colm/COLM-kernel
+>> wget http://inai.de/files/colm/COLM-start
+>>
+>> chmod +x COLM-start
+>> ./COLM-start
+>>
+>> su - abuild
+>>
+>> cd ~/rpmbuild/BUILD/colm-0.13.0.5
+>> make clean
+>> ./configure
+>> make
+>>
+>>
+>> And I got back to:
+>>
+>> bootstrap1: tree.c:953: colm_tree_downref: Assertion `tree->refs > 0'
+>> failed.
+>>
+>>
+>> (I have a VM where I can reproduce it also, but I can't share it
+>> publicly).
+>>
+>> --
+>>
+>> *Sammy Pfeiffer*
+>> PhD Candidate at The Magic Lab within UTS.
+>>
+>> _______________________________________________
+>> colm-users mailing listcolm-users at colm.nethttp://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>
+>>
+>> _______________________________________________
+>> colm-users mailing list
+>> colm-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>
+>
+>
+>
+> --
+>
+> *Sammy Pfeiffer*
+> PhD Candidate at The Magic Lab within UTS.
+>
+> _______________________________________________
+> colm-users mailing listcolm-users at colm.nethttp://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>
+>
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>
+
+
+
+-- 
+
+*Sammy Pfeiffer*
+PhD Candidate at The Magic Lab within UTS.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180502/3fba6406/attachment.html>
+
+From thurston at colm.net  Thu May  3 16:50:52 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 03 May 2018 12:50:52 -0400
+Subject: [colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on
+ 32bit OS on a VM
+In-Reply-To: <CABVqfw-UHSPDT6rvHNk0JCBS+HiwirucLPWxPr0TWd3qD3QfBg@mail.gmail.com>
+References: <CABVqfw_wWP=N1FJmk12g9+ut4PB4aH5OMNKfQ16TJfGpXogjAA@mail.gmail.com>
+ <f89d9a9a92bbc530d8d4a3d980ffdd47@mail.colm.net>
+ <CABVqfw8cdwDQ9eF-myF=K-qbf4t+HMvU_TjLy3PMdu-u6bf1Sg@mail.gmail.com>
+ <9a2461856d821fcd039f8d844d5ecde7@mail.colm.net>
+ <CABVqfw-UHSPDT6rvHNk0JCBS+HiwirucLPWxPr0TWd3qD3QfBg@mail.gmail.com>
+Message-ID: <a398e46dfe98a6233dc76c50a4a7b81e@mail.colm.net>
+
+ 
+
+Just got docker installed, but getting to the image part ... 5 gigs is
+too much for me to download right now. Any chance you could give me a
+user on a machine I can reach? 
+
+On 2018-05-01 17:02, Sam Pfeiffer wrote: 
+
+> Oh, docker is wonderful, specially for this kind of "reproduce my case" scenarios. 
+> 
+> If your machine is veeeeery old... this may not even work cause of missing virtualization stuff on your CPU (I have a little server with that problem). 
+> 
+> But, in any case, if you are using Ubuntu (16.04 I'd hope), you can follow the official guide to install docker: https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository [2] 
+> 
+> Shortened is this: 
+> 
+> sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common 
+> curl -fsSL https://download.docker.com/linux/ubuntu/gpg [3] | sudo apt-key add - 
+> sudo add-apt-repository 
+> "deb [arch=amd64] https://download.docker.com/linux/ubuntu [4] 
+> $(lsb_release -cs) 
+> stable" 
+> sudo apt-get update 
+> sudo apt-get install -y docker-ce 
+> sudo usermod -aG docker $USER 
+> 
+> That's probably 100Mb? 
+> 
+> I also installed virtualbox-5.2... I think it installs some kernel modules that will be needed by the Docker I made. But I'm not sure. You can try without. 
+> In any case the installation instructions are here: https://www.virtualbox.org/wiki/Linux_Downloads [5] 
+> 
+> Or shortened: 
+> 
+> sudo su 
+> wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc [6] -O- | sudo apt-key add - 
+> wget -q https://www.virtualbox.org/download/oracle_vbox.asc [7] -O- | sudo apt-key add - 
+> echo "deb http://download.virtualbox.org/virtualbox/debian [8] xenial contrib" >> /etc/apt/sources.list.d/virtualbox.list 
+> apt-get update 
+> apt-get install -y --allow-unauthenticated dkms virtualbox-5.2 virtualbox-dkms 
+> 
+> VBOX_VERSION=`dpkg -s virtualbox-5.2 | grep '^Version: ' | sed -e 's/Version: ([0-9.]*)-.*/1/'` ; 
+> wget -q http://download.virtualbox.org/virtualbox/${VBOX_VERSION}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack [9] ; 
+> VBoxManage extpack install Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack --accept-license=56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb; 
+> rm Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack 
+> apt-get install -y linux-headers-generic virtualbox-dkms 
+> # Change the group of /dev/vbox* to vboxusers 
+> chgrp vboxusers /dev/vbox* 
+> # Change permissions 
+> chmod g+rw /dev/vbox* 
+> 
+> Probably another 100Mb there. 
+> 
+> But the really big guy is when you do, from the README of the repo: https://github.com/awesomebytes/colm_docker [10] 
+> docker pull awesomebytes/colm_environment:1 
+> 
+> That's 5.1GB of an image. It contains a 4GB file which is some kind of snapshotted VM with the problem. 
+> 
+> Alternatively, I could provide you access via ssh to some machine with the system already setup. If that would be more convenient for you, drop me a mail privately. Note that I'm in Sydney, we may have quite a challenge on timezones.
+> 
+> On Tue, May 1, 2018 at 1:33 AM, Adrian Thurston <thurston at colm.net> wrote:
+> 
+> Okay thanks. I haven't used docker before (although a huge fan of linux namespaces). I'm assuming I need to do a lot of downloading to get this going? I'm not currently on a good internet connection, and I'm stuck on a very old laptop after leaving my good one on the top of my car and getting on the highway. Is there anything about this docker image that expires? 
+> 
+> On 2018-04-28 01:42, Sam Pfeiffer wrote: 
+> Hello, 
+> 
+> I made a Docker image that you may use to (hopefully) quickly reproduce the bug. The instructions on how to use it are here: 
+> 
+> https://github.com/awesomebytes/colm_docker [10] 
+> 
+> Mainly: 
+> 
+> docker pull awesomebytes/colm_environment:1 
+> 
+> docker run --privileged -v $HOME:/shared -it awesomebytes/colm_environment:1 
+> 
+> ./COLM-start 
+> 
+> su - abuild 
+> 
+> cd ~/rpmbuild/BUILD/colm-0.13.0.5 
+> make clean 
+> ./configure 
+> make 
+> 
+> Extra info is in the README of the github repo. 
+> 
+> Thank you for taking a look into it again! 
+> 
+> On Sat, Apr 28, 2018 at 8:32 AM, Adrian Thurston <thurston at colm.net> wrote:
+> 
+> Can I get onto the VM where it can be reproduced? 
+> 
+> On 2018-04-26 22:58, Sam Pfeiffer wrote: 
+> 
+> Hello, 
+> 
+> (Sorry if this mail may be received twice in the list).
+> 
+> I've seen that you had some conversation about that already at: 
+> 
+> http://www.colm.net/pipermail/colm-users/2017-June/000175.html [11] 
+> 
+> But it never got anywhere, I think. The last comment of Adrian Thurston says that build dependencies are missing. 
+> 
+> I tried reproducing the same thing and it did work for me (so I got the same compilation error). I did miss the first time doing: 
+> su - abuild
+> 
+> As explained in http://www.colm.net/pipermail/colm-users/2017-June/000175.html [11] by Jan Engelhardt. 
+> 
+> Which gave me the same errors mentioned by Adrian. 
+> 
+> So, to reproduce it I did (just for clarity): 
+> 
+> cd tmp 
+> wget http://inai.de/files/colm/COLM-img [12] 
+> wget http://inai.de/files/colm/COLM-initrd [13]
+> 
+> wget http://inai.de/files/colm/COLM-kernel [14] 
+> wget http://inai.de/files/colm/COLM-start [15]
+> 
+> chmod +x COLM-start 
+> ./COLM-start 
+> 
+> su - abuild 
+> 
+> cd ~/rpmbuild/BUILD/colm-0.13.0.5 
+> make clean 
+> ./configure 
+> make 
+> 
+> And I got back to: 
+> 
+> bootstrap1: tree.c:953: colm_tree_downref: Assertion `tree->refs > 0' failed. 
+> 
+> (I have a VM where I can reproduce it also, but I can't share it publicly). 
+> -- 
+> 
+> SAMMY PFEIFFER 
+> PhD Candidate at The Magic Lab within UTS. 
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+ -- 
+
+  SAMMY PFEIFFER 
+PhD Candidate at The Magic Lab within UTS. 
+
+_______________________________________________
+colm-users mailing list
+colm-users at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+_______________________________________________
+ colm-users mailing list
+ colm-users at colm.net
+ http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1] 
+
+ -- 
+
+  SAMMY PFEIFFER 
+PhD Candidate at The Magic Lab within UTS. 
+
+_______________________________________________
+colm-users mailing list
+colm-users at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+[2]
+https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository
+[3] https://download.docker.com/linux/ubuntu/gpg
+[4] https://download.docker.com/linux/ubuntu
+[5] https://www.virtualbox.org/wiki/Linux_Downloads
+[6] https://www.virtualbox.org/download/oracle_vbox_2016.asc
+[7] https://www.virtualbox.org/download/oracle_vbox.asc
+[8] http://download.virtualbox.org/virtualbox/debian
+[9]
+http://download.virtualbox.org/virtualbox/${VBOX_VERSION}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+[10] https://github.com/awesomebytes/colm_docker
+[11] http://www.colm.net/pipermail/colm-users/2017-June/000175.html
+[12] http://inai.de/files/colm/COLM-img
+[13] http://inai.de/files/colm/COLM-initrd
+[14] http://inai.de/files/colm/COLM-kernel
+[15] http://inai.de/files/colm/COLM-start
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180503/ba51d79d/attachment.html>
+
+From thurston at colm.net  Thu May  3 17:12:51 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 03 May 2018 13:12:51 -0400
+Subject: [colm-users] =?utf-8?q?Hardcoded_word=5Ft?=
+In-Reply-To: <4957101525102460@web33g.yandex.ru>
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+Message-ID: <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+
+Hi Konstantin,
+
+code_t is the type used to encode virtual machine instructions. Just 
+need 1 byte for this now.
+
+half_t is used mostly for virtual machine instruction arguments. It 
+started out as 2 bytes, but has grown. It might have been made larger 
+than needed at the moment -- haven't looked at that in long time.
+
+word_t is the primary type for virtual machine values pushed to the 
+stack and operated on by the VM. The values are either pointers to 
+things or integers. The VM assumes the same size here, so whatever type 
+is used it needs to be the same size as a pointer or there will be some 
+trouble.
+
+Admittedly, portability needs to be improved.
+
+On 2018-04-30 11:34, Konstantin Podsvirov wrote:
+> 30.04.2018, 18:06, "Adrian Thurston" <thurston at colm.net>:
+>> Hi, yes would like to have this fixed at some point. Sorry no ETA at 
+>> the moment.
+> 
+> But can you briefly describe what does each type code_t, word_t,
+> half_t and what are the requirements in size and made to them.
+> 
+>> On 2018-04-29 12:53, Konstantin Podsvirov wrote:
+>>> Hello colm developers... :-)
+>>> 
+>>> Currently the word_t is hardcoded in src/tree.h file as unsigned long 
+>>> type, bun used to store pointers too.
+>>> 
+>>> On some platform (for example mingw64) size of the long (4 byte) less 
+>>> then size of the void* (8 byte).
+>>> 
+>>> Previously i add check for this problem in CMake project file, but 
+>>> not provide any solution.
+>>> 
+>>> What you think about this?
+>>> 
+>>> --
+>>> Regards,
+>>> Konstantin Podsvirov
+>>> 
+>>> _______________________________________________ colm-users mailing 
+>>> list colm-users at colm.net 
+>>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>> ,
+>> 
+>> _______________________________________________
+>> colm-users mailing list
+>> colm-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+> 
+> --
+> Regards,
+> Konstantin Podsvirov
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+
+
+From konstantin at podsvirov.pro  Thu May  3 18:13:36 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Thu, 03 May 2018 21:13:36 +0300
+Subject: [colm-users] Hardcoded word_t
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+ <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+Message-ID: <11675321525371216@web42g.yandex.ru>
+
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180503/b149d9d5/attachment-0001.html>
+
+From konstantin at podsvirov.pro  Fri May 11 09:05:56 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Fri, 11 May 2018 12:05:56 +0300
+Subject: [colm-users] Hardcoded word_t
+In-Reply-To: <11675321525371216@web42g.yandex.ru>
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+ <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+ <11675321525371216@web42g.yandex.ru>
+Message-ID: <4087461526029556@web55o.yandex.ru>
+
+
+
+03.05.2018, 21:13, "Konstantin Podsvirov" <konstantin at podsvirov.pro>:
+>>> 20:12, 3 May 2018 г., Adrian Thurston <thurston at colm.net>:
+>>>> Hi Konstantin,
+>>>>
+>>>> code_t is the type used to encode virtual machine instructions. Just
+>>>> need 1 byte for this now.
+>>>>
+>>>> half_t is used mostly for virtual machine instruction arguments. It
+>>>> started out as 2 bytes, but has grown. It might have been made larger
+>>>> than needed at the moment -- haven't looked at that in long time.
+>>>>
+>>>> word_t is the primary type for virtual machine values pushed to the
+>>>> stack and operated on by the VM. The values are either pointers to
+>>>> things or integers. The VM assumes the same size here, so whatever type
+>>>> is used it needs to be the same size as a pointer or there will be some
+>>>> trouble.
+>>>>
+>>>> Admittedly, portability needs to be improved.
+>>> Hi Adrian,
+>>> thank you for the clarification. I think this is enough for experiments.
+
+After studying the code, several attempts and experiments, I want to say that adding support for 64-bit platforms is not a trivial task.
+
+Unfortunately I do not have the time and energy to solve this issue.
+
+>>>> On 2018-04-30 11:34, Konstantin Podsvirov wrote:
+>>>>>  30.04.2018, 18:06, "Adrian Thurston" <thurston at colm.net>:
+>>>>>>  Hi, yes would like to have this fixed at some point. Sorry no ETA at
+>>>>>>  the moment.
+>>>>>
+>>>>>  But can you briefly describe what does each type code_t, word_t,
+>>>>>  half_t and what are the requirements in size and made to them.
+>>>>>
+>>>>>>  On 2018-04-29 12:53, Konstantin Podsvirov wrote:
+>>>>>>>  Hello colm developers... :-)
+>>>>>>>
+>>>>>>>  Currently the word_t is hardcoded in src/tree.h file as unsigned long
+>>>>>>>  type, bun used to store pointers too.
+>>>>>>>
+>>>>>>>  On some platform (for example mingw64) size of the long (4 byte) less
+>>>>>>>  then size of the void* (8 byte).
+>>>>>>>
+>>>>>>>  Previously i add check for this problem in CMake project file, but
+>>>>>>>  not provide any solution.
+>>>>>>>
+>>>>>>>  What you think about this?
+>>>>>>>
+>>>>>>>  --
+>>>>>>>  Regards,
+>>>>>>>  Konstantin Podsvirov
+>>>>>>>
+>>>>>>>  _______________________________________________ colm-users mailing
+>>>>>>>  list colm-users at colm.net
+>>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>  ,
+>>>>>>
+>>>>>>  _______________________________________________
+>>>>>>  colm-users mailing list
+>>>>>>  colm-users at colm.net
+>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>
+>>>>>  --
+>>>>>  Regards,
+>>>>>  Konstantin Podsvirov
+>>>>>
+>>>>>  _______________________________________________
+>>>>>  colm-users mailing list
+>>>>>  colm-users at colm.net
+>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>
+>>>> _______________________________________________
+>>>> colm-users mailing list
+>>>> colm-users at colm.net
+>>>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>
+>>> _______________________________________________
+>>>
+>>> colm-users mailing list
+>>> colm-users at colm.net
+>>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>
+>> Regards,
+>> Konstantin Podsvirov
+
+
+From thurston at colm.net  Fri May 11 17:11:32 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 11 May 2018 13:11:32 -0400
+Subject: [colm-users] =?utf-8?q?Hardcoded_word=5Ft?=
+In-Reply-To: <4087461526029556@web55o.yandex.ru>
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+ <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+ <11675321525371216@web42g.yandex.ru> <4087461526029556@web55o.yandex.ru>
+Message-ID: <70ef49dd94141426c2bf14d2ac9df8ca@mail.colm.net>
+
+We'll get this cleaned up eventually. There is nothing about the 
+language design that demands certain sizes for things. It's just a 
+matter of me doing most of my research on a certain platform. It's 
+important to note that colm is still a research project. Ragel 7 depends 
+on it now, but that is still also a development release.
+
+Note I've got some changes to colm to push that fix certain issues that 
+arise on platforms other than the one I work on mostly (amd64 ubuntu 
+16.04). Coming soon.
+
+On 2018-05-11 05:05, Konstantin Podsvirov wrote:
+> 03.05.2018, 21:13, "Konstantin Podsvirov" <konstantin at podsvirov.pro>:
+>>>> 20:12, 3 May 2018 г., Adrian Thurston <thurston at colm.net>:
+>>>>> Hi Konstantin,
+>>>>> 
+>>>>> code_t is the type used to encode virtual machine instructions. 
+>>>>> Just
+>>>>> need 1 byte for this now.
+>>>>> 
+>>>>> half_t is used mostly for virtual machine instruction arguments. It
+>>>>> started out as 2 bytes, but has grown. It might have been made 
+>>>>> larger
+>>>>> than needed at the moment -- haven't looked at that in long time.
+>>>>> 
+>>>>> word_t is the primary type for virtual machine values pushed to the
+>>>>> stack and operated on by the VM. The values are either pointers to
+>>>>> things or integers. The VM assumes the same size here, so whatever 
+>>>>> type
+>>>>> is used it needs to be the same size as a pointer or there will be 
+>>>>> some
+>>>>> trouble.
+>>>>> 
+>>>>> Admittedly, portability needs to be improved.
+>>>> Hi Adrian,
+>>>> thank you for the clarification. I think this is enough for 
+>>>> experiments.
+> 
+> After studying the code, several attempts and experiments, I want to
+> say that adding support for 64-bit platforms is not a trivial task.
+> 
+> Unfortunately I do not have the time and energy to solve this issue.
+> 
+>>>>> On 2018-04-30 11:34, Konstantin Podsvirov wrote:
+>>>>>>  30.04.2018, 18:06, "Adrian Thurston" <thurston at colm.net>:
+>>>>>>>  Hi, yes would like to have this fixed at some point. Sorry no 
+>>>>>>> ETA at
+>>>>>>>  the moment.
+>>>>>> 
+>>>>>>  But can you briefly describe what does each type code_t, word_t,
+>>>>>>  half_t and what are the requirements in size and made to them.
+>>>>>> 
+>>>>>>>  On 2018-04-29 12:53, Konstantin Podsvirov wrote:
+>>>>>>>>  Hello colm developers... :-)
+>>>>>>>> 
+>>>>>>>>  Currently the word_t is hardcoded in src/tree.h file as 
+>>>>>>>> unsigned long
+>>>>>>>>  type, bun used to store pointers too.
+>>>>>>>> 
+>>>>>>>>  On some platform (for example mingw64) size of the long (4 
+>>>>>>>> byte) less
+>>>>>>>>  then size of the void* (8 byte).
+>>>>>>>> 
+>>>>>>>>  Previously i add check for this problem in CMake project file, 
+>>>>>>>> but
+>>>>>>>>  not provide any solution.
+>>>>>>>> 
+>>>>>>>>  What you think about this?
+>>>>>>>> 
+>>>>>>>>  --
+>>>>>>>>  Regards,
+>>>>>>>>  Konstantin Podsvirov
+>>>>>>>> 
+>>>>>>>>  _______________________________________________ colm-users 
+>>>>>>>> mailing
+>>>>>>>>  list colm-users at colm.net
+>>>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>>  ,
+>>>>>>> 
+>>>>>>>  _______________________________________________
+>>>>>>>  colm-users mailing list
+>>>>>>>  colm-users at colm.net
+>>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>> 
+>>>>>>  --
+>>>>>>  Regards,
+>>>>>>  Konstantin Podsvirov
+>>>>>> 
+>>>>>>  _______________________________________________
+>>>>>>  colm-users mailing list
+>>>>>>  colm-users at colm.net
+>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>> 
+>>>>> _______________________________________________
+>>>>> colm-users mailing list
+>>>>> colm-users at colm.net
+>>>>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>> 
+>>>> _______________________________________________
+>>>> 
+>>>> colm-users mailing list
+>>>> colm-users at colm.net
+>>>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>> 
+>>> Regards,
+>>> Konstantin Podsvirov
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+
+
+From thurston at colm.net  Sat May 12 00:00:59 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 11 May 2018 20:00:59 -0400
+Subject: [colm-users] colm-0.13.0.5 fails to build on Gentoo Prefix on
+ 32bit OS on a VM
+In-Reply-To: <a398e46dfe98a6233dc76c50a4a7b81e@mail.colm.net>
+References: <CABVqfw_wWP=N1FJmk12g9+ut4PB4aH5OMNKfQ16TJfGpXogjAA@mail.gmail.com>
+ <f89d9a9a92bbc530d8d4a3d980ffdd47@mail.colm.net>
+ <CABVqfw8cdwDQ9eF-myF=K-qbf4t+HMvU_TjLy3PMdu-u6bf1Sg@mail.gmail.com>
+ <9a2461856d821fcd039f8d844d5ecde7@mail.colm.net>
+ <CABVqfw-UHSPDT6rvHNk0JCBS+HiwirucLPWxPr0TWd3qD3QfBg@mail.gmail.com>
+ <a398e46dfe98a6233dc76c50a4a7b81e@mail.colm.net>
+Message-ID: <54a82b47e7946cb1ebf46490f100f89b@mail.colm.net>
+
+ 
+
+This issue has been solved. Just push the latest to the public
+repository. 
+
+On 2018-05-03 12:50, Adrian Thurston wrote: 
+
+> Just got docker installed, but getting to the image part ... 5 gigs is too much for me to download right now. Any chance you could give me a user on a machine I can reach? 
+> 
+> On 2018-05-01 17:02, Sam Pfeiffer wrote: 
+> Oh, docker is wonderful, specially for this kind of "reproduce my case" scenarios. 
+> 
+> If your machine is veeeeery old... this may not even work cause of missing virtualization stuff on your CPU (I have a little server with that problem). 
+> 
+> But, in any case, if you are using Ubuntu (16.04 I'd hope), you can follow the official guide to install docker: https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository [2] 
+> 
+> Shortened is this: 
+> 
+> sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common 
+> curl -fsSL https://download.docker.com/linux/ubuntu/gpg [3] | sudo apt-key add - 
+> sudo add-apt-repository 
+> "deb [arch=amd64] https://download.docker.com/linux/ubuntu [4] 
+> $(lsb_release -cs) 
+> stable" 
+> sudo apt-get update 
+> sudo apt-get install -y docker-ce 
+> sudo usermod -aG docker $USER 
+> 
+> That's probably 100Mb? 
+> 
+> I also installed virtualbox-5.2... I think it installs some kernel modules that will be needed by the Docker I made. But I'm not sure. You can try without. 
+> In any case the installation instructions are here: https://www.virtualbox.org/wiki/Linux_Downloads [5] 
+> 
+> Or shortened: 
+> 
+> sudo su 
+> wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc [6] -O- | sudo apt-key add - 
+> wget -q https://www.virtualbox.org/download/oracle_vbox.asc [7] -O- | sudo apt-key add - 
+> echo "deb http://download.virtualbox.org/virtualbox/debian [8] xenial contrib" >> /etc/apt/sources.list.d/virtualbox.list 
+> apt-get update 
+> apt-get install -y --allow-unauthenticated dkms virtualbox-5.2 virtualbox-dkms 
+> 
+> VBOX_VERSION=`dpkg -s virtualbox-5.2 | grep '^Version: ' | sed -e 's/Version: ([0-9.]*)-.*/1/'` ; 
+> wget -q http://download.virtualbox.org/virtualbox/${VBOX_VERSION}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack [9] ; 
+> VBoxManage extpack install Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack --accept-license=56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb; 
+> rm Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack 
+> apt-get install -y linux-headers-generic virtualbox-dkms 
+> # Change the group of /dev/vbox* to vboxusers 
+> chgrp vboxusers /dev/vbox* 
+> # Change permissions 
+> chmod g+rw /dev/vbox* 
+> 
+> Probably another 100Mb there. 
+> 
+> But the really big guy is when you do, from the README of the repo: https://github.com/awesomebytes/colm_docker [10] 
+> docker pull awesomebytes/colm_environment:1 
+> 
+> That's 5.1GB of an image. It contains a 4GB file which is some kind of snapshotted VM with the problem. 
+> 
+> Alternatively, I could provide you access via ssh to some machine with the system already setup. If that would be more convenient for you, drop me a mail privately. Note that I'm in Sydney, we may have quite a challenge on timezones.
+> 
+> On Tue, May 1, 2018 at 1:33 AM, Adrian Thurston <thurston at colm.net> wrote:
+> 
+> Okay thanks. I haven't used docker before (although a huge fan of linux namespaces). I'm assuming I need to do a lot of downloading to get this going? I'm not currently on a good internet connection, and I'm stuck on a very old laptop after leaving my good one on the top of my car and getting on the highway. Is there anything about this docker image that expires? 
+> 
+> On 2018-04-28 01:42, Sam Pfeiffer wrote: 
+> Hello, 
+> 
+> I made a Docker image that you may use to (hopefully) quickly reproduce the bug. The instructions on how to use it are here: 
+> 
+> https://github.com/awesomebytes/colm_docker [10] 
+> 
+> Mainly: 
+> 
+> docker pull awesomebytes/colm_environment:1 
+> 
+> docker run --privileged -v $HOME:/shared -it awesomebytes/colm_environment:1 
+> 
+> ./COLM-start 
+> 
+> su - abuild 
+> 
+> cd ~/rpmbuild/BUILD/colm-0.13.0.5 
+> make clean 
+> ./configure 
+> make 
+> 
+> Extra info is in the README of the github repo. 
+> 
+> Thank you for taking a look into it again! 
+> 
+> On Sat, Apr 28, 2018 at 8:32 AM, Adrian Thurston <thurston at colm.net> wrote:
+> 
+> Can I get onto the VM where it can be reproduced? 
+> 
+> On 2018-04-26 22:58, Sam Pfeiffer wrote: 
+> 
+> Hello, 
+> 
+> (Sorry if this mail may be received twice in the list).
+> 
+> I've seen that you had some conversation about that already at: 
+> 
+> http://www.colm.net/pipermail/colm-users/2017-June/000175.html [11] 
+> 
+> But it never got anywhere, I think. The last comment of Adrian Thurston says that build dependencies are missing. 
+> 
+> I tried reproducing the same thing and it did work for me (so I got the same compilation error). I did miss the first time doing: 
+> su - abuild
+> 
+> As explained in http://www.colm.net/pipermail/colm-users/2017-June/000175.html [11] by Jan Engelhardt. 
+> 
+> Which gave me the same errors mentioned by Adrian. 
+> 
+> So, to reproduce it I did (just for clarity): 
+> 
+> cd tmp 
+> wget http://inai.de/files/colm/COLM-img [12] 
+> wget http://inai.de/files/colm/COLM-initrd [13]
+> 
+> wget http://inai.de/files/colm/COLM-kernel [14] 
+> wget http://inai.de/files/colm/COLM-start [15]
+> 
+> chmod +x COLM-start 
+> ./COLM-start 
+> 
+> su - abuild 
+> 
+> cd ~/rpmbuild/BUILD/colm-0.13.0.5 
+> make clean 
+> ./configure 
+> make 
+> 
+> And I got back to: 
+> 
+> bootstrap1: tree.c:953: colm_tree_downref: Assertion `tree->refs > 0' failed. 
+> 
+> (I have a VM where I can reproduce it also, but I can't share it publicly). 
+> -- 
+> 
+> SAMMY PFEIFFER 
+> PhD Candidate at The Magic Lab within UTS. 
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+ -- 
+
+  SAMMY PFEIFFER 
+PhD Candidate at The Magic Lab within UTS. 
+
+_______________________________________________
+colm-users mailing list
+colm-users at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+_______________________________________________
+ colm-users mailing list
+ colm-users at colm.net
+ http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1] 
+
+ -- 
+
+  SAMMY PFEIFFER 
+PhD Candidate at The Magic Lab within UTS. 
+
+_______________________________________________
+colm-users mailing list
+colm-users at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+_______________________________________________
+colm-users mailing list
+colm-users at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/colm-users [1]
+
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+[2]
+https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository
+[3] https://download.docker.com/linux/ubuntu/gpg
+[4] https://download.docker.com/linux/ubuntu
+[5] https://www.virtualbox.org/wiki/Linux_Downloads
+[6] https://www.virtualbox.org/download/oracle_vbox_2016.asc
+[7] https://www.virtualbox.org/download/oracle_vbox.asc
+[8] http://download.virtualbox.org/virtualbox/debian
+[9]
+http://download.virtualbox.org/virtualbox/${VBOX_VERSION}/Oracle_VM_VirtualBox_Extension_Pack-${VBOX_VERSION}.vbox-extpack
+[10] https://github.com/awesomebytes/colm_docker
+[11] http://www.colm.net/pipermail/colm-users/2017-June/000175.html
+[12] http://inai.de/files/colm/COLM-img
+[13] http://inai.de/files/colm/COLM-initrd
+[14] http://inai.de/files/colm/COLM-kernel
+[15] http://inai.de/files/colm/COLM-start
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180511/0d44e924/attachment.html>
+
+From konstantin at podsvirov.pro  Sat May 12 09:55:39 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Sat, 12 May 2018 12:55:39 +0300
+Subject: [colm-users] Hardcoded word_t
+In-Reply-To: <70ef49dd94141426c2bf14d2ac9df8ca@mail.colm.net>
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+ <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+ <11675321525371216@web42g.yandex.ru> <4087461526029556@web55o.yandex.ru>
+ <70ef49dd94141426c2bf14d2ac9df8ca@mail.colm.net>
+Message-ID: <2669481526118939@web17j.yandex.ru>
+
+Hello again!
+
+11.05.2018, 20:11, "Adrian Thurston" <thurston at colm.net>:
+> We'll get this cleaned up eventually. There is nothing about the
+> language design that demands certain sizes for things. It's just a
+> matter of me doing most of my research on a certain platform. It's
+> important to note that colm is still a research project. Ragel 7 depends
+> on it now, but that is still also a development release.
+>
+> Note I've got some changes to colm to push that fix certain issues that
+> arise on platforms other than the one I work on mostly (amd64 ubuntu
+> 16.04). Coming soon.
+
+I have solution :-)
+
+Today after latest changes in `master` branch I can compile `coml` with MinGW-w64 64bit toolchains.
+
+Your can try changes from `word` branch on my server:
+
+http://git.podsvirov.pro/?p=dad/fix/colm.git;a=shortlog;h=refs/heads/word
+
+All changes in one last commit:
+
+The type word_t declaration
+
+If sizeof(unsigned long) == sizeof(void *) then word_t is unsigned long.
+Else if sizeof(unsigned long long) == sizeof(void *) then word_t is unsigned long long.
+
+Compilation checked with MSYS2 toolchains via Autotools project and
+with MinGW-w64 toolchains via CMake project.
+
+http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=63224902a50c68b3ce4e38827199bae4d50746f3
+
+Also available via git:
+
+git clone -b word git://podsvirov.pro/dad/fix/colm.git
+
+Adrian, please review my changes and apply if posible.
+
+> On 2018-05-11 05:05, Konstantin Podsvirov wrote:
+>>  03.05.2018, 21:13, "Konstantin Podsvirov" <konstantin at podsvirov.pro>:
+>>>>>  20:12, 3 May 2018 г., Adrian Thurston <thurston at colm.net>:
+>>>>>>  Hi Konstantin,
+>>>>>>
+>>>>>>  code_t is the type used to encode virtual machine instructions.
+>>>>>>  Just
+>>>>>>  need 1 byte for this now.
+>>>>>>
+>>>>>>  half_t is used mostly for virtual machine instruction arguments. It
+>>>>>>  started out as 2 bytes, but has grown. It might have been made
+>>>>>>  larger
+>>>>>>  than needed at the moment -- haven't looked at that in long time.
+>>>>>>
+>>>>>>  word_t is the primary type for virtual machine values pushed to the
+>>>>>>  stack and operated on by the VM. The values are either pointers to
+>>>>>>  things or integers. The VM assumes the same size here, so whatever
+>>>>>>  type
+>>>>>>  is used it needs to be the same size as a pointer or there will be
+>>>>>>  some
+>>>>>>  trouble.
+>>>>>>
+>>>>>>  Admittedly, portability needs to be improved.
+>>>>>  Hi Adrian,
+>>>>>  thank you for the clarification. I think this is enough for
+>>>>>  experiments.
+>>
+>>  After studying the code, several attempts and experiments, I want to
+>>  say that adding support for 64-bit platforms is not a trivial task.
+>>
+>>  Unfortunately I do not have the time and energy to solve this issue.
+>>
+>>>>>>  On 2018-04-30 11:34, Konstantin Podsvirov wrote:
+>>>>>>>   30.04.2018, 18:06, "Adrian Thurston" <thurston at colm.net>:
+>>>>>>>>   Hi, yes would like to have this fixed at some point. Sorry no
+>>>>>>>>  ETA at
+>>>>>>>>   the moment.
+>>>>>>>
+>>>>>>>   But can you briefly describe what does each type code_t, word_t,
+>>>>>>>   half_t and what are the requirements in size and made to them.
+>>>>>>>
+>>>>>>>>   On 2018-04-29 12:53, Konstantin Podsvirov wrote:
+>>>>>>>>>   Hello colm developers... :-)
+>>>>>>>>>
+>>>>>>>>>   Currently the word_t is hardcoded in src/tree.h file as
+>>>>>>>>>  unsigned long
+>>>>>>>>>   type, bun used to store pointers too.
+>>>>>>>>>
+>>>>>>>>>   On some platform (for example mingw64) size of the long (4
+>>>>>>>>>  byte) less
+>>>>>>>>>   then size of the void* (8 byte).
+>>>>>>>>>
+>>>>>>>>>   Previously i add check for this problem in CMake project file,
+>>>>>>>>>  but
+>>>>>>>>>   not provide any solution.
+>>>>>>>>>
+>>>>>>>>>   What you think about this?
+>>>>>>>>>
+>>>>>>>>>   --
+>>>>>>>>>   Regards,
+>>>>>>>>>   Konstantin Podsvirov
+>>>>>>>>>
+>>>>>>>>>   _______________________________________________ colm-users
+>>>>>>>>>  mailing
+>>>>>>>>>   list colm-users at colm.net
+>>>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>>>   ,
+>>>>>>>>
+>>>>>>>>   _______________________________________________
+>>>>>>>>   colm-users mailing list
+>>>>>>>>   colm-users at colm.net
+>>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>>
+>>>>>>>   --
+>>>>>>>   Regards,
+>>>>>>>   Konstantin Podsvirov
+>>>>>>>
+>>>>>>>   _______________________________________________
+>>>>>>>   colm-users mailing list
+>>>>>>>   colm-users at colm.net
+>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>
+>>>>>>  _______________________________________________
+>>>>>>  colm-users mailing list
+>>>>>>  colm-users at colm.net
+>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>
+>>>>>  _______________________________________________
+>>>>>
+>>>>>  colm-users mailing list
+>>>>>  colm-users at colm.net
+>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>
+>>>>  Regards,
+>>>>  Konstantin Podsvirov
+>>
+>>  _______________________________________________
+>>  colm-users mailing list
+>>  colm-users at colm.net
+>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+
+Regards,
+Konstantin Podsvirov
+
+
+
+From thurston at colm.net  Sat May 12 16:49:16 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 12 May 2018 12:49:16 -0400
+Subject: [colm-users] =?utf-8?q?Hardcoded_word=5Ft?=
+In-Reply-To: <2669481526118939@web17j.yandex.ru>
+References: <3680561525020785@web59j.yandex.ru>
+ <942a80fc756706951b9120719fe513fe@mail.colm.net>
+ <4957101525102460@web33g.yandex.ru>
+ <8b2029e90e504ab676c8c12d0c11ce5c@mail.colm.net>
+ <11675321525371216@web42g.yandex.ru> <4087461526029556@web55o.yandex.ru>
+ <70ef49dd94141426c2bf14d2ac9df8ca@mail.colm.net>
+ <2669481526118939@web17j.yandex.ru>
+Message-ID: <63f953e8a1b877b432fdef3398eeec88@mail.colm.net>
+
+Great, thanks, just merged it.
+
+On 2018-05-12 05:55, Konstantin Podsvirov wrote:
+> Hello again!
+> 
+> 11.05.2018, 20:11, "Adrian Thurston" <thurston at colm.net>:
+>> We'll get this cleaned up eventually. There is nothing about the
+>> language design that demands certain sizes for things. It's just a
+>> matter of me doing most of my research on a certain platform. It's
+>> important to note that colm is still a research project. Ragel 7 
+>> depends
+>> on it now, but that is still also a development release.
+>> 
+>> Note I've got some changes to colm to push that fix certain issues 
+>> that
+>> arise on platforms other than the one I work on mostly (amd64 ubuntu
+>> 16.04). Coming soon.
+> 
+> I have solution :-)
+> 
+> Today after latest changes in `master` branch I can compile `coml`
+> with MinGW-w64 64bit toolchains.
+> 
+> Your can try changes from `word` branch on my server:
+> 
+> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=shortlog;h=refs/heads/word
+> 
+> All changes in one last commit:
+> 
+> The type word_t declaration
+> 
+> If sizeof(unsigned long) == sizeof(void *) then word_t is unsigned 
+> long.
+> Else if sizeof(unsigned long long) == sizeof(void *) then word_t is
+> unsigned long long.
+> 
+> Compilation checked with MSYS2 toolchains via Autotools project and
+> with MinGW-w64 toolchains via CMake project.
+> 
+> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=63224902a50c68b3ce4e38827199bae4d50746f3
+> 
+> Also available via git:
+> 
+> git clone -b word git://podsvirov.pro/dad/fix/colm.git
+> 
+> Adrian, please review my changes and apply if posible.
+> 
+>> On 2018-05-11 05:05, Konstantin Podsvirov wrote:
+>>>  03.05.2018, 21:13, "Konstantin Podsvirov" 
+>>> <konstantin at podsvirov.pro>:
+>>>>>>  20:12, 3 May 2018 г., Adrian Thurston <thurston at colm.net>:
+>>>>>>>  Hi Konstantin,
+>>>>>>> 
+>>>>>>>  code_t is the type used to encode virtual machine instructions.
+>>>>>>>  Just
+>>>>>>>  need 1 byte for this now.
+>>>>>>> 
+>>>>>>>  half_t is used mostly for virtual machine instruction arguments. 
+>>>>>>> It
+>>>>>>>  started out as 2 bytes, but has grown. It might have been made
+>>>>>>>  larger
+>>>>>>>  than needed at the moment -- haven't looked at that in long 
+>>>>>>> time.
+>>>>>>> 
+>>>>>>>  word_t is the primary type for virtual machine values pushed to 
+>>>>>>> the
+>>>>>>>  stack and operated on by the VM. The values are either pointers 
+>>>>>>> to
+>>>>>>>  things or integers. The VM assumes the same size here, so 
+>>>>>>> whatever
+>>>>>>>  type
+>>>>>>>  is used it needs to be the same size as a pointer or there will 
+>>>>>>> be
+>>>>>>>  some
+>>>>>>>  trouble.
+>>>>>>> 
+>>>>>>>  Admittedly, portability needs to be improved.
+>>>>>>  Hi Adrian,
+>>>>>>  thank you for the clarification. I think this is enough for
+>>>>>>  experiments.
+>>> 
+>>>  After studying the code, several attempts and experiments, I want to
+>>>  say that adding support for 64-bit platforms is not a trivial task.
+>>> 
+>>>  Unfortunately I do not have the time and energy to solve this issue.
+>>> 
+>>>>>>>  On 2018-04-30 11:34, Konstantin Podsvirov wrote:
+>>>>>>>>   30.04.2018, 18:06, "Adrian Thurston" <thurston at colm.net>:
+>>>>>>>>>   Hi, yes would like to have this fixed at some point. Sorry no
+>>>>>>>>>  ETA at
+>>>>>>>>>   the moment.
+>>>>>>>> 
+>>>>>>>>   But can you briefly describe what does each type code_t, 
+>>>>>>>> word_t,
+>>>>>>>>   half_t and what are the requirements in size and made to them.
+>>>>>>>> 
+>>>>>>>>>   On 2018-04-29 12:53, Konstantin Podsvirov wrote:
+>>>>>>>>>>   Hello colm developers... :-)
+>>>>>>>>>> 
+>>>>>>>>>>   Currently the word_t is hardcoded in src/tree.h file as
+>>>>>>>>>>  unsigned long
+>>>>>>>>>>   type, bun used to store pointers too.
+>>>>>>>>>> 
+>>>>>>>>>>   On some platform (for example mingw64) size of the long (4
+>>>>>>>>>>  byte) less
+>>>>>>>>>>   then size of the void* (8 byte).
+>>>>>>>>>> 
+>>>>>>>>>>   Previously i add check for this problem in CMake project 
+>>>>>>>>>> file,
+>>>>>>>>>>  but
+>>>>>>>>>>   not provide any solution.
+>>>>>>>>>> 
+>>>>>>>>>>   What you think about this?
+>>>>>>>>>> 
+>>>>>>>>>>   --
+>>>>>>>>>>   Regards,
+>>>>>>>>>>   Konstantin Podsvirov
+>>>>>>>>>> 
+>>>>>>>>>>   _______________________________________________ colm-users
+>>>>>>>>>>  mailing
+>>>>>>>>>>   list colm-users at colm.net
+>>>>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>>>>   ,
+>>>>>>>>> 
+>>>>>>>>>   _______________________________________________
+>>>>>>>>>   colm-users mailing list
+>>>>>>>>>   colm-users at colm.net
+>>>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>>> 
+>>>>>>>>   --
+>>>>>>>>   Regards,
+>>>>>>>>   Konstantin Podsvirov
+>>>>>>>> 
+>>>>>>>>   _______________________________________________
+>>>>>>>>   colm-users mailing list
+>>>>>>>>   colm-users at colm.net
+>>>>>>>>   http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>>> 
+>>>>>>>  _______________________________________________
+>>>>>>>  colm-users mailing list
+>>>>>>>  colm-users at colm.net
+>>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>>> 
+>>>>>>  _______________________________________________
+>>>>>> 
+>>>>>>  colm-users mailing list
+>>>>>>  colm-users at colm.net
+>>>>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>>>>> 
+>>>>>  Regards,
+>>>>>  Konstantin Podsvirov
+>>> 
+>>>  _______________________________________________
+>>>  colm-users mailing list
+>>>  colm-users at colm.net
+>>>  http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+>> 
+>> _______________________________________________
+>> colm-users mailing list
+>> colm-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+> 
+> Regards,
+> Konstantin Podsvirov
+> 
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+
+
+From thurston at colm.net  Fri May 18 18:40:01 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 18 May 2018 14:40:01 -0400
+Subject: [colm-users] new development tarballs
+Message-ID: <c2c1828d6801a661e4642dc1e823de88@mail.colm.net>
+
+Hi, I just posted new development tarballs of both Colm and Ragel.
+
+Thanks,
+  Adrian
+
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+http://colm.net/
+
+
+

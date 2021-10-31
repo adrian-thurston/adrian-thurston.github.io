@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Scanners inside of scanners?  A better way to avoid conflicts?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Scanners%20inside%20of%20scanners%3F%20%20A%20better%20way%20to%20avoid%20conflicts%3F&In-Reply-To=%3C87ED3906-2022-416B-865A-64AE428E081D%40jasongarber.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002416.html">
+   <LINK REL="Next"  HREF="002418.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Scanners inside of scanners?  A better way to avoid conflicts?</H1>
+    <B>Jason Garber</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Scanners%20inside%20of%20scanners%3F%20%20A%20better%20way%20to%20avoid%20conflicts%3F&In-Reply-To=%3C87ED3906-2022-416B-865A-64AE428E081D%40jasongarber.com%3E"
+       TITLE="Scanners inside of scanners?  A better way to avoid conflicts?">j... at jasongarber.com
+       </A><BR>
+    <I>Tue Jun 17 03:15:30 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002416.html">Windows binaries updated to vs. 6.2
+</A></li>
+        <LI>Next message: <A HREF="002418.html">[ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#654">[ date ]</a>
+              <a href="thread.html#654">[ thread ]</a>
+              <a href="subject.html#654">[ subject ]</a>
+              <a href="author.html#654">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>In RedCloth, we have a problem where an _emphasized_ bit of text can  
+have _(myclass#myid)a CSS class and/or id_ but shouldn't have a class  
+or id if the whole emphasis is in parentheses _(practically speaking) 
+_.  Consider this example (simplified):
+
+in: &quot;before _(in parens)_ after&quot;
+expected: &quot;&lt;p&gt;before &lt;em&gt;(in parens)&lt;/em&gt; after&lt;/p&gt;&quot;
+but was: &quot;&lt;p&gt;before &lt;em class=\&quot;in parens\&quot;&gt;in parens)&lt;/em&gt; after&lt;/p&gt;&quot;
+It simultaneously pursues the possibilities that the parenthesized  
+text is the class and that it's just regular parenthesized text  
+inside the em.  When the class possibility doesn't work out, the  
+final state is the regular text part but the class has already been  
+captured.
+
+C = &quot;(&quot; ( [^)#]+ &gt;A %{ STORE(class) } )? (&quot;#&quot; [^)]+ &gt;A %{STORE 
+(id)} )? &quot;)&quot;
+mtext = ( chars (mspace chars)* ) ;
+em = &quot;_&quot; &gt;X C? mtext &gt;A %T :&gt; &quot;_&quot; ;
+# The &gt;X resets the register from the last match, &gt;A registers the  
+beginning of a string and the STORE saves it away.
+
+I tried having the class info get written to a buffer that was then  
+captured with a leaving action, which works for the class part, but I  
+again run into the same problem with capturing the text because the  
+right side of the union matches also, so it captures too much text.   
+Whichever side of the vertical pipe writes last, wins.
+
+C = &quot;(&quot; ( [^)#]+ &gt;A %{ STORE(class_buf) } )? (&quot;#&quot; [^)]+ &gt;A %{STORE 
+(id_buf)} )? &quot;)&quot;
+C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext &gt;A %{STORE(text)} | mtext  
+ &gt;B %{ STORE_B(text); });
+# SET_ATTRIBUTES copies the attributes from their buffers and stores  
+them where they belong.
+
+results in...
+expected: &quot;&lt;p&gt;&lt;span class=\&quot;myclass\&quot;&gt;SPAN&lt;/span&gt;&lt;/p&gt;&quot;
+  but was: &quot;&lt;p&gt;&lt;span class=\&quot;myclass\&quot;&gt;(myclass)SPAN&lt;/span&gt;&lt;/p&gt;&quot;
+
+Really what I want is for it to try the first pattern (with the C)  
+and, if that fails, try the second (the plain ol' mtext).  Sounds  
+like a scanner to me.  Problem is, I'm already inside a scanner, so  
+it won't let me call a scanner from within a pattern.
+
+Got any ideas?
+
+Jason
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20080616/789287a8/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20080616/789287a8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002416.html">Windows binaries updated to vs. 6.2
+</A></li>
+	<LI>Next message: <A HREF="002418.html">[ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#654">[ date ]</a>
+              <a href="thread.html#654">[ thread ]</a>
+              <a href="subject.html#654">[ subject ]</a>
+              <a href="author.html#654">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,789 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/6] Don't use AC_DEFINE to pass the commands for the	compilers to the runtest script.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%201/6%5D%20Don%27t%20use%20AC_DEFINE%20to%20pass%20the%20commands%20for%20the%0A%09compilers%20to%20the%20runtest%20script.&In-Reply-To=%3C20081001143631.22980.46335.stgit%40yamato%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/6] Don't use AC_DEFINE to pass the commands for the	compilers to the runtest script.</H1>
+    <B>Diego 'Flameeyes' Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%201/6%5D%20Don%27t%20use%20AC_DEFINE%20to%20pass%20the%20commands%20for%20the%0A%09compilers%20to%20the%20runtest%20script.&In-Reply-To=%3C20081001143631.22980.46335.stgit%40yamato%3E"
+       TITLE="[PATCH 1/6] Don't use AC_DEFINE to pass the commands for the	compilers to the runtest script.">flamee... at gmail.com
+       </A><BR>
+    <I>Wed Oct  1 14:36:36 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2517">[ date ]</a>
+              <a href="thread.html#2517">[ thread ]</a>
+              <a href="subject.html#2517">[ subject ]</a>
+              <a href="author.html#2517">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Instead of parsing the config.h header from runtest, make it use
+proper autoconf by generating it at the end of the configure run.
+---
+
+ configure.in     |   28 +----
+ test/runtests    |  320 ------------------------------------------------------
+ test/runtests.in |  320 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 327 insertions(+), 341 deletions(-)
+ delete mode 100755 test/runtests
+ create mode 100755 test/runtests.in
+
+diff --git a/configure.in b/configure.in
+index a257a70..cc25f2e 100644
+--- a/configure.in
++++ b/configure.in
+@@ -31,10 +31,6 @@ AC_PROG_CC
+ AC_PROG_CXX
+ AC_CHECK_TOOL(AR, ar)
+ AC_PROG_RANLIB
+-AC_DEFINE_UNQUOTED(CC,$CC)
+-AC_DEFINE_UNQUOTED(CXX,$CXX)
+-AC_DEFINE_UNQUOTED(AR,$AR)
+-AC_DEFINE_UNQUOTED(RANLIB,$RANLIB)
+ 
+ dnl Set test on c++ compiler.
+ AC_LANG_CPLUSPLUS
+@@ -75,9 +71,7 @@ fi # BUILD_PARSERS
+ 
+ dnl Check for the D compiler
+ AC_CHECK_PROG(GDC, gdc, gdc)
+-if test -n &quot;$GDC&quot;; then
+-	AC_DEFINE_UNQUOTED(GDC,$GDC)
+-fi
++AC_SUBST(GDC)
+ 
+ dnl Check for the Objective-C compiler
+ AC_MSG_CHECKING([for the Objective-C compiler])
+@@ -88,7 +82,7 @@ GOBJC=&quot;&quot;
+ if gcc -x objective-c conftest.m -o conftest.bin 2&gt;/dev/null; then
+ 	GOBJC=&quot;gcc -x objective-c&quot;
+ 	AC_MSG_RESULT([yes])
+-	AC_DEFINE_UNQUOTED(GOBJC,$GOBJC)
++	AC_SUBST(GOBJC)
+ else
+ 	AC_MSG_RESULT([no])
+ fi
+@@ -96,29 +90,21 @@ AC_SUBST(GOBJC)
+ 
+ dnl Check for the Java compiler.
+ AC_CHECK_PROG(JAVAC, javac, javac)
+-if test -n &quot;$JAVAC&quot;; then
+-	AC_DEFINE_UNQUOTED(JAVAC,$JAVAC)
+-fi
++AC_SUBST(JAVAC)
+ 
+ dnl Check for TXL.
+ AC_CHECK_PROG(TXL, txl, txl)
+-if test -n &quot;$TXL&quot;; then
+-	AC_DEFINE_UNQUOTED(TXL,$TXL)
+-fi
++AC_SUBST(TXL)
+ 
+ dnl Check for Ruby.
+ AC_CHECK_PROG(RUBY, ruby, ruby)
+-if test -n &quot;$RUBY&quot;; then
+-	AC_DEFINE_UNQUOTED(RUBY,$RUBY)
+-fi
++AC_SUBST(RUBY)
+ 
+ dnl Check for the C# compiler.
+ AC_CHECK_PROG(GMCS, gmcs, gmcs)
+-if test -n &quot;$GMCS&quot;; then
+-	AC_DEFINE_UNQUOTED(GMCS,$GMCS)
+-fi
++AC_SUBST(GMCS)
+ 
+ dnl write output files
+-AC_OUTPUT(Makefile common/Makefile ragel/Makefile redfsm/Makefile rlgen-cd/Makefile rlgen-java/Makefile rlgen-ruby/Makefile rlgen-dot/Makefile rlgen-csharp/Makefile doc/Makefile test/Makefile)
++AC_OUTPUT(Makefile common/Makefile ragel/Makefile redfsm/Makefile rlgen-cd/Makefile rlgen-java/Makefile rlgen-ruby/Makefile rlgen-dot/Makefile rlgen-csharp/Makefile doc/Makefile test/Makefile test/runtests)
+ 
+ echo &quot;configuration of ragel complete&quot;
+diff --git a/test/runtests b/test/runtests
+deleted file mode 100755
+index a50c7c9..0000000
+--- a/test/runtests
++++ /dev/null
+@@ -1,320 +0,0 @@
+-#!/bin/bash
+-
+-#
+-#   Copyright 2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-while getopts &quot;gcnmleT:F:G:P:CDJRA&quot; opt; do
+-	case $opt in
+-		T|F|G|P) 
+-			genflags=&quot;$genflags -$opt$OPTARG&quot;
+-			options=&quot;$options -$opt$OPTARG&quot;
+-			;;
+-		n|m|l|e) 
+-			minflags=&quot;$minflags -$opt&quot;
+-			options=&quot;$options -$opt&quot;
+-			;;
+-		c) 
+-			compile_only=&quot;true&quot;
+-			options=&quot;$options -$opt&quot;
+-			;;
+-		g) 
+-			allow_generated=&quot;true&quot;
+-			;;
+-		C|D|J|R|A) 
+-			langflags=&quot;$langflags -$opt&quot;
+-			;;
+-	esac
+-done
+-
+-[ -z &quot;$minflags&quot; ] &amp;&amp; minflags=&quot;-n -m -l -e&quot;
+-[ -z &quot;$genflags&quot; ] &amp;&amp; genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1 -G2&quot;
+-[ -z &quot;$langflags&quot; ] &amp;&amp; langflags=&quot;-C -D -J -R -A&quot;
+-
+-shift $((OPTIND - 1));
+-
+-[ -z &quot;$*&quot; ] &amp;&amp; set -- *.rl
+-
+-config=../common/config.h
+-ragel=../ragel/ragel
+-
+-cxx_compiler=`sed '/^#define CXX/s/#define CXX *//p;d' $config`
+-c_compiler=`sed '/^#define CC/s/#define CC *//p;d' $config`
+-objc_compiler=`sed '/^#define GOBJC/s/#define GOBJC *//p;d' $config`
+-d_compiler=`sed '/^#define GDC/s/#define GDC *//p;d' $config`
+-java_compiler=`sed '/#define JAVAC/s/#define JAVAC *//p;d' $config`
+-txl_engine=`sed '/^#define TXL/s/#define TXL *//p;d' $config`
+-ruby_engine=`sed '/^#define RUBY/s/#define RUBY *//p;d' $config`
+-csharp_compiler=`sed '/#define GMCS/s/#define GMCS *//p;d' $config`
+-
+-function test_error
+-{
+-	exit 1;
+-}
+-
+-#	split_objs=&quot;&quot;
+-#	if test $split_iters != &quot;$gen_opt&quot;; then
+-#		n=0;
+-#		while test $n -lt $split_iters; do
+-#			part_root=${root}_`awk 'BEGIN {
+-#				width = 0;
+-#				high = '$split_iters' - 1;
+-#				while ( high &gt; 0 ) {
+-#					width = width + 1;
+-#					high = int(high / 10);
+-#				}
+-#				suffFormat = &quot;%&quot; width &quot;.&quot; width &quot;d\n&quot;;
+-#				printf( suffFormat, '$n' );
+-#				exit 0;
+-#			}'`
+-#			part_src=${part_root}.c
+-#			part_bin=${part_root}.o
+-#			echo &quot;$compiler -c $cflags -o $part_bin $part_src&quot;
+-#			if ! $compiler -c $cflags -o $part_bin $part_src; then
+-#				test_error;
+-#			fi
+-#			split_objs=&quot;$split_objs $part_bin&quot;
+-#			n=$((n+1))
+-#		done
+-#	fi
+-
+-function run_test()
+-{
+-	echo &quot;$ragel $lang_opt $min_opt $gen_opt -o $code_src $test_case&quot;
+-	if ! $ragel $lang_opt $min_opt $gen_opt -o $code_src $test_case; then
+-		test_error;
+-	fi
+-
+-	out_args=&quot;&quot;
+-	[ $lang != java ] &amp;&amp; out_args=&quot;-o ${binary}&quot;;
+-    [ $lang == csharp ] &amp;&amp; out_args=&quot;-out:${binary}&quot;;
+-
+-	# Ruby doesn't need to be compiled.
+-	if [ $lang != ruby ]; then
+-		echo &quot;$compiler ${cflags} ${out_args} ${code_src}&quot;
+-		if ! $compiler ${cflags} ${out_args} ${code_src}; then
+-			test_error;
+-		fi
+-	fi
+-
+-	if [ &quot;$compile_only&quot; != &quot;true&quot; ]; then
+-		echo -n &quot;running $root ... &quot;;
+-		
+-		exec_cmd=./$binary
+-		[ $lang = java ] &amp;&amp; exec_cmd=&quot;java ${root}&quot;
+-		[ $lang = ruby ] &amp;&amp; exec_cmd=&quot;ruby ${code_src}&quot;
+-		[ $lang = csharp ] &amp;&amp; exec_cmd=&quot;mono ${exec_cmd}&quot;
+-
+-		$exec_cmd 2&gt;&amp;1 &gt; $output;
+-		if diff $expected_out $output &gt; /dev/null; then
+-			echo &quot;passed&quot;;
+-		else
+-			echo &quot;FAILED&quot;;
+-			test_error;
+-		fi;
+-	fi
+-}
+-
+-for test_case; do
+-	root=${test_case%.rl};
+-
+-	if ! [ -f &quot;$test_case&quot; ]; then
+-		echo &quot;runtests: not a file: $test_case&quot;; &gt;&amp;2
+-		exit 1;
+-	fi
+-
+-	# Check if we should ignore the test case
+-	ignore=`sed '/@IGNORE:/s/^.*: *//p;d' $test_case`
+-    if [ &quot;$ignore&quot; = yes ]; then
+-        continue;
+-    fi
+-
+-	# If the generated flag is given make sure that the test case is generated.
+-	is_generated=`sed '/@GENERATED:/s/^.*: *//p;d' $test_case`
+-	if [ &quot;$is_generated&quot; = yes ] &amp;&amp; [ &quot;$allow_generated&quot; != true ]; then
+-		continue;
+-	fi
+-
+-	expected_out=$root.exp;
+-	sed '1,/_____OUTPUT_____/d;$d' $test_case &gt; $expected_out
+-
+-	lang=`sed '/@LANG:/s/^.*: *//p;d' $test_case`
+-	if [ -z &quot;$lang&quot; ]; then
+-		echo &quot;$test_case: language unset&quot;; &gt;&amp;2
+-		exit 1;
+-	fi
+-
+-	case $lang in
+-		c++)
+-			lang_opt=-C;
+-			codegen=../rlgen-cd/rlgen-cd;
+-			code_suffix=cpp;
+-			compiler=$cxx_compiler;
+-			cflags=&quot;-pedantic -ansi -Wall -O3&quot;
+-		;;
+-		d)
+-			lang_opt=-D;
+-			codegen=../rlgen-cd/rlgen-cd;
+-			code_suffix=d;
+-			compiler=$d_compiler;
+-			cflags=&quot;-Wall -O3&quot;
+-		;;
+-		c)
+-			lang_opt=-C;
+-			codegen=../rlgen-cd/rlgen-cd;
+-			code_suffix=c;
+-			compiler=$c_compiler;
+-			cflags=&quot;-pedantic -ansi -Wall -O3&quot;
+-		;;
+-		obj-c)
+-			lang_opt=-C;
+-			codegen=../rlgen-cd/rlgen-cd;
+-			code_suffix=m;
+-			compiler=$objc_compiler
+-			cflags=&quot;-Wall -O3 -fno-strict-aliasing -lobjc&quot;
+-		;;
+-		java)
+-			lang_opt=-J;
+-			codegen=../rlgen-java/rlgen-java;
+-			code_suffix=java;
+-			compiler=$java_compiler
+-			cflags=&quot;&quot;
+-		;;
+-		ruby)
+-			lang_opt=-R;
+-			codegen=../rlgen-ruby/rlgen-ruby;
+-			code_suffix=rb;
+-			compiler=$ruby_engine
+-			cflags=&quot;&quot;
+-		;;
+-        csharp)
+-            lang_opt=&quot;-A&quot;;
+-            codegen=../rlgen-csharp/rlgen-csharp;
+-            code_suffix=cs;
+-            compiler=$csharp_compiler
+-            cflags=&quot;&quot;
+-        ;;
+-		indep)
+-			lang_opt=&quot;&quot;;
+-
+-			# If we have no txl engine then skip this test.
+-			[ -z &quot;$txl_engine&quot; ] &amp;&amp; continue
+-			for lang in c d java ruby csharp; do
+-				case $lang in 
+-					c) lf=&quot;-C&quot;;;
+-					d) lf=&quot;-D&quot;;;
+-					java) lf=&quot;-J&quot;;;
+-					ruby) lf=&quot;-R&quot;;;
+-                    csharp) lf=&quot;-A&quot;;;
+-				esac
+-
+-				echo &quot;$langflags&quot; | grep -e $lf &gt;/dev/null || continue
+-
+-				targ=${root}_$lang.rl
+-				echo &quot;./langtrans_$lang.sh $test_case &gt; $targ&quot;
+-				if ! ./langtrans_$lang.sh $test_case &gt; $targ; then
+-					test_error
+-				fi
+-				echo &quot;./runtests -g $options $targ&quot;
+-				if !  ./runtests -g $options $targ; then
+-					test_error
+-				fi
+-			done
+-			continue;
+-		;;
+-		*)
+-			echo &quot;$test_case: unknown language type $lang&quot; &gt;&amp;2
+-			exit 1;
+-		;;
+-	esac
+-
+-	# Make sure that we are interested in the host language.
+-	echo &quot;$langflags&quot; | grep -e $lang_opt &gt;/dev/null || continue
+-
+-	code_src=$root.$code_suffix;
+-	binary=$root.bin;
+-	output=$root.out;
+-
+-	# If we have no compiler for the source program then skip it.
+-	[ -z &quot;$compiler&quot; ] &amp;&amp; continue
+-
+-	additional_cflags=`sed '/@CFLAGS:/s/^.*: *//p;d' $test_case`
+-	[ -n &quot;$additional_cflags&quot; ] &amp;&amp; cflags=&quot;$cflags $additional_cflags&quot;
+-
+-	allow_minflags=`sed '/@ALLOW_MINFLAGS:/s/^.*: *//p;d' $test_case`
+-	[ -z &quot;$allow_minflags&quot; ] &amp;&amp; allow_minflags=&quot;-n -m -l -e&quot;
+-
+-	case $lang in
+-	c|c++|d)
+-		# Using genflags, get the allowed gen flags from the test case. If the
+-		# test case doesn't specify assume that all gen flags are allowed.
+-		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
+-		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1 -G2&quot;
+-
+-		for min_opt in $minflags; do
+-			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
+-			for gen_opt in $genflags; do
+-				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
+-				run_test
+-			done
+-		done
+-	;;
+-
+-	java) 
+-		# Not interested in gen opt.
+-		gen_opt=&quot;&quot;
+-		for min_opt in $minflags; do
+-			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
+-			run_test
+-		done
+-	;;
+-
+-	ruby) 
+-		# Using genflags, get the allowed gen flags from the test case. If the
+-		# test case doesn't specify assume that all gen flags are allowed.
+-		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
+-		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1&quot;
+-
+-		for min_opt in $minflags; do
+-			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
+-
+-			for gen_opt in $genflags; do
+-				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
+-				run_test
+-			done
+-		done
+-	;;
+-
+-	csharp)
+-		# Using genflags, get the allowed gen flags from the test case. If the
+-		# test case doesn't specify assume that all gen flags are allowed.
+-		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
+-		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1&quot;
+-
+-		for min_opt in $minflags; do
+-			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
+-			for gen_opt in $genflags; do
+-				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
+-				run_test
+-			done
+-		done
+-	;;
+-	esac
+-
+-done
+diff --git a/test/runtests.in b/test/runtests.in
+new file mode 100755
+index 0000000..ee14f6a
+--- /dev/null
++++ b/test/runtests.in
+@@ -0,0 +1,320 @@
++#!/bin/bash
++
++#
++#   Copyright 2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
++#
++
++#   This file is part of Ragel.
++#
++#   Ragel is free software; you can redistribute it and/or modify
++#   it under the terms of the GNU General Public License as published by
++#   the Free Software Foundation; either version 2 of the License, or
++#   (at your option) any later version.
++#
++#   Ragel is distributed in the hope that it will be useful,
++#   but WITHOUT ANY WARRANTY; without even the implied warranty of
++#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#   GNU General Public License for more details.
++#
++#   You should have received a copy of the GNU General Public License
++#   along with Ragel; if not, write to the Free Software
++#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
++
++while getopts &quot;gcnmleT:F:G:P:CDJRA&quot; opt; do
++	case $opt in
++		T|F|G|P) 
++			genflags=&quot;$genflags -$opt$OPTARG&quot;
++			options=&quot;$options -$opt$OPTARG&quot;
++			;;
++		n|m|l|e) 
++			minflags=&quot;$minflags -$opt&quot;
++			options=&quot;$options -$opt&quot;
++			;;
++		c) 
++			compile_only=&quot;true&quot;
++			options=&quot;$options -$opt&quot;
++			;;
++		g) 
++			allow_generated=&quot;true&quot;
++			;;
++		C|D|J|R|A) 
++			langflags=&quot;$langflags -$opt&quot;
++			;;
++	esac
++done
++
++[ -z &quot;$minflags&quot; ] &amp;&amp; minflags=&quot;-n -m -l -e&quot;
++[ -z &quot;$genflags&quot; ] &amp;&amp; genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1 -G2&quot;
++[ -z &quot;$langflags&quot; ] &amp;&amp; langflags=&quot;-C -D -J -R -A&quot;
++
++shift $((OPTIND - 1));
++
++[ -z &quot;$*&quot; ] &amp;&amp; set -- *.rl
++
++config=../common/config.h
++ragel=../ragel/ragel
++
++cxx_compiler=@CXX@
++c_compiler=@CC@
++objc_compiler=@GOBJC@
++d_compiler=@GDC@
++java_compiler=@JAVAC@
++txl_engine=@TXL@
++ruby_engine=@RUBY@
++csharp_compiler=@GMCS@
++
++function test_error
++{
++	exit 1;
++}
++
++#	split_objs=&quot;&quot;
++#	if test $split_iters != &quot;$gen_opt&quot;; then
++#		n=0;
++#		while test $n -lt $split_iters; do
++#			part_root=${root}_`awk 'BEGIN {
++#				width = 0;
++#				high = '$split_iters' - 1;
++#				while ( high &gt; 0 ) {
++#					width = width + 1;
++#					high = int(high / 10);
++#				}
++#				suffFormat = &quot;%&quot; width &quot;.&quot; width &quot;d\n&quot;;
++#				printf( suffFormat, '$n' );
++#				exit 0;
++#			}'`
++#			part_src=${part_root}.c
++#			part_bin=${part_root}.o
++#			echo &quot;$compiler -c $cflags -o $part_bin $part_src&quot;
++#			if ! $compiler -c $cflags -o $part_bin $part_src; then
++#				test_error;
++#			fi
++#			split_objs=&quot;$split_objs $part_bin&quot;
++#			n=$((n+1))
++#		done
++#	fi
++
++function run_test()
++{
++	echo &quot;$ragel $lang_opt $min_opt $gen_opt -o $code_src $test_case&quot;
++	if ! $ragel $lang_opt $min_opt $gen_opt -o $code_src $test_case; then
++		test_error;
++	fi
++
++	out_args=&quot;&quot;
++	[ $lang != java ] &amp;&amp; out_args=&quot;-o ${binary}&quot;;
++    [ $lang == csharp ] &amp;&amp; out_args=&quot;-out:${binary}&quot;;
++
++	# Ruby doesn't need to be compiled.
++	if [ $lang != ruby ]; then
++		echo &quot;$compiler ${cflags} ${out_args} ${code_src}&quot;
++		if ! $compiler ${cflags} ${out_args} ${code_src}; then
++			test_error;
++		fi
++	fi
++
++	if [ &quot;$compile_only&quot; != &quot;true&quot; ]; then
++		echo -n &quot;running $root ... &quot;;
++		
++		exec_cmd=./$binary
++		[ $lang = java ] &amp;&amp; exec_cmd=&quot;java ${root}&quot;
++		[ $lang = ruby ] &amp;&amp; exec_cmd=&quot;ruby ${code_src}&quot;
++		[ $lang = csharp ] &amp;&amp; exec_cmd=&quot;mono ${exec_cmd}&quot;
++
++		$exec_cmd 2&gt;&amp;1 &gt; $output;
++		if diff $expected_out $output &gt; /dev/null; then
++			echo &quot;passed&quot;;
++		else
++			echo &quot;FAILED&quot;;
++			test_error;
++		fi;
++	fi
++}
++
++for test_case; do
++	root=${test_case%.rl};
++
++	if ! [ -f &quot;$test_case&quot; ]; then
++		echo &quot;runtests: not a file: $test_case&quot;; &gt;&amp;2
++		exit 1;
++	fi
++
++	# Check if we should ignore the test case
++	ignore=`sed '/@IGNORE:/s/^.*: *//p;d' $test_case`
++    if [ &quot;$ignore&quot; = yes ]; then
++        continue;
++    fi
++
++	# If the generated flag is given make sure that the test case is generated.
++	is_generated=`sed '/@GENERATED:/s/^.*: *//p;d' $test_case`
++	if [ &quot;$is_generated&quot; = yes ] &amp;&amp; [ &quot;$allow_generated&quot; != true ]; then
++		continue;
++	fi
++
++	expected_out=$root.exp;
++	sed '1,/_____OUTPUT_____/d;$d' $test_case &gt; $expected_out
++
++	lang=`sed '/@LANG:/s/^.*: *//p;d' $test_case`
++	if [ -z &quot;$lang&quot; ]; then
++		echo &quot;$test_case: language unset&quot;; &gt;&amp;2
++		exit 1;
++	fi
++
++	case $lang in
++		c++)
++			lang_opt=-C;
++			codegen=../rlgen-cd/rlgen-cd;
++			code_suffix=cpp;
++			compiler=$cxx_compiler;
++			cflags=&quot;-pedantic -ansi -Wall -O3&quot;
++		;;
++		d)
++			lang_opt=-D;
++			codegen=../rlgen-cd/rlgen-cd;
++			code_suffix=d;
++			compiler=$d_compiler;
++			cflags=&quot;-Wall -O3&quot;
++		;;
++		c)
++			lang_opt=-C;
++			codegen=../rlgen-cd/rlgen-cd;
++			code_suffix=c;
++			compiler=$c_compiler;
++			cflags=&quot;-pedantic -ansi -Wall -O3&quot;
++		;;
++		obj-c)
++			lang_opt=-C;
++			codegen=../rlgen-cd/rlgen-cd;
++			code_suffix=m;
++			compiler=$objc_compiler
++			cflags=&quot;-Wall -O3 -fno-strict-aliasing -lobjc&quot;
++		;;
++		java)
++			lang_opt=-J;
++			codegen=../rlgen-java/rlgen-java;
++			code_suffix=java;
++			compiler=$java_compiler
++			cflags=&quot;&quot;
++		;;
++		ruby)
++			lang_opt=-R;
++			codegen=../rlgen-ruby/rlgen-ruby;
++			code_suffix=rb;
++			compiler=$ruby_engine
++			cflags=&quot;&quot;
++		;;
++        csharp)
++            lang_opt=&quot;-A&quot;;
++            codegen=../rlgen-csharp/rlgen-csharp;
++            code_suffix=cs;
++            compiler=$csharp_compiler
++            cflags=&quot;&quot;
++        ;;
++		indep)
++			lang_opt=&quot;&quot;;
++
++			# If we have no txl engine then skip this test.
++			[ -z &quot;$txl_engine&quot; ] &amp;&amp; continue
++			for lang in c d java ruby csharp; do
++				case $lang in 
++					c) lf=&quot;-C&quot;;;
++					d) lf=&quot;-D&quot;;;
++					java) lf=&quot;-J&quot;;;
++					ruby) lf=&quot;-R&quot;;;
++                    csharp) lf=&quot;-A&quot;;;
++				esac
++
++				echo &quot;$langflags&quot; | grep -e $lf &gt;/dev/null || continue
++
++				targ=${root}_$lang.rl
++				echo &quot;./langtrans_$lang.sh $test_case &gt; $targ&quot;
++				if ! ./langtrans_$lang.sh $test_case &gt; $targ; then
++					test_error
++				fi
++				echo &quot;./runtests -g $options $targ&quot;
++				if !  ./runtests -g $options $targ; then
++					test_error
++				fi
++			done
++			continue;
++		;;
++		*)
++			echo &quot;$test_case: unknown language type $lang&quot; &gt;&amp;2
++			exit 1;
++		;;
++	esac
++
++	# Make sure that we are interested in the host language.
++	echo &quot;$langflags&quot; | grep -e $lang_opt &gt;/dev/null || continue
++
++	code_src=$root.$code_suffix;
++	binary=$root.bin;
++	output=$root.out;
++
++	# If we have no compiler for the source program then skip it.
++	[ -z &quot;$compiler&quot; ] &amp;&amp; continue
++
++	additional_cflags=`sed '/@CFLAGS:/s/^.*: *//p;d' $test_case`
++	[ -n &quot;$additional_cflags&quot; ] &amp;&amp; cflags=&quot;$cflags $additional_cflags&quot;
++
++	allow_minflags=`sed '/@ALLOW_MINFLAGS:/s/^.*: *//p;d' $test_case`
++	[ -z &quot;$allow_minflags&quot; ] &amp;&amp; allow_minflags=&quot;-n -m -l -e&quot;
++
++	case $lang in
++	c|c++|d)
++		# Using genflags, get the allowed gen flags from the test case. If the
++		# test case doesn't specify assume that all gen flags are allowed.
++		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
++		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1 -G2&quot;
++
++		for min_opt in $minflags; do
++			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
++			for gen_opt in $genflags; do
++				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
++				run_test
++			done
++		done
++	;;
++
++	java) 
++		# Not interested in gen opt.
++		gen_opt=&quot;&quot;
++		for min_opt in $minflags; do
++			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
++			run_test
++		done
++	;;
++
++	ruby) 
++		# Using genflags, get the allowed gen flags from the test case. If the
++		# test case doesn't specify assume that all gen flags are allowed.
++		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
++		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1&quot;
++
++		for min_opt in $minflags; do
++			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
++
++			for gen_opt in $genflags; do
++				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
++				run_test
++			done
++		done
++	;;
++
++	csharp)
++		# Using genflags, get the allowed gen flags from the test case. If the
++		# test case doesn't specify assume that all gen flags are allowed.
++		allow_genflags=`sed '/@ALLOW_GENFLAGS:/s/^.*: *//p;d' $test_case`
++		[ -z &quot;$allow_genflags&quot; ] &amp;&amp; allow_genflags=&quot;-T0 -T1 -F0 -F1 -G0 -G1&quot;
++
++		for min_opt in $minflags; do
++			echo &quot;$allow_minflags&quot; | grep -e $min_opt &gt;/dev/null || continue
++			for gen_opt in $genflags; do
++				echo &quot;$allow_genflags&quot; | grep -e $gen_opt &gt;/dev/null || continue
++				run_test
++			done
++		done
++	;;
++	esac
++
++done
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2517">[ date ]</a>
+              <a href="thread.html#2517">[ thread ]</a>
+              <a href="subject.html#2517">[ subject ]</a>
+              <a href="author.html#2517">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

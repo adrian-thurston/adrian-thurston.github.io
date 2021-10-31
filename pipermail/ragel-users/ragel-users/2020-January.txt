@@ -1,0 +1,46 @@
+From Mark.Olesen at esi-group.com  Mon Jan 13 07:47:08 2020
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Mon, 13 Jan 2020 12:47:08 +0000
+Subject: [ragel-users] combining ragel and lemon (update)
+Message-ID: <2e6e52bb-b15c-dab4-b014-d1e1026aac86@esi-group.com>
+
+I figured that I should provide a followup on this topic.
+
+OpenFOAM-v1912 (Dec 2019 release) now includes expression evaluation 
+using a combination of ragel and lemon - my thanks to Adrian for a few 
+pointers regarding simplifying my use of ragel.
+
+You could say that the OpenFOAM expressions are essentially a glorified 
+calculator, except that we handle various vector-space fields 
+(scalar/vector/tensor/symmTenor/sphericalTensor) for internal meshes and 
+patch fields etc.
+
+The scanner is ragel, the parser is a version of lemon that has been 
+minimally modified to allow for C++ namespaces - to allow for good 
+encapsulation without forcing any particular interface on the user or 
+affecting the use of lemon for C-code. To managing the large number of 
+similar definitions, the lemon grammar is modularized using m4 macros.
+
+Here are some code references as of Jan-2020:
+
+The m4-augmented lemon make rules:
+https://develop.openfoam.com/Development/openfoam/blob/master/wmake/rules/General/lemon
+
+The lemon wrapper with m4 filtering:
+https://develop.openfoam.com/Development/openfoam/blob/master/wmake/scripts/wrap-lemon
+
+The m4 macros used for lemon:
+https://develop.openfoam.com/Development/openfoam/tree/master/src/OpenFOAM/include/m4/lemon
+
+An example of m4-augmented lemon grammar:
+https://develop.openfoam.com/Development/openfoam/blob/master/src/OpenFOAM/expressions/fields/fieldExprLemonParser.lyy-m4
+
+The corresponding ragel scanner:
+https://develop.openfoam.com/Development/openfoam/blob/master/src/OpenFOAM/expressions/fields/fieldExprScanner.rl
+
+The expected tokens for the lemon parser are pre-built, which allows the 
+rest of the code to build in parallel without issue.
+
+Cheers,
+/mark
+

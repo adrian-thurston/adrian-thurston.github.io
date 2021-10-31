@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> (unexpected) problem with accented chars
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%28unexpected%29%20problem%20with%20accented%20chars&In-Reply-To=%3C4cb24783-97e7-49c2-8fa2-689f0e5732a9%40q77g2000hsh.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>(unexpected) problem with accented chars</H1>
+    <B>jupp_g</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%28unexpected%29%20problem%20with%20accented%20chars&In-Reply-To=%3C4cb24783-97e7-49c2-8fa2-689f0e5732a9%40q77g2000hsh.googlegroups.com%3E"
+       TITLE="(unexpected) problem with accented chars">jup... at hotmail.de
+       </A><BR>
+    <I>Thu Jan 10 22:05:40 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2230">[ date ]</a>
+              <a href="thread.html#2230">[ thread ]</a>
+              <a href="subject.html#2230">[ subject ]</a>
+              <a href="author.html#2230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>If you feed the following console app with chars like [ÄÖÜäöüß] they
+are not accepted, which is somewhat unexpected (for me). The dot
+output looks fine with proper states and transitions. The problem is
+definetely not related to the code page switching, but I didn't delete
+the code to enable showing the chars on the console (cmd.exe defaults
+to code page 850, which doesn't have some of the chars I want). If I
+use the &quot;all&quot; machine things work as expected.
+
+Any hints?
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include &lt;windows.h&gt;
+#endif
+#include &lt;stdio.h&gt;
+
+#define BUF_LEN		128
+
+%%{
+	machine cp1252;
+	alphtype unsigned char;
+
+	action finish_line {
+		++count;
+		res = (cs &gt;= cp1252_first_final);
+		printf( &quot;==&gt; \&quot;%s\&quot;\n&quot;,  line );
+	}
+
+	action start_line {
+		line_idx = 0;
+	}
+
+	action add_char {
+		line[line_idx++] = fc;
+	}
+
+	action end_line {
+		line[line_idx] = '\0';
+	}
+
+	more = (0xC0..0xFF);
+	what_i_want = ('0'..'9')|('A'..'Z')|('a'..'z')|(0xC0..0xFF);
+	all = (0x30..0xFF);
+
+	# fails:
+            main := ( ( (alnum|more)+ &gt; start_line $ add_char %
+end_line ) ) 0 @ finish_line;
+	# fails: main := ( ( (what_i_want)+ &gt; start_line $ add_char %
+end_line ) ) 0 @ finish_line;
+	# only almost what I want, but works:
+	#main := ( ( (all)+ &gt; start_line $ add_char % end_line ) ) 0 @
+finish_line;
+}%%
+
+%% write data;
+
+int main( int argc, char* argv[] )
+{
+#ifdef _WIN32
+	SetConsoleCP( 1252 );
+	SetConsoleOutputCP( 1252 );
+#endif
+
+	for ( int i = 1; i &lt; argc; ++i ) {
+
+		int  cs;
+		char *p = argv[i];
+		char *pe = p + strlen(p) + 1;
+
+		int res = 0;
+		int count = 0;
+		char line[BUF_LEN];
+		int line_idx = -1;
+		line[0] = '\0';
+
+		printf( &quot;argv[%d] = \&quot;%s\&quot;\n&quot;, i, p );
+
+		%% write init;
+		%% write exec;
+
+		printf( &quot;\tresult = %d (count=%d)\n&quot;, res, count );
+	}
+
+	return 0;
+}
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2230">[ date ]</a>
+              <a href="thread.html#2230">[ thread ]</a>
+              <a href="subject.html#2230">[ subject ]</a>
+              <a href="author.html#2230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

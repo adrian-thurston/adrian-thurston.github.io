@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Using ragel to parse input from files, in C++
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Using%20ragel%20to%20parse%20input%20from%20files%2C%20in%20C%2B%2B&In-Reply-To=%3C47AD1434.6070005%40nanorex.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000478.html">
+   <LINK REL="Next"  HREF="000480.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Using ragel to parse input from files, in C++</H1>
+    <B>Manoj Rajagopalan</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Using%20ragel%20to%20parse%20input%20from%20files%2C%20in%20C%2B%2B&In-Reply-To=%3C47AD1434.6070005%40nanorex.com%3E"
+       TITLE="[ragel-users] Using ragel to parse input from files, in C++">ma... at nanorex.com
+       </A><BR>
+    <I>Sat Feb  9 02:47:16 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000478.html">Using ragel to parse input from files, in C++
+</A></li>
+        <LI>Next message: <A HREF="000480.html">[ragel-users] Re: Using ragel to parse input from files, in C++
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#479">[ date ]</a>
+              <a href="thread.html#479">[ thread ]</a>
+              <a href="subject.html#479">[ subject ]</a>
+              <a href="author.html#479">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Actually, I just realized that we don't have to even consider the 
+filebuf part unless we are interested in implementing custom buffers.
+
+The following simple class should also work (haven't tested)
+
+class ragelfile_ptr
+{
+public:
+      ragelfile_ptr(char const *const filename)
+          : infile(filename, std::ios::in) , c('\0')
+          { if(infile) c = infile.peek(); }
+      ~ragelfile_ptr() { if(infile.is_open()) infile.close(); }
+      // allow advancement or pointer
+      ragelfile_ptr&amp; operator += (int )
+      { infile.get(c); return *this;} // assuming ragel always does p+=1
+      // allow access to current character
+      char operator * () { return c; }
+private:
+      std::ifstream infile;
+      char c;
+};
+
+
+cheers!
+Manoj
+
+
+Manoj Rajagopalan wrote:
+&gt;<i> Hi all,
+</I>&gt;<i> 
+</I>&gt;<i>   I have the following approach. It passes basic tests and I'd like to 
+</I>&gt;<i> share this with you. Can someone spot bugs?
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> // class to access a file (through buffer) but to appear like a pointer
+</I>&gt;<i> class ragelfilebuf_ptr
+</I>&gt;<i> {
+</I>&gt;<i> public:
+</I>&gt;<i>      ragelfilebuf_ptr(char const *const filename)
+</I>&gt;<i>          : infile(filename, std::ios::in),
+</I>&gt;<i>            fbptr(infile.rdbuf()) { }
+</I>&gt;<i>      ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+</I>&gt;<i>      // allow advancement or pointer
+</I>&gt;<i>      ragelfilebuf_ptr&amp; operator += (int n) { for(int i=0; i&lt;n; 
+</I>&gt;<i> ++i)fbptr-&gt;snextc(); return *this;}
+</I>&gt;<i>      // allow access to current character
+</I>&gt;<i>      char operator * () { return (char)fbptr-&gt;sgetc(); }
+</I>&gt;<i> private:
+</I>&gt;<i>      std::ifstream infile;
+</I>&gt;<i>      std::filebuf *fbptr;
+</I>&gt;<i> };
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> int main()
+</I>&gt;<i> {
+</I>&gt;<i>      int cs;
+</I>&gt;<i>      ragelfilebuf_ptr p(&quot;filename&quot;); // create ragel's p variable
+</I>&gt;<i> 
+</I>&gt;<i>      %% write exec noend  # see 1. below
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> NOTES:
+</I>&gt;<i> 1. When writing your state machine define a machine to detect 0xff 
+</I>&gt;<i> (which is EOF) and perform the fbreak action. Note that I have used the 
+</I>&gt;<i> 'noend' qualifier to the 'write exec' statement above - the program 
+</I>&gt;<i> won't terminate without our explicit instruction to do so.
+</I>&gt;<i> 
+</I>&gt;<i> 2. The ifstream class performs buffered input. If its 'get' pointer goes 
+</I>&gt;<i> past the boundary its associated std::filebuf instance automatically 
+</I>&gt;<i> reads in more stuff from the file. By subclassing filebuf and 
+</I>&gt;<i> implementing its virtual methods you can set your own buffer using 
+</I>&gt;<i> ifstream::rdbuf(std::streambuf*).
+</I>&gt;<i> 
+</I>&gt;<i> 3. If it is guaranteed that Ragel will never advance the p pointer by 
+</I>&gt;<i> more than one, then we can do away with the 'for' part of the 
+</I>&gt;<i> advancement statement in the definition of operator +=  above, i.e., we 
+</I>&gt;<i> simply need have fbptr-&gt;snext() only.  Your comments, Alan?
+</I>&gt;<i> 
+</I>&gt;<i> cheers!
+</I>&gt;<i> Manoj
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000478.html">Using ragel to parse input from files, in C++
+</A></li>
+	<LI>Next message: <A HREF="000480.html">[ragel-users] Re: Using ragel to parse input from files, in C++
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#479">[ date ]</a>
+              <a href="thread.html#479">[ thread ]</a>
+              <a href="subject.html#479">[ subject ]</a>
+              <a href="author.html#479">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

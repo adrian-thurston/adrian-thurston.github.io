@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Problem with a scanner dropping the first character of an identifier.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%20with%20a%20scanner%20dropping%20the%20first%20character%20of%20an%20identifier.&In-Reply-To=%3C1174449009.161579.147090%40n59g2000hsh.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001968.html">
+   <LINK REL="Next"  HREF="000209.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Problem with a scanner dropping the first character of an identifier.</H1>
+    <B>Patrick O'Grady</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%20with%20a%20scanner%20dropping%20the%20first%20character%20of%20an%20identifier.&In-Reply-To=%3C1174449009.161579.147090%40n59g2000hsh.googlegroups.com%3E"
+       TITLE="Problem with a scanner dropping the first character of an identifier.">patr... at baymotion.com
+       </A><BR>
+    <I>Wed Mar 21 03:50:09 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001968.html">[ragel-users] Problem with a scanner dropping the first character of an identifier.
+</A></li>
+        <LI>Next message: <A HREF="000209.html">Packaging ragel for Fedora Extras
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1969">[ date ]</a>
+              <a href="thread.html#1969">[ thread ]</a>
+              <a href="subject.html#1969">[ subject ]</a>
+              <a href="author.html#1969">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Adrian--
+
+Thanks very much; that cleared up my problem-- I knew that it had to
+be something simple.  In terms of the buffer management--the arguments
+you presented are exactly why I'm interested in Ragel--Ragel is one of
+the very few parser generator tools which doesn't have to rely on the
+thread's call stack in order to keep its state information--allowing
+me to manipulate a state machine as events are received by whichever
+thread actually receives the event.   I'm also very interested in how
+state machines can be inherited and augmented, hopefully without
+having to edit the original source for those machines.  Ragel is a
+terriffic tool--and thanks again for your help.  If I did have one
+request, however, it would be to perhaps add a mode where instead of
+using pointer arithmetic to advance through the buffer, the pointer
+could be adjusted through function calls or #define macros that I
+could override.  I'd use this to allow parsing across non-contiguous
+buffers.
+
+-patrick
+
+
+
+
+On Mar 20, 6:38 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hi Patrick,
+</I>&gt;<i>
+</I>&gt;<i> In the main machine the use of % causes the action to be executed on the
+</I>&gt;<i> following character. If you change the action embedding operator to @ or
+</I>&gt;<i> $ the action will be executed immediately and you should get the results
+</I>&gt;<i> you want.
+</I>&gt;<i>
+</I>&gt;<i> Using tokstart and tokend is the only way to retrieve token text. One of
+</I>&gt;<i> the goals of Ragel is to have a tool which generates code with no
+</I>&gt;<i> dependencies, including malloc. This is why I have a &quot;hands-off&quot;
+</I>&gt;<i> approach to buffer and token-data management. Whenever possible I prefer
+</I>&gt;<i> to leave this up to the user, as she is in the best position to decide
+</I>&gt;<i> how memory management is to be done.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i>  Adrian
+</I>&gt;<i>
+</I>&gt;<i> Patrick O'Grady wrote:
+</I>&gt;<i> &gt; Hi, all--
+</I>&gt;<i>
+</I>&gt;<i> &gt; I've been struggling with a little self-test fixture which uses Ragel to
+</I>&gt;<i> &gt; scan some input.  Here's the test program:
+</I>&gt;<i>
+</I>&gt;<i> &gt; #include &lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> &gt; %%{
+</I>&gt;<i> &gt;     machine scanner ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     ids := |*
+</I>&gt;<i>
+</I>&gt;<i> &gt;         identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;         identifier
+</I>&gt;<i> &gt;                 =&gt;  {   printf(&quot;Got identifier: %.*s.\n&quot;, tokend - tokstart,
+</I>&gt;<i> &gt; tokstart);
+</I>&gt;<i> &gt;                         fret ;
+</I>&gt;<i> &gt;                     }
+</I>&gt;<i> &gt;                 ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;         (' '|'\n'|'\r')*
+</I>&gt;<i> &gt;                 =&gt;  { fret; }
+</I>&gt;<i> &gt;                 ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;         any
+</I>&gt;<i> &gt;                 =&gt;  { printf(&quot;Ignored.\n&quot;); fret; }
+</I>&gt;<i> &gt;                 ;
+</I>&gt;<i> &gt;     *| ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     main := ( any %{ fhold; fcall ids; } )* ;
+</I>&gt;<i> &gt; }%%
+</I>&gt;<i>
+</I>&gt;<i> &gt; int main()
+</I>&gt;<i> &gt; {
+</I>&gt;<i> &gt;     unsigned cs ;
+</I>&gt;<i> &gt;     char const * p ;
+</I>&gt;<i> &gt;     char const * pe ;
+</I>&gt;<i> &gt;     char const * tokstart ;
+</I>&gt;<i> &gt;     char const * tokend ;
+</I>&gt;<i> &gt;     unsigned act ;
+</I>&gt;<i> &gt;     unsigned stack[100] ;
+</I>&gt;<i> &gt;     unsigned top ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     %%write data ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     %%write init ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     char const s[] = &quot;Once upon a time.&quot; ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     p = s ;
+</I>&gt;<i> &gt;     pe = &amp;(s[sizeof(s)]);
+</I>&gt;<i>
+</I>&gt;<i> &gt;     %%write exec ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     %% write eof ;
+</I>&gt;<i>
+</I>&gt;<i> &gt;     return 0 ;
+</I>&gt;<i> &gt; }
+</I>&gt;<i>
+</I>&gt;<i> &gt; I'm compling with Ragel 5.19/MSVC, and I get the following output.
+</I>&gt;<i>
+</I>&gt;<i> &gt; Got identifier: nce.
+</I>&gt;<i> &gt; Got identifier: upon.
+</I>&gt;<i> &gt; Got identifier: a.
+</I>&gt;<i> &gt; Got identifier: time.
+</I>&gt;<i> &gt; Ignored.
+</I>&gt;<i> &gt; Ignored.
+</I>&gt;<i>
+</I>&gt;<i> &gt; Everything here is as expected, except the first identifier, which should be
+</I>&gt;<i> &gt; &quot;Once&quot;, not &quot;nce&quot;--it seems to have skipped over the first 'O'.  First--is
+</I>&gt;<i> &gt; there a better way to get a list of all the tokens in the input?  Anyone
+</I>&gt;<i> &gt; have any clues about this misbehavior?  Thanks in advance.
+</I>&gt;<i>
+</I>&gt;<i> &gt; -patrick
+</I>&gt;<i>
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>  signature.asc
+</I>&gt;<i> 1KDownload
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001968.html">[ragel-users] Problem with a scanner dropping the first character of an identifier.
+</A></li>
+	<LI>Next message: <A HREF="000209.html">Packaging ragel for Fedora Extras
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1969">[ date ]</a>
+              <a href="thread.html#1969">[ thread ]</a>
+              <a href="subject.html#1969">[ subject ]</a>
+              <a href="author.html#1969">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

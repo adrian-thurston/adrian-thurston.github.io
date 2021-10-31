@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] RFC-2822 recognizer: best way to test it?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20RFC-2822%20recognizer%3A%20best%20way%20to%20test%20it%3F&In-Reply-To=%3C466865B0.4020407%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="000248.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] RFC-2822 recognizer: best way to test it?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20RFC-2822%20recognizer%3A%20best%20way%20to%20test%20it%3F&In-Reply-To=%3C466865B0.4020407%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] RFC-2822 recognizer: best way to test it?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Jun  7 20:08:16 UTC 2007</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000248.html">Ragel python integration
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2010">[ date ]</a>
+              <a href="thread.html#2010">[ thread ]</a>
+              <a href="subject.html#2010">[ subject ]</a>
+              <a href="author.html#2010">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Wincent,
+
+What I normally do is embed actions which collect the text matching a
+pattern and print it out. If you have this machine definition:
+
+atext = [a-z]+;
+
+You can do this:
+
+action clear { buf.clear(); }
+action append { buf.append(*p); }
+action log_atext { print &quot;atext: &quot; buf &quot;\n&quot;; }
+
+atext = [a-z]+ &gt;clear $append %log_atext;
+
+-Adrian
+
+Wincent Colaiuta wrote:
+&gt;<i> Hi!
+</I>&gt;<i> 
+</I>&gt;<i> As my first Ragel project I'm writing a recognizer for RFC-2822 email
+</I>&gt;<i> addresses. All the recognizer has to do is scan an input string and
+</I>&gt;<i> decide whether or not it conforms to RFC-2822. I'll write a little bit
+</I>&gt;<i> of background first; but in the end my question is, what's the best
+</I>&gt;<i> way to test this?
+</I>&gt;<i> 
+</I>&gt;<i> I basically started by taking RFC-2822 (&lt;<A HREF="http://www.ietf.org/rfc/">http://www.ietf.org/rfc/</A>
+</I>&gt;<i> rfc2822.txt&gt;) and taking the rules -- written in the RFC using
+</I>&gt;<i> Augmented Backus-Naur Form (ABNF) notation (&lt;<A HREF="http://www.ietf.org/rfc/">http://www.ietf.org/rfc/</A>
+</I>&gt;<i> rfc2234.txt&gt;) -- and rewriting them using Ragel syntax.
+</I>&gt;<i> 
+</I>&gt;<i> There is one circular dependency in those rules (&quot;comment&quot; needs
+</I>&gt;<i> &quot;ccontent&quot;, but &quot;ccontent&quot; needs &quot;comment&quot;) and so for the time being
+</I>&gt;<i> I've commented out that dependency (in other words, nesting of
+</I>&gt;<i> comments inside comments isn't yet implemented). If everything works
+</I>&gt;<i> out ok I will as a last step use the trick described here &lt;<A HREF="http://">http://</A>
+</I>&gt;<i> groups.google.com/group/ragel-users/browse_thread/thread/
+</I>&gt;<i> f3fdde1d51c86aaf/e4f2b110236b8660&gt; to manually handle the recursion.
+</I>&gt;<i> 
+</I>&gt;<i> Running ragel on the input causes it to spin forever, so I've
+</I>&gt;<i> simplified some of the rules (mostly by commenting out the optional
+</I>&gt;<i> whitespace) and now it compiles (using C as the output language).
+</I>&gt;<i> Before I begin tweaking the rules back into conformance with the RFC I
+</I>&gt;<i> wanted to ask about testing techniques.
+</I>&gt;<i> 
+</I>&gt;<i> What I have is effectively a black box where I stick input in and get
+</I>&gt;<i> success or failure message back at the end. Is there any way to break
+</I>&gt;<i> this down into smaller parts of testing purposes? In other words,
+</I>&gt;<i> instead of testing that &quot;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">f... at example.com</A>&quot; passes (it does), can I test
+</I>&gt;<i> that &quot;example.com&quot; matches  a &quot;domain&quot;, or even lower, that &quot;foo&quot; is
+</I>&gt;<i> valid &quot;atext&quot;. Basically, I can test that the whole works, but I'd be
+</I>&gt;<i> much more confident if I could individually test the parts as well.
+</I>&gt;<i> 
+</I>&gt;<i> What's the best methodology here?
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Wincent
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070607/d4955477/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070607/d4955477/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000248.html">Ragel python integration
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2010">[ date ]</a>
+              <a href="thread.html#2010">[ thread ]</a>
+              <a href="subject.html#2010">[ subject ]</a>
+              <a href="author.html#2010">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

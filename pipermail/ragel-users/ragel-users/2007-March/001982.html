@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Packaging ragel for Fedora Extras
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C20070329161110.GA8198%40hinegardner.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001981.html">
+   <LINK REL="Next"  HREF="000207.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Packaging ragel for Fedora Extras</H1>
+    <B>Jeremy Hinegardner</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C20070329161110.GA8198%40hinegardner.org%3E"
+       TITLE="[ragel-users] Re: Packaging ragel for Fedora Extras">jer... at hinegardner.org
+       </A><BR>
+    <I>Thu Mar 29 16:11:10 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001981.html">[ragel-users] Re: Packaging ragel for Fedora Extras
+</A></li>
+        <LI>Next message: <A HREF="000207.html">bootstrap from 5.16-&gt;5.19
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1982">[ date ]</a>
+              <a href="thread.html#1982">[ thread ]</a>
+              <a href="subject.html#1982">[ subject ]</a>
+              <a href="author.html#1982">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Mar 29, 2007 at 07:19:22AM -0400, Gilles J. Seguin wrote:
+&gt;<i> 
+</I>&gt;<i> On Thu, 2007-03-29 at 02:08 -0400, Gilles J. Seguin wrote:
+</I>&gt;<i> &gt; On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+</I>&gt;<i> &gt; &gt; Hi all,
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; I'm packaging up ragel for inclusion in Fedora Extras
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; thanks a lot
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; &gt; and I came across a parallel make dependency bug.  It seems
+</I>&gt;<i> &gt; &gt; the dependency graph as it
+</I>&gt;<i> &gt; &gt; currently stands can start building some of the command line
+</I>&gt;<i> &gt; &gt; applications before the common and redfsm libraries are complete. The
+</I>&gt;<i> &gt; &gt; attached patch should fix it.  
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; interesting, problem was not showing up here, from log
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; + make -j2
+</I>&gt;<i> &gt; make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+</I>&gt;<i> 
+</I>&gt;<i> this build is put on hold because prerequisite is not meet,
+</I>&gt;<i> that is common.a
+</I>
+Fedora Extras builds runs with make -j3 normally, and that is when it
+turned up on my build box.  Hence the patch to reorder the dependencies
+so common and redfsm are required for the other builds.
+
+&gt;<i> &gt; make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+</I>&gt;<i> &gt; ar -cr common.a common.o
+</I>&gt;<i> 
+</I>&gt;<i> now prerequisite is done
+</I>&gt;<i> starting parallel build
+</I>&gt;<i> 
+</I>&gt;<i> that is, if common and redfsm are the directory in subdir macro
+</I>&gt;<i> the parallel build start sooner
+</I>
+[...]
+
+&gt;<i> &gt; a spec file was on previous release, should have release my spec earlier
+</I>&gt;<i> &gt; but my spec file was not able to produce the debuginfo rpm package
+</I>&gt;<i> &gt; though everything else was working fine
+</I>&gt;<i> &gt; i got
+</I>&gt;<i> &gt; + /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+</I>&gt;<i> &gt; finish stripping
+</I>&gt;<i> &gt; 0 blocks
+</I>&gt;<i> 
+</I>&gt;<i> i am in shock, option -s for install utility.
+</I>&gt;<i> I have wasted lot of time.
+</I>
+I have another patch in the Source RPM that removes that -s from the
+install command.  I didn't think it would be necessary propogate that
+upstream.
+
+With that in place rpmbuild -ba will create a non-empty debug-info rpm.
+
+&gt;<i> &gt; that last line means that the cpio utility has empty source from the
+</I>&gt;<i> &gt; stripping.
+</I>&gt;<i> &gt; And more crazy if i run the script manually, it work !!
+</I>&gt;<i> 
+</I>&gt;<i> do you have a patch to allow short-circuit for rpm install :-)
+</I>&gt;<i> sure it was working, I was by passing the install -s
+</I>&gt;<i> doing it manually
+</I>
+The patches I'm using are avaialble in the Fedora Extras source tree,
+browse them here:
+
+    <A HREF="http://cvs.fedora.redhat.com/viewcvs/devel/ragel/?root=extras">http://cvs.fedora.redhat.com/viewcvs/devel/ragel/?root=extras</A>
+
+The source RPM is here:
+
+    <A HREF="http://redhat.download.fedoraproject.org/pub/fedora/linux/extras/6/SRPMS/ragel-5.19-4.fc6.src.rpm">http://redhat.download.fedoraproject.org/pub/fedora/linux/extras/6/SRPMS/ragel-5.19-4.fc6.src.rpm</A>
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">jer... at hinegardner.org</A> 
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001981.html">[ragel-users] Re: Packaging ragel for Fedora Extras
+</A></li>
+	<LI>Next message: <A HREF="000207.html">bootstrap from 5.16-&gt;5.19
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1982">[ date ]</a>
+              <a href="thread.html#1982">[ thread ]</a>
+              <a href="subject.html#1982">[ subject ]</a>
+              <a href="author.html#1982">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

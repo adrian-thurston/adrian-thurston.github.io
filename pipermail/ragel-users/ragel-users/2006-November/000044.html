@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Feature Request: Inline Scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Feature%20Request%3A%20Inline%20Scanner&In-Reply-To=%3C454A7769.40800%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000043.html">
+   <LINK REL="Next"  HREF="000045.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Feature Request: Inline Scanner</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Feature%20Request%3A%20Inline%20Scanner&In-Reply-To=%3C454A7769.40800%40cs.queensu.ca%3E"
+       TITLE="Feature Request: Inline Scanner">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Nov  2 22:55:37 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000043.html">Feature Request: Inline Scanner
+</A></li>
+        <LI>Next message: <A HREF="000045.html">Feature Request: Inline Scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#44">[ date ]</a>
+              <a href="thread.html#44">[ thread ]</a>
+              <a href="subject.html#44">[ subject ]</a>
+              <a href="author.html#44">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Carlos,
+
+It seems to me that there are actually two separate features here. One being 
+inline scanners and the other being automatic capture/markup of text. I 
+think both of these raise their own set of questions so it's easiest to talk 
+about them as separate problems.
+
+Consider that automatic capture/markup could be implemented on arbitrary 
+machine definitions and need not be associated with scanners. Scanners 
+always do automatic capture by default because the scanner may require 
+backtracking up to at most the head of the current pattern. This is solved 
+by marking the head of the current pattern so the safety of the backtrack 
+can be guaranteed. The pattern markup is more like a bonus.
+
+But if you start doing automatic capture/markup of arbitrary machine 
+definitions, then for each machine that you want to capture, do you use new 
+variables or some common variables like tokstart/tokend?
+
+If you use new variables, this allows machines that you capture to overlap 
+or be contained in one another. But then the question arises, how do you 
+know where to preserve the input from when you're breaking the stream into 
+buffer blocks? You have to consult all possible machine capture starting 
+points. That's a cost to consider.
+
+If you use a common var like tokstart you only need to check one variable to 
+find out if you need to preserve some prefix of the input. But then captured 
+patterns cannot overlap.
+
+With inline scanners there are a few questions also: What constitutes &quot;would 
+begin the machine?&quot; Since there can be a number of patterns in a scanner, is 
+it any pattern at all? Or is it a specific pattern.
+
+On the other end what constitutes &quot;finishing the scanner?&quot; Again, any 
+pattern at all? I'm not sure about the answers to these questions.
+
+Cheers,
+  Adrian
+
+
+Carlos Antunes wrote:
+&gt;<i> Hello!
+</I>&gt;<i> 
+</I>&gt;<i> I've been playing with Ragel now for roughly three weeks and I find it
+</I>&gt;<i> a wonderful piece of software. There is one particular thing, however,
+</I>&gt;<i> that Ragel could do better, in my opinion, that of capturing matched
+</I>&gt;<i> input.
+</I>&gt;<i> 
+</I>&gt;<i> Let's look at an example:
+</I>&gt;<i> 
+</I>&gt;<i> # Whitespace including folding
+</I>&gt;<i> sp = ( ( '\r'? '\n' )? [ \t] )+;
+</I>&gt;<i> 
+</I>&gt;<i> # From mail header (simplified for illustrative purposes)
+</I>&gt;<i> from_header = sp? ( display_name sp? )? '&lt;' email_address '&gt;';
+</I>&gt;<i> 
+</I>&gt;<i> The state machine Ragel implements is wonderful for ensuring correct
+</I>&gt;<i> syntax. The scanner Ragel implements is wonderful for repeatedly match
+</I>&gt;<i> tokens. But how about just capuring input matched by the state
+</I>&gt;<i> machine? Well, in this case, things get a little bit more complicated.
+</I>&gt;<i> In my opinion, it would be wonderful to have what I'm calling an
+</I>&gt;<i> inline scanner as a complement to the two currently implemented
+</I>&gt;<i> choices.
+</I>&gt;<i> 
+</I>&gt;<i> An example of an inline scanner in action would be something like:
+</I>&gt;<i> 
+</I>&gt;<i> display_name = |&gt; display_name_pattern; { capture_display_name(ts, te); }; &lt;|;
+</I>&gt;<i> 
+</I>&gt;<i> email_address = |&gt; email_address_pattern; { capture_email_address(ts,
+</I>&gt;<i> te); }; &lt;|;
+</I>&gt;<i> 
+</I>&gt;<i> Both capture_display_name and capture_email_address are used defined
+</I>&gt;<i> functions accepting locally declared (automatically by Ragel)
+</I>&gt;<i> variables 'ts' and 'te' (for tokstart and tokend, respectively).
+</I>&gt;<i> 
+</I>&gt;<i> With this kind of inline scanner, not only would the syntax be
+</I>&gt;<i> enforced but the input easily captured.
+</I>&gt;<i> 
+</I>&gt;<i> Transitions from the state machine to the inline scanner would happen
+</I>&gt;<i> only if and only if the state machine would transition to the state
+</I>&gt;<i> machine defined by the inline scanner pattern. And, once the inline
+</I>&gt;<i> scanner finishes matching, it would transition the the following state
+</I>&gt;<i> machine as usual.
+</I>&gt;<i> 
+</I>&gt;<i> Although the functionality described above can be achieve with clever
+</I>&gt;<i> use of the current state machine and scanner paradigms, in my opinion,
+</I>&gt;<i> things would be a lot easier with this inline scanner concept.
+</I>&gt;<i> 
+</I>&gt;<i> So, Adrian and everybody else, what say you?
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000043.html">Feature Request: Inline Scanner
+</A></li>
+	<LI>Next message: <A HREF="000045.html">Feature Request: Inline Scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#44">[ date ]</a>
+              <a href="thread.html#44">[ thread ]</a>
+              <a href="subject.html#44">[ subject ]</a>
+              <a href="author.html#44">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] EOF actions and buffering
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20actions%20and%20buffering&In-Reply-To=%3C4D38C8B3.8060506%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002995.html">
+   <LINK REL="Next"  HREF="002996.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] EOF actions and buffering</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20actions%20and%20buffering&In-Reply-To=%3C4D38C8B3.8060506%40esentire.com%3E"
+       TITLE="[ragel-users] EOF actions and buffering">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Thu Jan 20 23:43:47 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002995.html">[ragel-users] EOF actions and buffering
+</A></li>
+        <LI>Next message: <A HREF="002996.html">[ragel-users] EOF actions and buffering
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2994">[ date ]</a>
+              <a href="thread.html#2994">[ thread ]</a>
+              <a href="subject.html#2994">[ subject ]</a>
+              <a href="author.html#2994">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It is indeed a common problem. It is purposefully left in the hands of 
+the programmer. This is due to a few factors.
+
+-There is no general solution that doesn't involve memory allocation.
+-There are many different ways to approach memory allocation
+-There are many use cases that have always input in one buffer
+
+When I need a general solution I use automatically growing buffers (to a 
+limit). See the DSNPd source for an example. I don't think that buffer 
+class is limited, but it should be.
+
+<A HREF="http://svn.complang.org/choicesocial/trunk/dsnpd/parser.rl">http://svn.complang.org/choicesocial/trunk/dsnpd/parser.rl</A>
+
+There are other approaches though. See the Ragel manual (5.9) for a 
+short discussion.
+
+Regards,
+  Adrian
+
+On 11-01-20 03:26 PM, Benjamin van der Veen wrote:
+&gt;<i> Hello,
+</I>&gt;<i>
+</I>&gt;<i> I am using Ragel to make an HTTP parser. Feel free to tell me this is a terrible idea. ;)
+</I>&gt;<i>
+</I>&gt;<i> It seems to me that a common problem faced by users of Ragel is that they do not know in advance where (with respect to the grammar being parsed) the boundaries of buffers that they feed the parser are going to be. For example, I can easily make a Ragel grammar which will parse the following using only entering and leaving actions:
+</I>&gt;<i>
+</I>&gt;<i> &quot;GET /foo HTTP/1.1\r\nBar: Baz\r\n\r\n&quot;
+</I>&gt;<i>
+</I>&gt;<i> However the parser breaks if I feed it the same data across multiple buffers (as would be the case when reading chunks of data from a network socket):
+</I>&gt;<i>
+</I>&gt;<i> &quot;GE&quot;
+</I>&gt;<i> &quot;T /f&quot;
+</I>&gt;<i> &quot;oo HTTP/1.1\r&quot;
+</I>&gt;<i> &quot;\nBar: Baz\r\n\r\n&quot;
+</I>&gt;<i>
+</I>&gt;<i> I found that this can be mitigated against by using EOF-leaving actions (%/some_action) and always setting eof to pe to cause the EOF-leaving actions to occur. However I'm finding that it isn't consistent and leads to unexpected behavior in some cases. Note that I am using the regular expression syntax, not the state chart syntax.
+</I>&gt;<i>
+</I>&gt;<i> What is the recommended approach to this problem? My intuition is that a properly-specified state machine should work regardless of how data is fed to it and Ragel should make this opaque to the user—it seems to me that processing data across multiple buffers would be a very common problem that Ragel would solve for the user, but I may be mistaken.
+</I>&gt;<i>
+</I>&gt;<i> In general I'm rather confused about how EOF actions are handled and when entering or leaving actions are treated as EOF actions. I've pored over the manual but I feel like it's all predicated on some knowledge that I don't have and am unsure where to look to find. In particular the first two paragraphs of section 3.1.4 (Leaving Actions) are almost completely opaque to me.
+</I>&gt;<i>
+</I>&gt;<i> Cheers!
+</I>&gt;<i> Benjamin van der Veen
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002995.html">[ragel-users] EOF actions and buffering
+</A></li>
+	<LI>Next message: <A HREF="002996.html">[ragel-users] EOF actions and buffering
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2994">[ date ]</a>
+              <a href="thread.html#2994">[ thread ]</a>
+              <a href="subject.html#2994">[ subject ]</a>
+              <a href="author.html#2994">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

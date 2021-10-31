@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Handling binary protocols with ragel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Handling%20binary%20protocols%20with%20ragel&In-Reply-To=%3CCANGQBe4--GimYgRwabhKB_46ibd%2BidxaHdH7ERdKkdnM50LEKw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001509.html">
+   <LINK REL="Next"  HREF="001511.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Handling binary protocols with ragel</H1>
+    <B>Joseph Stewart</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Handling%20binary%20protocols%20with%20ragel&In-Reply-To=%3CCANGQBe4--GimYgRwabhKB_46ibd%2BidxaHdH7ERdKkdnM50LEKw%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Handling binary protocols with ragel">joseph.stewart at gmail.com
+       </A><BR>
+    <I>Thu Mar 15 23:08:35 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001509.html">[ragel-users] Handling binary protocols with ragel
+</A></li>
+        <LI>Next message: <A HREF="001511.html">[ragel-users] Handling binary protocols with ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1510">[ date ]</a>
+              <a href="thread.html#1510">[ thread ]</a>
+              <a href="subject.html#1510">[ subject ]</a>
+              <a href="author.html#1510">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sure... I'll share a &quot;working example&quot; from what I was working on at the
+time. Pleas keep in mind I wrote this over 8 months ago and never placed it
+into production (I've moved to a new role since them).
+
+Anyway beyond what's in the attached example, I had a terrible file format
+that I'd written an equally terrible state machine to read. This sample
+only deals with the wrapper part of the file. Essentially it looks like:
+
+opening xml-like tag with parameters type and info... this looks like
+&lt;XRNDATA08192&gt; the code
+length... this is a 4-byte little endian length
+binary blog of length bytes... binary data of the length from the previous
+element
+closing xml-like tag... this looks like &lt;/XRNDATA&gt; in the code
+
+Finally, here's the C-code pasted below
+
+//----code start----
+#include &lt;stdio.h&gt;
+
+/*
+
+chunks in file look like
+
+&lt;XRNDATA08192020001&gt;LenData&lt;/XRNDATA&gt;
+where &quot;08192&quot; is an ASCII type designator (can expect other types)
+where &quot;020001&quot; is an ASCII information field
+where Len is a 4-byte little endian length designator
+where Data is binary data of Len length
+
+*/
+
+#define XRN 'X', 'R', 'N', 'D', 'A', 'T', 'A'
+#define T1  '0', '8', '1', '9', '2'
+#define T2  '0', '0', '0', '1', '6'
+#define T3  '0', '0', '0', '0', '8'
+#define T4  '0', '0', '0', '0', '1'
+#define I1  '0', '2', '0', '0', '0', '1'
+
+%%{
+machine tds;
+write data;
+}%%
+
+int main() {
+int len = 0;
+unsigned char buf[] = {
+'&lt;', XRN, T1, I1, '&gt;', 0, 0, 0, 5, 48,49,50,51,52, '&lt;', '/', XRN, '&gt;',
+'&lt;', XRN, T2, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+'&lt;', XRN, T3, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+'&lt;', XRN, T4, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+'&lt;', XRN, T1, I1, '&gt;', 0, 0, 0, 0, '&lt;', '/', XRN, '&gt;',
+'&lt;', T1, I1, '&gt;', 0, 0, 0, 0, '&lt;', '/', XRN, '&gt;',
+};
+int cs, r = 0;
+unsigned char *p = (unsigned char *)&buf;
+unsigned char *pe = p + sizeof(buf);
+unsigned char *eof = NULL;
+printf(&quot;len=%d\n&quot;, len);
+%%{
+t1 = '08192' @{ printf(&quot;t1\n&quot;); };
+t2 = '00016' @{ printf(&quot;t2\n&quot;); };
+t3 = '00008' @{ printf(&quot;t3\n&quot;); };
+t4 = '00001' @{ printf(&quot;t4\n&quot;); };
+type = (t1 | t2 | t3 | t4);
+info = '020001';
+open = '&lt;XRNDATA' type info '&gt;' @{ printf(&quot;begin XRNDATA\n&quot;); len = 0; };
+len = extend{4} @{ printf(&quot;len = %d\n&quot;, (int)*p); len = (len*256) + (*p); };
+action check {len--}
+action bad {printf(&quot;BAD\n&quot;);}
+buffer = (any when check)* %when !check @{ printf(&quot;[%d]:%d\n&quot;, len, *p); };
+close = '&lt;/XRNDATA&gt;' @{ printf(&quot;end XRNDATA\n&quot;); };
+expr = (
+open @lerr(bad)
+len
+buffer
+close
+);
+main := expr* ;
+write init;
+write exec;
+}%%
+return 0;
+}
+//----code end----
+
+On Wed, Mar 14, 2012 at 7:09 PM, &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">pyguest at fastmail.fm</A>&gt; wrote:
+
+&gt;<i> Joesph Stewart,
+</I>&gt;<i>
+</I>&gt;<i> I think you were doing some work with binary protocols earlier. Any
+</I>&gt;<i> chance you can post some examples?
+</I>&gt;<i>
+</I>&gt;<i> Andrew,
+</I>&gt;<i>
+</I>&gt;<i> Reading some of your older posts, it seems that you were going to have
+</I>&gt;<i> stronger support for binary protocols in version 7. Is that still true?
+</I>&gt;<i> If so, any idea when we can expect to see this?
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> <A HREF="http://www.fastmail.fm">http://www.fastmail.fm</A> - The way an email service should be
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120315/2b475bab/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20120315/2b475bab/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001509.html">[ragel-users] Handling binary protocols with ragel
+</A></li>
+	<LI>Next message: <A HREF="001511.html">[ragel-users] Handling binary protocols with ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1510">[ date ]</a>
+              <a href="thread.html#1510">[ thread ]</a>
+              <a href="subject.html#1510">[ subject ]</a>
+              <a href="author.html#1510">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

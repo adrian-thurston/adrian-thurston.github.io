@@ -1,0 +1,2078 @@
+From thurston at complang.org  Sun Oct  3 04:53:25 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 21:53:25 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>	<4CA3723B.5060000@esentire.com>	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+Message-ID: <4CA80C45.5030605@complang.org>
+
+Try refactoring your grammar:
+
+plain_text = [a-z];
+something_else = ^plain_text;
+
+main := (
+	plain_text+ %{ end_of_plain_text(); } |
+	something_else+
+)*;
+
+On 10-09-29 05:39 PM, Jonathan Castello wrote:
+> I have, actually. If I have "plain_text %leaving", the leaving action
+> is still executed after every plain_text character, as the generated
+> graph seems to indicate. If I put %leaving after the telnet_stream
+> itself, the graph suggests that it's only executed on EOF, which will
+> never occur as I am processing a potentially infinite network stream.
+> (Because of this, I explicitly set eof = NULL in the code before "%%
+> write init", as the documentation suggests.)
+>
+> ~Jonathan
+>
+> On Wed, Sep 29, 2010 at 10:43 AM, Adrian Thurston
+> <adrian.thurston at esentire.com>  wrote:
+>> Have you tried leaving actions? It sounds like that is what you want.
+>>
+>> -Adrian
+>>
+>> On 10-09-29 10:34 AM, Jonathan Castello wrote:
+>>>
+>>> Hi Adrian,
+>>>
+>>> Thanks for your help. Actually, I know how I want to buffer them; the
+>>> problem is actually extracting them when I want to. I need some way to
+>>> extract the characters only when the next character isn't plain_text
+>>> or there is no next character. I've tried adding an entry action to
+>>> cr_sequence and iac_sequence, but that doesn't work when you reach the
+>>> end of the subject data without seeing a CR or IAC. What I was hoping
+>>> to do is maintain a 'left' pointer to the first plain_text character,
+>>> and use fpc as the 'right' pointer when I reach the last contiguous
+>>> plain_text character. Then I would pass the left pointer and the
+>>> length of that contiguous stretch (fpc-left) to the user-provided
+>>> callback.
+>>>
+>>> I could copy each character to a temporary buffer, but I was hoping to
+>>> avoid extra allocations. I want to just pass pointers into the
+>>> original block of text being parsed, so the calling code can do any
+>>> copying and allocating required. My entry action attempt was the
+>>> closest I could get: it would properly fire before a non plain_text
+>>> sequence, but the major issue is that it wouldn't fire at all when it
+>>> reached the end of the subject line.
+>>>
+>>> Thanks again,
+>>> ~Jonathan
+>>>
+>>> On Wed, Sep 29, 2010 at 10:07 AM, Adrian Thurston
+>>> <adrian.thurston at esentire.com>    wrote:
+>>>>
+>>>> Hi Jonathan,
+>>>>
+>>>> Ragel does not do any buffering of text for you. It's up to you to decide
+>>>> how you want to do that, then implement it yourself. There are a couple
+>>>> options. You can copy text to a buffer as you move over characters, or
+>>>> you
+>>>> can extract them from the input buffer when you need them. The first
+>>>> approach is simpler and guaranteed to work without hitches. The second
+>>>> technique is faster, but you have to consider buffer block boundaries.
+>>>>
+>>>> -Adrian
+>>>>
+>>>> On 10-09-28 08:30 PM, Jonathan Castello wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> I'm building a Telnet parser using Ragel, and I'm having an issue
+>>>>> making the actions do what I want. I've pasted the machine definition
+>>>>> to a gist: http://gist.github.com/602242
+>>>>>
+>>>>> The issue is a little hard for me to describe, so I'll try to
+>>>>> illustrate it as best as I can. If I have a stream of input, and some
+>>>>> part of it is "abcdef<IAC><GA>ghi" (where<x>      is a mnemonic for a
+>>>>> single byte), I want to emit events as such: text("abcdef"),
+>>>>> command("<GA>"), text("ghi"). The caller provides callbacks, and I
+>>>>> would pass the data to them as I interpret it.
+>>>>>
+>>>>> The problem is that I can't figure out how to define actions that
+>>>>> would only trigger when the next character doesn't match plain_text
+>>>>> (or there's no more data left to parse in that particular packet), so
+>>>>> I can get that full stretch of characters. At the moment, I can only
+>>>>> get text("a"), text("b"), text("c") etc. to work, i.e. one plain_text
+>>>>> match at a time.
+>>>>>
+>>>>> I suspect the problem is that cr_sequence and iac_sequence are
+>>>>> supposed to behave this way - they, too, match singular "terms" each
+>>>>> time before returning to the start - but here I am, wanting to give
+>>>>> plain_text special treatment. Am I even coming at this from the right
+>>>>> angle?
+>>>>>
+>>>>> Thanks in advance for any advice!
+>>>>> ~Jonathan Castello
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From twisolar at gmail.com  Sun Oct  3 05:04:23 2010
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Sat, 2 Oct 2010 22:04:23 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <4CA80C45.5030605@complang.org>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>
+	<4CA3723B.5060000@esentire.com>
+	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>
+	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+	<4CA80C45.5030605@complang.org>
+Message-ID: <AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+
+"plain_text" is actually a bit of a misnomer; it's really anything not
+an IAC or a CR, as I have now. The only other difference here seems to
+be the + after plain_text, which I've tried. Graphing your example
+machine shows that the end_of_plain_text event is still executed after
+each plain_text character anyways.
+
+I've decided not to worry too much about it at this point. Thanks for
+your help anyways!
+~Jonathan
+
+On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Try refactoring your grammar:
+>
+> plain_text = [a-z];
+> something_else = ^plain_text;
+>
+> main := (
+>        plain_text+ %{ end_of_plain_text(); } |
+>        something_else+
+> )*;
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Oct  3 05:21:37 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 22:21:37 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>	<4CA3723B.5060000@esentire.com>	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>	<4CA37AAE.4040706@esentire.com>	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>	<4CA80C45.5030605@complang.org>
+	<AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+Message-ID: <4CA812E1.8010101@complang.org>
+
+Woops, the * should be **.
+
+-Adrian
+
+On 10-10-02 10:04 PM, Jonathan Castello wrote:
+> "plain_text" is actually a bit of a misnomer; it's really anything not
+> an IAC or a CR, as I have now. The only other difference here seems to
+> be the + after plain_text, which I've tried. Graphing your example
+> machine shows that the end_of_plain_text event is still executed after
+> each plain_text character anyways.
+>
+> I've decided not to worry too much about it at this point. Thanks for
+> your help anyways!
+> ~Jonathan
+>
+> On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Try refactoring your grammar:
+>>
+>> plain_text = [a-z];
+>> something_else = ^plain_text;
+>>
+>> main := (
+>>         plain_text+ %{ end_of_plain_text(); } |
+>>         something_else+
+>> )*;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Oct  3 05:37:34 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 22:37:34 -0700
+Subject: [ragel-users] ANN: libejson, extended JSON parser library
+In-Reply-To: <AANLkTikZE2Xb5PpJbCFn6qyd=8sy_7XNwc+5yzehGhQ+@mail.gmail.com>
+References: <AANLkTi=v3A8PPBPHO=dkftGd3gdqOMkS+QH+T49=TEao@mail.gmail.com>	<4CA383BD.9070907@esentire.com>
+	<AANLkTikZE2Xb5PpJbCFn6qyd=8sy_7XNwc+5yzehGhQ+@mail.gmail.com>
+Message-ID: <4CA8169E.1010109@complang.org>
+
+Does JSON have comments? Is that just Javascript comments?
+
+When the machine gets huge because a particular complicated pattern 
+appears all over, that's a good sign you need to use the traditional 
+lexer + parser approach. Some people like to use ragel to parse directly 
+though. Which you do is a matter of preference I suppose.
+
+-Adrian
+
+On 10-09-29 11:31 AM, M P wrote:
+> Only partially -- I managed to get the whole parser working, BAR the
+> comments... I had tried to embed the comment 'detection' into the
+> "whitespace" rule ("W"), but I never managed to get it to work, so I
+> yanked the comment bit for now..
+>
+> I think there's probably a need in ragel to specify a "skip" rule
+> flag, to prevent the parser getting gigantic with "instances" of these
+> empty rules... I tried to do an fcall/fret but didn't get that to work
+> either...
+>
+> Right now the parser is about 50kb expanded, and thats as low as I
+> managed it to get, I think that given the relative complexity of it,
+> it's probably OK...
+>
+> If you want to have a quick review and/or submit patches, I would be
+> very grateful !
+>
+> Michael
+>
+>
+> On Wed, Sep 29, 2010 at 7:21 PM, Adrian Thurston
+> <adrian.thurston at esentire.com>  wrote:
+>> Thanks!
+>>
+>> I'm very sorry I never responded to your messages. Did you get all the
+>> issues worked out?
+>>
+>> -Adrian
+>>
+>> On 10-09-29 11:19 AM, M P wrote:
+>>>
+>>> I open-sourced a ragel-based parser for an extended version of JSON (I
+>>> had posted a problematic version some weeks ago)
+>>>
+>>>
+>>> http://bliterness.blogspot.com/2010/09/new-libejson-json-parser-on-steroids.html
+>>>
+>>> Michael
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From twisolar at gmail.com  Sun Oct  3 05:40:03 2010
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Sat, 2 Oct 2010 22:40:03 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <4CA812E1.8010101@complang.org>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>
+	<4CA3723B.5060000@esentire.com>
+	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>
+	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+	<4CA80C45.5030605@complang.org>
+	<AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+	<4CA812E1.8010101@complang.org>
+Message-ID: <AANLkTikqkQwV5ffVTpzuX3=KW0dH03-kQmJN69A9uYCV@mail.gmail.com>
+
+Well, well. Seems I'll have to take a second look at this! That one worked. :)
+
+~Jonathan
+
+On Sat, Oct 2, 2010 at 10:21 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Woops, the * should be **.
+>
+> -Adrian
+>
+> On 10-10-02 10:04 PM, Jonathan Castello wrote:
+>>
+>> "plain_text" is actually a bit of a misnomer; it's really anything not
+>> an IAC or a CR, as I have now. The only other difference here seems to
+>> be the + after plain_text, which I've tried. Graphing your example
+>> machine shows that the end_of_plain_text event is still executed after
+>> each plain_text character anyways.
+>>
+>> I've decided not to worry too much about it at this point. Thanks for
+>> your help anyways!
+>> ~Jonathan
+>>
+>> On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Try refactoring your grammar:
+>>>
+>>> plain_text = [a-z];
+>>> something_else = ^plain_text;
+>>>
+>>> main := (
+>>>        plain_text+ %{ end_of_plain_text(); } |
+>>>        something_else+
+>>> )*;
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Oct  6 17:13:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 06 Oct 2010 10:13:38 -0700
+Subject: [ragel-users] go programming language patch applied
+Message-ID: <4CACAE42.3090802@esentire.com>
+
+The Go Programming Language patch is now in trunk. This patch was 
+contributed by Justine Tunney.
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Mon Oct 11 11:07:54 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Mon, 11 Oct 2010 12:07:54 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+Message-ID: <4CB2F00A.5050007@goodforbusiness.co.uk>
+
+  Hi all,
+
+I've got the table code generation strategy working. I'm going to work 
+on building a set of RL files for testing purposes and then have a crack 
+at writing a code generation backend that targets modern JavaScript VMs 
+(e.g. produces JavaScript that best suits a JIT/tracer). If anyone would 
+like to help with any part of this process, I'd be most grateful.
+
+I've forked Ragel trunk into a github repo while I work on this. There 
+is a sample script (I translated the maillbox.rl file from the Ragel 
+distribution) which you can play with if you install Node.js (a 
+JavaScript application framework powered by Google's V8 VM). Note that  
+while the sample script uses Node.js for IO, but the code generated is 
+plain JavaScript. I look forward to being able to use Ragel in the 
+browser soon too.
+
+Github:
+
+http://github.com/dominicmarks/ragel-js
+
+A diff against Ragel trunk is here:
+
+http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff 
+<http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+
+The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll 
+be tidying it up over the next few weeks, as my time allows. However, it 
+does at least run one Ragel state machine correctly already.
+
+Mailbox.rl/Mailbox.js:
+
+http://goodforbusiness.co.uk/~dom/mailbox.js 
+<http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+
+Cheers,
+Dom
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Oct 11 18:54:21 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 11 Oct 2010 11:54:21 -0700
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB2F00A.5050007@goodforbusiness.co.uk>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>
+Message-ID: <4CB35D5D.2030006@complang.org>
+
+Great, thanks for working on this!
+
+Did you have a look at the java code generator? There were a few 
+concessions that had to be made in the Ruby code generator that might 
+not need to be made in JS.
+
+-Adrian
+
+On 10-10-11 04:07 AM, Dominic Marks wrote:
+> Hi all,
+>
+> I've got the table code generation strategy working. I'm going to work
+> on building a set of RL files for testing purposes and then have a crack
+> at writing a code generation backend that targets modern JavaScript VMs
+> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+> like to help with any part of this process, I'd be most grateful.
+>
+> I've forked Ragel trunk into a github repo while I work on this. There
+> is a sample script (I translated the maillbox.rl file from the Ragel
+> distribution) which you can play with if you install Node.js (a
+> JavaScript application framework powered by Google's V8 VM). Note that
+> while the sample script uses Node.js for IO, but the code generated is
+> plain JavaScript. I look forward to being able to use Ragel in the
+> browser soon too.
+>
+> Github:
+>
+> http://github.com/dominicmarks/ragel-js
+>
+> A diff against Ragel trunk is here:
+>
+> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>
+> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+> be tidying it up over the next few weeks, as my time allows. However, it
+> does at least run one Ragel state machine correctly already.
+>
+> Mailbox.rl/Mailbox.js:
+>
+> http://goodforbusiness.co.uk/~dom/mailbox.js
+> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>
+> Cheers,
+> Dom
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Mon Oct 11 19:14:44 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Mon, 11 Oct 2010 20:14:44 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB35D5D.2030006@complang.org>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>
+	<4CB35D5D.2030006@complang.org>
+Message-ID: <4CB36224.3040608@goodforbusiness.co.uk>
+
+  Hey Adrian,
+
+I haven't but I will do. Thank you.
+
+I'm not sure if the RubyCodeGen::writeInit function is incorrect but 
+it's quite divergent from the CDCodeGen version. The only problem I had 
+doing the work, besides a few missed semicolons, was that the write init 
+directive was trying to initialise pe to the data length. In my testing 
+script the initialisation and execution stages are in separate functions 
+and this produced invalid JavaScript (data being undefined at that point).
+
+I assumed I had misunderstood something about the options that can be 
+given to write init and write exec but after that turned up a blank I 
+looked at CDCodeGen. I was surprised to find that it didn't include 
+similar code relating to the end directive. I made my writeInit function 
+more like CDCodeGen and my problem was resolved.
+
+The code in question:
+
+http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0
+
+The difference might be related to the concessions you mention, I didn't 
+look into it too much.
+
+Thanks for Ragel, it's a great piece of software!
+
+Dominic
+
+On 11/10/2010 19:54, Adrian Thurston wrote:
+> Great, thanks for working on this!
+>
+> Did you have a look at the java code generator? There were a few 
+> concessions that had to be made in the Ruby code generator that might 
+> not need to be made in JS.
+>
+> -Adrian
+>
+> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>> Hi all,
+>>
+>> I've got the table code generation strategy working. I'm going to work
+>> on building a set of RL files for testing purposes and then have a crack
+>> at writing a code generation backend that targets modern JavaScript VMs
+>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+>> like to help with any part of this process, I'd be most grateful.
+>>
+>> I've forked Ragel trunk into a github repo while I work on this. There
+>> is a sample script (I translated the maillbox.rl file from the Ragel
+>> distribution) which you can play with if you install Node.js (a
+>> JavaScript application framework powered by Google's V8 VM). Note that
+>> while the sample script uses Node.js for IO, but the code generated is
+>> plain JavaScript. I look forward to being able to use Ragel in the
+>> browser soon too.
+>>
+>> Github:
+>>
+>> http://github.com/dominicmarks/ragel-js
+>>
+>> A diff against Ragel trunk is here:
+>>
+>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>
+>> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+>> be tidying it up over the next few weeks, as my time allows. However, it
+>> does at least run one Ragel state machine correctly already.
+>>
+>> Mailbox.rl/Mailbox.js:
+>>
+>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>
+>> Cheers,
+>> Dom
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Oct 11 19:31:58 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 11 Oct 2010 12:31:58 -0700
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB36224.3040608@goodforbusiness.co.uk>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>	<4CB35D5D.2030006@complang.org>
+	<4CB36224.3040608@goodforbusiness.co.uk>
+Message-ID: <4CB3662E.2050709@complang.org>
+
+Ya as far as Ragel code generation goes you shouldn't need to p, pe, or 
+data available in the write init context. If I remember right that was 
+due to a combination of Ruby variable scoping/declaration rules and the 
+typical usage pattern of Ragel+Ruby. The Ruby code generator really is a 
+special case for a number of reasons. What we need to a Ragel and Ruby 
+expert to sort it out. I'm not both of those things.
+
+There is also some strange stuff in the java code generator too. Java 
+doesn't have static array data. It makes functions that set the values. 
+But large arrays overflow the max function size so you can't have large 
+static arrays. To get around this the arrays are made using functions 
+(like the compiler does), but they are broken down into smaller parts 
+and concatenated. Ugh. I'm not sure if this would apply to javascript as 
+well.
+
+-Adrian
+
+On 10-10-11 12:14 PM, Dominic Marks wrote:
+> Hey Adrian,
+>
+> I haven't but I will do. Thank you.
+>
+> I'm not sure if the RubyCodeGen::writeInit function is incorrect but
+> it's quite divergent from the CDCodeGen version. The only problem I had
+> doing the work, besides a few missed semicolons, was that the write init
+> directive was trying to initialise pe to the data length. In my testing
+> script the initialisation and execution stages are in separate functions
+> and this produced invalid JavaScript (data being undefined at that point).
+>
+> I assumed I had misunderstood something about the options that can be
+> given to write init and write exec but after that turned up a blank I
+> looked at CDCodeGen. I was surprised to find that it didn't include
+> similar code relating to the end directive. I made my writeInit function
+> more like CDCodeGen and my problem was resolved.
+>
+> The code in question:
+>
+> http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0
+>
+>
+> The difference might be related to the concessions you mention, I didn't
+> look into it too much.
+>
+> Thanks for Ragel, it's a great piece of software!
+>
+> Dominic
+>
+> On 11/10/2010 19:54, Adrian Thurston wrote:
+>> Great, thanks for working on this!
+>>
+>> Did you have a look at the java code generator? There were a few
+>> concessions that had to be made in the Ruby code generator that might
+>> not need to be made in JS.
+>>
+>> -Adrian
+>>
+>> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>>> Hi all,
+>>>
+>>> I've got the table code generation strategy working. I'm going to work
+>>> on building a set of RL files for testing purposes and then have a crack
+>>> at writing a code generation backend that targets modern JavaScript VMs
+>>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+>>> like to help with any part of this process, I'd be most grateful.
+>>>
+>>> I've forked Ragel trunk into a github repo while I work on this. There
+>>> is a sample script (I translated the maillbox.rl file from the Ragel
+>>> distribution) which you can play with if you install Node.js (a
+>>> JavaScript application framework powered by Google's V8 VM). Note that
+>>> while the sample script uses Node.js for IO, but the code generated is
+>>> plain JavaScript. I look forward to being able to use Ragel in the
+>>> browser soon too.
+>>>
+>>> Github:
+>>>
+>>> http://github.com/dominicmarks/ragel-js
+>>>
+>>> A diff against Ragel trunk is here:
+>>>
+>>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>>
+>>> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+>>> be tidying it up over the next few weeks, as my time allows. However, it
+>>> does at least run one Ragel state machine correctly already.
+>>>
+>>> Mailbox.rl/Mailbox.js:
+>>>
+>>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>>
+>>> Cheers,
+>>> Dom
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Tue Oct 12 07:24:26 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Tue, 12 Oct 2010 08:24:26 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB3662E.2050709@complang.org>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>	<4CB35D5D.2030006@complang.org>	<4CB36224.3040608@goodforbusiness.co.uk>
+	<4CB3662E.2050709@complang.org>
+Message-ID: <4CB40D2A.8080909@goodforbusiness.co.uk>
+
+  On 11/10/2010 20:31, Adrian Thurston wrote:
+> Ya as far as Ragel code generation goes you shouldn't need to p, pe, 
+> or data available in the write init context. If I remember right that 
+> was due to a combination of Ruby variable scoping/declaration rules 
+> and the typical usage pattern of Ragel+Ruby. The Ruby code generator 
+> really is a special case for a number of reasons. What we need to a 
+> Ragel and Ruby expert to sort it out. I'm not both of those things.
+
+I'd take it on if I had the time.
+
+> There is also some strange stuff in the java code generator too. Java 
+> doesn't have static array data. It makes functions that set the 
+> values. But large arrays overflow the max function size so you can't 
+> have large static arrays. To get around this the arrays are made using 
+> functions (like the compiler does), but they are broken down into 
+> smaller parts and concatenated. Ugh. I'm not sure if this would apply 
+> to javascript as well.
+
+I wrote a small test program and creating arrays with 1 and 10 million 
+elements worked, although at 10 million the VM was stuttering 
+(run-pause-run-pause), probably due to the GC not coping too well. How 
+large is large? In the case of Node.js there is another data type called 
+Buffer which is a fixed size byte array (sort of). This doesn't have a 
+literal notation but it does support the array [] operator so it might 
+be able to substitute for static arrays in code. It has the benefit of 
+being allocated outside of the runtime and so it doesn't pressurise the 
+GC as much. The downside is that it would require special IO handling 
+code to setup the arrays and it isn't portable.
+
+It occured to me while writing this that I actually need to make at 
+least two different code generators for JavaScript. JavaScript can be 
+used for client and server programming (which is why I got into doing 
+this work in the first place) and the kind of code you want to generate 
+in each case is totally different. In the client case you want to 
+optimise for page load time first, so the state machine needs to be 
+expressed in the minimum possible code, even if it's slower to execute. 
+When generating the same machine for the server case you (probably) want 
+the normal approach of trading code size for performance.
+
+Should be an interesting challenge.
+
+Dominic
+
+> -Adrian
+>
+> On 10-10-11 12:14 PM, Dominic Marks wrote:
+>> Hey Adrian,
+>>
+>> I haven't but I will do. Thank you.
+>>
+>> I'm not sure if the RubyCodeGen::writeInit function is incorrect but
+>> it's quite divergent from the CDCodeGen version. The only problem I had
+>> doing the work, besides a few missed semicolons, was that the write init
+>> directive was trying to initialise pe to the data length. In my testing
+>> script the initialisation and execution stages are in separate functions
+>> and this produced invalid JavaScript (data being undefined at that 
+>> point).
+>>
+>> I assumed I had misunderstood something about the options that can be
+>> given to write init and write exec but after that turned up a blank I
+>> looked at CDCodeGen. I was surprised to find that it didn't include
+>> similar code relating to the end directive. I made my writeInit function
+>> more like CDCodeGen and my problem was resolved.
+>>
+>> The code in question:
+>>
+>> http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0 
+>>
+>>
+>>
+>> The difference might be related to the concessions you mention, I didn't
+>> look into it too much.
+>>
+>> Thanks for Ragel, it's a great piece of software!
+>>
+>> Dominic
+>>
+>> On 11/10/2010 19:54, Adrian Thurston wrote:
+>>> Great, thanks for working on this!
+>>>
+>>> Did you have a look at the java code generator? There were a few
+>>> concessions that had to be made in the Ruby code generator that might
+>>> not need to be made in JS.
+>>>
+>>> -Adrian
+>>>
+>>> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>>>> Hi all,
+>>>>
+>>>> I've got the table code generation strategy working. I'm going to work
+>>>> on building a set of RL files for testing purposes and then have a 
+>>>> crack
+>>>> at writing a code generation backend that targets modern JavaScript 
+>>>> VMs
+>>>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone 
+>>>> would
+>>>> like to help with any part of this process, I'd be most grateful.
+>>>>
+>>>> I've forked Ragel trunk into a github repo while I work on this. There
+>>>> is a sample script (I translated the maillbox.rl file from the Ragel
+>>>> distribution) which you can play with if you install Node.js (a
+>>>> JavaScript application framework powered by Google's V8 VM). Note that
+>>>> while the sample script uses Node.js for IO, but the code generated is
+>>>> plain JavaScript. I look forward to being able to use Ragel in the
+>>>> browser soon too.
+>>>>
+>>>> Github:
+>>>>
+>>>> http://github.com/dominicmarks/ragel-js
+>>>>
+>>>> A diff against Ragel trunk is here:
+>>>>
+>>>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>>>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>>>
+>>>> The code is mostly a cut-paste-and-replace from Ruby at the moment. 
+>>>> I'll
+>>>> be tidying it up over the next few weeks, as my time allows. 
+>>>> However, it
+>>>> does at least run one Ragel state machine correctly already.
+>>>>
+>>>> Mailbox.rl/Mailbox.js:
+>>>>
+>>>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>>>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>>>
+>>>> Cheers,
+>>>> Dom
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gabriel at lse.epita.fr  Thu Oct 28 17:03:24 2010
+From: gabriel at lse.epita.fr (Gabriel Laskar)
+Date: Thu, 28 Oct 2010 19:03:24 +0200
+Subject: [ragel-users] D backend seems not working
+Message-ID: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+
+Hi,
+
+I want to use ragel for a project I have in D. But generated code
+doesn't compile. I have tried to run the test suite, needed to make
+small modifications to use dmd as a D compiler (the variable was not
+even set), no tests seems to work also.
+
+Is is a known issue ?
+
+here is the code I have tried and the compilation errors :
+
+~/ragel% cat test.rl
+
+%%{
+  machine foo;
+
+  main :=
+    ('foo' | 'bar')
+    0 @{ res = 1; };
+}%%
+
+%% write data;
+
+int main(string[] args)
+{
+  int cs;
+  int res = 0;
+
+  if (args.length > 1)
+  {
+    char *p = args[1];
+    char *pe = p + args[1].length;
+    %% write init;
+    %% write exec;
+  }
+
+  return res;
+}
+~/ragel% ragel -D test.rl
+~/ragel% dmd test.d
+test.rl(19): Error: cannot implicitly convert expression (args[1u]) of
+type string to char*
+test.d(83): Error: cannot implicitly convert expression
+(&_foo_trans_keys[cast(uint)_foo_key_offsets[cast(uint)cs]]) of type
+const(char)* to char*
+test.d(137): Error: cannot implicitly convert expression
+(&_foo_actions[cast(uint)_foo_trans_actions[_trans]]) of type
+const(byte)* to byte*
+1:~/ragel%
+
+
+-- 
+Gabriel Laskar <gabriel at lse.epita.fr>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Thu Oct 28 21:20:46 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 28 Oct 2010 14:20:46 -0700
+Subject: [ragel-users] D backend seems not working
+In-Reply-To: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+References: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+Message-ID: <4CC9E92E.8070805@esentire.com>
+
+Hi, yes it looks like the D examples and the code generator are dated. 
+They were tested with GDC 0.13 or 0.14. I have not personally used them 
+in several years.
+
+-Adrian
+
+On 10-10-28 10:03 AM, Gabriel Laskar wrote:
+> Hi,
+>
+> I want to use ragel for a project I have in D. But generated code
+> doesn't compile. I have tried to run the test suite, needed to make
+> small modifications to use dmd as a D compiler (the variable was not
+> even set), no tests seems to work also.
+>
+> Is is a known issue ?
+>
+> here is the code I have tried and the compilation errors :
+>
+> ~/ragel% cat test.rl
+>
+> %%{
+>    machine foo;
+>
+>    main :=
+>      ('foo' | 'bar')
+>      0 @{ res = 1; };
+> }%%
+>
+> %% write data;
+>
+> int main(string[] args)
+> {
+>    int cs;
+>    int res = 0;
+>
+>    if (args.length>  1)
+>    {
+>      char *p = args[1];
+>      char *pe = p + args[1].length;
+>      %% write init;
+>      %% write exec;
+>    }
+>
+>    return res;
+> }
+> ~/ragel% ragel -D test.rl
+> ~/ragel% dmd test.d
+> test.rl(19): Error: cannot implicitly convert expression (args[1u]) of
+> type string to char*
+> test.d(83): Error: cannot implicitly convert expression
+> (&_foo_trans_keys[cast(uint)_foo_key_offsets[cast(uint)cs]]) of type
+> const(char)* to char*
+> test.d(137): Error: cannot implicitly convert expression
+> (&_foo_actions[cast(uint)_foo_trans_actions[_trans]]) of type
+> const(byte)* to byte*
+> 1:~/ragel%
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Oct  3 04:53:25 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 21:53:25 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>	<4CA3723B.5060000@esentire.com>	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+Message-ID: <4CA80C45.5030605@complang.org>
+
+Try refactoring your grammar:
+
+plain_text = [a-z];
+something_else = ^plain_text;
+
+main := (
+	plain_text+ %{ end_of_plain_text(); } |
+	something_else+
+)*;
+
+On 10-09-29 05:39 PM, Jonathan Castello wrote:
+> I have, actually. If I have "plain_text %leaving", the leaving action
+> is still executed after every plain_text character, as the generated
+> graph seems to indicate. If I put %leaving after the telnet_stream
+> itself, the graph suggests that it's only executed on EOF, which will
+> never occur as I am processing a potentially infinite network stream.
+> (Because of this, I explicitly set eof = NULL in the code before "%%
+> write init", as the documentation suggests.)
+>
+> ~Jonathan
+>
+> On Wed, Sep 29, 2010 at 10:43 AM, Adrian Thurston
+> <adrian.thurston at esentire.com>  wrote:
+>> Have you tried leaving actions? It sounds like that is what you want.
+>>
+>> -Adrian
+>>
+>> On 10-09-29 10:34 AM, Jonathan Castello wrote:
+>>>
+>>> Hi Adrian,
+>>>
+>>> Thanks for your help. Actually, I know how I want to buffer them; the
+>>> problem is actually extracting them when I want to. I need some way to
+>>> extract the characters only when the next character isn't plain_text
+>>> or there is no next character. I've tried adding an entry action to
+>>> cr_sequence and iac_sequence, but that doesn't work when you reach the
+>>> end of the subject data without seeing a CR or IAC. What I was hoping
+>>> to do is maintain a 'left' pointer to the first plain_text character,
+>>> and use fpc as the 'right' pointer when I reach the last contiguous
+>>> plain_text character. Then I would pass the left pointer and the
+>>> length of that contiguous stretch (fpc-left) to the user-provided
+>>> callback.
+>>>
+>>> I could copy each character to a temporary buffer, but I was hoping to
+>>> avoid extra allocations. I want to just pass pointers into the
+>>> original block of text being parsed, so the calling code can do any
+>>> copying and allocating required. My entry action attempt was the
+>>> closest I could get: it would properly fire before a non plain_text
+>>> sequence, but the major issue is that it wouldn't fire at all when it
+>>> reached the end of the subject line.
+>>>
+>>> Thanks again,
+>>> ~Jonathan
+>>>
+>>> On Wed, Sep 29, 2010 at 10:07 AM, Adrian Thurston
+>>> <adrian.thurston at esentire.com>    wrote:
+>>>>
+>>>> Hi Jonathan,
+>>>>
+>>>> Ragel does not do any buffering of text for you. It's up to you to decide
+>>>> how you want to do that, then implement it yourself. There are a couple
+>>>> options. You can copy text to a buffer as you move over characters, or
+>>>> you
+>>>> can extract them from the input buffer when you need them. The first
+>>>> approach is simpler and guaranteed to work without hitches. The second
+>>>> technique is faster, but you have to consider buffer block boundaries.
+>>>>
+>>>> -Adrian
+>>>>
+>>>> On 10-09-28 08:30 PM, Jonathan Castello wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> I'm building a Telnet parser using Ragel, and I'm having an issue
+>>>>> making the actions do what I want. I've pasted the machine definition
+>>>>> to a gist: http://gist.github.com/602242
+>>>>>
+>>>>> The issue is a little hard for me to describe, so I'll try to
+>>>>> illustrate it as best as I can. If I have a stream of input, and some
+>>>>> part of it is "abcdef<IAC><GA>ghi" (where<x>      is a mnemonic for a
+>>>>> single byte), I want to emit events as such: text("abcdef"),
+>>>>> command("<GA>"), text("ghi"). The caller provides callbacks, and I
+>>>>> would pass the data to them as I interpret it.
+>>>>>
+>>>>> The problem is that I can't figure out how to define actions that
+>>>>> would only trigger when the next character doesn't match plain_text
+>>>>> (or there's no more data left to parse in that particular packet), so
+>>>>> I can get that full stretch of characters. At the moment, I can only
+>>>>> get text("a"), text("b"), text("c") etc. to work, i.e. one plain_text
+>>>>> match at a time.
+>>>>>
+>>>>> I suspect the problem is that cr_sequence and iac_sequence are
+>>>>> supposed to behave this way - they, too, match singular "terms" each
+>>>>> time before returning to the start - but here I am, wanting to give
+>>>>> plain_text special treatment. Am I even coming at this from the right
+>>>>> angle?
+>>>>>
+>>>>> Thanks in advance for any advice!
+>>>>> ~Jonathan Castello
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From twisolar at gmail.com  Sun Oct  3 05:04:23 2010
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Sat, 2 Oct 2010 22:04:23 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <4CA80C45.5030605@complang.org>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>
+	<4CA3723B.5060000@esentire.com>
+	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>
+	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+	<4CA80C45.5030605@complang.org>
+Message-ID: <AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+
+"plain_text" is actually a bit of a misnomer; it's really anything not
+an IAC or a CR, as I have now. The only other difference here seems to
+be the + after plain_text, which I've tried. Graphing your example
+machine shows that the end_of_plain_text event is still executed after
+each plain_text character anyways.
+
+I've decided not to worry too much about it at this point. Thanks for
+your help anyways!
+~Jonathan
+
+On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Try refactoring your grammar:
+>
+> plain_text = [a-z];
+> something_else = ^plain_text;
+>
+> main := (
+>        plain_text+ %{ end_of_plain_text(); } |
+>        something_else+
+> )*;
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Oct  3 05:21:37 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 22:21:37 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>	<4CA3723B.5060000@esentire.com>	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>	<4CA37AAE.4040706@esentire.com>	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>	<4CA80C45.5030605@complang.org>
+	<AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+Message-ID: <4CA812E1.8010101@complang.org>
+
+Woops, the * should be **.
+
+-Adrian
+
+On 10-10-02 10:04 PM, Jonathan Castello wrote:
+> "plain_text" is actually a bit of a misnomer; it's really anything not
+> an IAC or a CR, as I have now. The only other difference here seems to
+> be the + after plain_text, which I've tried. Graphing your example
+> machine shows that the end_of_plain_text event is still executed after
+> each plain_text character anyways.
+>
+> I've decided not to worry too much about it at this point. Thanks for
+> your help anyways!
+> ~Jonathan
+>
+> On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Try refactoring your grammar:
+>>
+>> plain_text = [a-z];
+>> something_else = ^plain_text;
+>>
+>> main := (
+>>         plain_text+ %{ end_of_plain_text(); } |
+>>         something_else+
+>> )*;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Oct  3 05:37:34 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 02 Oct 2010 22:37:34 -0700
+Subject: [ragel-users] ANN: libejson, extended JSON parser library
+In-Reply-To: <AANLkTikZE2Xb5PpJbCFn6qyd=8sy_7XNwc+5yzehGhQ+@mail.gmail.com>
+References: <AANLkTi=v3A8PPBPHO=dkftGd3gdqOMkS+QH+T49=TEao@mail.gmail.com>	<4CA383BD.9070907@esentire.com>
+	<AANLkTikZE2Xb5PpJbCFn6qyd=8sy_7XNwc+5yzehGhQ+@mail.gmail.com>
+Message-ID: <4CA8169E.1010109@complang.org>
+
+Does JSON have comments? Is that just Javascript comments?
+
+When the machine gets huge because a particular complicated pattern 
+appears all over, that's a good sign you need to use the traditional 
+lexer + parser approach. Some people like to use ragel to parse directly 
+though. Which you do is a matter of preference I suppose.
+
+-Adrian
+
+On 10-09-29 11:31 AM, M P wrote:
+> Only partially -- I managed to get the whole parser working, BAR the
+> comments... I had tried to embed the comment 'detection' into the
+> "whitespace" rule ("W"), but I never managed to get it to work, so I
+> yanked the comment bit for now..
+>
+> I think there's probably a need in ragel to specify a "skip" rule
+> flag, to prevent the parser getting gigantic with "instances" of these
+> empty rules... I tried to do an fcall/fret but didn't get that to work
+> either...
+>
+> Right now the parser is about 50kb expanded, and thats as low as I
+> managed it to get, I think that given the relative complexity of it,
+> it's probably OK...
+>
+> If you want to have a quick review and/or submit patches, I would be
+> very grateful !
+>
+> Michael
+>
+>
+> On Wed, Sep 29, 2010 at 7:21 PM, Adrian Thurston
+> <adrian.thurston at esentire.com>  wrote:
+>> Thanks!
+>>
+>> I'm very sorry I never responded to your messages. Did you get all the
+>> issues worked out?
+>>
+>> -Adrian
+>>
+>> On 10-09-29 11:19 AM, M P wrote:
+>>>
+>>> I open-sourced a ragel-based parser for an extended version of JSON (I
+>>> had posted a problematic version some weeks ago)
+>>>
+>>>
+>>> http://bliterness.blogspot.com/2010/09/new-libejson-json-parser-on-steroids.html
+>>>
+>>> Michael
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From twisolar at gmail.com  Sun Oct  3 05:40:03 2010
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Sat, 2 Oct 2010 22:40:03 -0700
+Subject: [ragel-users] Writing a Telnet parser
+In-Reply-To: <4CA812E1.8010101@complang.org>
+References: <AANLkTi=VsNUCYx4sgVsB5VjKw5jSW74sQxSzCeNb9Pz1@mail.gmail.com>
+	<4CA3723B.5060000@esentire.com>
+	<AANLkTikZe6jTT4tV4ZLicJyTpWmhQb5aXaEXjL3bfAp-@mail.gmail.com>
+	<4CA37AAE.4040706@esentire.com>
+	<AANLkTi=xGnS+S9agqdTXTy76rS3jBdkMPnpWMHGz22KF@mail.gmail.com>
+	<4CA80C45.5030605@complang.org>
+	<AANLkTinwNi+gzXG5EAimtZH17pvtTU2k=wqqDptQuxvD@mail.gmail.com>
+	<4CA812E1.8010101@complang.org>
+Message-ID: <AANLkTikqkQwV5ffVTpzuX3=KW0dH03-kQmJN69A9uYCV@mail.gmail.com>
+
+Well, well. Seems I'll have to take a second look at this! That one worked. :)
+
+~Jonathan
+
+On Sat, Oct 2, 2010 at 10:21 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Woops, the * should be **.
+>
+> -Adrian
+>
+> On 10-10-02 10:04 PM, Jonathan Castello wrote:
+>>
+>> "plain_text" is actually a bit of a misnomer; it's really anything not
+>> an IAC or a CR, as I have now. The only other difference here seems to
+>> be the + after plain_text, which I've tried. Graphing your example
+>> machine shows that the end_of_plain_text event is still executed after
+>> each plain_text character anyways.
+>>
+>> I've decided not to worry too much about it at this point. Thanks for
+>> your help anyways!
+>> ~Jonathan
+>>
+>> On Sat, Oct 2, 2010 at 9:53 PM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Try refactoring your grammar:
+>>>
+>>> plain_text = [a-z];
+>>> something_else = ^plain_text;
+>>>
+>>> main := (
+>>>        plain_text+ %{ end_of_plain_text(); } |
+>>>        something_else+
+>>> )*;
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Oct  6 17:13:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 06 Oct 2010 10:13:38 -0700
+Subject: [ragel-users] go programming language patch applied
+Message-ID: <4CACAE42.3090802@esentire.com>
+
+The Go Programming Language patch is now in trunk. This patch was 
+contributed by Justine Tunney.
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Mon Oct 11 11:07:54 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Mon, 11 Oct 2010 12:07:54 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+Message-ID: <4CB2F00A.5050007@goodforbusiness.co.uk>
+
+  Hi all,
+
+I've got the table code generation strategy working. I'm going to work 
+on building a set of RL files for testing purposes and then have a crack 
+at writing a code generation backend that targets modern JavaScript VMs 
+(e.g. produces JavaScript that best suits a JIT/tracer). If anyone would 
+like to help with any part of this process, I'd be most grateful.
+
+I've forked Ragel trunk into a github repo while I work on this. There 
+is a sample script (I translated the maillbox.rl file from the Ragel 
+distribution) which you can play with if you install Node.js (a 
+JavaScript application framework powered by Google's V8 VM). Note that  
+while the sample script uses Node.js for IO, but the code generated is 
+plain JavaScript. I look forward to being able to use Ragel in the 
+browser soon too.
+
+Github:
+
+http://github.com/dominicmarks/ragel-js
+
+A diff against Ragel trunk is here:
+
+http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff 
+<http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+
+The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll 
+be tidying it up over the next few weeks, as my time allows. However, it 
+does at least run one Ragel state machine correctly already.
+
+Mailbox.rl/Mailbox.js:
+
+http://goodforbusiness.co.uk/~dom/mailbox.js 
+<http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+
+Cheers,
+Dom
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Oct 11 18:54:21 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 11 Oct 2010 11:54:21 -0700
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB2F00A.5050007@goodforbusiness.co.uk>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>
+Message-ID: <4CB35D5D.2030006@complang.org>
+
+Great, thanks for working on this!
+
+Did you have a look at the java code generator? There were a few 
+concessions that had to be made in the Ruby code generator that might 
+not need to be made in JS.
+
+-Adrian
+
+On 10-10-11 04:07 AM, Dominic Marks wrote:
+> Hi all,
+>
+> I've got the table code generation strategy working. I'm going to work
+> on building a set of RL files for testing purposes and then have a crack
+> at writing a code generation backend that targets modern JavaScript VMs
+> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+> like to help with any part of this process, I'd be most grateful.
+>
+> I've forked Ragel trunk into a github repo while I work on this. There
+> is a sample script (I translated the maillbox.rl file from the Ragel
+> distribution) which you can play with if you install Node.js (a
+> JavaScript application framework powered by Google's V8 VM). Note that
+> while the sample script uses Node.js for IO, but the code generated is
+> plain JavaScript. I look forward to being able to use Ragel in the
+> browser soon too.
+>
+> Github:
+>
+> http://github.com/dominicmarks/ragel-js
+>
+> A diff against Ragel trunk is here:
+>
+> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>
+> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+> be tidying it up over the next few weeks, as my time allows. However, it
+> does at least run one Ragel state machine correctly already.
+>
+> Mailbox.rl/Mailbox.js:
+>
+> http://goodforbusiness.co.uk/~dom/mailbox.js
+> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>
+> Cheers,
+> Dom
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Mon Oct 11 19:14:44 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Mon, 11 Oct 2010 20:14:44 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB35D5D.2030006@complang.org>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>
+	<4CB35D5D.2030006@complang.org>
+Message-ID: <4CB36224.3040608@goodforbusiness.co.uk>
+
+  Hey Adrian,
+
+I haven't but I will do. Thank you.
+
+I'm not sure if the RubyCodeGen::writeInit function is incorrect but 
+it's quite divergent from the CDCodeGen version. The only problem I had 
+doing the work, besides a few missed semicolons, was that the write init 
+directive was trying to initialise pe to the data length. In my testing 
+script the initialisation and execution stages are in separate functions 
+and this produced invalid JavaScript (data being undefined at that point).
+
+I assumed I had misunderstood something about the options that can be 
+given to write init and write exec but after that turned up a blank I 
+looked at CDCodeGen. I was surprised to find that it didn't include 
+similar code relating to the end directive. I made my writeInit function 
+more like CDCodeGen and my problem was resolved.
+
+The code in question:
+
+http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0
+
+The difference might be related to the concessions you mention, I didn't 
+look into it too much.
+
+Thanks for Ragel, it's a great piece of software!
+
+Dominic
+
+On 11/10/2010 19:54, Adrian Thurston wrote:
+> Great, thanks for working on this!
+>
+> Did you have a look at the java code generator? There were a few 
+> concessions that had to be made in the Ruby code generator that might 
+> not need to be made in JS.
+>
+> -Adrian
+>
+> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>> Hi all,
+>>
+>> I've got the table code generation strategy working. I'm going to work
+>> on building a set of RL files for testing purposes and then have a crack
+>> at writing a code generation backend that targets modern JavaScript VMs
+>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+>> like to help with any part of this process, I'd be most grateful.
+>>
+>> I've forked Ragel trunk into a github repo while I work on this. There
+>> is a sample script (I translated the maillbox.rl file from the Ragel
+>> distribution) which you can play with if you install Node.js (a
+>> JavaScript application framework powered by Google's V8 VM). Note that
+>> while the sample script uses Node.js for IO, but the code generated is
+>> plain JavaScript. I look forward to being able to use Ragel in the
+>> browser soon too.
+>>
+>> Github:
+>>
+>> http://github.com/dominicmarks/ragel-js
+>>
+>> A diff against Ragel trunk is here:
+>>
+>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>
+>> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+>> be tidying it up over the next few weeks, as my time allows. However, it
+>> does at least run one Ragel state machine correctly already.
+>>
+>> Mailbox.rl/Mailbox.js:
+>>
+>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>
+>> Cheers,
+>> Dom
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Oct 11 19:31:58 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 11 Oct 2010 12:31:58 -0700
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB36224.3040608@goodforbusiness.co.uk>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>	<4CB35D5D.2030006@complang.org>
+	<4CB36224.3040608@goodforbusiness.co.uk>
+Message-ID: <4CB3662E.2050709@complang.org>
+
+Ya as far as Ragel code generation goes you shouldn't need to p, pe, or 
+data available in the write init context. If I remember right that was 
+due to a combination of Ruby variable scoping/declaration rules and the 
+typical usage pattern of Ragel+Ruby. The Ruby code generator really is a 
+special case for a number of reasons. What we need to a Ragel and Ruby 
+expert to sort it out. I'm not both of those things.
+
+There is also some strange stuff in the java code generator too. Java 
+doesn't have static array data. It makes functions that set the values. 
+But large arrays overflow the max function size so you can't have large 
+static arrays. To get around this the arrays are made using functions 
+(like the compiler does), but they are broken down into smaller parts 
+and concatenated. Ugh. I'm not sure if this would apply to javascript as 
+well.
+
+-Adrian
+
+On 10-10-11 12:14 PM, Dominic Marks wrote:
+> Hey Adrian,
+>
+> I haven't but I will do. Thank you.
+>
+> I'm not sure if the RubyCodeGen::writeInit function is incorrect but
+> it's quite divergent from the CDCodeGen version. The only problem I had
+> doing the work, besides a few missed semicolons, was that the write init
+> directive was trying to initialise pe to the data length. In my testing
+> script the initialisation and execution stages are in separate functions
+> and this produced invalid JavaScript (data being undefined at that point).
+>
+> I assumed I had misunderstood something about the options that can be
+> given to write init and write exec but after that turned up a blank I
+> looked at CDCodeGen. I was surprised to find that it didn't include
+> similar code relating to the end directive. I made my writeInit function
+> more like CDCodeGen and my problem was resolved.
+>
+> The code in question:
+>
+> http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0
+>
+>
+> The difference might be related to the concessions you mention, I didn't
+> look into it too much.
+>
+> Thanks for Ragel, it's a great piece of software!
+>
+> Dominic
+>
+> On 11/10/2010 19:54, Adrian Thurston wrote:
+>> Great, thanks for working on this!
+>>
+>> Did you have a look at the java code generator? There were a few
+>> concessions that had to be made in the Ruby code generator that might
+>> not need to be made in JS.
+>>
+>> -Adrian
+>>
+>> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>>> Hi all,
+>>>
+>>> I've got the table code generation strategy working. I'm going to work
+>>> on building a set of RL files for testing purposes and then have a crack
+>>> at writing a code generation backend that targets modern JavaScript VMs
+>>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+>>> like to help with any part of this process, I'd be most grateful.
+>>>
+>>> I've forked Ragel trunk into a github repo while I work on this. There
+>>> is a sample script (I translated the maillbox.rl file from the Ragel
+>>> distribution) which you can play with if you install Node.js (a
+>>> JavaScript application framework powered by Google's V8 VM). Note that
+>>> while the sample script uses Node.js for IO, but the code generated is
+>>> plain JavaScript. I look forward to being able to use Ragel in the
+>>> browser soon too.
+>>>
+>>> Github:
+>>>
+>>> http://github.com/dominicmarks/ragel-js
+>>>
+>>> A diff against Ragel trunk is here:
+>>>
+>>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>>
+>>> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+>>> be tidying it up over the next few weeks, as my time allows. However, it
+>>> does at least run one Ragel state machine correctly already.
+>>>
+>>> Mailbox.rl/Mailbox.js:
+>>>
+>>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>>
+>>> Cheers,
+>>> Dom
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dom at goodforbusiness.co.uk  Tue Oct 12 07:24:26 2010
+From: dom at goodforbusiness.co.uk (Dominic Marks)
+Date: Tue, 12 Oct 2010 08:24:26 +0100
+Subject: [ragel-users] JavaScript code generation for Ragel
+In-Reply-To: <4CB3662E.2050709@complang.org>
+References: <4CB2F00A.5050007@goodforbusiness.co.uk>	<4CB35D5D.2030006@complang.org>	<4CB36224.3040608@goodforbusiness.co.uk>
+	<4CB3662E.2050709@complang.org>
+Message-ID: <4CB40D2A.8080909@goodforbusiness.co.uk>
+
+  On 11/10/2010 20:31, Adrian Thurston wrote:
+> Ya as far as Ragel code generation goes you shouldn't need to p, pe, 
+> or data available in the write init context. If I remember right that 
+> was due to a combination of Ruby variable scoping/declaration rules 
+> and the typical usage pattern of Ragel+Ruby. The Ruby code generator 
+> really is a special case for a number of reasons. What we need to a 
+> Ragel and Ruby expert to sort it out. I'm not both of those things.
+
+I'd take it on if I had the time.
+
+> There is also some strange stuff in the java code generator too. Java 
+> doesn't have static array data. It makes functions that set the 
+> values. But large arrays overflow the max function size so you can't 
+> have large static arrays. To get around this the arrays are made using 
+> functions (like the compiler does), but they are broken down into 
+> smaller parts and concatenated. Ugh. I'm not sure if this would apply 
+> to javascript as well.
+
+I wrote a small test program and creating arrays with 1 and 10 million 
+elements worked, although at 10 million the VM was stuttering 
+(run-pause-run-pause), probably due to the GC not coping too well. How 
+large is large? In the case of Node.js there is another data type called 
+Buffer which is a fixed size byte array (sort of). This doesn't have a 
+literal notation but it does support the array [] operator so it might 
+be able to substitute for static arrays in code. It has the benefit of 
+being allocated outside of the runtime and so it doesn't pressurise the 
+GC as much. The downside is that it would require special IO handling 
+code to setup the arrays and it isn't portable.
+
+It occured to me while writing this that I actually need to make at 
+least two different code generators for JavaScript. JavaScript can be 
+used for client and server programming (which is why I got into doing 
+this work in the first place) and the kind of code you want to generate 
+in each case is totally different. In the client case you want to 
+optimise for page load time first, so the state machine needs to be 
+expressed in the minimum possible code, even if it's slower to execute. 
+When generating the same machine for the server case you (probably) want 
+the normal approach of trading code size for performance.
+
+Should be an interesting challenge.
+
+Dominic
+
+> -Adrian
+>
+> On 10-10-11 12:14 PM, Dominic Marks wrote:
+>> Hey Adrian,
+>>
+>> I haven't but I will do. Thank you.
+>>
+>> I'm not sure if the RubyCodeGen::writeInit function is incorrect but
+>> it's quite divergent from the CDCodeGen version. The only problem I had
+>> doing the work, besides a few missed semicolons, was that the write init
+>> directive was trying to initialise pe to the data length. In my testing
+>> script the initialisation and execution stages are in separate functions
+>> and this produced invalid JavaScript (data being undefined at that 
+>> point).
+>>
+>> I assumed I had misunderstood something about the options that can be
+>> given to write init and write exec but after that turned up a blank I
+>> looked at CDCodeGen. I was surprised to find that it didn't include
+>> similar code relating to the end directive. I made my writeInit function
+>> more like CDCodeGen and my problem was resolved.
+>>
+>> The code in question:
+>>
+>> http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0 
+>>
+>>
+>>
+>> The difference might be related to the concessions you mention, I didn't
+>> look into it too much.
+>>
+>> Thanks for Ragel, it's a great piece of software!
+>>
+>> Dominic
+>>
+>> On 11/10/2010 19:54, Adrian Thurston wrote:
+>>> Great, thanks for working on this!
+>>>
+>>> Did you have a look at the java code generator? There were a few
+>>> concessions that had to be made in the Ruby code generator that might
+>>> not need to be made in JS.
+>>>
+>>> -Adrian
+>>>
+>>> On 10-10-11 04:07 AM, Dominic Marks wrote:
+>>>> Hi all,
+>>>>
+>>>> I've got the table code generation strategy working. I'm going to work
+>>>> on building a set of RL files for testing purposes and then have a 
+>>>> crack
+>>>> at writing a code generation backend that targets modern JavaScript 
+>>>> VMs
+>>>> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone 
+>>>> would
+>>>> like to help with any part of this process, I'd be most grateful.
+>>>>
+>>>> I've forked Ragel trunk into a github repo while I work on this. There
+>>>> is a sample script (I translated the maillbox.rl file from the Ragel
+>>>> distribution) which you can play with if you install Node.js (a
+>>>> JavaScript application framework powered by Google's V8 VM). Note that
+>>>> while the sample script uses Node.js for IO, but the code generated is
+>>>> plain JavaScript. I look forward to being able to use Ragel in the
+>>>> browser soon too.
+>>>>
+>>>> Github:
+>>>>
+>>>> http://github.com/dominicmarks/ragel-js
+>>>>
+>>>> A diff against Ragel trunk is here:
+>>>>
+>>>> http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff
+>>>> <http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff>
+>>>>
+>>>> The code is mostly a cut-paste-and-replace from Ruby at the moment. 
+>>>> I'll
+>>>> be tidying it up over the next few weeks, as my time allows. 
+>>>> However, it
+>>>> does at least run one Ragel state machine correctly already.
+>>>>
+>>>> Mailbox.rl/Mailbox.js:
+>>>>
+>>>> http://goodforbusiness.co.uk/~dom/mailbox.js
+>>>> <http://goodforbusiness.co.uk/%7Edom/mailbox.js> (Requires Node.js).
+>>>>
+>>>> Cheers,
+>>>> Dom
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gabriel at lse.epita.fr  Thu Oct 28 17:03:24 2010
+From: gabriel at lse.epita.fr (Gabriel Laskar)
+Date: Thu, 28 Oct 2010 19:03:24 +0200
+Subject: [ragel-users] D backend seems not working
+Message-ID: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+
+Hi,
+
+I want to use ragel for a project I have in D. But generated code
+doesn't compile. I have tried to run the test suite, needed to make
+small modifications to use dmd as a D compiler (the variable was not
+even set), no tests seems to work also.
+
+Is is a known issue ?
+
+here is the code I have tried and the compilation errors :
+
+~/ragel% cat test.rl
+
+%%{
+  machine foo;
+
+  main :=
+    ('foo' | 'bar')
+    0 @{ res = 1; };
+}%%
+
+%% write data;
+
+int main(string[] args)
+{
+  int cs;
+  int res = 0;
+
+  if (args.length > 1)
+  {
+    char *p = args[1];
+    char *pe = p + args[1].length;
+    %% write init;
+    %% write exec;
+  }
+
+  return res;
+}
+~/ragel% ragel -D test.rl
+~/ragel% dmd test.d
+test.rl(19): Error: cannot implicitly convert expression (args[1u]) of
+type string to char*
+test.d(83): Error: cannot implicitly convert expression
+(&_foo_trans_keys[cast(uint)_foo_key_offsets[cast(uint)cs]]) of type
+const(char)* to char*
+test.d(137): Error: cannot implicitly convert expression
+(&_foo_actions[cast(uint)_foo_trans_actions[_trans]]) of type
+const(byte)* to byte*
+1:~/ragel%
+
+
+-- 
+Gabriel Laskar <gabriel at lse.epita.fr>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Thu Oct 28 21:20:46 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 28 Oct 2010 14:20:46 -0700
+Subject: [ragel-users] D backend seems not working
+In-Reply-To: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+References: <AANLkTi=nXdMhire8uCPjAYsFSPuPyHqDdDHgcBw5s-f2@mail.gmail.com>
+Message-ID: <4CC9E92E.8070805@esentire.com>
+
+Hi, yes it looks like the D examples and the code generator are dated. 
+They were tested with GDC 0.13 or 0.14. I have not personally used them 
+in several years.
+
+-Adrian
+
+On 10-10-28 10:03 AM, Gabriel Laskar wrote:
+> Hi,
+>
+> I want to use ragel for a project I have in D. But generated code
+> doesn't compile. I have tried to run the test suite, needed to make
+> small modifications to use dmd as a D compiler (the variable was not
+> even set), no tests seems to work also.
+>
+> Is is a known issue ?
+>
+> here is the code I have tried and the compilation errors :
+>
+> ~/ragel% cat test.rl
+>
+> %%{
+>    machine foo;
+>
+>    main :=
+>      ('foo' | 'bar')
+>      0 @{ res = 1; };
+> }%%
+>
+> %% write data;
+>
+> int main(string[] args)
+> {
+>    int cs;
+>    int res = 0;
+>
+>    if (args.length>  1)
+>    {
+>      char *p = args[1];
+>      char *pe = p + args[1].length;
+>      %% write init;
+>      %% write exec;
+>    }
+>
+>    return res;
+> }
+> ~/ragel% ragel -D test.rl
+> ~/ragel% dmd test.d
+> test.rl(19): Error: cannot implicitly convert expression (args[1u]) of
+> type string to char*
+> test.d(83): Error: cannot implicitly convert expression
+> (&_foo_trans_keys[cast(uint)_foo_key_offsets[cast(uint)cs]]) of type
+> const(char)* to char*
+> test.d(137): Error: cannot implicitly convert expression
+> (&_foo_actions[cast(uint)_foo_trans_actions[_trans]]) of type
+> const(byte)* to byte*
+> 1:~/ragel%
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

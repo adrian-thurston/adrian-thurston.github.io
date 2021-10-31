@@ -1,0 +1,688 @@
+From thurston at complang.org  Tue Apr  1 16:28:32 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 1 Apr 2014 16:28:32 +0000
+Subject: [ragel-users] Debugging colm for win32.
+Message-ID: <1396306314-1396369714-cardhu_decombobulator_blackberry.rim.net-2141654056-@b11.c7.bise6.blackberry>
+
+Indeed, still a work in progress. I am rewriting the code generators in the new style. About halfway done. After that I will probably work on stability. 
+------Original Message------
+From: Jan Kundrát
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: Re: [ragel-users] Debugging colm for win32.
+Sent: Mar 31, 2014 3:23 PM
+
+On Monday, 31 March 2014 21:09:18 CEST, Mel Davis wrote:
+> Ragel in the git repo is built with an embedded colm 
+> processor.
+
+FYI, this is different version than any Ragel released so far. There's a 
+ragel-6 (IIRC) branch in the repo which corresponds to the version which is 
+released.
+
+Last time I tried the rewritten ragel, it choked on many constructs. I 
+reported that on this ML, but didn't get any feedback, so I presume this is 
+still an unfinished work.
+
+Cheers,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Tue Apr  1 17:00:15 2014
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Tue, 1 Apr 2014 13:00:15 -0400
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+Message-ID: <CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+
+> For win64,
+> fairly extensive changes would be needed since colm assumes pointers = long
+> data type, but in windows pointers = long long.
+
+I've not looked at the code in question, so don't know if this helps.
+
+Pointers should not be long nor long long they should be size_t .
+
+See <stddef.h> and <stdint.h>.
+
+When we move to 128 bit parts we'd have to go down this road again,
+that is what size_t is meant to prevent.  It is the difference between
+memory space and arithmetic bit widths.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Tue Apr  1 18:11:47 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Tue, 1 Apr 2014 11:11:47 -0700
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+Message-ID: <20140401181147.GA24586@wilbur.25thandClement.com>
+
+On Tue, Apr 01, 2014 at 01:00:15PM -0400, Bob Paddock wrote:
+> > For win64,
+> > fairly extensive changes would be needed since colm assumes pointers = long
+> > data type, but in windows pointers = long long.
+> 
+> I've not looked at the code in question, so don't know if this helps.
+> 
+> Pointers should not be long nor long long they should be size_t .
+> 
+> See <stddef.h> and <stdint.h>.
+> 
+> When we move to 128 bit parts we'd have to go down this road again,
+> that is what size_t is meant to prevent.  It is the difference between
+> memory space and arithmetic bit widths.
+> 
+
+This isn't true in C. In C the only well-defined way to convert a pointer to
+an integer and back again is via intptr_t or uintptr_t.
+
+Does C++ really require the same behavior for size_t?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Tue Apr  1 20:20:11 2014
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Tue, 1 Apr 2014 16:20:11 -0400
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <20140401181147.GA24586@wilbur.25thandClement.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+	<20140401181147.GA24586@wilbur.25thandClement.com>
+Message-ID: <CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+
+> This isn't true in C. In C the only well-defined way to convert a pointer to
+> an integer and back again is via intptr_t or uintptr_t.
+>
+> Does C++ really require the same behavior for size_t?
+
+cstdint.hpp from Boost, which is what I have at hand says:
+
+// intptr_t/uintptr_t are defined separately because they are optional
+and not universally available
+
+size_t and relatives should always be available unless using compilers
+that are not compliant to standards and don't come with stdint.h .
+
+Alas pointers are mine fields due to the varying widths, such as this
+from the C99 Standard:
+
+              /*
+               * You may not even convert a void * to a function
+               * pointer by explicit casting (6.3.2.3|1).
+               *
+               * C's abstract machine does not assume that code and
+               * data are addressed the same way, so as far as C is
+               * concerned function pointers and data pointers have
+               * nothing to do with each other (they could have
+               * different widths).
+               */
+Which can lead to the sickening mess of pointer decoration that has no
+standard between compilers.
+
+The bottom line is it is always wrong to use (long) long as a pointer
+type.  What to use in its place depends on the tools being used.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Tue Apr  1 23:18:28 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Tue, 1 Apr 2014 16:18:28 -0700
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+	<20140401181147.GA24586@wilbur.25thandClement.com>
+	<CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+Message-ID: <20140401231828.GA27846@wilbur.25thandClement.com>
+
+On Tue, Apr 01, 2014 at 04:20:11PM -0400, Bob Paddock wrote:
+> > This isn't true in C. In C the only well-defined way to convert a pointer to
+> > an integer and back again is via intptr_t or uintptr_t.
+> >
+> > Does C++ really require the same behavior for size_t?
+> 
+> cstdint.hpp from Boost, which is what I have at hand says:
+> 
+> // intptr_t/uintptr_t are defined separately because they are optional
+> and not universally available
+> 
+
+intptr_t and uintptr_t are optional because the ability to do a round-trip
+conversion from a pointer through an integer is not something all
+environments support or that the standard requires. The C standard only
+provides intptr_t as a common type _if_ the environment supports the
+operation.
+
+If <stdint.h> is available, then I'd be surprised if intptr_t wasn't
+defined, presuming the operation was supported. <stdint.h> was created by
+C99, the same standard that defined intptr_t.
+
+size_t is only required to be wide enough to describe the size of any
+_single_ valid object in the system, which basically means wide enough for
+the sizeof operator to work. Pointers can be wider than size_t. The most
+common example was x86 real mode, but everybody discounts that as no longer
+applicable.
+
+If you Google around, you'll find that, for example, the C environment for
+the AS/400 (and successors) has 128-bit data and function pointers but
+size_t is only 32-bit and doubles 64-bit. Therefore, presuming the AS/400
+supported integer/pointer conversions (it might not, because that might
+allow circumventing memory capability protections), you would have to use
+intptr_t or uintptr_t.
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Thu Apr 10 20:52:41 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 10 Apr 2014 22:52:41 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+Message-ID: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+
+2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi,
+>
+> I'm building a parser for a protocol message similar to HTTP (let's
+> say: a main header and N key: value separated by CRLF until a final
+> double CRLF). My concern is:
+>
+> - I parse the messages in a "Dispatcher" module that just needs to
+> parse a few fields in each message.
+> - Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+> - And the Worker must parse it again, but in this case I need all the
+> fields parsed.
+>
+> Note that during the Worker's parsing, a C++ complex object is build
+> with all the parsed fields mapped into member variables, so I don't
+> want to play with those complex objects in the Dispatcher module.
+>
+> How could I reuse the same Ragel machine for both cases? Of course I
+> would like something like:
+>
+>
+>
+> %%{
+>   machine Parser;
+>
+>   [...]
+>
+>   if (dispatcher) {
+>     main :=  xxxxxxx
+>   }
+>   else {
+>     main := yyyyyyy
+>   }
+>
+> }%%
+
+
+
+Mmm, I think using the "when" statement is the way to go :)
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Thu Apr 10 20:08:04 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 10 Apr 2014 22:08:04 +0200
+Subject: [ragel-users] Conditional parsing
+Message-ID: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+
+Hi,
+
+I'm building a parser for a protocol message similar to HTTP (let's
+say: a main header and N key: value separated by CRLF until a final
+double CRLF). My concern is:
+
+- I parse the messages in a "Dispatcher" module that just needs to
+parse a few fields in each message.
+- Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+- And the Worker must parse it again, but in this case I need all the
+fields parsed.
+
+Note that during the Worker's parsing, a C++ complex object is build
+with all the parsed fields mapped into member variables, so I don't
+want to play with those complex objects in the Dispatcher module.
+
+How could I reuse the same Ragel machine for both cases? Of course I
+would like something like:
+
+
+
+%%{
+  machine Parser;
+
+  [...]
+
+  if (dispatcher) {
+    main :=  xxxxxxx
+  }
+  else {
+    main := yyyyyyy
+  }
+
+}%%
+
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From evan at coeus-group.com  Fri Apr 11 01:08:25 2014
+From: evan at coeus-group.com (Evan Nemerson)
+Date: Thu, 10 Apr 2014 18:08:25 -0700
+Subject: [ragel-users] Parsing a stream in Go
+Message-ID: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+
+I've been trying to figure out how to parse a stream in Go without much
+luck.  Does anyone have an example they could share, or perhaps some
+documentation?
+
+
+-Evan
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Apr  1 16:28:32 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 1 Apr 2014 16:28:32 +0000
+Subject: [ragel-users] Debugging colm for win32.
+Message-ID: <1396306314-1396369714-cardhu_decombobulator_blackberry.rim.net-2141654056-@b11.c7.bise6.blackberry>
+
+Indeed, still a work in progress. I am rewriting the code generators in the new style. About halfway done. After that I will probably work on stability. 
+------Original Message------
+From: Jan Kundrát
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: Re: [ragel-users] Debugging colm for win32.
+Sent: Mar 31, 2014 3:23 PM
+
+On Monday, 31 March 2014 21:09:18 CEST, Mel Davis wrote:
+> Ragel in the git repo is built with an embedded colm 
+> processor.
+
+FYI, this is different version than any Ragel released so far. There's a 
+ragel-6 (IIRC) branch in the repo which corresponds to the version which is 
+released.
+
+Last time I tried the rewritten ragel, it choked on many constructs. I 
+reported that on this ML, but didn't get any feedback, so I presume this is 
+still an unfinished work.
+
+Cheers,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Tue Apr  1 17:00:15 2014
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Tue, 1 Apr 2014 13:00:15 -0400
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+Message-ID: <CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+
+> For win64,
+> fairly extensive changes would be needed since colm assumes pointers = long
+> data type, but in windows pointers = long long.
+
+I've not looked at the code in question, so don't know if this helps.
+
+Pointers should not be long nor long long they should be size_t .
+
+See <stddef.h> and <stdint.h>.
+
+When we move to 128 bit parts we'd have to go down this road again,
+that is what size_t is meant to prevent.  It is the difference between
+memory space and arithmetic bit widths.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Tue Apr  1 18:11:47 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Tue, 1 Apr 2014 11:11:47 -0700
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+Message-ID: <20140401181147.GA24586@wilbur.25thandClement.com>
+
+On Tue, Apr 01, 2014 at 01:00:15PM -0400, Bob Paddock wrote:
+> > For win64,
+> > fairly extensive changes would be needed since colm assumes pointers = long
+> > data type, but in windows pointers = long long.
+> 
+> I've not looked at the code in question, so don't know if this helps.
+> 
+> Pointers should not be long nor long long they should be size_t .
+> 
+> See <stddef.h> and <stdint.h>.
+> 
+> When we move to 128 bit parts we'd have to go down this road again,
+> that is what size_t is meant to prevent.  It is the difference between
+> memory space and arithmetic bit widths.
+> 
+
+This isn't true in C. In C the only well-defined way to convert a pointer to
+an integer and back again is via intptr_t or uintptr_t.
+
+Does C++ really require the same behavior for size_t?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Tue Apr  1 20:20:11 2014
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Tue, 1 Apr 2014 16:20:11 -0400
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <20140401181147.GA24586@wilbur.25thandClement.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+	<20140401181147.GA24586@wilbur.25thandClement.com>
+Message-ID: <CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+
+> This isn't true in C. In C the only well-defined way to convert a pointer to
+> an integer and back again is via intptr_t or uintptr_t.
+>
+> Does C++ really require the same behavior for size_t?
+
+cstdint.hpp from Boost, which is what I have at hand says:
+
+// intptr_t/uintptr_t are defined separately because they are optional
+and not universally available
+
+size_t and relatives should always be available unless using compilers
+that are not compliant to standards and don't come with stdint.h .
+
+Alas pointers are mine fields due to the varying widths, such as this
+from the C99 Standard:
+
+              /*
+               * You may not even convert a void * to a function
+               * pointer by explicit casting (6.3.2.3|1).
+               *
+               * C's abstract machine does not assume that code and
+               * data are addressed the same way, so as far as C is
+               * concerned function pointers and data pointers have
+               * nothing to do with each other (they could have
+               * different widths).
+               */
+Which can lead to the sickening mess of pointer decoration that has no
+standard between compilers.
+
+The bottom line is it is always wrong to use (long) long as a pointer
+type.  What to use in its place depends on the tools being used.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Tue Apr  1 23:18:28 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Tue, 1 Apr 2014 16:18:28 -0700
+Subject: [ragel-users] Debugging colm for win32.
+In-Reply-To: <CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+References: <1396292958.3980.YahooMailNeo@web162002.mail.bf1.yahoo.com>
+	<CAOuGh8-zM8RSjnnTXHi+CX4fTutYbHsfrMNs3x4ns1-NAAEuAA@mail.gmail.com>
+	<20140401181147.GA24586@wilbur.25thandClement.com>
+	<CAOuGh8_Hx6yYoNRgWE4rLd-nODdAMpcb_TMf8aZtvrv0j_5S3g@mail.gmail.com>
+Message-ID: <20140401231828.GA27846@wilbur.25thandClement.com>
+
+On Tue, Apr 01, 2014 at 04:20:11PM -0400, Bob Paddock wrote:
+> > This isn't true in C. In C the only well-defined way to convert a pointer to
+> > an integer and back again is via intptr_t or uintptr_t.
+> >
+> > Does C++ really require the same behavior for size_t?
+> 
+> cstdint.hpp from Boost, which is what I have at hand says:
+> 
+> // intptr_t/uintptr_t are defined separately because they are optional
+> and not universally available
+> 
+
+intptr_t and uintptr_t are optional because the ability to do a round-trip
+conversion from a pointer through an integer is not something all
+environments support or that the standard requires. The C standard only
+provides intptr_t as a common type _if_ the environment supports the
+operation.
+
+If <stdint.h> is available, then I'd be surprised if intptr_t wasn't
+defined, presuming the operation was supported. <stdint.h> was created by
+C99, the same standard that defined intptr_t.
+
+size_t is only required to be wide enough to describe the size of any
+_single_ valid object in the system, which basically means wide enough for
+the sizeof operator to work. Pointers can be wider than size_t. The most
+common example was x86 real mode, but everybody discounts that as no longer
+applicable.
+
+If you Google around, you'll find that, for example, the C environment for
+the AS/400 (and successors) has 128-bit data and function pointers but
+size_t is only 32-bit and doubles 64-bit. Therefore, presuming the AS/400
+supported integer/pointer conversions (it might not, because that might
+allow circumventing memory capability protections), you would have to use
+intptr_t or uintptr_t.
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Thu Apr 10 20:52:41 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 10 Apr 2014 22:52:41 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+Message-ID: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+
+2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi,
+>
+> I'm building a parser for a protocol message similar to HTTP (let's
+> say: a main header and N key: value separated by CRLF until a final
+> double CRLF). My concern is:
+>
+> - I parse the messages in a "Dispatcher" module that just needs to
+> parse a few fields in each message.
+> - Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+> - And the Worker must parse it again, but in this case I need all the
+> fields parsed.
+>
+> Note that during the Worker's parsing, a C++ complex object is build
+> with all the parsed fields mapped into member variables, so I don't
+> want to play with those complex objects in the Dispatcher module.
+>
+> How could I reuse the same Ragel machine for both cases? Of course I
+> would like something like:
+>
+>
+>
+> %%{
+>   machine Parser;
+>
+>   [...]
+>
+>   if (dispatcher) {
+>     main :=  xxxxxxx
+>   }
+>   else {
+>     main := yyyyyyy
+>   }
+>
+> }%%
+
+
+
+Mmm, I think using the "when" statement is the way to go :)
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Thu Apr 10 20:08:04 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 10 Apr 2014 22:08:04 +0200
+Subject: [ragel-users] Conditional parsing
+Message-ID: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+
+Hi,
+
+I'm building a parser for a protocol message similar to HTTP (let's
+say: a main header and N key: value separated by CRLF until a final
+double CRLF). My concern is:
+
+- I parse the messages in a "Dispatcher" module that just needs to
+parse a few fields in each message.
+- Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+- And the Worker must parse it again, but in this case I need all the
+fields parsed.
+
+Note that during the Worker's parsing, a C++ complex object is build
+with all the parsed fields mapped into member variables, so I don't
+want to play with those complex objects in the Dispatcher module.
+
+How could I reuse the same Ragel machine for both cases? Of course I
+would like something like:
+
+
+
+%%{
+  machine Parser;
+
+  [...]
+
+  if (dispatcher) {
+    main :=  xxxxxxx
+  }
+  else {
+    main := yyyyyyy
+  }
+
+}%%
+
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From evan at coeus-group.com  Fri Apr 11 01:08:25 2014
+From: evan at coeus-group.com (Evan Nemerson)
+Date: Thu, 10 Apr 2014 18:08:25 -0700
+Subject: [ragel-users] Parsing a stream in Go
+Message-ID: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+
+I've been trying to figure out how to parse a stream in Go without much
+luck.  Does anyone have an example they could share, or perhaps some
+documentation?
+
+
+-Evan
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

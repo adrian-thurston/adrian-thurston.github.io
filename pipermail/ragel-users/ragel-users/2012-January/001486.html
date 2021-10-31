@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Parsing of names with spaces in them
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20of%20names%20with%20spaces%20in%20them&In-Reply-To=%3Cop.v8jofhk0ah38gt%40osangar%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001489.html">
+   <LINK REL="Next"  HREF="001490.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Parsing of names with spaces in them</H1>
+    <B>M Conrad</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20of%20names%20with%20spaces%20in%20them&In-Reply-To=%3Cop.v8jofhk0ah38gt%40osangar%3E"
+       TITLE="[ragel-users] Parsing of names with spaces in them">silverdirk-rgl at silverdirk.com
+       </A><BR>
+    <I>Mon Jan 23 16:07:55 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001489.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+        <LI>Next message: <A HREF="001490.html">[ragel-users] eof action
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1486">[ date ]</a>
+              <a href="thread.html#1486">[ thread ]</a>
+              <a href="subject.html#1486">[ subject ]</a>
+              <a href="author.html#1486">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, 23 Jan 2012 03:26:54 -0500, Victor Khimenko &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">khim at chromium.org</A>&gt;
+wrote:
+
+&gt;<i> On Mon, Jan 23, 2012 at 11:11 AM, Gerald Gutierrez &lt;
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">gerald.gutierrez at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Hello folks,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I recently found Ragel and have discovered that it is a very pleasant
+</I>&gt;&gt;<i> piece of software. That said, I've run into a problem that I was
+</I>&gt;&gt;<i> hoping is common and a solution available.
+</I>&gt;&gt;<i>
+</I>&gt;<i> Sadly the problem is common but solution is quite explicitly is NOT
+</I>&gt;<i> available.
+</I>
+I think it is misleading to say that.  All he needs to do is alter the
+rules to remove the ambiguity.  A scanner is certainly not required,
+though may be desirable.
+
+Gerald- Ragel operates on a principle where all state machines (meaning
+all smaller machines within the larger machine) are continuously matching
+the input.  Unless you make the machine decide which state to go into, it
+will go into *both*, in kind of an uncertainty-principle theme.  It will
+run any applicable actions for any transition that occurs, even if it
+hasn't decided which state it is really in.
+
+Writing actions for Ragel is different than for a typical backtracking
+scanner.  You need to first make sure that it is possible to write your
+machine without backtracking.  (If you need backtracking, Ragel also
+provides a syntax for defining scanners, which is in the manual.)
+
+Next, if your problem is that you want certain characters to indicate the
+end of a previous loop (like ':' in your case), check out the priority
+system.  If staying in a machine has equal priority with leaving it to go
+to the next, Ragel will do both.  But, if one is prioritized, Ragel will
+pick the transition with higher priority.
+
+Finally, if you just need a tiny little bit of backtracking, but don't
+want a full-blown scanner, you can try using actions that record character
+positions, then other actions that use them.  For instance, every time you
+see a non-space during 'name', you record the position &quot;{lastAlpha=p;}&quot;,
+then add priority to your rule to not leave 'name' (until it sees
+something that can't be a name, like a &quot;:&quot;), then in the action for
+leaving 'name' you can trim off &quot;p-lastAlpha&quot; number of characters,
+knowing they are trailing spaces.
+
+
+Hopefully that helps.  I would write an example but I'm a bit rusty on it
+and short on time.  Let us know if you need one.
+
+-Mike
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001489.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+	<LI>Next message: <A HREF="001490.html">[ragel-users] eof action
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1486">[ date ]</a>
+              <a href="thread.html#1486">[ thread ]</a>
+              <a href="subject.html#1486">[ subject ]</a>
+              <a href="author.html#1486">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

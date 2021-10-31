@@ -1,0 +1,2936 @@
+From w... at wincent.com  Mon Feb  4 20:40:48 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 4 Feb 2008 12:40:48 -0800 (PST)
+Subject: Ragel success story
+Message-ID: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+
+Here's a little Ragel success story.
+
+I've written a wikitext-to-HTML translator written in C (a Ruby
+extension) and up until a few days ago it was using a lexer generated
+by ANTLR 3.0.1 (the C target). I've had a suspicion for some time,
+however, that a Ragel scanner might be faster for a number of reasons.
+
+Imagine my surprise when I compared the speed and found that Ragel was
+nearly 10 times faster! I hadn't been expecting that kind of
+improvement.
+
+You can look at the code here:
+
+http://git.wincent.com/wikitext.git
+
+And an article with the benchmark results is here:
+
+http://wincent.com/a/about/wincent/weblog/archives/2008/02/ragel_wins_fata.php
+
+For comparison, the current version of the ANTLR grammar at the time
+of writing is:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/Wikitext.g;h=642f275cd36d0a0f28c1bf8fc2f859658a0e1a81;hb=antlr
+
+And the corresponding Ragel scanner implementation is:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl;h=a82a304632826370041639ed0d9d9c085faeda98;hb=bd7799aa1938f36f65b2523b47f1202eac3b31bf
+
+I've made no attempt at optimization yet, but the performance of the
+Ragel scanner is already spectacular for a "rough draft".
+
+Ragel is a wonderful tool!
+
+Cheers,
+Wincent
+
+
+From thurs... at cs.queensu.ca  Tue Feb  5 00:56:27 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 04 Feb 2008 19:56:27 -0500
+Subject: [ragel-users] Ragel success story
+In-Reply-To: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+References: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+Message-ID: <47A7B43B.9000707@cs.queensu.ca>
+
+Hey Wincent,
+
+Nice writeup! Thanks for sharing your experience.
+
+It seems from the Rakefile that you're using the default output code
+style. If speed is what you're after you should try the -G2 option :D
+
+-Adrian
+
+Wincent Colaiuta wrote:
+> Here's a little Ragel success story.
+> 
+> I've written a wikitext-to-HTML translator written in C (a Ruby
+> extension) and up until a few days ago it was using a lexer generated
+> by ANTLR 3.0.1 (the C target). I've had a suspicion for some time,
+> however, that a Ragel scanner might be faster for a number of reasons.
+> 
+> Imagine my surprise when I compared the speed and found that Ragel was
+> nearly 10 times faster! I hadn't been expecting that kind of
+> improvement.
+> 
+> You can look at the code here:
+> 
+> http://git.wincent.com/wikitext.git
+> 
+> And an article with the benchmark results is here:
+> 
+> http://wincent.com/a/about/wincent/weblog/archives/2008/02/ragel_wins_fata.php
+> 
+> For comparison, the current version of the ANTLR grammar at the time
+> of writing is:
+> 
+> http://git.wincent.com/wikitext.git?a=blob;f=ext/Wikitext.g;h=642f275cd36d0a0f28c1bf8fc2f859658a0e1a81;hb=antlr
+> 
+> And the corresponding Ragel scanner implementation is:
+> 
+> http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl;h=a82a304632826370041639ed0d9d9c085faeda98;hb=bd7799aa1938f36f65b2523b47f1202eac3b31bf
+> 
+> I've made no attempt at optimization yet, but the performance of the
+> Ragel scanner is already spectacular for a "rough draft".
+> 
+> Ragel is a wonderful tool!
+> 
+> Cheers,
+> Wincent
+> 
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Tue Feb  5 01:13:49 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 4 Feb 2008 17:13:49 -0800 (PST)
+Subject: Ragel success story
+In-Reply-To: <47A7B43B.9000707@cs.queensu.ca>
+References: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com> 
+	<47A7B43B.9000707@cs.queensu.ca>
+Message-ID: <49d0379e-b08b-4e49-a522-429003fb2d91@n20g2000hsh.googlegroups.com>
+
+On 5 feb, 01:56, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It seems from the Rakefile that you're using the default output code
+> style. If speed is what you're after you should try the -G2 option :D
+
+Excellent suggestion. Tokenizing times without -G2:
+
+                                user     system      total        real
+short slab of ASCII text    0.780000   0.000000   0.780000
+(  0.777619)
+short slab of UTF-8 text    1.200000   0.000000   1.200000
+(  1.202833)
+longer slab of ASCII text  12.710000   0.000000  12.710000
+( 12.747387)
+longer slab of UTF-8 text  18.650000   0.020000  18.670000
+( 19.015087)
+
+So those numbers are about 10 times faster than ANTLR.
+
+And now with -G2:
+
+                                user     system      total        real
+short slab of ASCII text    0.180000   0.000000   0.180000
+(  0.182539)
+short slab of UTF-8 text    0.320000   0.000000   0.320000
+(  0.330065)
+longer slab of ASCII text   2.740000   0.000000   2.740000
+(  2.792006)
+longer slab of UTF-8 text   5.000000   0.000000   5.000000
+(  5.072432)
+
+Here are the ANTLR numbers again for comparison:
+
+                                user     system      total        real
+short slab of ASCII text    9.400000   1.870000  11.270000
+( 11.308913)
+short slab of UTF-8 text    8.620000   1.880000  10.500000
+( 10.551956)
+longer slab of ASCII text 132.380000  19.690000 152.070000
+(153.296844)
+longer slab of UTF-8 text 116.280000  19.510000 135.790000
+(136.788652)
+
+So with -G2 Ragel is nearly 38 times faster than ANTLR's fastest
+target! I'm really struggling to believe how good the results are.
+I'll update my article shortly with the new figures.
+
+Thanks very much for building such an awesome project.
+
+Cheers,
+Wincent
+
+
+From ma... at nanorex.com  Sat Feb  9 00:40:36 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 19:40:36 -0500
+Subject: how to use getkey?
+Message-ID: <47ACF684.80400@nanorex.com>
+
+Hi all,
+
+   I'd like to read from a C++ filebuf object and get Ragel to read from 
+it. I believe I must specify a getkey method to tell Ragel how to read 
+from the filebuf but I don't understand how to do this completely from 
+the existing documentation.
+
+   would someone have any example of getkey usage? It needn't be 
+specific to what I've mentioned above.
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Sat Feb  9 01:29:22 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 08 Feb 2008 20:29:22 -0500
+Subject: [ragel-users] how to use getkey?
+In-Reply-To: <47ACF684.80400@nanorex.com>
+References: <47ACF684.80400@nanorex.com>
+Message-ID: <47AD01F2.8090504@cs.queensu.ca>
+
+Hi Manoj,
+
+The getkey statement is for looking inside a structure when you're
+parsing an array of structures.
+
+What you want to do is read data into an array of characters and process
+that.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I'd like to read from a C++ filebuf object and get Ragel to read from 
+> it. I believe I must specify a getkey method to tell Ragel how to read 
+> from the filebuf but I don't understand how to do this completely from 
+> the existing documentation.
+> 
+>    would someone have any example of getkey usage? It needn't be 
+> specific to what I've mentioned above.
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Sat Feb  9 02:38:34 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 21:38:34 -0500
+Subject: Using ragel to parse input from files, in C++
+Message-ID: <47AD122A.4010207@nanorex.com>
+
+Hi all,
+
+  I have the following approach. It passes basic tests and I'd like to 
+share this with you. Can someone spot bugs?
+
+
+// class to access a file (through buffer) but to appear like a pointer
+class ragelfilebuf_ptr
+{
+public:
+     ragelfilebuf_ptr(char const *const filename)
+         : infile(filename, std::ios::in),
+           fbptr(infile.rdbuf()) { }
+     ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+     // allow advancement or pointer
+     ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+++i)fbptr->snextc(); return *this;}
+     // allow access to current character
+     char operator * () { return (char)fbptr->sgetc(); }
+private:
+     std::ifstream infile;
+     std::filebuf *fbptr;
+};
+
+
+int main()
+{
+     int cs;
+     ragelfilebuf_ptr p("filename"); // create ragel's p variable
+
+     %% write exec noend  # see 1. below
+}
+
+NOTES:
+1. When writing your state machine define a machine to detect 0xff 
+(which is EOF) and perform the fbreak action. Note that I have used the 
+'noend' qualifier to the 'write exec' statement above - the program 
+won't terminate without our explicit instruction to do so.
+
+2. The ifstream class performs buffered input. If its 'get' pointer goes 
+past the boundary its associated std::filebuf instance automatically 
+reads in more stuff from the file. By subclassing filebuf and 
+implementing its virtual methods you can set your own buffer using 
+ifstream::rdbuf(std::streambuf*).
+
+3. If it is guaranteed that Ragel will never advance the p pointer by 
+more than one, then we can do away with the 'for' part of the 
+advancement statement in the definition of operator +=  above, i.e., we 
+simply need have fbptr->snext() only.  Your comments, Alan?
+
+cheers!
+Manoj
+
+
+From ma... at nanorex.com  Sat Feb  9 02:47:16 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 21:47:16 -0500
+Subject: [ragel-users] Using ragel to parse input from files, in C++
+In-Reply-To: <47AD122A.4010207@nanorex.com>
+References: <47AD122A.4010207@nanorex.com>
+Message-ID: <47AD1434.6070005@nanorex.com>
+
+Actually, I just realized that we don't have to even consider the 
+filebuf part unless we are interested in implementing custom buffers.
+
+The following simple class should also work (haven't tested)
+
+class ragelfile_ptr
+{
+public:
+      ragelfile_ptr(char const *const filename)
+          : infile(filename, std::ios::in) , c('\0')
+          { if(infile) c = infile.peek(); }
+      ~ragelfile_ptr() { if(infile.is_open()) infile.close(); }
+      // allow advancement or pointer
+      ragelfile_ptr& operator += (int )
+      { infile.get(c); return *this;} // assuming ragel always does p+=1
+      // allow access to current character
+      char operator * () { return c; }
+private:
+      std::ifstream infile;
+      char c;
+};
+
+
+cheers!
+Manoj
+
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>   I have the following approach. It passes basic tests and I'd like to 
+> share this with you. Can someone spot bugs?
+> 
+> 
+> // class to access a file (through buffer) but to appear like a pointer
+> class ragelfilebuf_ptr
+> {
+> public:
+>      ragelfilebuf_ptr(char const *const filename)
+>          : infile(filename, std::ios::in),
+>            fbptr(infile.rdbuf()) { }
+>      ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+>      // allow advancement or pointer
+>      ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+> ++i)fbptr->snextc(); return *this;}
+>      // allow access to current character
+>      char operator * () { return (char)fbptr->sgetc(); }
+> private:
+>      std::ifstream infile;
+>      std::filebuf *fbptr;
+> };
+> 
+> 
+> int main()
+> {
+>      int cs;
+>      ragelfilebuf_ptr p("filename"); // create ragel's p variable
+> 
+>      %% write exec noend  # see 1. below
+> }
+> 
+> NOTES:
+> 1. When writing your state machine define a machine to detect 0xff 
+> (which is EOF) and perform the fbreak action. Note that I have used the 
+> 'noend' qualifier to the 'write exec' statement above - the program 
+> won't terminate without our explicit instruction to do so.
+> 
+> 2. The ifstream class performs buffered input. If its 'get' pointer goes 
+> past the boundary its associated std::filebuf instance automatically 
+> reads in more stuff from the file. By subclassing filebuf and 
+> implementing its virtual methods you can set your own buffer using 
+> ifstream::rdbuf(std::streambuf*).
+> 
+> 3. If it is guaranteed that Ragel will never advance the p pointer by 
+> more than one, then we can do away with the 'for' part of the 
+> advancement statement in the definition of operator +=  above, i.e., we 
+> simply need have fbptr->snext() only.  Your comments, Alan?
+> 
+> cheers!
+> Manoj
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Sat Feb  9 22:38:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 09 Feb 2008 17:38:19 -0500
+Subject: [ragel-users] Re: Using ragel to parse input from files, in C++
+In-Reply-To: <47AD1434.6070005@nanorex.com>
+References: <47AD122A.4010207@nanorex.com> <47AD1434.6070005@nanorex.com>
+Message-ID: <47AE2B5B.4080001@cs.queensu.ca>
+
+Hi Manoj,
+
+Ragel does a number of other pointer operations. Sometimes it moves the
+pointer back one. Scanners sometimes move the pointer back a number of
+characters. The ++ operator is used. Pointers are also copied. Here are
+some examples:
+
+if ( ++p == pe )
+{{p = ((te))-1;} token( KW_Action ); }
+{te = p+1;{
+{te = p;p--;{
+{ts = p;}
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Actually, I just realized that we don't have to even consider the 
+> filebuf part unless we are interested in implementing custom buffers.
+> 
+> The following simple class should also work (haven't tested)
+> 
+> class ragelfile_ptr
+> {
+> public:
+>       ragelfile_ptr(char const *const filename)
+>           : infile(filename, std::ios::in) , c('\0')
+>           { if(infile) c = infile.peek(); }
+>       ~ragelfile_ptr() { if(infile.is_open()) infile.close(); }
+>       // allow advancement or pointer
+>       ragelfile_ptr& operator += (int )
+>       { infile.get(c); return *this;} // assuming ragel always does p+=1
+>       // allow access to current character
+>       char operator * () { return c; }
+> private:
+>       std::ifstream infile;
+>       char c;
+> };
+> 
+> 
+> cheers!
+> Manoj
+> 
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>   I have the following approach. It passes basic tests and I'd like to 
+>> share this with you. Can someone spot bugs?
+>>
+>>
+>> // class to access a file (through buffer) but to appear like a pointer
+>> class ragelfilebuf_ptr
+>> {
+>> public:
+>>      ragelfilebuf_ptr(char const *const filename)
+>>          : infile(filename, std::ios::in),
+>>            fbptr(infile.rdbuf()) { }
+>>      ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+>>      // allow advancement or pointer
+>>      ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+>> ++i)fbptr->snextc(); return *this;}
+>>      // allow access to current character
+>>      char operator * () { return (char)fbptr->sgetc(); }
+>> private:
+>>      std::ifstream infile;
+>>      std::filebuf *fbptr;
+>> };
+>>
+>>
+>> int main()
+>> {
+>>      int cs;
+>>      ragelfilebuf_ptr p("filename"); // create ragel's p variable
+>>
+>>      %% write exec noend  # see 1. below
+>> }
+>>
+>> NOTES:
+>> 1. When writing your state machine define a machine to detect 0xff 
+>> (which is EOF) and perform the fbreak action. Note that I have used the 
+>> 'noend' qualifier to the 'write exec' statement above - the program 
+>> won't terminate without our explicit instruction to do so.
+>>
+>> 2. The ifstream class performs buffered input. If its 'get' pointer goes 
+>> past the boundary its associated std::filebuf instance automatically 
+>> reads in more stuff from the file. By subclassing filebuf and 
+>> implementing its virtual methods you can set your own buffer using 
+>> ifstream::rdbuf(std::streambuf*).
+>>
+>> 3. If it is guaranteed that Ragel will never advance the p pointer by 
+>> more than one, then we can do away with the 'for' part of the 
+>> advancement statement in the definition of operator +=  above, i.e., we 
+>> simply need have fbptr->snext() only.  Your comments, Alan?
+>>
+>> cheers!
+>> Manoj
+>>
+> 
+> > 
+> 
+
+
+From jason.gar... at gmail.com  Tue Feb 12 20:07:36 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Tue, 12 Feb 2008 12:07:36 -0800 (PST)
+Subject: How to look ahead
+In-Reply-To: <479FF7AE.50904@cs.queensu.ca>
+References: <762e2686-56f8-40cf-823b-8b50fdbbbdb3@j78g2000hsd.googlegroups.com> 
+	<479FF7AE.50904@cs.queensu.ca>
+Message-ID: <bb3d19c6-4ea4-4c74-a0c1-9de6e259cf04@c4g2000hsg.googlegroups.com>
+
+Solved the issue by digging in a little deeper and understanding the
+value of p for each type of user action.  I wasn't able to move p
+backwards properly in a leaving action; it had to be finishing.  There
+was also some nondeterminism getting in the way.
+
+formerly: -  dim = ( digit+ >A %{ STORE(x) } (" x " | "x") digit+ >A
+%*{ STORE(y) } ) >X ;
+now     :+  dim = ( digit+ >A %{ STORE(x) } (" x " @{ ASET(space,
+true)} | "x") digit @{ fhold; } ) >X ;
+
+So the dim pattern matches multiple times on a phrase like 1x2x3.
+
+Thanks for your willingness to help!
+
+Jason
+
+
+On Jan 29, 11:06 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hey Jason,
+>
+> Generally I do lookahead by moving p backwards. This should work even in
+> scanner actions (requires a recent version of Ragel). Can you give some
+> code that doesn't do what you expect? I don't understand exactly what
+> you're trying to do.
+>
+> Adrian
+>
+> Jason Garber wrote:
+> > Hello Ragel users,
+> > I'm working on SuperRedCloth (a Ragel implementation of RedCloth that
+> > why the lucky stiff started awhile back).  I've run into some trouble
+> > and could use some help.
+>
+> > In the inline scanner, we want the dimension rule to parse "1 x 2."
+> > and then the formatter outputs it as "1 &#215; 2."  As it was:
+>
+> > dim = ( digit+ >A %{ STORE(x) } " x " digit+ >A %{ STORE(y) } ) >X ;
+>
+> > (where A registers the start of the string to capture and STORE
+> > captures it.  See
+> >http://code.whytheluckystiff.net/redcloth/browser/branches/superredcl...
+> > if you need more context.)
+>
+> > But, since it was in a scanner and it had to entertain the possibility
+> > that the pattern was starting over (I assume), the STORE(y) action
+> > would never happen, so you'd get "1 &#215; ."
+>
+> > Assuming you can't have leaving actions at the end of a pattern in a
+> > scanner, I considered (with the help of Johan Sørensen) looking ahead
+> > for a digit but not consuming it, so with "1 x 2." the "1 x" is handed
+> > to the formatter and the rest is handled by the default pattern (not
+> > stored).  This gives the additional advantage of being able to parse
+> > something like "1 x 2 x 3 x 4."
+>
+> > The question is, how to look ahead?  I've tried all kinds of things
+> > with fhold, p--, etc., but it seems I'm at the limit of my Ragel
+> > comprehension.  Or is there a better way than look-ahead?
+>
+> > Thanks in advance!
+
+
+From ma... at nanorex.com  Thu Feb 14 22:50:10 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 17:50:10 -0500
+Subject: C++: int stack[] cannot be declared global
+Message-ID: <47B4C5A2.1090906@nanorex.com>
+
+Hi Adrian,
+
+   This causes a clash with std::stack that comes with some STL 
+packages. On my Fedora 8 machine with gcc v4.1.2 and libstdc++ v4.1.2, I 
+get errors like the following:
+
+mmp-parser.rl:187: error: reference to ‘stack’ is ambiguous
+mmp-parser.rl:215: error: candidates are: int stack [1000]
+/usr/lib/gcc/i386-redhat-linux/4.1.2/../../../../include/c++/4.1.2/bits/stl_stack.h:72: 
+error:                 template<class _Tp, class _Sequence> class std::stack
+
+
+   Any suggestions? Would I be too bold in suggesting that the stack 
+variable in ragel be renamed to something like ragelstack?
+
+cheers
+Manoj
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 23:04:20 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 15:04:20 -0800 (PST)
+Subject: C++: int stack[] cannot be declared global
+In-Reply-To: <47B4C5A2.1090906@nanorex.com>
+References: <47B4C5A2.1090906@nanorex.com>
+Message-ID: <09b8b547-47fc-4978-a6d1-a40d3e1a8843@d4g2000prg.googlegroups.com>
+
+You can rename it using the variable or access statements.
+
+Cheers,
+ Adrian
+
+On Feb 14, 5:50 pm, Manoj Rajagopalan <ma... at nanorex.com> wrote:
+> Hi Adrian,
+>
+>    This causes a clash with std::stack that comes with some STL
+> packages. On my Fedora 8 machine with gcc v4.1.2 and libstdc++ v4.1.2, I
+> get errors like the following:
+>
+> mmp-parser.rl:187: error: reference to 'stack' is ambiguous
+> mmp-parser.rl:215: error: candidates are: int stack [1000]
+> /usr/lib/gcc/i386-redhat-linux/4.1.2/../../../../include/c++/4.1.2/bits/stl_stack.h:72:
+> error:                 template<class _Tp, class _Sequence> class std::stack
+>
+>    Any suggestions? Would I be too bold in suggesting that the stack
+> variable in ragel be renamed to something like ragelstack?
+>
+> cheers
+
+
+From ma... at nanorex.com  Fri Feb 15 04:12:10 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 23:12:10 -0500
+Subject: question about the union operation
+Message-ID: <47B5111A.60802@nanorex.com>
+
+hi ragel users,
+
+   I find ragel having trouble with expressions like the following:
+
+   (alnum | [_-])+
+
+I get errors like:
+mmp-parser.rl:33:30: at token RE_SqClose: parse error
+
+   Is the above expression incorrect for matching a string that can 
+contain alphanumeric characters or '_' or '-'
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Feb 15 18:11:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Feb 2008 13:11:23 -0500
+Subject: [ragel-users] question about the union operation
+In-Reply-To: <47B5111A.60802@nanorex.com>
+References: <47B5111A.60802@nanorex.com>
+Message-ID: <47B5D5CB.2070204@cs.queensu.ca>
+
+Hi Manoj,
+
+Within or literals - is used to separate ranges. You'll need to escape
+the '-' character with '\'.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> hi ragel users,
+> 
+>    I find ragel having trouble with expressions like the following:
+> 
+>    (alnum | [_-])+
+> 
+> I get errors like:
+> mmp-parser.rl:33:30: at token RE_SqClose: parse error
+> 
+>    Is the above expression incorrect for matching a string that can 
+> contain alphanumeric characters or '_' or '-'
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Feb 15 23:30:01 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 15 Feb 2008 18:30:01 -0500
+Subject: Is it possible for ragel to output more descriptive error messages?
+Message-ID: <47B62079.4020006@nanorex.com>
+
+Hi Adrian,
+
+   I have a big parser that I have written up using Ragel. Even though 
+it is modular, ragel sometimes dies with the message "ragel did not exit 
+normally".
+
+  Could ragel provide more info about the location and cause of the errors?
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Sat Feb 16 16:31:13 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 16 Feb 2008 11:31:13 -0500
+Subject: [ragel-users] Is it possible for ragel to output more descriptive
+ error messages?
+In-Reply-To: <47B62079.4020006@nanorex.com>
+References: <47B62079.4020006@nanorex.com>
+Message-ID: <47B70FD1.6080906@cs.queensu.ca>
+
+Sure that can certainly be improved. What's is probably happening is
+that one of the sub processes is segfaulting or running out of memory.
+Post or send me the offending ragel code if you can. Reducing it down in
+size while still causing the error is always good too.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>    I have a big parser that I have written up using Ragel. Even though 
+> it is modular, ragel sometimes dies with the message "ragel did not exit 
+> normally".
+> 
+>   Could ragel provide more info about the location and cause of the errors?
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From gasp... at teti.ch  Wed Feb 27 09:32:53 2008
+From: gasp... at teti.ch (Gaspard Bucher)
+Date: Wed, 27 Feb 2008 10:32:53 +0100
+Subject: optimization idea
+Message-ID: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+
+When there is a bug regex, we end up with huge switch statements. From
+what I understand from these statements, in the worst case, the
+process must execute every instruction of type (jump not equal).
+
+We could reduce this by implementing a simple binary tree when the
+case statements get too big:
+
+if (cs < 500) {
+  if (cs < 250) {
+    ...
+   } else {
+    ...
+   }
+} else {
+  if (cs < 750) {
+    ...
+  } else {
+    ...
+  }
+}
+
+Is this stupid ?
+
+Gaspard
+
+
+From polus... at gmail.com  Wed Feb 27 11:16:30 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Wed, 27 Feb 2008 17:16:30 +0600
+Subject: [ragel-users] optimization idea
+In-Reply-To: <7a9f744a0802270132s2519b27fsd9d4d59f27c75...@mail.gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c75...@mail.gmail.com>
+Message-ID: <47C5468E.1040...@gmail.com>
+
+Gaspard Bucher wrote:
+> When there is a bug regex, we end up with huge switch statements. From 
+> what I understand from these statements, in the worst case, the 
+> process must execute every instruction of type (jump not equal).
+ >
+ > We could reduce this by implementing a simple binary tree when the
+ > case statements get too big:
+
+I have a more practical use case that requires a similar optimization.
+
+For the xdigit transition, Ragel generates something like:
+
+   if ('0' <= *p && *p <= '9' || 'a' <= *p && *p <= 'f'
+                              || 'A' <= *p && *p <= 'F') {
+       // ...
+   }
+
+In C, it could be replaced with the quite efficient table lookup code:
+
+   if (isxdigit(*p)) {
+       // ...
+   }
+
+The general idea is that there should be something in the Ragel code 
+generator that would allow us to selectively group transitions and 
+optimize the code generated for them.
+
+The problem is that we don't know in advance what transitions would be 
+there after FSM minimization. So there should be a possibility to 
+associate the optimization with something like "transition pattern", 
+then rlgen-xx would recognize the "transition pattern" and generate the 
+manually optimized code instead of its own.
+
+-- 
+Andrei Polushin
+
+
+From thurs... at cs.queensu.ca  Wed Feb 27 22:14:56 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Wed, 27 Feb 2008 22:14:56 +0000
+Subject: [ragel-users] optimization idea
+In-Reply-To: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+Message-ID: <1484563964-1204150492-cardhu_decombobulator_blackberry.rim.net-298930612-@bxe150.bisx.prod.on.blackberry>
+
+With optimizations turned on I believe that gcc uses a jump table. For large switches this is faster than binary searching. I would expect other compilers to do the same.
+
+Try gcc --save-temps and have a look at the output.
+
+-Adrian
+-----Original Message-----
+From: "Gaspard Bucher" <gaspard at teti.ch>
+
+Date: Wed, 27 Feb 2008 10:32:53 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] optimization idea
+
+
+
+When there is a bug regex, we end up with huge switch statements. From
+what I understand from these statements, in the worst case, the
+process must execute every instruction of type (jump not equal).
+
+We could reduce this by implementing a simple binary tree when the
+case statements get too big:
+
+if (cs < 500) {
+  if (cs < 250) {
+    ...
+   } else {
+    ...
+   }
+} else {
+  if (cs < 750) {
+    ...
+  } else {
+    ...
+  }
+}
+
+Is this stupid ?
+
+Gaspard
+
+
+
+
+From thurs... at cs.queensu.ca  Wed Feb 27 22:21:24 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Wed, 27 Feb 2008 22:21:24 +0000
+Subject: [ragel-users] Re: optimization idea
+In-Reply-To: <47C5468E.1040907@gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com><47C5468E.1040907@gmail.com>
+Message-ID: <579351762-1204150879-cardhu_decombobulator_blackberry.rim.net-383319703-@bxe150.bisx.prod.on.blackberry>
+
+Ragel should be binary searching those tests. Can you produce some numbers that show custom code to be faster?
+
+Or if you don't want to modify generated code conditions might be useful for experimenting with this. Try using any with a condition that tests *p.
+
+-Adrian
+
+
+-----Original Message-----
+From: Andrei Polushin <polushin at gmail.com>
+
+Date: Wed, 27 Feb 2008 17:16:30 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: optimization idea
+
+
+
+Gaspard Bucher wrote:
+> When there is a bug regex, we end up with huge switch statements. From 
+> what I understand from these statements, in the worst case, the 
+> process must execute every instruction of type (jump not equal).
+ >
+ > We could reduce this by implementing a simple binary tree when the
+ > case statements get too big:
+
+I have a more practical use case that requires a similar optimization.
+
+For the xdigit transition, Ragel generates something like:
+
+   if ('0' <= *p && *p <= '9' || 'a' <= *p && *p <= 'f'
+                              || 'A' <= *p && *p <= 'F') {
+       // ...
+   }
+
+In C, it could be replaced with the quite efficient table lookup code:
+
+   if (isxdigit(*p)) {
+       // ...
+   }
+
+The general idea is that there should be something in the Ragel code 
+generator that would allow us to selectively group transitions and 
+optimize the code generated for them.
+
+The problem is that we don't know in advance what transitions would be 
+there after FSM minimization. So there should be a possibility to 
+associate the optimization with something like "transition pattern", 
+then rlgen-xx would recognize the "transition pattern" and generate the 
+manually optimized code instead of its own.
+
+-- 
+Andrei Polushin
+
+
+
+
+From ma... at nanorex.com  Thu Feb 21 17:33:57 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 21 Feb 2008 12:33:57 -0500
+Subject: Possible bug in Ragel 6.0
+Message-ID: <47BDB605.30304@nanorex.com>
+
+Hi all,
+
+   Ragel has been crashing with non-descript errors and I've spent a lot 
+of time trying to find out the cause of the crash. I've made partial 
+progress and would like to inform you about this and could benefit from 
+an expert's help.
+
+  I'm attaching a ragel file that I'm trying to compile with the command:
+
+   ragel -C mmp-parser.rl -o mmp-parser.cpp
+
+The crash is in the front-end and the segfault can be seen with
+
+   ragel -x mmp-parser.rl
+
+ From the backtrace, I've been able to see that in the following lines 
+(ragel/fsmgraph.cpp: 226-229)
+
+     for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+         if ( *st != startState )
+             mergeStatesLeaving( md, *st, startState );
+     }
+
+the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+is causing the segfault.
+
+So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+NULL pointer. Does someone know how this could creep in?
+
+Thanks,
+Manoj
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: mmp-parser.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080221/c85588e2/attachment.ksh>
+
+From thurs... at cs.queensu.ca  Mon Feb 25 22:02:11 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 25 Feb 2008 22:02:11 +0000
+Subject: [ragel-users] Possible bug in Ragel 6.0
+In-Reply-To: <47BDB605.30304@nanorex.com>
+References: <47BDB605.30304@nanorex.com>
+Message-ID: <204599606-1203976929-cardhu_decombobulator_blackberry.rim.net-478584715-@bxe150.bisx.prod.on.blackberry>
+
+Hey Manoj, thanks for tracking this down. The point zero releases often have a few issues. I'll be able to look at this next week.
+
+Cheers,
+ Adrian
+-----Original Message-----
+From: Manoj Rajagopalan <manoj at nanorex.com>
+
+Date: Thu, 21 Feb 2008 12:33:57 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Possible bug in Ragel 6.0
+
+
+Hi all,
+
+   Ragel has been crashing with non-descript errors and I've spent a lot 
+of time trying to find out the cause of the crash. I've made partial 
+progress and would like to inform you about this and could benefit from 
+an expert's help.
+
+  I'm attaching a ragel file that I'm trying to compile with the command:
+
+   ragel -C mmp-parser.rl -o mmp-parser.cpp
+
+The crash is in the front-end and the segfault can be seen with
+
+   ragel -x mmp-parser.rl
+
+ From the backtrace, I've been able to see that in the following lines 
+(ragel/fsmgraph.cpp: 226-229)
+
+     for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+         if ( *st != startState )
+             mergeStatesLeaving( md, *st, startState );
+     }
+
+the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+is causing the segfault.
+
+So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+NULL pointer. Does someone know how this could creep in?
+
+Thanks,
+Manoj
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 17:37:54 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 12:37:54 -0500
+Subject: 6.1 and further changes to the language
+Message-ID: <47B47C72.3050008@cs.queensu.ca>
+
+Hi,
+
+I'm planning a 6.1 release with further changes to the language that
+will break backwards compatibility.
+
+When scanners were first made there was no consideration to getting
+leaving actions at the end of a scanner pattern to execute. Now it
+stands out to me as an inconsistency that needs to be fixed.
+
+I don't expect people to embed a leaving action right before the pattern
+action is specified. You should still use the scanner action instead.
+The problem is with machine definitions used at the end of a scanner
+pattern that have leaving actions inside. These may do some cleanup or
+other final processing at the end of a machine definition and should be
+executed.
+
+-Adrian
+
+
+From jason.gar... at gmail.com  Thu Feb 14 18:55:22 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Thu, 14 Feb 2008 10:55:22 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <47B47C72.3050008@cs.queensu.ca>
+References: <47B47C72.3050008@cs.queensu.ca>
+Message-ID: <214e026c-07a7-499a-95b0-b348250aa393@d68g2000hsg.googlegroups.com>
+
+Wonderful!  That was a badly needed feature.  Thanks!
+
+On Feb 14, 12:37 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi,
+>
+> I'm planning a 6.1 release with further changes to the language that
+> will break backwards compatibility.
+>
+> When scanners were first made there was no consideration to getting
+> leaving actions at the end of a scanner pattern to execute. Now it
+> stands out to me as an inconsistency that needs to be fixed.
+>
+> I don't expect people to embed a leaving action right before the pattern
+> action is specified. You should still use the scanner action instead.
+> The problem is with machine definitions used at the end of a scanner
+> pattern that have leaving actions inside. These may do some cleanup or
+> other final processing at the end of a machine definition and should be
+> executed.
+>
+
+
+From w... at wincent.com  Thu Feb 14 20:13:59 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 14 Feb 2008 21:13:59 +0100
+Subject: [ragel-users] 6.1 and further changes to the language
+In-Reply-To: <47B47C72.3050008@cs.queensu.ca>
+References: <47B47C72.3050008@cs.queensu.ca>
+Message-ID: <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+
+El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+
+> Hi,
+>
+> I'm planning a 6.1 release with further changes to the language that
+> will break backwards compatibility.
+>
+> When scanners were first made there was no consideration to getting
+> leaving actions at the end of a scanner pattern to execute. Now it
+> stands out to me as an inconsistency that needs to be fixed.
+>
+> I don't expect people to embed a leaving action right before the  
+> pattern
+> action is specified. You should still use the scanner action instead.
+
+Can you clarify what you mean by "scanner action"? Just to make sure I  
+understand what you're saying here.
+
+> The problem is with machine definitions used at the end of a scanner
+> pattern that have leaving actions inside. These may do some cleanup or
+> other final processing at the end of a machine definition and should  
+> be
+> executed.
+
+Cheers,
+Wincent
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 23:06:42 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 15:06:42 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+Message-ID: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+
+Hi Wncent, here's an example:
+
+main := |*
+   'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+*|;
+
+-Adrian
+
+On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>
+> > Hi,
+>
+> > I'm planning a 6.1 release with further changes to the language that
+> > will break backwards compatibility.
+>
+> > When scanners were first made there was no consideration to getting
+> > leaving actions at the end of a scanner pattern to execute. Now it
+> > stands out to me as an inconsistency that needs to be fixed.
+>
+> > I don't expect people to embed a leaving action right before the
+> > pattern
+> > action is specified. You should still use the scanner action instead.
+>
+> Can you clarify what you mean by "scanner action"? Just to make sure I
+> understand what you're saying here.
+>
+> > The problem is with machine definitions used at the end of a scanner
+> > pattern that have leaving actions inside. These may do some cleanup or
+> > other final processing at the end of a machine definition and should
+> > be
+> > executed.
+>
+> Cheers,
+
+
+From ma... at nanorex.com  Thu Feb 14 23:32:18 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 18:32:18 -0500
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+Message-ID: <47B4CF82.3080405@nanorex.com>
+
+Now that I understand it, it's a great idea! I just switched to using a 
+different approach because Ragel lacked this feature.
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Wncent, here's an example:
+> 
+> main := |*
+>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> *|;
+> 
+> -Adrian
+> 
+> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>>
+>>> Hi,
+>>> I'm planning a 6.1 release with further changes to the language that
+>>> will break backwards compatibility.
+>>> When scanners were first made there was no consideration to getting
+>>> leaving actions at the end of a scanner pattern to execute. Now it
+>>> stands out to me as an inconsistency that needs to be fixed.
+>>> I don't expect people to embed a leaving action right before the
+>>> pattern
+>>> action is specified. You should still use the scanner action instead.
+>> Can you clarify what you mean by "scanner action"? Just to make sure I
+>> understand what you're saying here.
+>>
+>>> The problem is with machine definitions used at the end of a scanner
+>>> pattern that have leaving actions inside. These may do some cleanup or
+>>> other final processing at the end of a machine definition and should
+>>> be
+>>> executed.
+>> Cheers,
+>> Wincent
+> > 
+
+
+From thurs... at cs.queensu.ca  Fri Feb 15 04:05:10 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 23:05:10 -0500
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <47B4CF82.3080405@nanorex.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com> <47B4CF82.3080405@nanorex.com>
+Message-ID: <47B50F76.2030802@cs.queensu.ca>
+
+I just committed an implementation. I was surprised at how little code
+it was.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Now that I understand it, it's a great idea! I just switched to using a 
+> different approach because Ragel lacked this feature.
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Wncent, here's an example:
+>>
+>> main := |*
+>>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+>> *|;
+>>
+>> -Adrian
+>>
+>> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+>>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>>>
+>>>> Hi,
+>>>> I'm planning a 6.1 release with further changes to the language that
+>>>> will break backwards compatibility.
+>>>> When scanners were first made there was no consideration to getting
+>>>> leaving actions at the end of a scanner pattern to execute. Now it
+>>>> stands out to me as an inconsistency that needs to be fixed.
+>>>> I don't expect people to embed a leaving action right before the
+>>>> pattern
+>>>> action is specified. You should still use the scanner action instead.
+>>> Can you clarify what you mean by "scanner action"? Just to make sure I
+>>> understand what you're saying here.
+>>>
+>>>> The problem is with machine definitions used at the end of a scanner
+>>>> pattern that have leaving actions inside. These may do some cleanup or
+>>>> other final processing at the end of a machine definition and should
+>>>> be
+>>>> executed.
+>>> Cheers,
+>>> Wincent
+>>>
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Fri Feb 15 07:54:22 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Fri, 15 Feb 2008 08:54:22 +0100
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+Message-ID: <B5F0C356-8975-4C82-8D61-10FF1DC814F2@wincent.com>
+
+El 15/2/2008, a las 0:06, Adrian Thurston escribió:
+
+> Hi Wncent, here's an example:
+>
+> main := |*
+>   'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> *|;
+
+Thanks very much for the clarification.
+
+Cheers,
+Wincent
+
+
+From francois.beausol... at gmail.com  Mon Feb 25 15:47:18 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Mon, 25 Feb 2008 07:47:18 -0800 (PST)
+Subject: % Leaving Action Questions
+Message-ID: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+
+Hi all !
+
+I'm writing a state machine that would detect interesting sentences
+from withing a commit message.  For instance, given this:
+
+Fix problem with dada.  Fixes #231.  Assign to qa.
+
+There are 2 interesting events here:  "Fixes #231" and "Assign to qa".
+
+At the moment, I'm just concentrating on "Fixes #231".  The machine
+works, kind of.  Running my machine prints this:
+
+$ rake ragel:compile && ruby bla.rb "Fix problem with dada.  Fixes
+#231.  Assign to qa."
+(in /home/francois/src/fogbugz-svnhook)
+Fixing 23
+Fixing 231
+Fixing 231.
+
+My specification is:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action notify { listener.send(action, bugid.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**) % bugid;
+      close = ( (/close/i 's'? ':'? space*) %close bugid%notify);
+      fix = ( (/fix/i 'es'? ':'? space*) %fix bugid%notify);
+
+      bla = (any* (close | fix));
+      main := bla*;
+    }%%
+
+Isn't % supposed to fire only on leaving ?  Why is the bugid machine
+leaving at 3 and 1 and '.' ?  Why is '.' even in the bugid machine ?
+
+And then, I still have the problem of parsing "Closes #123, #234 and
+#345." !
+
+Thanks for any help !
+François
+
+
+From thurs... at cs.queensu.ca  Mon Feb 25 22:01:59 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 25 Feb 2008 22:01:59 +0000
+Subject: [ragel-users] % Leaving Action Questions
+In-Reply-To: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+Message-ID: <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+
+Hi Francois,
+
+The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that. 
+
+You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern. 
+
+Cheers,
+ Adrian
+-----Original Message-----
+From: "francois.beausoleil" <francois.beausoleil at gmail.com>
+
+Date: Mon, 25 Feb 2008 07:47:18 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] % Leaving Action Questions
+
+
+
+Hi all !
+
+I'm writing a state machine that would detect interesting sentences
+from withing a commit message.  For instance, given this:
+
+Fix problem with dada.  Fixes #231.  Assign to qa.
+
+There are 2 interesting events here:  "Fixes #231" and "Assign to qa".
+
+At the moment, I'm just concentrating on "Fixes #231".  The machine
+works, kind of.  Running my machine prints this:
+
+$ rake ragel:compile && ruby bla.rb "Fix problem with dada.  Fixes
+#231.  Assign to qa."
+(in /home/francois/src/fogbugz-svnhook)
+Fixing 23
+Fixing 231
+Fixing 231.
+
+My specification is:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action notify { listener.send(action, bugid.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**) % bugid;
+      close = ( (/close/i 's'? ':'? space*) %close bugid%notify);
+      fix = ( (/fix/i 'es'? ':'? space*) %fix bugid%notify);
+
+      bla = (any* (close | fix));
+      main := bla*;
+    }%%
+
+Isn't % supposed to fire only on leaving ?  Why is the bugid machine
+leaving at 3 and 1 and '.' ?  Why is '.' even in the bugid machine ?
+
+And then, I still have the problem of parsing "Closes #123, #234 and
+#345." !
+
+Thanks for any help !
+François
+
+
+
+
+
+From francois.beausol... at gmail.com  Wed Feb 27 03:59:27 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Tue, 26 Feb 2008 19:59:27 -0800 (PST)
+Subject: % Leaving Action Questions
+In-Reply-To: <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com> 
+	<1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+Message-ID: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+
+Hello Adrian,
+
+On 25 fév, 17:01, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+
+Thanks for that.  I did finally manage to implement something that
+works for the vast majority of cases.  I can identify "closes #123,
+fixes #321" and other patterns.  My problem is now "assigned to
+francois".  Here's my latest machine:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+      action name { name = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action reference { action = :reference }
+      action reopen { action = :reopen }
+      action reactivate { action = :reactivate }
+      action implement { action = :implement }
+      action assign { action = :assign }
+      action notify { listener.send(action, bugid.pack("C*")) }
+      action notify_assign { listener.send(action, name.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**)@bugid %notify;
+      bugid_separator = (space* (punct | /and/i) space*);
+      bugids = (bugid (bugid_separator bugid)*);
+
+      close = (/close/i /s/i? /:/?) %close;
+      fix = (/fix/i /es/i? /:/?) %fix;
+      reference = (/reference/i /s/i? /:/?) %reference;
+      reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+      reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+      implement = (/implement/i? /s/i? /:/?) %implement;
+      assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+      name = (alpha)+ >mark %name;
+      assignto = (assign space+ name) %notify_assign;
+
+      keywords = (close | fix | reference | reopen | reactivate |
+assignto);
+      text = (any - (keywords | bugids));
+      main := (text* (keywords space* bugids)*);
+    }%%
+
+With this machine, Ragel doesn't recognize "The parser assign
+francois." (meaning my notify_action isn't called).  But it does
+recognize "The parser assign to francois.", but says the name is "to
+".
+
+> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+
+Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+find an immediate application.  I don't really know where/how to start
+to write my scanner.
+
+Thanks for any other help !
+François
+
+
+From w... at wincent.com  Mon Feb  4 20:40:48 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 4 Feb 2008 12:40:48 -0800 (PST)
+Subject: Ragel success story
+Message-ID: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+
+Here's a little Ragel success story.
+
+I've written a wikitext-to-HTML translator written in C (a Ruby
+extension) and up until a few days ago it was using a lexer generated
+by ANTLR 3.0.1 (the C target). I've had a suspicion for some time,
+however, that a Ragel scanner might be faster for a number of reasons.
+
+Imagine my surprise when I compared the speed and found that Ragel was
+nearly 10 times faster! I hadn't been expecting that kind of
+improvement.
+
+You can look at the code here:
+
+http://git.wincent.com/wikitext.git
+
+And an article with the benchmark results is here:
+
+http://wincent.com/a/about/wincent/weblog/archives/2008/02/ragel_wins_fata.php
+
+For comparison, the current version of the ANTLR grammar at the time
+of writing is:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/Wikitext.g;h=642f275cd36d0a0f28c1bf8fc2f859658a0e1a81;hb=antlr
+
+And the corresponding Ragel scanner implementation is:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl;h=a82a304632826370041639ed0d9d9c085faeda98;hb=bd7799aa1938f36f65b2523b47f1202eac3b31bf
+
+I've made no attempt at optimization yet, but the performance of the
+Ragel scanner is already spectacular for a "rough draft".
+
+Ragel is a wonderful tool!
+
+Cheers,
+Wincent
+
+
+From thurs... at cs.queensu.ca  Tue Feb  5 00:56:27 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 04 Feb 2008 19:56:27 -0500
+Subject: [ragel-users] Ragel success story
+In-Reply-To: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+References: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com>
+Message-ID: <47A7B43B.9000707@cs.queensu.ca>
+
+Hey Wincent,
+
+Nice writeup! Thanks for sharing your experience.
+
+It seems from the Rakefile that you're using the default output code
+style. If speed is what you're after you should try the -G2 option :D
+
+-Adrian
+
+Wincent Colaiuta wrote:
+> Here's a little Ragel success story.
+> 
+> I've written a wikitext-to-HTML translator written in C (a Ruby
+> extension) and up until a few days ago it was using a lexer generated
+> by ANTLR 3.0.1 (the C target). I've had a suspicion for some time,
+> however, that a Ragel scanner might be faster for a number of reasons.
+> 
+> Imagine my surprise when I compared the speed and found that Ragel was
+> nearly 10 times faster! I hadn't been expecting that kind of
+> improvement.
+> 
+> You can look at the code here:
+> 
+> http://git.wincent.com/wikitext.git
+> 
+> And an article with the benchmark results is here:
+> 
+> http://wincent.com/a/about/wincent/weblog/archives/2008/02/ragel_wins_fata.php
+> 
+> For comparison, the current version of the ANTLR grammar at the time
+> of writing is:
+> 
+> http://git.wincent.com/wikitext.git?a=blob;f=ext/Wikitext.g;h=642f275cd36d0a0f28c1bf8fc2f859658a0e1a81;hb=antlr
+> 
+> And the corresponding Ragel scanner implementation is:
+> 
+> http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl;h=a82a304632826370041639ed0d9d9c085faeda98;hb=bd7799aa1938f36f65b2523b47f1202eac3b31bf
+> 
+> I've made no attempt at optimization yet, but the performance of the
+> Ragel scanner is already spectacular for a "rough draft".
+> 
+> Ragel is a wonderful tool!
+> 
+> Cheers,
+> Wincent
+> 
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Tue Feb  5 01:13:49 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 4 Feb 2008 17:13:49 -0800 (PST)
+Subject: Ragel success story
+In-Reply-To: <47A7B43B.9000707@cs.queensu.ca>
+References: <4c189a43-1212-43f9-bf72-d34b7f7882bc@j78g2000hsd.googlegroups.com> 
+	<47A7B43B.9000707@cs.queensu.ca>
+Message-ID: <49d0379e-b08b-4e49-a522-429003fb2d91@n20g2000hsh.googlegroups.com>
+
+On 5 feb, 01:56, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It seems from the Rakefile that you're using the default output code
+> style. If speed is what you're after you should try the -G2 option :D
+
+Excellent suggestion. Tokenizing times without -G2:
+
+                                user     system      total        real
+short slab of ASCII text    0.780000   0.000000   0.780000
+(  0.777619)
+short slab of UTF-8 text    1.200000   0.000000   1.200000
+(  1.202833)
+longer slab of ASCII text  12.710000   0.000000  12.710000
+( 12.747387)
+longer slab of UTF-8 text  18.650000   0.020000  18.670000
+( 19.015087)
+
+So those numbers are about 10 times faster than ANTLR.
+
+And now with -G2:
+
+                                user     system      total        real
+short slab of ASCII text    0.180000   0.000000   0.180000
+(  0.182539)
+short slab of UTF-8 text    0.320000   0.000000   0.320000
+(  0.330065)
+longer slab of ASCII text   2.740000   0.000000   2.740000
+(  2.792006)
+longer slab of UTF-8 text   5.000000   0.000000   5.000000
+(  5.072432)
+
+Here are the ANTLR numbers again for comparison:
+
+                                user     system      total        real
+short slab of ASCII text    9.400000   1.870000  11.270000
+( 11.308913)
+short slab of UTF-8 text    8.620000   1.880000  10.500000
+( 10.551956)
+longer slab of ASCII text 132.380000  19.690000 152.070000
+(153.296844)
+longer slab of UTF-8 text 116.280000  19.510000 135.790000
+(136.788652)
+
+So with -G2 Ragel is nearly 38 times faster than ANTLR's fastest
+target! I'm really struggling to believe how good the results are.
+I'll update my article shortly with the new figures.
+
+Thanks very much for building such an awesome project.
+
+Cheers,
+Wincent
+
+
+From ma... at nanorex.com  Sat Feb  9 00:40:36 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 19:40:36 -0500
+Subject: how to use getkey?
+Message-ID: <47ACF684.80400@nanorex.com>
+
+Hi all,
+
+   I'd like to read from a C++ filebuf object and get Ragel to read from 
+it. I believe I must specify a getkey method to tell Ragel how to read 
+from the filebuf but I don't understand how to do this completely from 
+the existing documentation.
+
+   would someone have any example of getkey usage? It needn't be 
+specific to what I've mentioned above.
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Sat Feb  9 01:29:22 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 08 Feb 2008 20:29:22 -0500
+Subject: [ragel-users] how to use getkey?
+In-Reply-To: <47ACF684.80400@nanorex.com>
+References: <47ACF684.80400@nanorex.com>
+Message-ID: <47AD01F2.8090504@cs.queensu.ca>
+
+Hi Manoj,
+
+The getkey statement is for looking inside a structure when you're
+parsing an array of structures.
+
+What you want to do is read data into an array of characters and process
+that.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I'd like to read from a C++ filebuf object and get Ragel to read from 
+> it. I believe I must specify a getkey method to tell Ragel how to read 
+> from the filebuf but I don't understand how to do this completely from 
+> the existing documentation.
+> 
+>    would someone have any example of getkey usage? It needn't be 
+> specific to what I've mentioned above.
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Sat Feb  9 02:38:34 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 21:38:34 -0500
+Subject: Using ragel to parse input from files, in C++
+Message-ID: <47AD122A.4010207@nanorex.com>
+
+Hi all,
+
+  I have the following approach. It passes basic tests and I'd like to 
+share this with you. Can someone spot bugs?
+
+
+// class to access a file (through buffer) but to appear like a pointer
+class ragelfilebuf_ptr
+{
+public:
+     ragelfilebuf_ptr(char const *const filename)
+         : infile(filename, std::ios::in),
+           fbptr(infile.rdbuf()) { }
+     ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+     // allow advancement or pointer
+     ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+++i)fbptr->snextc(); return *this;}
+     // allow access to current character
+     char operator * () { return (char)fbptr->sgetc(); }
+private:
+     std::ifstream infile;
+     std::filebuf *fbptr;
+};
+
+
+int main()
+{
+     int cs;
+     ragelfilebuf_ptr p("filename"); // create ragel's p variable
+
+     %% write exec noend  # see 1. below
+}
+
+NOTES:
+1. When writing your state machine define a machine to detect 0xff 
+(which is EOF) and perform the fbreak action. Note that I have used the 
+'noend' qualifier to the 'write exec' statement above - the program 
+won't terminate without our explicit instruction to do so.
+
+2. The ifstream class performs buffered input. If its 'get' pointer goes 
+past the boundary its associated std::filebuf instance automatically 
+reads in more stuff from the file. By subclassing filebuf and 
+implementing its virtual methods you can set your own buffer using 
+ifstream::rdbuf(std::streambuf*).
+
+3. If it is guaranteed that Ragel will never advance the p pointer by 
+more than one, then we can do away with the 'for' part of the 
+advancement statement in the definition of operator +=  above, i.e., we 
+simply need have fbptr->snext() only.  Your comments, Alan?
+
+cheers!
+Manoj
+
+
+From ma... at nanorex.com  Sat Feb  9 02:47:16 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 08 Feb 2008 21:47:16 -0500
+Subject: [ragel-users] Using ragel to parse input from files, in C++
+In-Reply-To: <47AD122A.4010207@nanorex.com>
+References: <47AD122A.4010207@nanorex.com>
+Message-ID: <47AD1434.6070005@nanorex.com>
+
+Actually, I just realized that we don't have to even consider the 
+filebuf part unless we are interested in implementing custom buffers.
+
+The following simple class should also work (haven't tested)
+
+class ragelfile_ptr
+{
+public:
+      ragelfile_ptr(char const *const filename)
+          : infile(filename, std::ios::in) , c('\0')
+          { if(infile) c = infile.peek(); }
+      ~ragelfile_ptr() { if(infile.is_open()) infile.close(); }
+      // allow advancement or pointer
+      ragelfile_ptr& operator += (int )
+      { infile.get(c); return *this;} // assuming ragel always does p+=1
+      // allow access to current character
+      char operator * () { return c; }
+private:
+      std::ifstream infile;
+      char c;
+};
+
+
+cheers!
+Manoj
+
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>   I have the following approach. It passes basic tests and I'd like to 
+> share this with you. Can someone spot bugs?
+> 
+> 
+> // class to access a file (through buffer) but to appear like a pointer
+> class ragelfilebuf_ptr
+> {
+> public:
+>      ragelfilebuf_ptr(char const *const filename)
+>          : infile(filename, std::ios::in),
+>            fbptr(infile.rdbuf()) { }
+>      ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+>      // allow advancement or pointer
+>      ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+> ++i)fbptr->snextc(); return *this;}
+>      // allow access to current character
+>      char operator * () { return (char)fbptr->sgetc(); }
+> private:
+>      std::ifstream infile;
+>      std::filebuf *fbptr;
+> };
+> 
+> 
+> int main()
+> {
+>      int cs;
+>      ragelfilebuf_ptr p("filename"); // create ragel's p variable
+> 
+>      %% write exec noend  # see 1. below
+> }
+> 
+> NOTES:
+> 1. When writing your state machine define a machine to detect 0xff 
+> (which is EOF) and perform the fbreak action. Note that I have used the 
+> 'noend' qualifier to the 'write exec' statement above - the program 
+> won't terminate without our explicit instruction to do so.
+> 
+> 2. The ifstream class performs buffered input. If its 'get' pointer goes 
+> past the boundary its associated std::filebuf instance automatically 
+> reads in more stuff from the file. By subclassing filebuf and 
+> implementing its virtual methods you can set your own buffer using 
+> ifstream::rdbuf(std::streambuf*).
+> 
+> 3. If it is guaranteed that Ragel will never advance the p pointer by 
+> more than one, then we can do away with the 'for' part of the 
+> advancement statement in the definition of operator +=  above, i.e., we 
+> simply need have fbptr->snext() only.  Your comments, Alan?
+> 
+> cheers!
+> Manoj
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Sat Feb  9 22:38:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 09 Feb 2008 17:38:19 -0500
+Subject: [ragel-users] Re: Using ragel to parse input from files, in C++
+In-Reply-To: <47AD1434.6070005@nanorex.com>
+References: <47AD122A.4010207@nanorex.com> <47AD1434.6070005@nanorex.com>
+Message-ID: <47AE2B5B.4080001@cs.queensu.ca>
+
+Hi Manoj,
+
+Ragel does a number of other pointer operations. Sometimes it moves the
+pointer back one. Scanners sometimes move the pointer back a number of
+characters. The ++ operator is used. Pointers are also copied. Here are
+some examples:
+
+if ( ++p == pe )
+{{p = ((te))-1;} token( KW_Action ); }
+{te = p+1;{
+{te = p;p--;{
+{ts = p;}
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Actually, I just realized that we don't have to even consider the 
+> filebuf part unless we are interested in implementing custom buffers.
+> 
+> The following simple class should also work (haven't tested)
+> 
+> class ragelfile_ptr
+> {
+> public:
+>       ragelfile_ptr(char const *const filename)
+>           : infile(filename, std::ios::in) , c('\0')
+>           { if(infile) c = infile.peek(); }
+>       ~ragelfile_ptr() { if(infile.is_open()) infile.close(); }
+>       // allow advancement or pointer
+>       ragelfile_ptr& operator += (int )
+>       { infile.get(c); return *this;} // assuming ragel always does p+=1
+>       // allow access to current character
+>       char operator * () { return c; }
+> private:
+>       std::ifstream infile;
+>       char c;
+> };
+> 
+> 
+> cheers!
+> Manoj
+> 
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>   I have the following approach. It passes basic tests and I'd like to 
+>> share this with you. Can someone spot bugs?
+>>
+>>
+>> // class to access a file (through buffer) but to appear like a pointer
+>> class ragelfilebuf_ptr
+>> {
+>> public:
+>>      ragelfilebuf_ptr(char const *const filename)
+>>          : infile(filename, std::ios::in),
+>>            fbptr(infile.rdbuf()) { }
+>>      ~ragelfilebuf_ptr() { if(infile.is_open()) infile.close(); }
+>>      // allow advancement or pointer
+>>      ragelfilebuf_ptr& operator += (int n) { for(int i=0; i<n; 
+>> ++i)fbptr->snextc(); return *this;}
+>>      // allow access to current character
+>>      char operator * () { return (char)fbptr->sgetc(); }
+>> private:
+>>      std::ifstream infile;
+>>      std::filebuf *fbptr;
+>> };
+>>
+>>
+>> int main()
+>> {
+>>      int cs;
+>>      ragelfilebuf_ptr p("filename"); // create ragel's p variable
+>>
+>>      %% write exec noend  # see 1. below
+>> }
+>>
+>> NOTES:
+>> 1. When writing your state machine define a machine to detect 0xff 
+>> (which is EOF) and perform the fbreak action. Note that I have used the 
+>> 'noend' qualifier to the 'write exec' statement above - the program 
+>> won't terminate without our explicit instruction to do so.
+>>
+>> 2. The ifstream class performs buffered input. If its 'get' pointer goes 
+>> past the boundary its associated std::filebuf instance automatically 
+>> reads in more stuff from the file. By subclassing filebuf and 
+>> implementing its virtual methods you can set your own buffer using 
+>> ifstream::rdbuf(std::streambuf*).
+>>
+>> 3. If it is guaranteed that Ragel will never advance the p pointer by 
+>> more than one, then we can do away with the 'for' part of the 
+>> advancement statement in the definition of operator +=  above, i.e., we 
+>> simply need have fbptr->snext() only.  Your comments, Alan?
+>>
+>> cheers!
+>> Manoj
+>>
+> 
+> > 
+> 
+
+
+From jason.gar... at gmail.com  Tue Feb 12 20:07:36 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Tue, 12 Feb 2008 12:07:36 -0800 (PST)
+Subject: How to look ahead
+In-Reply-To: <479FF7AE.50904@cs.queensu.ca>
+References: <762e2686-56f8-40cf-823b-8b50fdbbbdb3@j78g2000hsd.googlegroups.com> 
+	<479FF7AE.50904@cs.queensu.ca>
+Message-ID: <bb3d19c6-4ea4-4c74-a0c1-9de6e259cf04@c4g2000hsg.googlegroups.com>
+
+Solved the issue by digging in a little deeper and understanding the
+value of p for each type of user action.  I wasn't able to move p
+backwards properly in a leaving action; it had to be finishing.  There
+was also some nondeterminism getting in the way.
+
+formerly: -  dim = ( digit+ >A %{ STORE(x) } (" x " | "x") digit+ >A
+%*{ STORE(y) } ) >X ;
+now     :+  dim = ( digit+ >A %{ STORE(x) } (" x " @{ ASET(space,
+true)} | "x") digit @{ fhold; } ) >X ;
+
+So the dim pattern matches multiple times on a phrase like 1x2x3.
+
+Thanks for your willingness to help!
+
+Jason
+
+
+On Jan 29, 11:06 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hey Jason,
+>
+> Generally I do lookahead by moving p backwards. This should work even in
+> scanner actions (requires a recent version of Ragel). Can you give some
+> code that doesn't do what you expect? I don't understand exactly what
+> you're trying to do.
+>
+> Adrian
+>
+> Jason Garber wrote:
+> > Hello Ragel users,
+> > I'm working on SuperRedCloth (a Ragel implementation of RedCloth that
+> > why the lucky stiff started awhile back).  I've run into some trouble
+> > and could use some help.
+>
+> > In the inline scanner, we want the dimension rule to parse "1 x 2."
+> > and then the formatter outputs it as "1 &#215; 2."  As it was:
+>
+> > dim = ( digit+ >A %{ STORE(x) } " x " digit+ >A %{ STORE(y) } ) >X ;
+>
+> > (where A registers the start of the string to capture and STORE
+> > captures it.  See
+> >http://code.whytheluckystiff.net/redcloth/browser/branches/superredcl...
+> > if you need more context.)
+>
+> > But, since it was in a scanner and it had to entertain the possibility
+> > that the pattern was starting over (I assume), the STORE(y) action
+> > would never happen, so you'd get "1 &#215; ."
+>
+> > Assuming you can't have leaving actions at the end of a pattern in a
+> > scanner, I considered (with the help of Johan Sørensen) looking ahead
+> > for a digit but not consuming it, so with "1 x 2." the "1 x" is handed
+> > to the formatter and the rest is handled by the default pattern (not
+> > stored).  This gives the additional advantage of being able to parse
+> > something like "1 x 2 x 3 x 4."
+>
+> > The question is, how to look ahead?  I've tried all kinds of things
+> > with fhold, p--, etc., but it seems I'm at the limit of my Ragel
+> > comprehension.  Or is there a better way than look-ahead?
+>
+> > Thanks in advance!
+
+
+From ma... at nanorex.com  Thu Feb 14 22:50:10 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 17:50:10 -0500
+Subject: C++: int stack[] cannot be declared global
+Message-ID: <47B4C5A2.1090906@nanorex.com>
+
+Hi Adrian,
+
+   This causes a clash with std::stack that comes with some STL 
+packages. On my Fedora 8 machine with gcc v4.1.2 and libstdc++ v4.1.2, I 
+get errors like the following:
+
+mmp-parser.rl:187: error: reference to ‘stack’ is ambiguous
+mmp-parser.rl:215: error: candidates are: int stack [1000]
+/usr/lib/gcc/i386-redhat-linux/4.1.2/../../../../include/c++/4.1.2/bits/stl_stack.h:72: 
+error:                 template<class _Tp, class _Sequence> class std::stack
+
+
+   Any suggestions? Would I be too bold in suggesting that the stack 
+variable in ragel be renamed to something like ragelstack?
+
+cheers
+Manoj
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 23:04:20 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 15:04:20 -0800 (PST)
+Subject: C++: int stack[] cannot be declared global
+In-Reply-To: <47B4C5A2.1090906@nanorex.com>
+References: <47B4C5A2.1090906@nanorex.com>
+Message-ID: <09b8b547-47fc-4978-a6d1-a40d3e1a8843@d4g2000prg.googlegroups.com>
+
+You can rename it using the variable or access statements.
+
+Cheers,
+ Adrian
+
+On Feb 14, 5:50 pm, Manoj Rajagopalan <ma... at nanorex.com> wrote:
+> Hi Adrian,
+>
+>    This causes a clash with std::stack that comes with some STL
+> packages. On my Fedora 8 machine with gcc v4.1.2 and libstdc++ v4.1.2, I
+> get errors like the following:
+>
+> mmp-parser.rl:187: error: reference to 'stack' is ambiguous
+> mmp-parser.rl:215: error: candidates are: int stack [1000]
+> /usr/lib/gcc/i386-redhat-linux/4.1.2/../../../../include/c++/4.1.2/bits/stl_stack.h:72:
+> error:                 template<class _Tp, class _Sequence> class std::stack
+>
+>    Any suggestions? Would I be too bold in suggesting that the stack
+> variable in ragel be renamed to something like ragelstack?
+>
+> cheers
+
+
+From ma... at nanorex.com  Fri Feb 15 04:12:10 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 23:12:10 -0500
+Subject: question about the union operation
+Message-ID: <47B5111A.60802@nanorex.com>
+
+hi ragel users,
+
+   I find ragel having trouble with expressions like the following:
+
+   (alnum | [_-])+
+
+I get errors like:
+mmp-parser.rl:33:30: at token RE_SqClose: parse error
+
+   Is the above expression incorrect for matching a string that can 
+contain alphanumeric characters or '_' or '-'
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Feb 15 18:11:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Feb 2008 13:11:23 -0500
+Subject: [ragel-users] question about the union operation
+In-Reply-To: <47B5111A.60802@nanorex.com>
+References: <47B5111A.60802@nanorex.com>
+Message-ID: <47B5D5CB.2070204@cs.queensu.ca>
+
+Hi Manoj,
+
+Within or literals - is used to separate ranges. You'll need to escape
+the '-' character with '\'.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> hi ragel users,
+> 
+>    I find ragel having trouble with expressions like the following:
+> 
+>    (alnum | [_-])+
+> 
+> I get errors like:
+> mmp-parser.rl:33:30: at token RE_SqClose: parse error
+> 
+>    Is the above expression incorrect for matching a string that can 
+> contain alphanumeric characters or '_' or '-'
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Feb 15 23:30:01 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 15 Feb 2008 18:30:01 -0500
+Subject: Is it possible for ragel to output more descriptive error messages?
+Message-ID: <47B62079.4020006@nanorex.com>
+
+Hi Adrian,
+
+   I have a big parser that I have written up using Ragel. Even though 
+it is modular, ragel sometimes dies with the message "ragel did not exit 
+normally".
+
+  Could ragel provide more info about the location and cause of the errors?
+
+thanks
+Manoj
+
+
+From thurs... at cs.queensu.ca  Sat Feb 16 16:31:13 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 16 Feb 2008 11:31:13 -0500
+Subject: [ragel-users] Is it possible for ragel to output more descriptive
+ error messages?
+In-Reply-To: <47B62079.4020006@nanorex.com>
+References: <47B62079.4020006@nanorex.com>
+Message-ID: <47B70FD1.6080906@cs.queensu.ca>
+
+Sure that can certainly be improved. What's is probably happening is
+that one of the sub processes is segfaulting or running out of memory.
+Post or send me the offending ragel code if you can. Reducing it down in
+size while still causing the error is always good too.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>    I have a big parser that I have written up using Ragel. Even though 
+> it is modular, ragel sometimes dies with the message "ragel did not exit 
+> normally".
+> 
+>   Could ragel provide more info about the location and cause of the errors?
+> 
+> thanks
+> Manoj
+> 
+> > 
+> 
+
+
+From gasp... at teti.ch  Wed Feb 27 09:32:53 2008
+From: gasp... at teti.ch (Gaspard Bucher)
+Date: Wed, 27 Feb 2008 10:32:53 +0100
+Subject: optimization idea
+Message-ID: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+
+When there is a bug regex, we end up with huge switch statements. From
+what I understand from these statements, in the worst case, the
+process must execute every instruction of type (jump not equal).
+
+We could reduce this by implementing a simple binary tree when the
+case statements get too big:
+
+if (cs < 500) {
+  if (cs < 250) {
+    ...
+   } else {
+    ...
+   }
+} else {
+  if (cs < 750) {
+    ...
+  } else {
+    ...
+  }
+}
+
+Is this stupid ?
+
+Gaspard
+
+
+From polus... at gmail.com  Wed Feb 27 11:16:30 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Wed, 27 Feb 2008 17:16:30 +0600
+Subject: [ragel-users] optimization idea
+In-Reply-To: <7a9f744a0802270132s2519b27fsd9d4d59f27c75...@mail.gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c75...@mail.gmail.com>
+Message-ID: <47C5468E.1040...@gmail.com>
+
+Gaspard Bucher wrote:
+> When there is a bug regex, we end up with huge switch statements. From 
+> what I understand from these statements, in the worst case, the 
+> process must execute every instruction of type (jump not equal).
+ >
+ > We could reduce this by implementing a simple binary tree when the
+ > case statements get too big:
+
+I have a more practical use case that requires a similar optimization.
+
+For the xdigit transition, Ragel generates something like:
+
+   if ('0' <= *p && *p <= '9' || 'a' <= *p && *p <= 'f'
+                              || 'A' <= *p && *p <= 'F') {
+       // ...
+   }
+
+In C, it could be replaced with the quite efficient table lookup code:
+
+   if (isxdigit(*p)) {
+       // ...
+   }
+
+The general idea is that there should be something in the Ragel code 
+generator that would allow us to selectively group transitions and 
+optimize the code generated for them.
+
+The problem is that we don't know in advance what transitions would be 
+there after FSM minimization. So there should be a possibility to 
+associate the optimization with something like "transition pattern", 
+then rlgen-xx would recognize the "transition pattern" and generate the 
+manually optimized code instead of its own.
+
+-- 
+Andrei Polushin
+
+
+From thurs... at cs.queensu.ca  Wed Feb 27 22:14:56 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Wed, 27 Feb 2008 22:14:56 +0000
+Subject: [ragel-users] optimization idea
+In-Reply-To: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com>
+Message-ID: <1484563964-1204150492-cardhu_decombobulator_blackberry.rim.net-298930612-@bxe150.bisx.prod.on.blackberry>
+
+With optimizations turned on I believe that gcc uses a jump table. For large switches this is faster than binary searching. I would expect other compilers to do the same.
+
+Try gcc --save-temps and have a look at the output.
+
+-Adrian
+-----Original Message-----
+From: "Gaspard Bucher" <gaspard at teti.ch>
+
+Date: Wed, 27 Feb 2008 10:32:53 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] optimization idea
+
+
+
+When there is a bug regex, we end up with huge switch statements. From
+what I understand from these statements, in the worst case, the
+process must execute every instruction of type (jump not equal).
+
+We could reduce this by implementing a simple binary tree when the
+case statements get too big:
+
+if (cs < 500) {
+  if (cs < 250) {
+    ...
+   } else {
+    ...
+   }
+} else {
+  if (cs < 750) {
+    ...
+  } else {
+    ...
+  }
+}
+
+Is this stupid ?
+
+Gaspard
+
+
+
+
+From thurs... at cs.queensu.ca  Wed Feb 27 22:21:24 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Wed, 27 Feb 2008 22:21:24 +0000
+Subject: [ragel-users] Re: optimization idea
+In-Reply-To: <47C5468E.1040907@gmail.com>
+References: <7a9f744a0802270132s2519b27fsd9d4d59f27c759f4@mail.gmail.com><47C5468E.1040907@gmail.com>
+Message-ID: <579351762-1204150879-cardhu_decombobulator_blackberry.rim.net-383319703-@bxe150.bisx.prod.on.blackberry>
+
+Ragel should be binary searching those tests. Can you produce some numbers that show custom code to be faster?
+
+Or if you don't want to modify generated code conditions might be useful for experimenting with this. Try using any with a condition that tests *p.
+
+-Adrian
+
+
+-----Original Message-----
+From: Andrei Polushin <polushin at gmail.com>
+
+Date: Wed, 27 Feb 2008 17:16:30 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: optimization idea
+
+
+
+Gaspard Bucher wrote:
+> When there is a bug regex, we end up with huge switch statements. From 
+> what I understand from these statements, in the worst case, the 
+> process must execute every instruction of type (jump not equal).
+ >
+ > We could reduce this by implementing a simple binary tree when the
+ > case statements get too big:
+
+I have a more practical use case that requires a similar optimization.
+
+For the xdigit transition, Ragel generates something like:
+
+   if ('0' <= *p && *p <= '9' || 'a' <= *p && *p <= 'f'
+                              || 'A' <= *p && *p <= 'F') {
+       // ...
+   }
+
+In C, it could be replaced with the quite efficient table lookup code:
+
+   if (isxdigit(*p)) {
+       // ...
+   }
+
+The general idea is that there should be something in the Ragel code 
+generator that would allow us to selectively group transitions and 
+optimize the code generated for them.
+
+The problem is that we don't know in advance what transitions would be 
+there after FSM minimization. So there should be a possibility to 
+associate the optimization with something like "transition pattern", 
+then rlgen-xx would recognize the "transition pattern" and generate the 
+manually optimized code instead of its own.
+
+-- 
+Andrei Polushin
+
+
+
+
+From ma... at nanorex.com  Thu Feb 21 17:33:57 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 21 Feb 2008 12:33:57 -0500
+Subject: Possible bug in Ragel 6.0
+Message-ID: <47BDB605.30304@nanorex.com>
+
+Hi all,
+
+   Ragel has been crashing with non-descript errors and I've spent a lot 
+of time trying to find out the cause of the crash. I've made partial 
+progress and would like to inform you about this and could benefit from 
+an expert's help.
+
+  I'm attaching a ragel file that I'm trying to compile with the command:
+
+   ragel -C mmp-parser.rl -o mmp-parser.cpp
+
+The crash is in the front-end and the segfault can be seen with
+
+   ragel -x mmp-parser.rl
+
+ From the backtrace, I've been able to see that in the following lines 
+(ragel/fsmgraph.cpp: 226-229)
+
+     for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+         if ( *st != startState )
+             mergeStatesLeaving( md, *st, startState );
+     }
+
+the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+is causing the segfault.
+
+So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+NULL pointer. Does someone know how this could creep in?
+
+Thanks,
+Manoj
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: mmp-parser.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080221/c85588e2/attachment-0001.ksh>
+
+From thurs... at cs.queensu.ca  Mon Feb 25 22:02:11 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 25 Feb 2008 22:02:11 +0000
+Subject: [ragel-users] Possible bug in Ragel 6.0
+In-Reply-To: <47BDB605.30304@nanorex.com>
+References: <47BDB605.30304@nanorex.com>
+Message-ID: <204599606-1203976929-cardhu_decombobulator_blackberry.rim.net-478584715-@bxe150.bisx.prod.on.blackberry>
+
+Hey Manoj, thanks for tracking this down. The point zero releases often have a few issues. I'll be able to look at this next week.
+
+Cheers,
+ Adrian
+-----Original Message-----
+From: Manoj Rajagopalan <manoj at nanorex.com>
+
+Date: Thu, 21 Feb 2008 12:33:57 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Possible bug in Ragel 6.0
+
+
+Hi all,
+
+   Ragel has been crashing with non-descript errors and I've spent a lot 
+of time trying to find out the cause of the crash. I've made partial 
+progress and would like to inform you about this and could benefit from 
+an expert's help.
+
+  I'm attaching a ragel file that I'm trying to compile with the command:
+
+   ragel -C mmp-parser.rl -o mmp-parser.cpp
+
+The crash is in the front-end and the segfault can be seen with
+
+   ragel -x mmp-parser.rl
+
+ From the backtrace, I've been able to see that in the following lines 
+(ragel/fsmgraph.cpp: 226-229)
+
+     for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+         if ( *st != startState )
+             mergeStatesLeaving( md, *st, startState );
+     }
+
+the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+is causing the segfault.
+
+So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+NULL pointer. Does someone know how this could creep in?
+
+Thanks,
+Manoj
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 17:37:54 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 12:37:54 -0500
+Subject: 6.1 and further changes to the language
+Message-ID: <47B47C72.3050008@cs.queensu.ca>
+
+Hi,
+
+I'm planning a 6.1 release with further changes to the language that
+will break backwards compatibility.
+
+When scanners were first made there was no consideration to getting
+leaving actions at the end of a scanner pattern to execute. Now it
+stands out to me as an inconsistency that needs to be fixed.
+
+I don't expect people to embed a leaving action right before the pattern
+action is specified. You should still use the scanner action instead.
+The problem is with machine definitions used at the end of a scanner
+pattern that have leaving actions inside. These may do some cleanup or
+other final processing at the end of a machine definition and should be
+executed.
+
+-Adrian
+
+
+From jason.gar... at gmail.com  Thu Feb 14 18:55:22 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Thu, 14 Feb 2008 10:55:22 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <47B47C72.3050008@cs.queensu.ca>
+References: <47B47C72.3050008@cs.queensu.ca>
+Message-ID: <214e026c-07a7-499a-95b0-b348250aa393@d68g2000hsg.googlegroups.com>
+
+Wonderful!  That was a badly needed feature.  Thanks!
+
+On Feb 14, 12:37 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi,
+>
+> I'm planning a 6.1 release with further changes to the language that
+> will break backwards compatibility.
+>
+> When scanners were first made there was no consideration to getting
+> leaving actions at the end of a scanner pattern to execute. Now it
+> stands out to me as an inconsistency that needs to be fixed.
+>
+> I don't expect people to embed a leaving action right before the pattern
+> action is specified. You should still use the scanner action instead.
+> The problem is with machine definitions used at the end of a scanner
+> pattern that have leaving actions inside. These may do some cleanup or
+> other final processing at the end of a machine definition and should be
+> executed.
+>
+
+
+From w... at wincent.com  Thu Feb 14 20:13:59 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 14 Feb 2008 21:13:59 +0100
+Subject: [ragel-users] 6.1 and further changes to the language
+In-Reply-To: <47B47C72.3050008@cs.queensu.ca>
+References: <47B47C72.3050008@cs.queensu.ca>
+Message-ID: <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+
+El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+
+> Hi,
+>
+> I'm planning a 6.1 release with further changes to the language that
+> will break backwards compatibility.
+>
+> When scanners were first made there was no consideration to getting
+> leaving actions at the end of a scanner pattern to execute. Now it
+> stands out to me as an inconsistency that needs to be fixed.
+>
+> I don't expect people to embed a leaving action right before the  
+> pattern
+> action is specified. You should still use the scanner action instead.
+
+Can you clarify what you mean by "scanner action"? Just to make sure I  
+understand what you're saying here.
+
+> The problem is with machine definitions used at the end of a scanner
+> pattern that have leaving actions inside. These may do some cleanup or
+> other final processing at the end of a machine definition and should  
+> be
+> executed.
+
+Cheers,
+Wincent
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Feb 14 23:06:42 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 15:06:42 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com>
+Message-ID: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+
+Hi Wncent, here's an example:
+
+main := |*
+   'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+*|;
+
+-Adrian
+
+On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>
+> > Hi,
+>
+> > I'm planning a 6.1 release with further changes to the language that
+> > will break backwards compatibility.
+>
+> > When scanners were first made there was no consideration to getting
+> > leaving actions at the end of a scanner pattern to execute. Now it
+> > stands out to me as an inconsistency that needs to be fixed.
+>
+> > I don't expect people to embed a leaving action right before the
+> > pattern
+> > action is specified. You should still use the scanner action instead.
+>
+> Can you clarify what you mean by "scanner action"? Just to make sure I
+> understand what you're saying here.
+>
+> > The problem is with machine definitions used at the end of a scanner
+> > pattern that have leaving actions inside. These may do some cleanup or
+> > other final processing at the end of a machine definition and should
+> > be
+> > executed.
+>
+> Cheers,
+
+
+From ma... at nanorex.com  Thu Feb 14 23:32:18 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Thu, 14 Feb 2008 18:32:18 -0500
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+Message-ID: <47B4CF82.3080405@nanorex.com>
+
+Now that I understand it, it's a great idea! I just switched to using a 
+different approach because Ragel lacked this feature.
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Wncent, here's an example:
+> 
+> main := |*
+>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> *|;
+> 
+> -Adrian
+> 
+> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>>
+>>> Hi,
+>>> I'm planning a 6.1 release with further changes to the language that
+>>> will break backwards compatibility.
+>>> When scanners were first made there was no consideration to getting
+>>> leaving actions at the end of a scanner pattern to execute. Now it
+>>> stands out to me as an inconsistency that needs to be fixed.
+>>> I don't expect people to embed a leaving action right before the
+>>> pattern
+>>> action is specified. You should still use the scanner action instead.
+>> Can you clarify what you mean by "scanner action"? Just to make sure I
+>> understand what you're saying here.
+>>
+>>> The problem is with machine definitions used at the end of a scanner
+>>> pattern that have leaving actions inside. These may do some cleanup or
+>>> other final processing at the end of a machine definition and should
+>>> be
+>>> executed.
+>> Cheers,
+>> Wincent
+> > 
+
+
+From thurs... at cs.queensu.ca  Fri Feb 15 04:05:10 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Feb 2008 23:05:10 -0500
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <47B4CF82.3080405@nanorex.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com> <47B4CF82.3080405@nanorex.com>
+Message-ID: <47B50F76.2030802@cs.queensu.ca>
+
+I just committed an implementation. I was surprised at how little code
+it was.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Now that I understand it, it's a great idea! I just switched to using a 
+> different approach because Ragel lacked this feature.
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Wncent, here's an example:
+>>
+>> main := |*
+>>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+>> *|;
+>>
+>> -Adrian
+>>
+>> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+>>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>>>
+>>>> Hi,
+>>>> I'm planning a 6.1 release with further changes to the language that
+>>>> will break backwards compatibility.
+>>>> When scanners were first made there was no consideration to getting
+>>>> leaving actions at the end of a scanner pattern to execute. Now it
+>>>> stands out to me as an inconsistency that needs to be fixed.
+>>>> I don't expect people to embed a leaving action right before the
+>>>> pattern
+>>>> action is specified. You should still use the scanner action instead.
+>>> Can you clarify what you mean by "scanner action"? Just to make sure I
+>>> understand what you're saying here.
+>>>
+>>>> The problem is with machine definitions used at the end of a scanner
+>>>> pattern that have leaving actions inside. These may do some cleanup or
+>>>> other final processing at the end of a machine definition and should
+>>>> be
+>>>> executed.
+>>> Cheers,
+>>> Wincent
+>>>
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Fri Feb 15 07:54:22 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Fri, 15 Feb 2008 08:54:22 +0100
+Subject: [ragel-users] Re: 6.1 and further changes to the language
+In-Reply-To: <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+References: <47B47C72.3050008@cs.queensu.ca> <87F2197C-7CE5-41C3-A0C5-1E58E4C5C881@wincent.com> <cbfe5960-42de-4396-96e0-8c80264919b8@e6g2000prf.googlegroups.com>
+Message-ID: <B5F0C356-8975-4C82-8D61-10FF1DC814F2@wincent.com>
+
+El 15/2/2008, a las 0:06, Adrian Thurston escribió:
+
+> Hi Wncent, here's an example:
+>
+> main := |*
+>   'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> *|;
+
+Thanks very much for the clarification.
+
+Cheers,
+Wincent
+
+
+From francois.beausol... at gmail.com  Mon Feb 25 15:47:18 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Mon, 25 Feb 2008 07:47:18 -0800 (PST)
+Subject: % Leaving Action Questions
+Message-ID: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+
+Hi all !
+
+I'm writing a state machine that would detect interesting sentences
+from withing a commit message.  For instance, given this:
+
+Fix problem with dada.  Fixes #231.  Assign to qa.
+
+There are 2 interesting events here:  "Fixes #231" and "Assign to qa".
+
+At the moment, I'm just concentrating on "Fixes #231".  The machine
+works, kind of.  Running my machine prints this:
+
+$ rake ragel:compile && ruby bla.rb "Fix problem with dada.  Fixes
+#231.  Assign to qa."
+(in /home/francois/src/fogbugz-svnhook)
+Fixing 23
+Fixing 231
+Fixing 231.
+
+My specification is:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action notify { listener.send(action, bugid.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**) % bugid;
+      close = ( (/close/i 's'? ':'? space*) %close bugid%notify);
+      fix = ( (/fix/i 'es'? ':'? space*) %fix bugid%notify);
+
+      bla = (any* (close | fix));
+      main := bla*;
+    }%%
+
+Isn't % supposed to fire only on leaving ?  Why is the bugid machine
+leaving at 3 and 1 and '.' ?  Why is '.' even in the bugid machine ?
+
+And then, I still have the problem of parsing "Closes #123, #234 and
+#345." !
+
+Thanks for any help !
+François
+
+
+From thurs... at cs.queensu.ca  Mon Feb 25 22:01:59 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 25 Feb 2008 22:01:59 +0000
+Subject: [ragel-users] % Leaving Action Questions
+In-Reply-To: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>
+Message-ID: <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+
+Hi Francois,
+
+The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that. 
+
+You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern. 
+
+Cheers,
+ Adrian
+-----Original Message-----
+From: "francois.beausoleil" <francois.beausoleil at gmail.com>
+
+Date: Mon, 25 Feb 2008 07:47:18 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] % Leaving Action Questions
+
+
+
+Hi all !
+
+I'm writing a state machine that would detect interesting sentences
+from withing a commit message.  For instance, given this:
+
+Fix problem with dada.  Fixes #231.  Assign to qa.
+
+There are 2 interesting events here:  "Fixes #231" and "Assign to qa".
+
+At the moment, I'm just concentrating on "Fixes #231".  The machine
+works, kind of.  Running my machine prints this:
+
+$ rake ragel:compile && ruby bla.rb "Fix problem with dada.  Fixes
+#231.  Assign to qa."
+(in /home/francois/src/fogbugz-svnhook)
+Fixing 23
+Fixing 231
+Fixing 231.
+
+My specification is:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action notify { listener.send(action, bugid.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**) % bugid;
+      close = ( (/close/i 's'? ':'? space*) %close bugid%notify);
+      fix = ( (/fix/i 'es'? ':'? space*) %fix bugid%notify);
+
+      bla = (any* (close | fix));
+      main := bla*;
+    }%%
+
+Isn't % supposed to fire only on leaving ?  Why is the bugid machine
+leaving at 3 and 1 and '.' ?  Why is '.' even in the bugid machine ?
+
+And then, I still have the problem of parsing "Closes #123, #234 and
+#345." !
+
+Thanks for any help !
+François
+
+
+
+
+
+From francois.beausol... at gmail.com  Wed Feb 27 03:59:27 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Tue, 26 Feb 2008 19:59:27 -0800 (PST)
+Subject: % Leaving Action Questions
+In-Reply-To: <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com> 
+	<1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry>
+Message-ID: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+
+Hello Adrian,
+
+On 25 fév, 17:01, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+
+Thanks for that.  I did finally manage to implement something that
+works for the vast majority of cases.  I can identify "closes #123,
+fixes #321" and other patterns.  My problem is now "assigned to
+francois".  Here's my latest machine:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+      action name { name = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action reference { action = :reference }
+      action reopen { action = :reopen }
+      action reactivate { action = :reactivate }
+      action implement { action = :implement }
+      action assign { action = :assign }
+      action notify { listener.send(action, bugid.pack("C*")) }
+      action notify_assign { listener.send(action, name.pack("C*")) }
+
+      bugid = ("#" ('1'..'9')>mark ('0'..'9')**)@bugid %notify;
+      bugid_separator = (space* (punct | /and/i) space*);
+      bugids = (bugid (bugid_separator bugid)*);
+
+      close = (/close/i /s/i? /:/?) %close;
+      fix = (/fix/i /es/i? /:/?) %fix;
+      reference = (/reference/i /s/i? /:/?) %reference;
+      reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+      reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+      implement = (/implement/i? /s/i? /:/?) %implement;
+      assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+      name = (alpha)+ >mark %name;
+      assignto = (assign space+ name) %notify_assign;
+
+      keywords = (close | fix | reference | reopen | reactivate |
+assignto);
+      text = (any - (keywords | bugids));
+      main := (text* (keywords space* bugids)*);
+    }%%
+
+With this machine, Ragel doesn't recognize "The parser assign
+francois." (meaning my notify_action isn't called).  But it does
+recognize "The parser assign to francois.", but says the name is "to
+".
+
+> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+
+Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+find an immediate application.  I don't really know where/how to start
+to write my scanner.
+
+Thanks for any other help !
+François
+
+

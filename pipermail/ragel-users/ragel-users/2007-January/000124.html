@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Reproducable crash
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Reproducable%20crash&In-Reply-To=%3C45B6A190.70605%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000123.html">
+   <LINK REL="Next"  HREF="000125.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Reproducable crash</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Reproducable%20crash&In-Reply-To=%3C45B6A190.70605%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Reproducable crash">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Jan 24 00:00:16 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000123.html">Reproducable crash
+</A></li>
+        <LI>Next message: <A HREF="000125.html">Reproducable crash
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#124">[ date ]</a>
+              <a href="thread.html#124">[ thread ]</a>
+              <a href="subject.html#124">[ subject ]</a>
+              <a href="author.html#124">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Alex, it appears that the attachment didn't make it. Could you resend?
+
+&gt;<i> This is obviously misspelled. Besides that, is there a way to avoid
+</I>&gt;<i> this? I really am scanning any text that may have optional special
+</I>&gt;<i> codes in it at random places, and empty text is perfectly fine by me.
+</I>
+It's not normally necessary to have the empty case in something that's
+repeated. In theory it creates an infinite loop. If ragel actions strictly
+adhered to the rules of automata theory then action foo would be executed an
+infinite number of times in between each &quot;bar&quot;. But ragel can only
+approximate this behaviour, and the approximation is a little wonky in the
+case of repeating the empty word.
+
+main := ( &quot;&quot; %foo | &quot;bar&quot; )+ '\n';
+
+If you look at the graphviz drawing of the above you'll see that on the
+first and second 'b' foo is executed once, on all subsequent b's it is not
+executed. This is inconsistent at best, so ragel yields a warning. A better
+implementation isn't really worth it because you can usually just factor the
+empty case out of a repetition.
+
+&gt;<i> I don't want to use the full tokenizing machinery since I have the
+</I>&gt;<i> entire buffer available at once, but I would like beginning positions
+</I>&gt;<i> of machines.
+</I>
+While providing pointers to machines would be useful, here are my reasons
+for opting not to.
+
+Ragel is often used to parse text that arrives in blocks. When pointers get
+invalidated by moving to the next block, something needs to be done. There
+are many options for dealing with this and they depend on how input arrives.
+Rather than make any assumptions I feel it is better to leave it up to the
+user. At least in Ragel that is. I think auto-pointers is something that
+could be done in a higher-level type of program. This is something I intend
+to work on in the future (in the broader context of source transformation
+systems).
+
+Also, since it would be wasteful to automatically save pointers for every
+named machine, the machines for which pointers are saved would need to be
+explicitly declared. They can't be extracted from the host language because
+the host language is not parsed. I think doing &gt;{ptr = p;} is not much more
+typing than a declaration :)
+
+Regards,
+ Adrian
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000123.html">Reproducable crash
+</A></li>
+	<LI>Next message: <A HREF="000125.html">Reproducable crash
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#124">[ date ]</a>
+              <a href="thread.html#124">[ thread ]</a>
+              <a href="subject.html#124">[ subject ]</a>
+              <a href="author.html#124">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

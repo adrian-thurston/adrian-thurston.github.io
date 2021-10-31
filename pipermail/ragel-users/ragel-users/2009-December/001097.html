@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Actions executing too often.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C4B319A4F.9010704%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001093.html">
+   <LINK REL="Next"  HREF="001094.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Actions executing too often.</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C4B319A4F.9010704%40complang.org%3E"
+       TITLE="[ragel-users] Actions executing too often.">thurston at complang.org
+       </A><BR>
+    <I>Wed Dec 23 04:19:27 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001093.html">[ragel-users] Actions executing too often.
+</A></li>
+        <LI>Next message: <A HREF="001094.html">[ragel-users] Is it safe to modify the buffer on which a	Ragel-generated FSM is operating?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1097">[ date ]</a>
+              <a href="thread.html#1097">[ thread ]</a>
+              <a href="subject.html#1097">[ subject ]</a>
+              <a href="author.html#1097">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>If you had base* you could just change it to base**. But you don't so 
+you have to use:
+
+main := base &lt;: base**;
+
+-Adrian
+
+Richard Osborn wrote:
+&gt;<i> Is there any way to refactor the code to get the behavior I desire? I  
+</I>&gt;<i> understand why I am getting the current behavior, but I am unsure of  
+</I>&gt;<i> how I can use the given actions to my liking. It seems as though there  
+</I>&gt;<i> should be another set of action types for transitioning to different  
+</I>&gt;<i> states.
+</I>&gt;<i> On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+</I>&gt;&gt;&gt;<i> Hi,
+</I>&gt;&gt;&gt;<i> 	I've just recently started learning Ragel. I have read the guide pdf
+</I>&gt;&gt;&gt;<i> and I can't seem to find a solution to this problem.
+</I>&gt;&gt;&gt;<i> Let's say I have this grammar:
+</I>&gt;&gt;&gt;<i> 	%%{
+</I>&gt;&gt;&gt;<i> 		op = '+'+;
+</I>&gt;&gt;&gt;<i> 		word = alpha+;
+</I>&gt;&gt;&gt;<i> 		spaces = ' '+;
+</I>&gt;&gt;&gt;<i> 		base = 	  spaces
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 				| word &gt;start_word $in_word %end_word
+</I>&gt;&gt;&gt;<i> 				| op &gt;start_op $in_op %end_op
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 				;
+</I>&gt;&gt;&gt;<i> 		main := base+;
+</I>&gt;&gt;&gt;<i> 	}%%
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> What I would like to see is this:
+</I>&gt;&gt;&gt;<i> 	<A HREF="http://imgur.com/POP8U.png">http://imgur.com/POP8U.png</A>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> What Ragel compiles is this:
+</I>&gt;&gt;&gt;<i> 	<A HREF="http://imgur.com/x36VA.png">http://imgur.com/x36VA.png</A>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Can anyone help me get the behavior I'm looking?
+</I>&gt;&gt;<i> Imagine you parse &quot;abc&quot;.
+</I>&gt;&gt;<i> Note that &quot;main := base+;&quot;.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So when Ragel reads &quot;a&quot; it performs &quot;&gt;start_word&quot;.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Then Ragel reads &quot;b&quot;. How can Ragel know if &quot;b&quot; is part of the first  
+</I>&gt;&gt;<i> 'base' or
+</I>&gt;&gt;<i> the first char of a new 'base'? Both options are valid, so Ragel  
+</I>&gt;&gt;<i> runs action
+</I>&gt;&gt;<i> for both (in parallel), so it runs:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - &quot;&gt;start_word&quot; because &quot;b&quot; could be the start of a new 'base'.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - &quot;$in_word&quot; because &quot;b&quot; could be part of the previous 'base' and  
+</I>&gt;&gt;<i> it's a valid
+</I>&gt;&gt;<i> existing point.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - &quot;&gt;end_word&quot; because when considering &quot;b&quot; as a new 'base' it means  
+</I>&gt;&gt;<i> that first
+</I>&gt;&gt;<i> 'base' (&quot;a&quot;) has totally ended.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Of course, this will happen for each char. The main problem of your  
+</I>&gt;&gt;<i> grammar is
+</I>&gt;&gt;<i> that Ragel cannot determine (who can?) how to split &quot;base+;&quot; into  
+</I>&gt;&gt;<i> different
+</I>&gt;&gt;<i> &quot;words&quot; so it takes *all* the valid options *in parallel*.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hope this helps. Regards.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -- 
+</I>&gt;&gt;<i> Iñaki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001093.html">[ragel-users] Actions executing too often.
+</A></li>
+	<LI>Next message: <A HREF="001094.html">[ragel-users] Is it safe to modify the buffer on which a	Ragel-generated FSM is operating?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1097">[ date ]</a>
+              <a href="thread.html#1097">[ thread ]</a>
+              <a href="subject.html#1097">[ subject ]</a>
+              <a href="author.html#1097">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

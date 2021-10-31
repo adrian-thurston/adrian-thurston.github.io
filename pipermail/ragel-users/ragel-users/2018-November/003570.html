@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH 0/3] Fix Cygwin build
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%200/3%5D%20Fix%20Cygwin%20build&In-Reply-To=%3C409d45f1d0b410c3241ec316412df457%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003569.html">
+   <LINK REL="Next"  HREF="003572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH 0/3] Fix Cygwin build</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%200/3%5D%20Fix%20Cygwin%20build&In-Reply-To=%3C409d45f1d0b410c3241ec316412df457%40mail.colm.net%3E"
+       TITLE="[ragel-users] [PATCH 0/3] Fix Cygwin build">thurston at colm.net
+       </A><BR>
+    <I>Tue Nov 27 05:49:23 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003569.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+        <LI>Next message: <A HREF="003572.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3570">[ date ]</a>
+              <a href="thread.html#3570">[ thread ]</a>
+              <a href="subject.html#3570">[ subject ]</a>
+              <a href="author.html#3570">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>First, the easy part ... you can take out --with-ragel and --with-kelbt 
+options. They were only there to fall back to during the transition to 
+the colm frontend. I've committed to the colm parser though and will be 
+removing the old one soon.
+
+With regards to linking, it has no effect for me when I used 
+-no-undefined. Seems to get stripped out by autotools because it doesn't 
+make it into the link command.
+
+libragel_la_LDFLAGS = -no-undefined
+
+... results in ...
+
+libtool: link: g++  -fPIC -DPIC -shared -nostdlib 
+/usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu/crti.o 
+/usr/lib/gcc/x86_64-linux-gnu/5/crtbeginS.o  
+.libs/libragel_la-parsetree.o .libs/libragel_la-longest.o 
+.libs/libragel_la-parsedata.o .libs/libragel_la-inputdata.o 
+.libs/libragel_la-load.o .libs/libragel_la-reducer.o   -Wl,-rpath 
+-Wl,/home/thurston/devel/ragel/src/.libs -Wl,-rpath 
+-Wl,/home/thurston/pkgs/colm/lib -Wl,-rpath 
+-Wl,/home/thurston/pkgs/ragel/lib -Wl,-rpath 
+-Wl,/home/thurston/pkgs/colm/lib -L/home/thurston/pkgs/colm/lib 
+./.libs/libfsm.so /home/thurston/pkgs/colm/lib/libcolm.so 
+-L/usr/lib/gcc/x86_64-linux-gnu/5 
+-L/usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu 
+-L/usr/lib/gcc/x86_64-linux-gnu/5/../../../../lib 
+-L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu 
+-L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/5/../../.. -lstdc++ 
+-lm -lc -lgcc_s /usr/lib/gcc/x86_64-linux-gnu/5/crtendS.o 
+/usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu/crtn.o  -g   
+-Wl,-soname -Wl,libragel.so.0 -o .libs/libragel.so.0.0.0
+
+My setup is ubuntu with the following versions.
+
+[<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurston at railay</A>] src: g++ -v; automake --version; autoconf --version; 
+libtool --version
+gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.10)
+automake (GNU automake) 1.15
+autoconf (GNU Autoconf) 2.69
+libtool (GNU libtool) 2.4.6
+
+Will have to dig a bit. Maybe the option is controlled by some other 
+flag.
+
+On 2018-11-26 16:30, Ken Brown wrote:
+&gt;<i> Thanks.  There are still two problems:
+</I>&gt;<i> 
+</I>&gt;<i> First, the syntax for the libtool '-no-undefined' flag is wrong.  It 
+</I>&gt;<i> should
+</I>&gt;<i> simply be '-no-undefined' (one leading hyphen, no -Wl), as in the patch 
+</I>&gt;<i> I
+</I>&gt;<i> submitted.  Otherwise, I get the following error if I try to build
+</I>&gt;<i> shared libraries:
+</I>&gt;<i> 
+</I>&gt;<i> libtool:   error: can't build x86_64-unknown-cygwin shared library 
+</I>&gt;<i> unless
+</I>&gt;<i> -no-undefined is specified
+</I>&gt;<i> 
+</I>&gt;<i> Second, although your change takes care of the reference to rl_parse, 
+</I>&gt;<i> which is
+</I>&gt;<i> the only undefined reference in a build --without-ragel, there are two 
+</I>&gt;<i> further
+</I>&gt;<i> &quot;undefined reference&quot; errors if I build with ragel installed:
+</I>&gt;<i> 
+</I>&gt;<i> .libs/libragel_la-inputdata.o: In function
+</I>&gt;<i> `InputData::checkLastRef(InputItem*)':
+</I>&gt;<i> /home/kbrown/src/ragel/src/inputdata.cc:313: undefined reference to
+</I>&gt;<i> `Parser6::terminateParser()'
+</I>&gt;<i> [...]
+</I>&gt;<i> .libs/libragel_la-inputdata.o: In function `InputData::parseKelbt()':
+</I>&gt;<i> /home/kbrown/src/ragel/src/inputdata.cc:427: undefined reference to
+</I>&gt;<i> `Scanner::do_scan()'
+</I>&gt;<i> 
+</I>&gt;<i> These are defined in rlparse.cc and rlscan.cc, which aren't in the 
+</I>&gt;<i> sources for
+</I>&gt;<i> libragel.
+</I>&gt;<i> 
+</I>&gt;<i> Ken
+</I>&gt;<i> 
+</I>&gt;<i> On 11/26/2018 11:40 AM, Adrian Thurston wrote:
+</I>&gt;&gt;<i> Ah, sorry, I forgot to push from my private repo to the public one. 
+</I>&gt;&gt;<i> There now.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> On 2018-11-25 12:11, Ken Brown wrote:
+</I>&gt;&gt;&gt;<i> Hi Adrian,
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Thanks.  Have you pushed these changes to the upstream git repo?  I'm 
+</I>&gt;&gt;&gt;<i> getting
+</I>&gt;&gt;&gt;<i> &quot;Already up to date&quot; when I do &quot;git pull&quot;.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Ken
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> On 11/25/2018 8:22 AM, Adrian Thurston wrote:
+</I>&gt;&gt;&gt;&gt;<i> Hi Ken, thank you for the patches. I just enabled --no-undefined and 
+</I>&gt;&gt;&gt;&gt;<i> removed the
+</I>&gt;&gt;&gt;&gt;<i> reference to the undefined symbol. The parse.c file cannot be 
+</I>&gt;&gt;&gt;&gt;<i> included in
+</I>&gt;&gt;&gt;&gt;<i> libragel because it defines the frontnend language, which is 
+</I>&gt;&gt;&gt;&gt;<i> different for each
+</I>&gt;&gt;&gt;&gt;<i> binary in the host-* directories. All that was needed was to pass 
+</I>&gt;&gt;&gt;&gt;<i> the reference
+</I>&gt;&gt;&gt;&gt;<i> to rl_parse into libragel from main.cc. Was already doing that for 
+</I>&gt;&gt;&gt;&gt;<i> the backend
+</I>&gt;&gt;&gt;&gt;<i> code generator (also a colm program).
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> Adrian
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> On 2018-11-16 16:58, Ken Brown wrote:
+</I>&gt;&gt;&gt;&gt;&gt;<i> I've just built ragel-7.0.0.11 on Cygwin and added it to the Cygwin
+</I>&gt;&gt;&gt;&gt;&gt;<i> distribution.  I had to patch the sources in order to build shared
+</I>&gt;&gt;&gt;&gt;&gt;<i> libraries.
+</I>&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;<i> libtool won't build shared libraries on Cygwin unless the
+</I>&gt;&gt;&gt;&gt;&gt;<i> -no-undefined flag is given.  The first patch of this series does 
+</I>&gt;&gt;&gt;&gt;&gt;<i> that
+</I>&gt;&gt;&gt;&gt;&gt;<i> for libfsm and libragel.  But it turns out that there are in fact
+</I>&gt;&gt;&gt;&gt;&gt;<i> undefined symbols in libragel.  The next two patches fix that.
+</I>&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;<i> I don't think these patches do any harm on other platforms.
+</I>&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;<i> Ken Brown (3):
+</I>&gt;&gt;&gt;&gt;&gt;<i>   add -no-undefined to LDFLAGS for libfsm and libragel
+</I>&gt;&gt;&gt;&gt;&gt;<i>   add dependency of libragel on libfsm and libcolm
+</I>&gt;&gt;&gt;&gt;&gt;<i>   avoid undefined symbols in libragel
+</I>&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;<i>  src/Makefile.am | 20 ++++++++++++++------
+</I>&gt;&gt;&gt;&gt;&gt;<i>  1 file changed, 14 insertions(+), 6 deletions(-)
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003569.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+	<LI>Next message: <A HREF="003572.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3570">[ date ]</a>
+              <a href="thread.html#3570">[ thread ]</a>
+              <a href="subject.html#3570">[ subject ]</a>
+              <a href="author.html#3570">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

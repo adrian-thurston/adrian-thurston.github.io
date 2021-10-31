@@ -1,0 +1,2122 @@
+From thurs... at cs.queensu.ca  Wed Aug  1 22:41:59 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 01 Aug 2007 18:41:59 -0400
+Subject: [ragel-users] Re: ragel 5.23 released
+In-Reply-To: <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+References: <46A67146.7020209@cs.queensu.ca> <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+Message-ID: <46B10C37.7040000@cs.queensu.ca>
+
+Steve Horne wrote:
+> First, any chance of a new built-in machine? - one that never matches
+> anything? The idea is to use it in placeholder rules, that will be
+> filled in later - options that aren't implemented yet.
+
+I don't understand this, filled in at what time? Could you please be
+specific in terms of the compilation of a Ragel program.
+
+> class classname
+> {
+>   static const int membername;
+> };
+> ...
+> static const int classname::membername = 5;
+
+Is there a particular reason to want table data in a class? I can
+imagine wanting variables that identify states (such as start_state) in
+the class, but I can't see a reason to want table data.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070801/920dd434/attachment.sig>
+
+From stephenhorne... at aol.com  Thu Aug  2 20:34:59 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 02 Aug 2007 13:34:59 -0700
+Subject: ragel 5.23 released
+In-Reply-To: <46B10C37.7040000@cs.queensu.ca>
+References: <46A67146.7020209@cs.queensu.ca>
+   <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+   <46B10C37.7040000@cs.queensu.ca>
+Message-ID: <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+
+
+None of the issues are all that important (esp. the underscores thing,
+of course ;-) ), but...
+
+On Aug 1, 11:41 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Steve Horne wrote:
+> > First, any chance of a new built-in machine? - one that never matches
+> > anything? The idea is to use it in placeholder rules, that will be
+> > filled in later - options that aren't implemented yet.
+>
+> I don't understand this, filled in at what time? Could you please be
+> specific in terms of the compilation of a Ragel program.
+
+It's a development lifecycle thing, rather like being able to declare
+methods as deprecated in some programming languages but for use mainly
+at the beginning of the lifecycle rather than during maintenance.
+
+I want to be able to reference a machine in higher level machines that
+I have defined, but not necessarily define what that new machine
+contains quite yet - top-down functional decomposition IOW. Declaring
+the new machine as not matching anything sounds like the easiest way
+to do that.
+
+It's my view that any DSL should make life as easy as possible for
+users who are not particularly familiar with them, since DSLs are
+mostly used only occasionally. Ragel already does pretty well in this
+respect - e.g. the ability to generate dot visualisations means that a
+lot of initial development can be done without worrying about actions
+etc.
+
+In implementation terms, it should just be a matter of having two
+states (a start state and an end state) that are disconnected from
+each other. Then, the only obvious new issues compared with what you
+already have would be elimination of unreachable states and
+elimination of states from which it would be impossible to reach an
+end state - FSM minimisation doesn't necessarily handle this. Since
+this is just an initial development thing, even these may be
+considered non-issues.
+
+> > class classname
+> > {
+> >   static const int membername;
+> > };
+> > ...
+> > static const int classname::membername = 5;
+>
+> Is there a particular reason to want table data in a class? I can
+> imagine wanting variables that identify states (such as start_state) in
+> the class, but I can't see a reason to want table data.
+
+It's entirely about programming style and habits.
+
+Data that is only used by a particular class should in principle be
+member data, if only to express the intent that the data should not be
+accessed from outside the class. That won't be appropriate in every
+case, even assuming that a class is used at all, and its not that
+important since the static flags already tell both the user and
+compiler not to allow access from other source files, but it is not a
+good idea to get between a programmer and his good-style ideology ;-)
+
+
+From thurs... at cs.queensu.ca  Fri Aug  3 17:15:36 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Aug 2007 13:15:36 -0400
+Subject: [ragel-users] Re: ragel 5.23 released
+In-Reply-To: <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+References: <46A67146.7020209@cs.queensu.ca> <1185350645.365300.67370@w3g2000hsg.googlegroups.com> <46B10C37.7040000@cs.queensu.ca> <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+Message-ID: <46B362B8.4060307@cs.queensu.ca>
+
+Hi Steve,
+
+You can make such a machine like this:
+
+later = start: "", "" -> final;
+
+Though using this machine will be difficult. It will create unreachable
+states that Ragel removes during compilation. You could give the final
+state a label and then reference the label in an action to make sure
+that the path from final state onward sticks around, but that's somewhat
+hackish.
+
+I would suggest instead giving it a transition, preferably some
+character out of the range of allowable input characters.
+
+alphtype int;
+later = 0x100;
+main := 'm' later '\n';
+
+-Adrian
+
+
+Steve Horne wrote:
+> 
+> None of the issues are all that important (esp. the underscores thing,
+> of course ;-) ), but...
+> 
+> On Aug 1, 11:41 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Steve Horne wrote:
+>>> First, any chance of a new built-in machine? - one that never matches
+>>> anything? The idea is to use it in placeholder rules, that will be
+>>> filled in later - options that aren't implemented yet.
+>> I don't understand this, filled in at what time? Could you please be
+>> specific in terms of the compilation of a Ragel program.
+> 
+> It's a development lifecycle thing, rather like being able to declare
+> methods as deprecated in some programming languages but for use mainly
+> at the beginning of the lifecycle rather than during maintenance.
+> 
+> I want to be able to reference a machine in higher level machines that
+> I have defined, but not necessarily define what that new machine
+> contains quite yet - top-down functional decomposition IOW. Declaring
+> the new machine as not matching anything sounds like the easiest way
+> to do that.
+> 
+> It's my view that any DSL should make life as easy as possible for
+> users who are not particularly familiar with them, since DSLs are
+> mostly used only occasionally. Ragel already does pretty well in this
+> respect - e.g. the ability to generate dot visualisations means that a
+> lot of initial development can be done without worrying about actions
+> etc.
+> 
+> In implementation terms, it should just be a matter of having two
+> states (a start state and an end state) that are disconnected from
+> each other. Then, the only obvious new issues compared with what you
+> already have would be elimination of unreachable states and
+> elimination of states from which it would be impossible to reach an
+> end state - FSM minimisation doesn't necessarily handle this. Since
+> this is just an initial development thing, even these may be
+> considered non-issues.
+> 
+>>> class classname
+>>> {
+>>>   static const int membername;
+>>> };
+>>> ...
+>>> static const int classname::membername = 5;
+>> Is there a particular reason to want table data in a class? I can
+>> imagine wanting variables that identify states (such as start_state) in
+>> the class, but I can't see a reason to want table data.
+> 
+> It's entirely about programming style and habits.
+> 
+> Data that is only used by a particular class should in principle be
+> member data, if only to express the intent that the data should not be
+> accessed from outside the class. That won't be appropriate in every
+> case, even assuming that a class is used at all, and its not that
+> important since the static flags already tell both the user and
+> compiler not to allow access from other source files, but it is not a
+> good idea to get between a programmer and his good-style ideology ;-)
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070803/7cf8736a/attachment.sig>
+
+From stephenhorne... at aol.com  Sat Aug  4 04:09:37 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Fri, 03 Aug 2007 21:09:37 -0700
+Subject: ragel 5.23 released
+In-Reply-To: <46B362B8.4060307@cs.queensu.ca>
+References: <46A67146.7020209@cs.queensu.ca>
+   <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+   <46B10C37.7040000@cs.queensu.ca>
+   <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+   <46B362B8.4060307@cs.queensu.ca>
+Message-ID: <1186200577.718465.304740@l70g2000hse.googlegroups.com>
+
+
+
+On Aug 3, 6:15 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> You can make such a machine like this:
+>
+> later = start: "", "" -> final;
+>
+> Though using this machine will be difficult. It will create unreachable
+> states that Ragel removes during compilation.
+
+That actually works almost perfectly - certainly it solves the
+immediate problem.
+
+I tested it with the following...
+
+%%{  machine  test_null;
+
+     h = 1;
+     j = 2;
+     k = 3;
+
+     X = start: "", "" -> final;
+
+     A = h j k;
+     B = h h X k;
+     C = k k X h;
+     D = k j h;
+
+     main := A | B | C | D;
+}%%
+
+I get an FSM that clearly accepts the A and D alternatives as it
+should, and does not accept the B and C variants or any unwanted
+sequences. The only extremely minor issue (non-issue, really) is that
+one state is kept that perhaps should be eliminated - a state that is
+reachable, but which is not an end state and which has no outward
+transitions. OTOH, keeping this dead-end state might be a good thing -
+I can test cases B and C as far as they are defined if I need to.
+
+Thanks.
+
+
+From t... at 2p.cz  Sun Aug 12 14:18:53 2007
+From: t... at 2p.cz (TMa)
+Date: Sun, 12 Aug 2007 07:18:53 -0700
+Subject: New project abnfgen: Ragel code generator from ABNF
+Message-ID: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+
+Hi *,
+I have published at http://www.2p.cz/en/abnf_gen new project related
+to Ragel. Abnfgen converts rules defined in ABNF format into Ragel
+state machine definition. ABNF is used in many RFCs as protocol
+definition language so it should simplify development.
+
+Note that Ragel definition for abnfgen itself is probably not 100%
+accurate because there is known situation where result is not correct
+(comment in source) but I think it not critical.
+
+Tomas
+
+
+From thurs... at cs.queensu.ca  Mon Aug 13 03:48:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 12 Aug 2007 23:48:04 -0400
+Subject: [ragel-users] New project abnfgen: Ragel code generator from
+ ABNF
+In-Reply-To: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+References: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+Message-ID: <46BFD474.6020800@cs.queensu.ca>
+
+Interesting, thanks for sharing. Grammars in RFCs are not always the
+easiest to make parsers for so it's good to see work on this kind of thing.
+
+Adrian
+
+TMa wrote:
+> Hi *,
+> I have published at http://www.2p.cz/en/abnf_gen new project related
+> to Ragel. Abnfgen converts rules defined in ABNF format into Ragel
+> state machine definition. ABNF is used in many RFCs as protocol
+> definition language so it should simplify development.
+> 
+> Note that Ragel definition for abnfgen itself is probably not 100%
+> accurate because there is known situation where result is not correct
+> (comment in source) but I think it not critical.
+> 
+> Tomas
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070812/bade40a9/attachment.sig>
+
+From t... at 2p.cz  Sun Aug 12 14:28:22 2007
+From: t... at 2p.cz (TMa)
+Date: Sun, 12 Aug 2007 07:28:22 -0700
+Subject: Debugging feature for Ragel state machines
+Message-ID: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+
+Hi *,
+when debugging own machine I found it's hard to detect problems. I
+missed something like:
+
+1) optional debug code included in generated files could help
+testing own machines. E.g. a debug message could be printed out
+containing
+current __LINE__,cs, to, stack, fpc and user info text. Currently I
+tried create
+a "$" action but it's not perfect, i think the action is not called
+allways.
+Or am I wrong?
+
+2) can ragel tell if constructed machine is potentially ambigious and
+where ? It's hard
+to see if there is some problem part and I spent many days attemp/
+mistake to
+get work my machine generated from ABNF.
+
+GraphViz diagram is perfect but it's hard to say where particular
+circle/arrow come from and in my case it was also so huge I had
+problem to open it. And it's not run-time debugging as well.
+
+Otherwise Ragel is famous of course, thanks.
+Tomas
+
+
+From thurs... at cs.queensu.ca  Mon Aug 13 04:06:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 13 Aug 2007 00:06:18 -0400
+Subject: [ragel-users] Debugging feature for Ragel state machines
+In-Reply-To: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+References: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+Message-ID: <46BFD8BA.1020908@cs.queensu.ca>
+
+
+TMa wrote:
+> 1) optional debug code included in generated files could help
+> testing own machines. E.g. a debug message could be printed out
+> containing
+> current __LINE__,cs, to, stack, fpc and user info text. Currently I
+> tried create
+> a "$" action but it's not perfect, i think the action is not called
+> allways.
+> Or am I wrong?
+
+Yes a feature like this is needed. It would be possible to trace states
+back to positions in the source ragel file (a single state would map to
+multiple positions). A debug feature should print this info as it steps
+over input. There is an entry in the TODO to this effect.
+
+The action should be called every time, though if you use a jump or call
+and a debug action follows then it will get skipped. You could use $*
+instead. This will cause the debug action to be executed before any
+transition actions.
+
+> 2) can ragel tell if constructed machine is potentially ambigious and
+> where ? It's hard
+> to see if there is some problem part and I spent many days attemp/
+> mistake to
+> get work my machine generated from ABNF.
+
+This kind of feature is also a good idea and I've been wanting to do it
+for a while but I haven't gotten to it. My hope is to someday have an
+ambiguity report option which tells you which definitions overlap. For
+regular languages this is straightforward (though undecidable for CFLs)
+
+In the meantime if you want test if two machines overlap you can use
+action embedding operators ($ or $*) to embed named actions and then
+look in the intermediate file or the graphviz output for transitions
+that execute both of the actions.
+
+Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070813/6dcfb2f7/attachment.sig>
+
+From ddri... at gmail.com  Mon Aug 27 14:25:07 2007
+From: ddri... at gmail.com (ddri... at gmail.com)
+Date: Mon, 27 Aug 2007 14:25:07 -0000
+Subject: Newbie advice
+Message-ID: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+
+Hello,
+
+I'm trying to use Ragel to split apart a structured text file.  As a
+simplified example, I want to split apart sections of a file separated
+by "--" on its own line, e.g.:
+
+foo--
+bar
+--
+bing
+--
+--
+baz
+--
+
+This sample has four sections (the third one is empty).  I've got a
+simple machine like this that seems to work:
+
+    section = (any* $onChar '\n')? :>> "--\n" @onSection;
+    main := section*;
+
+The idea is that I buffer up section data in the onChar action, and
+then I can process it in onSection.  While this machine does seem to
+work, onChar is being called for the trailing "--".  I understand why
+this is being done, but I'm looking for advice to work around it.
+Should I just delete the trailing "--" in onSection?  Or is there a
+better way?
+
+Thanks,
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 14:57:01 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 27 Aug 2007 10:57:01 -0400
+Subject: [ragel-users] Newbie advice
+In-Reply-To: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+Message-ID: <46D2E63D.9040704@cs.queensu.ca>
+
+Hi Dave,
+
+Yes you have the idea, just remove '--\n' from the possible matches of a
+line.
+
+%%{
+    machine sections;
+    action onSection {}
+
+    any_line = [^\n]* '\n';
+    marker_line = '--\n';
+
+    section = (any_line - marker_line)* marker_line @onSection;
+
+    main = section*;
+}%%
+
+Cheers,
+ Adrian
+
+ddri... at gmail.com wrote:
+> Hello,
+> 
+> I'm trying to use Ragel to split apart a structured text file.  As a
+> simplified example, I want to split apart sections of a file separated
+> by "--" on its own line, e.g.:
+> 
+> foo--
+> bar
+> --
+> bing
+> --
+> --
+> baz
+> --
+> 
+> This sample has four sections (the third one is empty).  I've got a
+> simple machine like this that seems to work:
+> 
+>     section = (any* $onChar '\n')? :>> "--\n" @onSection;
+>     main := section*;
+> 
+> The idea is that I buffer up section data in the onChar action, and
+> then I can process it in onSection.  While this machine does seem to
+> work, onChar is being called for the trailing "--".  I understand why
+> this is being done, but I'm looking for advice to work around it.
+> Should I just delete the trailing "--" in onSection?  Or is there a
+> better way?
+> 
+> Thanks,
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070827/e0341aef/attachment.sig>
+
+From ddri... at gmail.com  Mon Aug 27 15:41:53 2007
+From: ddri... at gmail.com (ddri... at gmail.com)
+Date: Mon, 27 Aug 2007 15:41:53 -0000
+Subject: Newbie advice
+In-Reply-To: <46D2E63D.9040704@cs.queensu.ca>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+Message-ID: <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+
+Hi Adrian,
+
+Thanks for the quick reply.  If I add an action to accumlate
+characters from the body of the section that, like this:
+
+    section = (any_line - marker_line)* $onChar marker_line
+@onSection;
+
+onChar still seems to get called for part of the marker line, i.e. for
+the '--', but not the final '\n'.  Or is there a better way to do the
+accumulation?
+
+Thanks,
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 16:22:39 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 27 Aug 2007 12:22:39 -0400
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+Message-ID: <46D2FA4F.9030504@cs.queensu.ca>
+
+The easy ways are to use a scanner or to remove the unwanted dashes from
+the buffer afterwards (you know they are always going to be there).
+
+But it's also possible to design a state machine that doesn't add to the
+buffer when it sees '-', but does so on following characters. See this
+thread:
+
+http://groups.google.com/group/ragel-users/browse_thread/thread/c3c9170bfccc0a90/#
+
+Adrian
+
+ddri... at gmail.com wrote:
+> Hi Adrian,
+> 
+> Thanks for the quick reply.  If I add an action to accumlate
+> characters from the body of the section that, like this:
+> 
+>     section = (any_line - marker_line)* $onChar marker_line
+> @onSection;
+> 
+> onChar still seems to get called for part of the marker line, i.e. for
+> the '--', but not the final '\n'.  Or is there a better way to do the
+> accumulation?
+> 
+> Thanks,
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070827/e4de095f/attachment.sig>
+
+From ddri... at gmail.com  Mon Aug 27 16:53:24 2007
+From: ddri... at gmail.com (Dave Dribin)
+Date: Mon, 27 Aug 2007 16:53:24 -0000
+Subject: Newbie advice
+In-Reply-To: <46D2FA4F.9030504@cs.queensu.ca>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+   <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+   <46D2FA4F.9030504@cs.queensu.ca>
+Message-ID: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+
+Thanks, again.  Can you see anything wrong with the following
+approach?  To make it more interesting, I want to handle both Unix and
+Windows newlines:
+
+    newline = '\r'? '\n' @onNewline;
+    any_line = [^\r\n]* newline;
+    marker_line = '--' newline;
+    section_body = (any_line - marker_line)*;
+
+    section = (section_body marker_line $countMarker) $onChar
+@onSection;
+
+Thus, onChar buffers up the entire section, including the full marker
+line.  But countMarker counts the number of characters in used in the
+variable length marker, and onSection strips that many characters from
+the buffer.
+
+This seems to handle the general case of a variable length terminating
+marker.  The downside is that it buffers up extra characters only to
+yank them off, at the end.  So long as the terminating marker is
+fairly short, I don't see this being a major issue.
+
+Is it possible for countMarker to set an "ignore" flag that onChar
+checks?  This would require that the countMarker action be called
+before onChar, though, and I don't know if that is guaranteed.
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 17:37:10 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 27 Aug 2007 17:37:10 +0000
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com> <46D2FA4F.9030504@cs.queensu.ca><1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+Message-ID: <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+
+Hi Dave,
+
+Counting works in this case but it doesn't work for arbitrary terminating patterns. Consider the pattern that begins to match but then fails and restarts half-way through with the two potential matches overlapping. You can't get an accurate count. In more general tems the problem is that the machine is matching concurrently but using a single instance of context data.
+
+This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+
+Adrian
+-----Original Message-----
+From: Dave Dribin <ddribin at gmail.com>
+
+Date: Mon, 27 Aug 2007 16:53:24 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Newbie advice
+
+
+
+Thanks, again.  Can you see anything wrong with the following
+approach?  To make it more interesting, I want to handle both Unix and
+Windows newlines:
+
+    newline = '\r'? '\n' @onNewline;
+    any_line = [^\r\n]* newline;
+    marker_line = '--' newline;
+    section_body = (any_line - marker_line)*;
+
+    section = (section_body marker_line $countMarker) $onChar
+@onSection;
+
+Thus, onChar buffers up the entire section, including the full marker
+line.  But countMarker counts the number of characters in used in the
+variable length marker, and onSection strips that many characters from
+the buffer.
+
+This seems to handle the general case of a variable length terminating
+marker.  The downside is that it buffers up extra characters only to
+yank them off, at the end.  So long as the terminating marker is
+fairly short, I don't see this being a major issue.
+
+Is it possible for countMarker to set an "ignore" flag that onChar
+checks?  This would require that the countMarker action be called
+before onChar, though, and I don't know if that is guaranteed.
+
+-Dave
+
+
+
+
+
+From ddri... at gmail.com  Mon Aug 27 22:04:30 2007
+From: ddri... at gmail.com (Dave Dribin)
+Date: Mon, 27 Aug 2007 15:04:30 -0700
+Subject: Newbie advice
+In-Reply-To: <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+References: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+   <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+   <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+   <46D2FA4F.9030504@cs.queensu.ca>
+   <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+Message-ID: <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+
+Hi Adrian,
+
+On Aug 27, 12:37 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+
+Okay, even though I don't need a scanner for this particular example,
+I decided to try it just to learn more about scanners.  I can't quite
+figure out how to use it in this case.  Here's my first attempt:
+
+    marker_line = '--' newline;
+    main := |*
+        marker_line => { printf("\n"); };
+        any => {
+            printf("%c", isprint(*tokstart)? *tokstart : '.');
+        };
+        *|;
+
+This doesn't force marker_line to be at the start of the line, though,
+and will match any line that ends in "--".  Plus, it won't force the
+last section to end in "--\n".
+
+Thanks for your help as I learn this tool.
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Tue Aug 28 17:43:31 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 28 Aug 2007 13:43:31 -0400
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+References: <1188233604.825130.262880@g4g2000hsf.googlegroups.com> <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com> <46D2FA4F.9030504@cs.queensu.ca> <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry> <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+Message-ID: <46D45EC3.3010609@cs.queensu.ca>
+
+Hi David,
+
+Instead of using any to match stuff that isn't a marker, use a pattern
+that ends in newline, then the scanner will be consuming line-by-line
+and marker line will be restricted to matching lines that contain only '--'.
+
+Cheers,
+ Adrian
+
+Dave Dribin wrote:
+> Hi Adrian,
+> 
+> On Aug 27, 12:37 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+>> This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+> 
+> Okay, even though I don't need a scanner for this particular example,
+> I decided to try it just to learn more about scanners.  I can't quite
+> figure out how to use it in this case.  Here's my first attempt:
+> 
+>     marker_line = '--' newline;
+>     main := |*
+>         marker_line => { printf("\n"); };
+>         any => {
+>             printf("%c", isprint(*tokstart)? *tokstart : '.');
+>         };
+>         *|;
+> 
+> This doesn't force marker_line to be at the start of the line, though,
+> and will match any line that ends in "--".  Plus, it won't force the
+> last section to end in "--\n".
+> 
+> Thanks for your help as I learn this tool.
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070828/04e5e8ce/attachment.sig>
+
+From jegan... at yahoo.com  Thu Aug 30 03:26:08 2007
+From: jegan... at yahoo.com (iceman)
+Date: Wed, 29 Aug 2007 20:26:08 -0700
+Subject: is this possible?
+Message-ID: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+
+hi all,
+i came to know about ragel recently.i would like to know whether it is
+possible to do the following using ragel..
+i would like to parse packets[bit patterns] and get out token which
+represent the function..this should be passed to the state machine..
+in the state machine depending upon the state and  the token a
+particular action should take place depending on the token..
+
+i would like to know whether this particular action can be done by the
+parser in ragel..
+
+thanks inadvance
+jag
+
+
+From thurs... at cs.queensu.ca  Thu Aug 30 20:41:33 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 30 Aug 2007 16:41:33 -0400
+Subject: [ragel-users] is this possible?
+In-Reply-To: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+Message-ID: <46D72B7D.7000405@cs.queensu.ca>
+
+Hi,
+
+Yes you can do this kind of thing with Ragel. Patterns can be specified
+using hexadecimal or decimal numbers. Also, you could choose to chain
+machines together, or depending on what it is you need to parse you
+could do all the parsing with one machine.
+
+Regards,
+ Adrian
+
+iceman wrote:
+> hi all,
+> i came to know about ragel recently.i would like to know whether it is
+> possible to do the following using ragel..
+> i would like to parse packets[bit patterns] and get out token which
+> represent the function..this should be passed to the state machine..
+> in the state machine depending upon the state and  the token a
+> particular action should take place depending on the token..
+> 
+> i would like to know whether this particular action can be done by the
+> parser in ragel..
+> 
+> thanks inadvance
+> jag
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070830/e6e62c67/attachment.sig>
+
+From stephenhorne... at aol.com  Thu Aug 30 20:58:40 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 30 Aug 2007 13:58:40 -0700
+Subject: is this possible?
+In-Reply-To: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+Message-ID: <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+
+
+That's a very vague requirement!
+
+Let's see...
+
+> i would like to parse packets[bit patterns] and get out token which
+> represent the function..
+
+Ragel generates a state machine, which it uses to extract tokens from
+input. In principle, the state machine takes as input a stream of
+characters, though in practice those 'characters' can be anything you
+can represent using integers (the precise type can be specified to get
+more bits per character).
+
+It isn't clear from your description whether the state machine you are
+talking about would be the one Ragel generates for you, or some other
+one, but either case is fine. You basically supply your own 'template'
+code for the Ragel state machine, so you can get your input character
+stream any way you want and use your output tokens in any way you
+want.
+
+You could even use the output from one Ragel machine as the input for
+another one.
+
+The only doubt I have is your mention of 'bit patterns'. As you can
+handle input any way you want, there is in principle no difficulty,
+but to the best of my knowledge you cannot use the current state to
+determine how to decode the next input. You could not take variable-
+bit-width characters from the input, for instance.
+
+You certainly can handle something like UTF-8 decoding, though - you
+just have a machine that takes 8-bit 'characters' as input and outputs
+unicode codepoints as its result (possibly sending them to another
+Ragel machine that tokenises the unicode character sequence).
+Actually, there's no reason why you can't convert UTF-8 to unicode
+codepoints in a single Ragel machine, but it's probably easier to
+cascade two machines to do the job.
+
+Equally, you could process a Huffman-encoded input if you really want
+to. You couldn't handle the input in multi-bit chunks, but you could
+handle it one bit at a time. The only condition is that the particular
+encoding would have to be fixed. This would work because Huffman
+encoding is a variable-width encoding, designed in such a way that you
+can find the end of each character using a finite state machine.
+
+The Ragel manual is very good, by the way. Just read the section on
+the 'interface to the host program' and I think all your questions
+will be answered.
+
+However, just on the off chance, I'll also recommend that you take a
+look at the SMC project...
+
+http://smc.sourceforge.net/
+
+I've not actually used it myself, whereas I use Ragel a lot, but
+depending on your state machine requirements it could be more
+appropriate.
+
+Ragel has a far more powerful model for specifying finite state
+machines in that it supports regular grammar handling features (like
+regular expressions, but better) as well as explicit specification of
+transitions, and the two forms can be mixed as needed. It also allows
+backtracking scanners (like flex - the scanner generator, not the
+Adobe web framework thing).
+
+Where SMC appears to win out is if you already have a pure state-
+transition model (e.g. based on a UML state diagram) and you want to
+handle events that are like class methods, with parameters.
+
+
+From jegan... at yahoo.com  Fri Aug 31 05:38:57 2007
+From: jegan... at yahoo.com (iceman)
+Date: Fri, 31 Aug 2007 05:38:57 -0000
+Subject: is this possible?
+In-Reply-To: <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+   <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+Message-ID: <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+
+sorry about the vague description..
+
+basically i am working with click modular routers.i am trying to
+separate the data plane and the control plane..
+
+i will try to represent the control plane with a state machine..the
+the packets[like those of sk_buffer]will have to be to parsed and and
+the the control action[like binding update and router solicitation
+etc]should be converted to tokens and fed into the state machine...in
+the state machine depening upon the state an action should take place
+with state transition..
+
+what i am worried about is that will it be possible for me to use the
+parser associated with  that of ragel to parse the incoming packet[bit
+patterns] at real time?
+
+On Aug 31, 6:58 am, Steve Horne <stephenhorne... at aol.com> wrote:
+> That's a very vague requirement!
+>
+> Let's see...
+>
+> > i would like to parse packets[bit patterns] and get out token which
+> > represent the function..
+>
+> Ragel generates a state machine, which it uses to extract tokens from
+> input. In principle, the state machine takes as input a stream of
+> characters, though in practice those 'characters' can be anything you
+> can represent using integers (the precise type can be specified to get
+> more bits per character).
+>
+> It isn't clear from your description whether the state machine you are
+> talking about would be the one Ragel generates for you, or some other
+> one, but either case is fine. You basically supply your own 'template'
+> code for the Ragel state machine, so you can get your input character
+> stream any way you want and use your output tokens in any way you
+> want.
+>
+> You could even use the output from one Ragel machine as the input for
+> another one.
+>
+> The only doubt I have is your mention of 'bit patterns'. As you can
+> handle input any way you want, there is in principle no difficulty,
+> but to the best of my knowledge you cannot use the current state to
+> determine how to decode the next input. You could not take variable-
+> bit-width characters from the input, for instance.
+>
+> You certainly can handle something like UTF-8 decoding, though - you
+> just have a machine that takes 8-bit 'characters' as input and outputs
+> unicode codepoints as its result (possibly sending them to another
+> Ragel machine that tokenises the unicode character sequence).
+> Actually, there's no reason why you can't convert UTF-8 to unicode
+> codepoints in a single Ragel machine, but it's probably easier to
+> cascade two machines to do the job.
+>
+> Equally, you could process a Huffman-encoded input if you really want
+> to. You couldn't handle the input in multi-bit chunks, but you could
+> handle it one bit at a time. The only condition is that the particular
+> encoding would have to be fixed. This would work because Huffman
+> encoding is a variable-width encoding, designed in such a way that you
+> can find the end of each character using a finite state machine.
+>
+> The Ragel manual is very good, by the way. Just read the section on
+> the 'interface to the host program' and I think all your questions
+> will be answered.
+>
+> However, just on the off chance, I'll also recommend that you take a
+> look at the SMC project...
+>
+> http://smc.sourceforge.net/
+>
+> I've not actually used it myself, whereas I use Ragel a lot, but
+> depending on your state machine requirements it could be more
+> appropriate.
+>
+> Ragel has a far more powerful model for specifying finite state
+> machines in that it supports regular grammar handling features (like
+> regular expressions, but better) as well as explicit specification of
+> transitions, and the two forms can be mixed as needed. It also allows
+> backtracking scanners (like flex - the scanner generator, not the
+> Adobe web framework thing).
+>
+> Where SMC appears to win out is if you already have a pure state-
+> transition model (e.g. based on a UML state diagram) and you want to
+> ha
+ndle events that are like class methods, with parameters.
+
+
+From thurs... at cs.queensu.ca  Wed Aug  1 22:41:59 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 01 Aug 2007 18:41:59 -0400
+Subject: [ragel-users] Re: ragel 5.23 released
+In-Reply-To: <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+References: <46A67146.7020209@cs.queensu.ca> <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+Message-ID: <46B10C37.7040000@cs.queensu.ca>
+
+Steve Horne wrote:
+> First, any chance of a new built-in machine? - one that never matches
+> anything? The idea is to use it in placeholder rules, that will be
+> filled in later - options that aren't implemented yet.
+
+I don't understand this, filled in at what time? Could you please be
+specific in terms of the compilation of a Ragel program.
+
+> class classname
+> {
+>   static const int membername;
+> };
+> ...
+> static const int classname::membername = 5;
+
+Is there a particular reason to want table data in a class? I can
+imagine wanting variables that identify states (such as start_state) in
+the class, but I can't see a reason to want table data.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070801/920dd434/attachment-0001.sig>
+
+From stephenhorne... at aol.com  Thu Aug  2 20:34:59 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 02 Aug 2007 13:34:59 -0700
+Subject: ragel 5.23 released
+In-Reply-To: <46B10C37.7040000@cs.queensu.ca>
+References: <46A67146.7020209@cs.queensu.ca>
+   <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+   <46B10C37.7040000@cs.queensu.ca>
+Message-ID: <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+
+
+None of the issues are all that important (esp. the underscores thing,
+of course ;-) ), but...
+
+On Aug 1, 11:41 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Steve Horne wrote:
+> > First, any chance of a new built-in machine? - one that never matches
+> > anything? The idea is to use it in placeholder rules, that will be
+> > filled in later - options that aren't implemented yet.
+>
+> I don't understand this, filled in at what time? Could you please be
+> specific in terms of the compilation of a Ragel program.
+
+It's a development lifecycle thing, rather like being able to declare
+methods as deprecated in some programming languages but for use mainly
+at the beginning of the lifecycle rather than during maintenance.
+
+I want to be able to reference a machine in higher level machines that
+I have defined, but not necessarily define what that new machine
+contains quite yet - top-down functional decomposition IOW. Declaring
+the new machine as not matching anything sounds like the easiest way
+to do that.
+
+It's my view that any DSL should make life as easy as possible for
+users who are not particularly familiar with them, since DSLs are
+mostly used only occasionally. Ragel already does pretty well in this
+respect - e.g. the ability to generate dot visualisations means that a
+lot of initial development can be done without worrying about actions
+etc.
+
+In implementation terms, it should just be a matter of having two
+states (a start state and an end state) that are disconnected from
+each other. Then, the only obvious new issues compared with what you
+already have would be elimination of unreachable states and
+elimination of states from which it would be impossible to reach an
+end state - FSM minimisation doesn't necessarily handle this. Since
+this is just an initial development thing, even these may be
+considered non-issues.
+
+> > class classname
+> > {
+> >   static const int membername;
+> > };
+> > ...
+> > static const int classname::membername = 5;
+>
+> Is there a particular reason to want table data in a class? I can
+> imagine wanting variables that identify states (such as start_state) in
+> the class, but I can't see a reason to want table data.
+
+It's entirely about programming style and habits.
+
+Data that is only used by a particular class should in principle be
+member data, if only to express the intent that the data should not be
+accessed from outside the class. That won't be appropriate in every
+case, even assuming that a class is used at all, and its not that
+important since the static flags already tell both the user and
+compiler not to allow access from other source files, but it is not a
+good idea to get between a programmer and his good-style ideology ;-)
+
+
+From thurs... at cs.queensu.ca  Fri Aug  3 17:15:36 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Aug 2007 13:15:36 -0400
+Subject: [ragel-users] Re: ragel 5.23 released
+In-Reply-To: <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+References: <46A67146.7020209@cs.queensu.ca> <1185350645.365300.67370@w3g2000hsg.googlegroups.com> <46B10C37.7040000@cs.queensu.ca> <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+Message-ID: <46B362B8.4060307@cs.queensu.ca>
+
+Hi Steve,
+
+You can make such a machine like this:
+
+later = start: "", "" -> final;
+
+Though using this machine will be difficult. It will create unreachable
+states that Ragel removes during compilation. You could give the final
+state a label and then reference the label in an action to make sure
+that the path from final state onward sticks around, but that's somewhat
+hackish.
+
+I would suggest instead giving it a transition, preferably some
+character out of the range of allowable input characters.
+
+alphtype int;
+later = 0x100;
+main := 'm' later '\n';
+
+-Adrian
+
+
+Steve Horne wrote:
+> 
+> None of the issues are all that important (esp. the underscores thing,
+> of course ;-) ), but...
+> 
+> On Aug 1, 11:41 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Steve Horne wrote:
+>>> First, any chance of a new built-in machine? - one that never matches
+>>> anything? The idea is to use it in placeholder rules, that will be
+>>> filled in later - options that aren't implemented yet.
+>> I don't understand this, filled in at what time? Could you please be
+>> specific in terms of the compilation of a Ragel program.
+> 
+> It's a development lifecycle thing, rather like being able to declare
+> methods as deprecated in some programming languages but for use mainly
+> at the beginning of the lifecycle rather than during maintenance.
+> 
+> I want to be able to reference a machine in higher level machines that
+> I have defined, but not necessarily define what that new machine
+> contains quite yet - top-down functional decomposition IOW. Declaring
+> the new machine as not matching anything sounds like the easiest way
+> to do that.
+> 
+> It's my view that any DSL should make life as easy as possible for
+> users who are not particularly familiar with them, since DSLs are
+> mostly used only occasionally. Ragel already does pretty well in this
+> respect - e.g. the ability to generate dot visualisations means that a
+> lot of initial development can be done without worrying about actions
+> etc.
+> 
+> In implementation terms, it should just be a matter of having two
+> states (a start state and an end state) that are disconnected from
+> each other. Then, the only obvious new issues compared with what you
+> already have would be elimination of unreachable states and
+> elimination of states from which it would be impossible to reach an
+> end state - FSM minimisation doesn't necessarily handle this. Since
+> this is just an initial development thing, even these may be
+> considered non-issues.
+> 
+>>> class classname
+>>> {
+>>>   static const int membername;
+>>> };
+>>> ...
+>>> static const int classname::membername = 5;
+>> Is there a particular reason to want table data in a class? I can
+>> imagine wanting variables that identify states (such as start_state) in
+>> the class, but I can't see a reason to want table data.
+> 
+> It's entirely about programming style and habits.
+> 
+> Data that is only used by a particular class should in principle be
+> member data, if only to express the intent that the data should not be
+> accessed from outside the class. That won't be appropriate in every
+> case, even assuming that a class is used at all, and its not that
+> important since the static flags already tell both the user and
+> compiler not to allow access from other source files, but it is not a
+> good idea to get between a programmer and his good-style ideology ;-)
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070803/7cf8736a/attachment-0001.sig>
+
+From stephenhorne... at aol.com  Sat Aug  4 04:09:37 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Fri, 03 Aug 2007 21:09:37 -0700
+Subject: ragel 5.23 released
+In-Reply-To: <46B362B8.4060307@cs.queensu.ca>
+References: <46A67146.7020209@cs.queensu.ca>
+   <1185350645.365300.67370@w3g2000hsg.googlegroups.com>
+   <46B10C37.7040000@cs.queensu.ca>
+   <1186086899.597345.89180@m37g2000prh.googlegroups.com>
+   <46B362B8.4060307@cs.queensu.ca>
+Message-ID: <1186200577.718465.304740@l70g2000hse.googlegroups.com>
+
+
+
+On Aug 3, 6:15 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> You can make such a machine like this:
+>
+> later = start: "", "" -> final;
+>
+> Though using this machine will be difficult. It will create unreachable
+> states that Ragel removes during compilation.
+
+That actually works almost perfectly - certainly it solves the
+immediate problem.
+
+I tested it with the following...
+
+%%{  machine  test_null;
+
+     h = 1;
+     j = 2;
+     k = 3;
+
+     X = start: "", "" -> final;
+
+     A = h j k;
+     B = h h X k;
+     C = k k X h;
+     D = k j h;
+
+     main := A | B | C | D;
+}%%
+
+I get an FSM that clearly accepts the A and D alternatives as it
+should, and does not accept the B and C variants or any unwanted
+sequences. The only extremely minor issue (non-issue, really) is that
+one state is kept that perhaps should be eliminated - a state that is
+reachable, but which is not an end state and which has no outward
+transitions. OTOH, keeping this dead-end state might be a good thing -
+I can test cases B and C as far as they are defined if I need to.
+
+Thanks.
+
+
+From t... at 2p.cz  Sun Aug 12 14:18:53 2007
+From: t... at 2p.cz (TMa)
+Date: Sun, 12 Aug 2007 07:18:53 -0700
+Subject: New project abnfgen: Ragel code generator from ABNF
+Message-ID: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+
+Hi *,
+I have published at http://www.2p.cz/en/abnf_gen new project related
+to Ragel. Abnfgen converts rules defined in ABNF format into Ragel
+state machine definition. ABNF is used in many RFCs as protocol
+definition language so it should simplify development.
+
+Note that Ragel definition for abnfgen itself is probably not 100%
+accurate because there is known situation where result is not correct
+(comment in source) but I think it not critical.
+
+Tomas
+
+
+From thurs... at cs.queensu.ca  Mon Aug 13 03:48:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 12 Aug 2007 23:48:04 -0400
+Subject: [ragel-users] New project abnfgen: Ragel code generator from
+ ABNF
+In-Reply-To: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+References: <1186928333.628249.286640@57g2000hsv.googlegroups.com>
+Message-ID: <46BFD474.6020800@cs.queensu.ca>
+
+Interesting, thanks for sharing. Grammars in RFCs are not always the
+easiest to make parsers for so it's good to see work on this kind of thing.
+
+Adrian
+
+TMa wrote:
+> Hi *,
+> I have published at http://www.2p.cz/en/abnf_gen new project related
+> to Ragel. Abnfgen converts rules defined in ABNF format into Ragel
+> state machine definition. ABNF is used in many RFCs as protocol
+> definition language so it should simplify development.
+> 
+> Note that Ragel definition for abnfgen itself is probably not 100%
+> accurate because there is known situation where result is not correct
+> (comment in source) but I think it not critical.
+> 
+> Tomas
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070812/bade40a9/attachment-0001.sig>
+
+From t... at 2p.cz  Sun Aug 12 14:28:22 2007
+From: t... at 2p.cz (TMa)
+Date: Sun, 12 Aug 2007 07:28:22 -0700
+Subject: Debugging feature for Ragel state machines
+Message-ID: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+
+Hi *,
+when debugging own machine I found it's hard to detect problems. I
+missed something like:
+
+1) optional debug code included in generated files could help
+testing own machines. E.g. a debug message could be printed out
+containing
+current __LINE__,cs, to, stack, fpc and user info text. Currently I
+tried create
+a "$" action but it's not perfect, i think the action is not called
+allways.
+Or am I wrong?
+
+2) can ragel tell if constructed machine is potentially ambigious and
+where ? It's hard
+to see if there is some problem part and I spent many days attemp/
+mistake to
+get work my machine generated from ABNF.
+
+GraphViz diagram is perfect but it's hard to say where particular
+circle/arrow come from and in my case it was also so huge I had
+problem to open it. And it's not run-time debugging as well.
+
+Otherwise Ragel is famous of course, thanks.
+Tomas
+
+
+From thurs... at cs.queensu.ca  Mon Aug 13 04:06:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 13 Aug 2007 00:06:18 -0400
+Subject: [ragel-users] Debugging feature for Ragel state machines
+In-Reply-To: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+References: <1186928902.325193.310540@57g2000hsv.googlegroups.com>
+Message-ID: <46BFD8BA.1020908@cs.queensu.ca>
+
+
+TMa wrote:
+> 1) optional debug code included in generated files could help
+> testing own machines. E.g. a debug message could be printed out
+> containing
+> current __LINE__,cs, to, stack, fpc and user info text. Currently I
+> tried create
+> a "$" action but it's not perfect, i think the action is not called
+> allways.
+> Or am I wrong?
+
+Yes a feature like this is needed. It would be possible to trace states
+back to positions in the source ragel file (a single state would map to
+multiple positions). A debug feature should print this info as it steps
+over input. There is an entry in the TODO to this effect.
+
+The action should be called every time, though if you use a jump or call
+and a debug action follows then it will get skipped. You could use $*
+instead. This will cause the debug action to be executed before any
+transition actions.
+
+> 2) can ragel tell if constructed machine is potentially ambigious and
+> where ? It's hard
+> to see if there is some problem part and I spent many days attemp/
+> mistake to
+> get work my machine generated from ABNF.
+
+This kind of feature is also a good idea and I've been wanting to do it
+for a while but I haven't gotten to it. My hope is to someday have an
+ambiguity report option which tells you which definitions overlap. For
+regular languages this is straightforward (though undecidable for CFLs)
+
+In the meantime if you want test if two machines overlap you can use
+action embedding operators ($ or $*) to embed named actions and then
+look in the intermediate file or the graphviz output for transitions
+that execute both of the actions.
+
+Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070813/6dcfb2f7/attachment-0001.sig>
+
+From ddri... at gmail.com  Mon Aug 27 14:25:07 2007
+From: ddri... at gmail.com (ddri... at gmail.com)
+Date: Mon, 27 Aug 2007 14:25:07 -0000
+Subject: Newbie advice
+Message-ID: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+
+Hello,
+
+I'm trying to use Ragel to split apart a structured text file.  As a
+simplified example, I want to split apart sections of a file separated
+by "--" on its own line, e.g.:
+
+foo--
+bar
+--
+bing
+--
+--
+baz
+--
+
+This sample has four sections (the third one is empty).  I've got a
+simple machine like this that seems to work:
+
+    section = (any* $onChar '\n')? :>> "--\n" @onSection;
+    main := section*;
+
+The idea is that I buffer up section data in the onChar action, and
+then I can process it in onSection.  While this machine does seem to
+work, onChar is being called for the trailing "--".  I understand why
+this is being done, but I'm looking for advice to work around it.
+Should I just delete the trailing "--" in onSection?  Or is there a
+better way?
+
+Thanks,
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 14:57:01 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 27 Aug 2007 10:57:01 -0400
+Subject: [ragel-users] Newbie advice
+In-Reply-To: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+Message-ID: <46D2E63D.9040704@cs.queensu.ca>
+
+Hi Dave,
+
+Yes you have the idea, just remove '--\n' from the possible matches of a
+line.
+
+%%{
+    machine sections;
+    action onSection {}
+
+    any_line = [^\n]* '\n';
+    marker_line = '--\n';
+
+    section = (any_line - marker_line)* marker_line @onSection;
+
+    main = section*;
+}%%
+
+Cheers,
+ Adrian
+
+ddri... at gmail.com wrote:
+> Hello,
+> 
+> I'm trying to use Ragel to split apart a structured text file.  As a
+> simplified example, I want to split apart sections of a file separated
+> by "--" on its own line, e.g.:
+> 
+> foo--
+> bar
+> --
+> bing
+> --
+> --
+> baz
+> --
+> 
+> This sample has four sections (the third one is empty).  I've got a
+> simple machine like this that seems to work:
+> 
+>     section = (any* $onChar '\n')? :>> "--\n" @onSection;
+>     main := section*;
+> 
+> The idea is that I buffer up section data in the onChar action, and
+> then I can process it in onSection.  While this machine does seem to
+> work, onChar is being called for the trailing "--".  I understand why
+> this is being done, but I'm looking for advice to work around it.
+> Should I just delete the trailing "--" in onSection?  Or is there a
+> better way?
+> 
+> Thanks,
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070827/e0341aef/attachment-0001.sig>
+
+From ddri... at gmail.com  Mon Aug 27 15:41:53 2007
+From: ddri... at gmail.com (ddri... at gmail.com)
+Date: Mon, 27 Aug 2007 15:41:53 -0000
+Subject: Newbie advice
+In-Reply-To: <46D2E63D.9040704@cs.queensu.ca>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+Message-ID: <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+
+Hi Adrian,
+
+Thanks for the quick reply.  If I add an action to accumlate
+characters from the body of the section that, like this:
+
+    section = (any_line - marker_line)* $onChar marker_line
+@onSection;
+
+onChar still seems to get called for part of the marker line, i.e. for
+the '--', but not the final '\n'.  Or is there a better way to do the
+accumulation?
+
+Thanks,
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 16:22:39 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 27 Aug 2007 12:22:39 -0400
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+Message-ID: <46D2FA4F.9030504@cs.queensu.ca>
+
+The easy ways are to use a scanner or to remove the unwanted dashes from
+the buffer afterwards (you know they are always going to be there).
+
+But it's also possible to design a state machine that doesn't add to the
+buffer when it sees '-', but does so on following characters. See this
+thread:
+
+http://groups.google.com/group/ragel-users/browse_thread/thread/c3c9170bfccc0a90/#
+
+Adrian
+
+ddri... at gmail.com wrote:
+> Hi Adrian,
+> 
+> Thanks for the quick reply.  If I add an action to accumlate
+> characters from the body of the section that, like this:
+> 
+>     section = (any_line - marker_line)* $onChar marker_line
+> @onSection;
+> 
+> onChar still seems to get called for part of the marker line, i.e. for
+> the '--', but not the final '\n'.  Or is there a better way to do the
+> accumulation?
+> 
+> Thanks,
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070827/e4de095f/attachment-0001.sig>
+
+From ddri... at gmail.com  Mon Aug 27 16:53:24 2007
+From: ddri... at gmail.com (Dave Dribin)
+Date: Mon, 27 Aug 2007 16:53:24 -0000
+Subject: Newbie advice
+In-Reply-To: <46D2FA4F.9030504@cs.queensu.ca>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+   <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+   <46D2FA4F.9030504@cs.queensu.ca>
+Message-ID: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+
+Thanks, again.  Can you see anything wrong with the following
+approach?  To make it more interesting, I want to handle both Unix and
+Windows newlines:
+
+    newline = '\r'? '\n' @onNewline;
+    any_line = [^\r\n]* newline;
+    marker_line = '--' newline;
+    section_body = (any_line - marker_line)*;
+
+    section = (section_body marker_line $countMarker) $onChar
+@onSection;
+
+Thus, onChar buffers up the entire section, including the full marker
+line.  But countMarker counts the number of characters in used in the
+variable length marker, and onSection strips that many characters from
+the buffer.
+
+This seems to handle the general case of a variable length terminating
+marker.  The downside is that it buffers up extra characters only to
+yank them off, at the end.  So long as the terminating marker is
+fairly short, I don't see this being a major issue.
+
+Is it possible for countMarker to set an "ignore" flag that onChar
+checks?  This would require that the countMarker action be called
+before onChar, though, and I don't know if that is guaranteed.
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Mon Aug 27 17:37:10 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 27 Aug 2007 17:37:10 +0000
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+References: <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com> <46D2FA4F.9030504@cs.queensu.ca><1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+Message-ID: <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+
+Hi Dave,
+
+Counting works in this case but it doesn't work for arbitrary terminating patterns. Consider the pattern that begins to match but then fails and restarts half-way through with the two potential matches overlapping. You can't get an accurate count. In more general tems the problem is that the machine is matching concurrently but using a single instance of context data.
+
+This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+
+Adrian
+-----Original Message-----
+From: Dave Dribin <ddribin at gmail.com>
+
+Date: Mon, 27 Aug 2007 16:53:24 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Newbie advice
+
+
+
+Thanks, again.  Can you see anything wrong with the following
+approach?  To make it more interesting, I want to handle both Unix and
+Windows newlines:
+
+    newline = '\r'? '\n' @onNewline;
+    any_line = [^\r\n]* newline;
+    marker_line = '--' newline;
+    section_body = (any_line - marker_line)*;
+
+    section = (section_body marker_line $countMarker) $onChar
+@onSection;
+
+Thus, onChar buffers up the entire section, including the full marker
+line.  But countMarker counts the number of characters in used in the
+variable length marker, and onSection strips that many characters from
+the buffer.
+
+This seems to handle the general case of a variable length terminating
+marker.  The downside is that it buffers up extra characters only to
+yank them off, at the end.  So long as the terminating marker is
+fairly short, I don't see this being a major issue.
+
+Is it possible for countMarker to set an "ignore" flag that onChar
+checks?  This would require that the countMarker action be called
+before onChar, though, and I don't know if that is guaranteed.
+
+-Dave
+
+
+
+
+
+From ddri... at gmail.com  Mon Aug 27 22:04:30 2007
+From: ddri... at gmail.com (Dave Dribin)
+Date: Mon, 27 Aug 2007 15:04:30 -0700
+Subject: Newbie advice
+In-Reply-To: <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+References: <1188233604.825130.262880@g4g2000hsf.googlegroups.com>
+   <1188224707.121365.10210@g4g2000hsf.googlegroups.com>
+   <46D2E63D.9040704@cs.queensu.ca>
+   <1188229313.567050.128710@r34g2000hsd.googlegroups.com>
+   <46D2FA4F.9030504@cs.queensu.ca>
+   <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry>
+Message-ID: <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+
+Hi Adrian,
+
+On Aug 27, 12:37 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+
+Okay, even though I don't need a scanner for this particular example,
+I decided to try it just to learn more about scanners.  I can't quite
+figure out how to use it in this case.  Here's my first attempt:
+
+    marker_line = '--' newline;
+    main := |*
+        marker_line => { printf("\n"); };
+        any => {
+            printf("%c", isprint(*tokstart)? *tokstart : '.');
+        };
+        *|;
+
+This doesn't force marker_line to be at the start of the line, though,
+and will match any line that ends in "--".  Plus, it won't force the
+last section to end in "--\n".
+
+Thanks for your help as I learn this tool.
+
+-Dave
+
+
+From thurs... at cs.queensu.ca  Tue Aug 28 17:43:31 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 28 Aug 2007 13:43:31 -0400
+Subject: [ragel-users] Re: Newbie advice
+In-Reply-To: <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+References: <1188233604.825130.262880@g4g2000hsf.googlegroups.com> <1188224707.121365.10210@g4g2000hsf.googlegroups.com> <46D2E63D.9040704@cs.queensu.ca> <1188229313.567050.128710@r34g2000hsd.googlegroups.com> <46D2FA4F.9030504@cs.queensu.ca> <1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-@bxe124.bisx.prod.on.blackberry> <1188252270.173016.251600@k79g2000hse.googlegroups.com>
+Message-ID: <46D45EC3.3010609@cs.queensu.ca>
+
+Hi David,
+
+Instead of using any to match stuff that isn't a marker, use a pattern
+that ends in newline, then the scanner will be consuming line-by-line
+and marker line will be restricted to matching lines that contain only '--'.
+
+Cheers,
+ Adrian
+
+Dave Dribin wrote:
+> Hi Adrian,
+> 
+> On Aug 27, 12:37 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+>> This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+> 
+> Okay, even though I don't need a scanner for this particular example,
+> I decided to try it just to learn more about scanners.  I can't quite
+> figure out how to use it in this case.  Here's my first attempt:
+> 
+>     marker_line = '--' newline;
+>     main := |*
+>         marker_line => { printf("\n"); };
+>         any => {
+>             printf("%c", isprint(*tokstart)? *tokstart : '.');
+>         };
+>         *|;
+> 
+> This doesn't force marker_line to be at the start of the line, though,
+> and will match any line that ends in "--".  Plus, it won't force the
+> last section to end in "--\n".
+> 
+> Thanks for your help as I learn this tool.
+> 
+> -Dave
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070828/04e5e8ce/attachment-0001.sig>
+
+From jegan... at yahoo.com  Thu Aug 30 03:26:08 2007
+From: jegan... at yahoo.com (iceman)
+Date: Wed, 29 Aug 2007 20:26:08 -0700
+Subject: is this possible?
+Message-ID: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+
+hi all,
+i came to know about ragel recently.i would like to know whether it is
+possible to do the following using ragel..
+i would like to parse packets[bit patterns] and get out token which
+represent the function..this should be passed to the state machine..
+in the state machine depending upon the state and  the token a
+particular action should take place depending on the token..
+
+i would like to know whether this particular action can be done by the
+parser in ragel..
+
+thanks inadvance
+jag
+
+
+From thurs... at cs.queensu.ca  Thu Aug 30 20:41:33 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 30 Aug 2007 16:41:33 -0400
+Subject: [ragel-users] is this possible?
+In-Reply-To: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+Message-ID: <46D72B7D.7000405@cs.queensu.ca>
+
+Hi,
+
+Yes you can do this kind of thing with Ragel. Patterns can be specified
+using hexadecimal or decimal numbers. Also, you could choose to chain
+machines together, or depending on what it is you need to parse you
+could do all the parsing with one machine.
+
+Regards,
+ Adrian
+
+iceman wrote:
+> hi all,
+> i came to know about ragel recently.i would like to know whether it is
+> possible to do the following using ragel..
+> i would like to parse packets[bit patterns] and get out token which
+> represent the function..this should be passed to the state machine..
+> in the state machine depending upon the state and  the token a
+> particular action should take place depending on the token..
+> 
+> i would like to know whether this particular action can be done by the
+> parser in ragel..
+> 
+> thanks inadvance
+> jag
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070830/e6e62c67/attachment-0001.sig>
+
+From stephenhorne... at aol.com  Thu Aug 30 20:58:40 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 30 Aug 2007 13:58:40 -0700
+Subject: is this possible?
+In-Reply-To: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+Message-ID: <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+
+
+That's a very vague requirement!
+
+Let's see...
+
+> i would like to parse packets[bit patterns] and get out token which
+> represent the function..
+
+Ragel generates a state machine, which it uses to extract tokens from
+input. In principle, the state machine takes as input a stream of
+characters, though in practice those 'characters' can be anything you
+can represent using integers (the precise type can be specified to get
+more bits per character).
+
+It isn't clear from your description whether the state machine you are
+talking about would be the one Ragel generates for you, or some other
+one, but either case is fine. You basically supply your own 'template'
+code for the Ragel state machine, so you can get your input character
+stream any way you want and use your output tokens in any way you
+want.
+
+You could even use the output from one Ragel machine as the input for
+another one.
+
+The only doubt I have is your mention of 'bit patterns'. As you can
+handle input any way you want, there is in principle no difficulty,
+but to the best of my knowledge you cannot use the current state to
+determine how to decode the next input. You could not take variable-
+bit-width characters from the input, for instance.
+
+You certainly can handle something like UTF-8 decoding, though - you
+just have a machine that takes 8-bit 'characters' as input and outputs
+unicode codepoints as its result (possibly sending them to another
+Ragel machine that tokenises the unicode character sequence).
+Actually, there's no reason why you can't convert UTF-8 to unicode
+codepoints in a single Ragel machine, but it's probably easier to
+cascade two machines to do the job.
+
+Equally, you could process a Huffman-encoded input if you really want
+to. You couldn't handle the input in multi-bit chunks, but you could
+handle it one bit at a time. The only condition is that the particular
+encoding would have to be fixed. This would work because Huffman
+encoding is a variable-width encoding, designed in such a way that you
+can find the end of each character using a finite state machine.
+
+The Ragel manual is very good, by the way. Just read the section on
+the 'interface to the host program' and I think all your questions
+will be answered.
+
+However, just on the off chance, I'll also recommend that you take a
+look at the SMC project...
+
+http://smc.sourceforge.net/
+
+I've not actually used it myself, whereas I use Ragel a lot, but
+depending on your state machine requirements it could be more
+appropriate.
+
+Ragel has a far more powerful model for specifying finite state
+machines in that it supports regular grammar handling features (like
+regular expressions, but better) as well as explicit specification of
+transitions, and the two forms can be mixed as needed. It also allows
+backtracking scanners (like flex - the scanner generator, not the
+Adobe web framework thing).
+
+Where SMC appears to win out is if you already have a pure state-
+transition model (e.g. based on a UML state diagram) and you want to
+handle events that are like class methods, with parameters.
+
+
+From jegan... at yahoo.com  Fri Aug 31 05:38:57 2007
+From: jegan... at yahoo.com (iceman)
+Date: Fri, 31 Aug 2007 05:38:57 -0000
+Subject: is this possible?
+In-Reply-To: <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com>
+   <1188507520.004288.103890@q4g2000prc.googlegroups.com>
+Message-ID: <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+
+sorry about the vague description..
+
+basically i am working with click modular routers.i am trying to
+separate the data plane and the control plane..
+
+i will try to represent the control plane with a state machine..the
+the packets[like those of sk_buffer]will have to be to parsed and and
+the the control action[like binding update and router solicitation
+etc]should be converted to tokens and fed into the state machine...in
+the state machine depening upon the state an action should take place
+with state transition..
+
+what i am worried about is that will it be possible for me to use the
+parser associated with  that of ragel to parse the incoming packet[bit
+patterns] at real time?
+
+On Aug 31, 6:58 am, Steve Horne <stephenhorne... at aol.com> wrote:
+> That's a very vague requirement!
+>
+> Let's see...
+>
+> > i would like to parse packets[bit patterns] and get out token which
+> > represent the function..
+>
+> Ragel generates a state machine, which it uses to extract tokens from
+> input. In principle, the state machine takes as input a stream of
+> characters, though in practice those 'characters' can be anything you
+> can represent using integers (the precise type can be specified to get
+> more bits per character).
+>
+> It isn't clear from your description whether the state machine you are
+> talking about would be the one Ragel generates for you, or some other
+> one, but either case is fine. You basically supply your own 'template'
+> code for the Ragel state machine, so you can get your input character
+> stream any way you want and use your output tokens in any way you
+> want.
+>
+> You could even use the output from one Ragel machine as the input for
+> another one.
+>
+> The only doubt I have is your mention of 'bit patterns'. As you can
+> handle input any way you want, there is in principle no difficulty,
+> but to the best of my knowledge you cannot use the current state to
+> determine how to decode the next input. You could not take variable-
+> bit-width characters from the input, for instance.
+>
+> You certainly can handle something like UTF-8 decoding, though - you
+> just have a machine that takes 8-bit 'characters' as input and outputs
+> unicode codepoints as its result (possibly sending them to another
+> Ragel machine that tokenises the unicode character sequence).
+> Actually, there's no reason why you can't convert UTF-8 to unicode
+> codepoints in a single Ragel machine, but it's probably easier to
+> cascade two machines to do the job.
+>
+> Equally, you could process a Huffman-encoded input if you really want
+> to. You couldn't handle the input in multi-bit chunks, but you could
+> handle it one bit at a time. The only condition is that the particular
+> encoding would have to be fixed. This would work because Huffman
+> encoding is a variable-width encoding, designed in such a way that you
+> can find the end of each character using a finite state machine.
+>
+> The Ragel manual is very good, by the way. Just read the section on
+> the 'interface to the host program' and I think all your questions
+> will be answered.
+>
+> However, just on the off chance, I'll also recommend that you take a
+> look at the SMC project...
+>
+> http://smc.sourceforge.net/
+>
+> I've not actually used it myself, whereas I use Ragel a lot, but
+> depending on your state machine requirements it could be more
+> appropriate.
+>
+> Ragel has a far more powerful model for specifying finite state
+> machines in that it supports regular grammar handling features (like
+> regular expressions, but better) as well as explicit specification of
+> transitions, and the two forms can be mixed as needed. It also allows
+> backtracking scanners (like flex - the scanner generator, not the
+> Adobe web framework thing).
+>
+> Where SMC appears to win out is if you already have a pure state-
+> transition model (e.g. based on a UML state diagram) and you want to
+> ha
+ndle events that are like class methods, with parameters.
+
+

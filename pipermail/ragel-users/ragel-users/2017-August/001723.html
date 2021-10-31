@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%22include%22%20does%20not%20check%20same%20directory%20in%20ragel%207%3F%20%28trying%0A%20to%20build%20rspamd%29&In-Reply-To=%3C9826b410-f527-f314-0c0d-76a367f862a7%40oss.schwarz.eu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001728.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)</H1>
+    <B>Felix Schwarz</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%22include%22%20does%20not%20check%20same%20directory%20in%20ragel%207%3F%20%28trying%0A%20to%20build%20rspamd%29&In-Reply-To=%3C9826b410-f527-f314-0c0d-76a367f862a7%40oss.schwarz.eu%3E"
+       TITLE="[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)">felix.schwarz at oss.schwarz.eu
+       </A><BR>
+    <I>Sat Aug 19 21:30:55 UTC 2017</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001728.html">[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1723">[ date ]</a>
+              <a href="thread.html#1723">[ thread ]</a>
+              <a href="subject.html#1723">[ subject ]</a>
+              <a href="author.html#1723">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hey,
+
+I try to get rspamd (<A HREF="https://github.com/vstakhov/rspamd/">https://github.com/vstakhov/rspamd/</A>) to build while using
+ragel 7 [1]. As documented in various bug reports this is not possible right
+now and I'd like to find out why this is (knowning next to nothing about ragel).
+
+This is the error I'm getting (CentOS 7) with the latest colm/ragel/rspamd git
+versions:
+
+[ 43%] [RAGEL][ragel_smtp_addr] Compiling state machine with Ragel 7.0.0.10
+error: could not open smtp_address.rl
+/bin/sh: line 1:  9721 Segmentation fault      /usr/local/bin/ragel -T1
+-o/foo/rspamd/src/smtp_addr_parser.rl.c /foo/rspamd/src/ragel/smtp_addr_parser.rl
+make[2]: *** [src/smtp_addr_parser.rl.c] Error 139
+
+
+&quot;smtp_addr_parser.rl&quot; contains these lines (and some more):
+%%{
+
+  machine smtp_date_parser;
+  include smtp_date &quot;smtp_date.rl&quot;;
+
+  main := date_time;
+}%%
+
+&quot;smtp_date.rl&quot; is located in the same directory as &quot;smtp_date.rl&quot;. The script
+can be compiled with ragel 6 without any problems.
+
+If I add the full patch in the include statement everything works as expected.
+Also when I manually &quot;cd&quot; into the directory everything is fine.
+
+The &quot;ragel guide&quot; (PDF) for 6.10 says:
+&quot;Ragel searches for included files from the location of the current file.
+Additional directories can be added to the search path using the -I option.&quot;
+
+
+I seems that this behavior did change in 0.7 but I'm not sure if that is a bug
+or a conscious decision. Also adding &quot;-I /foo/rspamd/src/ragel/&quot; to the call
+did not help.
+
+thank you very much
+Felix
+
+
+[1] Background:
+Somehow the Fedora maintainer for ragel decided to use development releases of
+colm/ragel in Fedora (and even EPEL/CentOS). This unfortunate decision was
+maybe facilitated by the odd/even version numbering schema of ragel.
+
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001728.html">[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1723">[ date ]</a>
+              <a href="thread.html#1723">[ thread ]</a>
+              <a href="subject.html#1723">[ subject ]</a>
+              <a href="author.html#1723">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

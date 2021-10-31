@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Simple URL parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Simple%20URL%20parser&In-Reply-To=%3C952a0db1-e92f-4d74-882b-6a94645df9ba%40a9g2000prl.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Simple URL parser</H1>
+    <B>hsanson</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Simple%20URL%20parser&In-Reply-To=%3C952a0db1-e92f-4d74-882b-6a94645df9ba%40a9g2000prl.googlegroups.com%3E"
+       TITLE="Simple URL parser">hsan... at gmail.com
+       </A><BR>
+    <I>Fri May 23 06:10:47 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2384">[ date ]</a>
+              <a href="thread.html#2384">[ thread ]</a>
+              <a href="subject.html#2384">[ subject ]</a>
+              <a href="author.html#2384">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>To learn how to use Ragel I am implementing a simple URL parser that
+receives something like &quot;<A HREF="http://www.ragel.com:8080/file.txt">http://www.ragel.com:8080/file.txt</A>&quot; and
+returns each part (scheme, hostname, port, path) as strings. As I
+understand doing this with Ragel should be a breeze.
+
+Still there is something I am not getting right and would like some
+advice, see code below:
+
+The scheme part seems to work so I assume my understanding of Ragel is
+not that bad. The problem is with the hostname and port parts. The
+hostname action gets called for each character on the hostname, that
+is not the intended behavior and the port action never gets called.
+
+Any tips to take me back on track would be greatly appreciated.
+
+Horacio
+
+//###################################
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+typedef struct {
+    char *scheme;
+    char *hostname;
+    char *service;
+    char *path;
+    char *uri;
+} suj_url;
+
+%%{
+    machine uri_parser;
+
+# Actions
+    action mark_start {
+        start = fpc;
+        printf(&quot;Mark start at %c\n&quot;, fc);
+    }
+
+    action scheme {
+        size_t len = fpc - start + 1;
+        url-&gt;scheme = calloc(len,sizeof(char));
+        strncpy(url-&gt;scheme, start, len);
+        url-&gt;scheme[len]='\0';
+        printf(&quot;scheme: %s\n&quot;,url-&gt;scheme);
+    }
+
+    action host {
+        size_t len = fpc - start + 1;
+        url-&gt;hostname = calloc(len,sizeof(char));
+        strncpy(url-&gt;hostname, start, len);
+        url-&gt;hostname[len]='\0';
+        printf(&quot;host: %s\n&quot;,url-&gt;hostname);
+    }
+
+    action port {
+        size_t len = fpc - start + 1;
+        url-&gt;service = calloc(len,sizeof(char));
+        strncpy(url-&gt;service, start, len);
+        url-&gt;service[len]='\0';
+        printf(&quot;service: %s\n&quot;,url-&gt;service);
+    }
+# Grammar
+    escaped = (&quot;%&quot; xdigit xdigit);
+    scheme = (&quot;http&quot;i | &quot;rtsp&quot;i | &quot;rtp&quot;i) &gt;mark_start @scheme;
+    port   = (&quot;:&quot; digit+) &gt;mark_start %port;
+    host   = (any* -- (&quot;/&quot; | &quot;:&quot;)) &gt;mark_start @host;
+
+    uri = (scheme &quot;://&quot; host  port ) . '\0';
+
+# Main
+    main := uri;
+
+}%%
+
+%%write data;
+
+suj_url * suj_url_new(char *uri)
+{
+    suj_url *url;
+    char *start;
+    char *end;
+
+    int cs;
+    %% write init;
+
+    char *p = uri;
+    char *pe = p + strlen(uri);
+
+    url = calloc(1,sizeof(url));
+    url-&gt;uri = calloc(strlen(uri),sizeof(char));
+    strncpy(url-&gt;uri,uri, strlen(uri));
+
+    %% write exec;
+
+    return url;
+}
+
+int main(int argc, char **argv)
+{
+    suj_url *url;
+    url = suj_url_new(&quot;<A HREF="rtp://www.ragel.org:8080">rtp://www.ragel.org:8080</A>&quot;);
+}
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2384">[ date ]</a>
+              <a href="thread.html#2384">[ thread ]</a>
+              <a href="subject.html#2384">[ subject ]</a>
+              <a href="author.html#2384">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

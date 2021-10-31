@@ -1,0 +1,82 @@
+<tt>
+&lt;!DOCTYPE&nbsp;html&nbsp;PUBLIC&nbsp;&quot;-//W3C//DTD&nbsp;HTML&nbsp;4.01&nbsp;Transitional//EN&quot;&gt;<br>
+&lt;html&gt;<br>
+&lt;head&gt;<br>
+&lt;/head&gt;<br>
+&lt;body&nbsp;bgcolor=&quot;#ffffff&quot;&nbsp;text=&quot;#000000&quot;&gt;<br>
+Hi,&nbsp;all.&lt;br&gt;<br>
+&lt;pre&gt;<br>
+I'm&nbsp;very&nbsp;new&nbsp;to&nbsp;ragel&nbsp;and&nbsp;the&nbsp;solution&nbsp;to&nbsp;my&nbsp;problem&nbsp;may&nbsp;seem&nbsp;obvious,&nbsp;but&nbsp;I&nbsp;googled&nbsp;a&nbsp;lot&nbsp;and&nbsp;could&nbsp;not&nbsp;find&nbsp;a&nbsp;solution&nbsp;to&nbsp;it.<br>
+<br>
+I&nbsp;need&nbsp;to&nbsp;parse&nbsp;simplified&nbsp;mental&nbsp;ray&nbsp;&lt;a&nbsp;moz-do-not-send=&quot;true&quot;<br>
+&nbsp;href=&quot;http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59&quot;&gt;shader&nbsp;declarations&lt;/a&gt;.<br>
+<br>
+In&nbsp;general&nbsp;input&nbsp;looks&nbsp;like&nbsp;this:<br>
+<br>
+&lt;tt&gt;declare&nbsp;shader<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;dfn&gt;[&lt;/dfn&gt;&lt;i&gt;type&lt;/i&gt;&lt;dfn&gt;]&lt;/dfn&gt;&nbsp;&quot;&lt;i&gt;shader_name&lt;/i&gt;&quot;&nbsp;(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;i&gt;type&lt;/i&gt;&nbsp;&quot;&lt;i&gt;parameter_name&lt;/i&gt;&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;i&gt;type&lt;/i&gt;&nbsp;&quot;&lt;i&gt;parameter_name&lt;/i&gt;&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;dfn&gt;...&lt;/dfn&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;i&gt;type&lt;/i&gt;&nbsp;&quot;&lt;i&gt;parameter_name&lt;/i&gt;&quot;&lt;dfn&gt;&lt;/dfn&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;dfn&gt;[&lt;/dfn&gt;version&nbsp;&lt;i&gt;version&lt;/i&gt;&lt;sub&gt;int&lt;/sub&gt;&lt;dfn&gt;]&lt;/dfn&gt;<br>
+end&nbsp;declare&lt;/tt&gt;<br>
+<br>
+<br>
+My&nbsp;problem&nbsp;is&nbsp;that&nbsp;mental&nbsp;ray&nbsp;files&nbsp;are&nbsp;not&nbsp;restrictive&nbsp;to&nbsp;spaces&nbsp;and&nbsp;newlines,&nbsp;so&nbsp;two&nbsp;following&nbsp;declarations&nbsp;should&nbsp;be&nbsp;considered&nbsp;the&nbsp;same:<br>
+&lt;/pre&gt;<br>
+&lt;ol&gt;<br>
+&nbsp;&nbsp;&lt;li&gt;&lt;tt&gt;declare&nbsp;shader&nbsp;&quot;myShader&quot;&nbsp;(&nbsp;int&nbsp;&quot;param1&quot;,&nbsp;boolean&nbsp;&quot;param2&quot;&nbsp;) <br>
+version&nbsp;12&nbsp;end&nbsp;declare&lt;/tt&gt;&lt;/li&gt;<br>
+&nbsp;&nbsp;&lt;li&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;pre&gt;declare&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shader&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;myShader&quot;&nbsp;(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;param1&quot;&nbsp;&nbsp;&nbsp;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean&nbsp;&quot;param2&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;version&nbsp;12<br>
+end&nbsp;declare&lt;/pre&gt;<br>
+&nbsp;&nbsp;&lt;/li&gt;<br>
+&lt;/ol&gt;<br>
+Here's&nbsp;my&nbsp;machine&nbsp;declaration:&lt;br&gt;<br>
+&lt;tt&gt;&lt;br&gt;<br>
+%%{&lt;br&gt;<br>
+   &nbsp;machine&nbsp;shader;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;sep&nbsp;=&nbsp;space+;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;shader_start&nbsp;=&nbsp;'declare'&nbsp;.&nbsp;sep&nbsp;.&nbsp;'shader'&nbsp;.&nbsp;sep;&lt;br&gt;<br>
+   &nbsp;shader_end&nbsp;=&nbsp;'end'&nbsp;.&nbsp;sep&nbsp;.&nbsp;'declare'&nbsp;.&nbsp;sep;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;string&nbsp;=&nbsp;'&quot;'&nbsp;.&nbsp;(alnum&nbsp;|&nbsp;'_')+&nbsp;.&nbsp;'&quot;'&nbsp;.&nbsp;sep;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;type&nbsp;=&nbsp;('boolean'&nbsp;|&nbsp;'integer'&nbsp;|&nbsp;'scalar')&nbsp;.&nbsp;sep;&lt;br&gt;<br>
+   &nbsp;version&nbsp;=&nbsp;'version'&nbsp;.&nbsp;sep&nbsp;.&nbsp;digit+&nbsp;.&nbsp;sep;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;parameter&nbsp;=&nbsp;string&nbsp;.&nbsp;type;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;parameter_block&nbsp;=&nbsp;parameter&nbsp;.&nbsp;(','&nbsp;.&nbsp;sep&nbsp;.&nbsp;parameter)*;&lt;br&gt;<br>
+   &nbsp;shader&nbsp;=&lt;br&gt;<br>
+   &nbsp;   &nbsp;shader_start&nbsp;.&lt;br&gt;<br>
+   &nbsp;   &nbsp;type?&nbsp;.&nbsp;string&nbsp;.&lt;br&gt;<br>
+   &nbsp;   &nbsp;'('&nbsp;.&nbsp;sep?&nbsp;.&nbsp;parameter_block?&nbsp;.&nbsp;')'&nbsp;.&nbsp;sep&nbsp;.&lt;br&gt;<br>
+   &nbsp;   &nbsp;version?&nbsp;.&lt;br&gt;<br>
+   &nbsp;   &nbsp;shader_end;&lt;br&gt;<br>
+   &nbsp;&lt;br&gt;<br>
+   &nbsp;main&nbsp;:=&nbsp;shader;&lt;br&gt;<br>
+}%%&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/tt&gt;As&nbsp;you&nbsp;can&nbsp;see&nbsp;there&nbsp;are&nbsp;too&nbsp;many&nbsp;&quot;sep&quot;s&nbsp;used&nbsp;in&nbsp;the&nbsp;declaration.<br>
+They&nbsp;seem&nbsp;to&nbsp;be&nbsp;a&nbsp;total&nbsp;mess&nbsp;to&nbsp;me,&nbsp;as&nbsp;I&nbsp;don't&nbsp;cannot&nbsp;even&nbsp;match&nbsp;the<br>
+following&nbsp;with&nbsp;my&nbsp;machine:&nbsp;&lt;b&gt;int&nbsp;&quot;qwe&quot;&nbsp;,&lt;/b&gt;&nbsp;(note&nbsp;the&nbsp;space&nbsp;between<br>
+a&nbsp;quote&nbsp;and&nbsp;a&nbsp;coma)&lt;br&gt;<br>
+&lt;br&gt;<br>
+Can&nbsp;anybody&nbsp;suggest&nbsp;a&nbsp;better&nbsp;way&nbsp;to&nbsp;define&nbsp;my&nbsp;machine&nbsp;in&nbsp;order&nbsp;to&nbsp;parse<br>
+such&nbsp;this&nbsp;kind&nbsp;of&nbsp;declarations?&nbsp;Maybe&nbsp;scanners&nbsp;could&nbsp;help&nbsp;me,&nbsp;but&nbsp;I'm<br>
+not&nbsp;sure&nbsp;whether&nbsp;they&nbsp;are&nbsp;capable&nbsp;to&nbsp;detect&nbsp;format&nbsp;errors&nbsp;or&nbsp;not.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&nbsp;Ihor&lt;br&gt;<br>
+&lt;/body&gt;<br>
+&lt;/html&gt;<br>
+
+</tt>

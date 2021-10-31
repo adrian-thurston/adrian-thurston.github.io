@@ -1,0 +1,267 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> can't pull parse strings - BUG?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20can%27t%20pull%20parse%20strings%20-%20BUG%3F&In-Reply-To=%3C1170697878.145251.186030%40a75g2000cwd.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001916.html">
+   <LINK REL="Next"  HREF="001902.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>can't pull parse strings - BUG?</H1>
+    <B>Jason</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20can%27t%20pull%20parse%20strings%20-%20BUG%3F&In-Reply-To=%3C1170697878.145251.186030%40a75g2000cwd.googlegroups.com%3E"
+       TITLE="can't pull parse strings - BUG?">jason2... at jasonjobe.com
+       </A><BR>
+    <I>Mon Feb  5 17:51:18 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001916.html">[ragel-users] Re: Next project using Ragel
+</A></li>
+        <LI>Next message: <A HREF="001902.html">[ragel-users] can't pull parse strings - BUG?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#138">[ date ]</a>
+              <a href="thread.html#138">[ thread ]</a>
+              <a href="subject.html#138">[ subject ]</a>
+              <a href="author.html#138">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've finally gotten a little time to start working with the new
+pullscan example.
+
+Everything was going well until I tried to add string tokens. The rl
+(below) works as is but un-comment the String rules and all hell
+breaks loose.
+
+Any pointers would be most welcome.
+
+---      TEST input file -------
+[target go: 124 with:(1..9) num:1,298,99 int:87 float:1,299.987]
+
+(list &quot;some string&quot;)
+(list 'some other string')
+
+-------------- mod_pullscan.rl ------------
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define BUFSIZE 4096
+
+typedef struct _Scanner {
+	/* Scanner state. */
+    int cs;
+    int act;
+    int have;
+    int curline;
+    char *tokstart;
+    char *tokend;
+    char *p;
+    char *pe;
+	FILE *file;
+	int done;
+
+	/* Token data */
+	char *data;
+	int len;
+    int value;
+	char *token_name;
+	char buf[BUFSIZE];
+} Scanner;
+
+
+void scan_init( Scanner *s, FILE *file )
+{
+	memset (s, '\0', sizeof(Scanner));
+	s-&gt;curline = 1;
+	s-&gt;file = file;
+}
+
+#define TK_NO_TOKEN (-1)
+#define TK_ERR 128
+#define TK_EOF 129
+#define TK_Identifier 130
+#define TK_Number 131
+#define TK_Keyword 132
+#define TK_String 133
+
+
+%%{
+	machine Scanner;
+	write data;
+}%%
+
+#define ret_tok( _tok ) token = _tok; s-&gt;data = s-&gt;tokstart; s-
+&gt;<i>token_name = #_tok
+</I>#define ret_char( _tok ) token = _tok; s-&gt;data = s-&gt;tokstart; s-
+&gt;<i>token_name = &quot;TK_Char&quot;
+</I>
+int scan( Scanner *s )
+{
+	char *p = s-&gt;p;
+	char *pe = s-&gt;pe;
+	int token = TK_NO_TOKEN;
+	int space, readlen;
+
+	while ( 1 ) {
+		if ( p == pe ) {
+			printf(&quot;scanner: need more data\n&quot;);
+
+			if ( s-&gt;tokstart == 0 )
+				s-&gt;have = 0;
+			else {
+				/* There is data that needs to be shifted over. */
+				printf(&quot;scanner: buffer broken mid token\n&quot;);
+				s-&gt;have = pe - s-&gt;tokstart;
+				memmove( s-&gt;buf, s-&gt;tokstart, s-&gt;have );
+				s-&gt;tokend -= (s-&gt;tokstart-s-&gt;buf);
+				s-&gt;tokstart = s-&gt;buf;
+			}
+
+			p = s-&gt;buf + s-&gt;have;
+			space = BUFSIZE - s-&gt;have;
+
+			if ( space == 0 ) {
+				/* We filled up the buffer trying to scan a token. */
+				printf(&quot;scanner: out of buffer space\n&quot;);
+				return TK_ERR;
+			}
+
+			if ( s-&gt;done ) {
+				printf(&quot;scanner: end of file\n&quot;);
+				p[0] = 0;
+				readlen = 1;
+			}
+			else {
+				readlen = fread( p, 1, space, s-&gt;file );
+				if ( readlen &lt; space )
+					s-&gt;done = 1;
+			}
+
+			pe = p + readlen;
+		}
+
+		%%{
+			machine Scanner;
+			access s-&gt;;
+
+			newline = '\n' @{s-&gt;curline += 1;};
+			any_count_line = any | newline;
+
+			main := |*
+
+			# Alpha numberic characters or underscore.
+			alnum_u = alnum | '_';
+
+			# Alpha charactres or underscore.
+			alpha_u = alpha | '_';
+
+			ident = alpha_u alnum_u*;
+
+			# Identifiers
+			ident =&gt;
+				{ ret_tok( TK_Identifier ); fbreak; };
+
+			# Keywords
+			ident ':' =&gt; {
+				ret_tok (TK_Keyword); fbreak;
+			};
+
+	# Strings
+#			&quot;'&quot; ( [^'\\] | /\\./ )* &quot;'&quot; =&gt; { ret_tok (TK_String); };
+#			'&quot;' ( [^&quot;\\] | /\\./ )* '&quot;' =&gt; { ret_tok (TK_String); };
+
+			# Whitespace
+			[ \t\n];
+
+			# Number
+			digit+ =&gt;
+				{ ret_tok( TK_Number ); fbreak; };
+
+			# EOF
+			0 =&gt;
+				{ ret_tok( TK_EOF ); fbreak; };
+
+			# Anything else
+			any =&gt;
+				{ ret_char( *p ); fbreak; };
+
+			*|;
+
+			write exec;
+		}%%
+
+		if ( s-&gt;cs == Scanner_error )
+			return TK_ERR;
+
+		if ( token != TK_NO_TOKEN ) {
+			/* Save p and pe. fbreak does not advance p. */
+			s-&gt;p = p + 1;
+			s-&gt;pe = pe;
+			s-&gt;len = s-&gt;p - s-&gt;data;
+			return token;
+		}
+	}
+}
+
+
+int main (int argc, char** argv)
+{
+	Scanner ss;
+	int tok;
+
+	scan_init(&amp;ss, stdin);
+
+	while ( 1 ) {
+		tok = scan (&amp;ss);
+		if ( tok == TK_EOF ) {
+			printf (&quot;parser: EOF\n&quot;);
+			break;
+		}
+		else if ( tok == TK_ERR ) {
+			printf (&quot;parser: ERR\n&quot;);
+			break;
+		}
+		else {
+			printf (&quot;parser: %s(%d) \&quot;&quot;, ss.token_name, tok);
+			fwrite ( ss.data, 1, ss.len, stdout );
+			printf (&quot;\&quot;\n&quot; );
+		}
+	}
+
+	return 0;
+}
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001916.html">[ragel-users] Re: Next project using Ragel
+</A></li>
+	<LI>Next message: <A HREF="001902.html">[ragel-users] can't pull parse strings - BUG?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#138">[ date ]</a>
+              <a href="thread.html#138">[ thread ]</a>
+              <a href="subject.html#138">[ subject ]</a>
+              <a href="author.html#138">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Acting when EOF
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Acting%20when%20EOF&In-Reply-To=%3Ccc1f582e0901270240o328f32afr6d7bb9e77323b4b7%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000834.html">
+   <LINK REL="Next"  HREF="000839.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Acting when EOF</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Acting%20when%20EOF&In-Reply-To=%3Ccc1f582e0901270240o328f32afr6d7bb9e77323b4b7%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Acting when EOF">ibc at aliax.net
+       </A><BR>
+    <I>Tue Jan 27 10:40:09 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000834.html">[ragel-users] Help beginning with Ragel
+</A></li>
+        <LI>Next message: <A HREF="000839.html">[ragel-users] Acting when EOF
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#835">[ date ]</a>
+              <a href="thread.html#835">[ thread ]</a>
+              <a href="subject.html#835">[ subject ]</a>
+              <a href="author.html#835">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, I've done a simple parser for a SIP URI (&quot;sip:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">user at domain.org</A>&quot;)
+but I can't get the last field (&quot;host&quot;):
+
+--------------------------------------------------------
+%%{
+	machine sip_uri;
+	
+	action _tag { mark_tag = p }
+	action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+	action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+	action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+	
+	protocol = ('sip'i|'sips'i) &gt;_tag %protocol ;
+	user = [a-zA-Z0-9]+ &gt;_tag %user ;
+	host = [.a-zA-Z0-9]+ &gt;_tag %host ;
+
+	main := protocol ':' user '@' host ;
+}%%
+
+run_machine &quot;sip:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">user at domain.org</A>&quot;
+-------------------------------------------------------
+
+The actions &quot;protocol&quot; and &quot;user&quot; are executed, storing the parsed
+data into a Ruby attribute, but the action &quot;host&quot; is not executed. I
+assume this occurs because leaving action (%) doesn't take place but
+EOF action. So I try to use a EOF action:
+
+	host = [.a-zA-Z0-9]+ &gt;_tag %/host ;
+
+But it doesn't work. I can't imagine how to get this &quot;host&quot; field, any
+help please?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000834.html">[ragel-users] Help beginning with Ragel
+</A></li>
+	<LI>Next message: <A HREF="000839.html">[ragel-users] Acting when EOF
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#835">[ date ]</a>
+              <a href="thread.html#835">[ thread ]</a>
+              <a href="subject.html#835">[ subject ]</a>
+              <a href="author.html#835">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

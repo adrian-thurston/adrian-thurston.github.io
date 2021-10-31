@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Multi-char terminators
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Multi-char%20terminators&In-Reply-To=%3C4526A008.6050208%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001784.html">
+   <LINK REL="Next"  HREF="000013.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Multi-char terminators</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Multi-char%20terminators&In-Reply-To=%3C4526A008.6050208%40cs.queensu.ca%3E"
+       TITLE="Multi-char terminators">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Oct  6 18:27:20 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001784.html">Multi-char terminators
+</A></li>
+        <LI>Next message: <A HREF="000013.html">speed vs. re2c?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1785">[ date ]</a>
+              <a href="thread.html#1785">[ thread ]</a>
+              <a href="subject.html#1785">[ subject ]</a>
+              <a href="author.html#1785">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Colin,
+
+This might do what you want:
+
+action bchar { buff( fpc ); }
+action bbrack1 { buff( &quot;]&quot; ); }
+action bbrack2 { buff( &quot;]]&quot; ); }
+
+main :=
+start: (
+     ']'-&gt; one |
+     (any-']') @bchar -&gt;start
+),
+one: (
+     ']' -&gt; two |
+     [^\]] @bbrack1 @bchar -&gt;start
+),
+two: (
+     '&gt;' -&gt; final |
+     ']' @bbrack1 -&gt; two |
+     [^&gt;\]] @bbrack2 @bchar -&gt;start
+);
+
+
+Colin Fleming wrote:
+&gt;<i> Hi Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for the response! I need to think about it a bit more.
+</I>&gt;<i> Obviously in this case it's not a huge problem, but it might be if I
+</I>&gt;<i> move to marking strings rather than copying and a buffer boundary
+</I>&gt;<i> happens to break up the terminator. The problem with constructing the
+</I>&gt;<i> machine manually is that I can't really do any better than Ragel does
+</I>&gt;<i> - if you have no look-ahead, you never know if you're on a terminator
+</I>&gt;<i> until the end of it.
+</I>&gt;<i> 
+</I>&gt;<i> I'll read up a bit about scanners, too, it sounds interesting.
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Colin
+</I>&gt;<i> 
+</I>&gt;<i> On 10/5/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Hello,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> If you wanted to remove buffered items when the termination sequence was
+</I>&gt;&gt;<i> variable length, you might be able to record the length of the buffer when
+</I>&gt;&gt;<i> you start the termination sequence. This might not always work properly though.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> But if you want to avoid undoing work you've done, then you need to delay
+</I>&gt;&gt;<i> buffering. At the moment I can't think of a general way to express the
+</I>&gt;&gt;<i> delayed buffering of ']' using pure regular languages with embedded actions.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The local error action embedding operators are related to this problem, but
+</I>&gt;&gt;<i> not a good fit in this case.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So, some options:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 1. You could build a machine manually. Basically draw out the state machine
+</I>&gt;&gt;<i> you want and use the , and -&gt; operators to construct it. Note that you can
+</I>&gt;&gt;<i> still embed actions anywhere you want. In places where you go back to start
+</I>&gt;&gt;<i> buffer the necessary number of ']' characters.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> main :=
+</I>&gt;&gt;<i>      start: (
+</I>&gt;&gt;<i>          (any-']') -&gt; start |
+</I>&gt;&gt;<i>          ']'-&gt; one
+</I>&gt;&gt;<i>      ),
+</I>&gt;&gt;<i>      one: (
+</I>&gt;&gt;<i>          ']' -&gt; two |
+</I>&gt;&gt;<i>          [^\]] -&gt; start
+</I>&gt;&gt;<i>      ),
+</I>&gt;&gt;<i>      two: (
+</I>&gt;&gt;<i>          '&gt;' -&gt; final |
+</I>&gt;&gt;<i>          ']' -&gt; two |
+</I>&gt;&gt;<i>          [^&gt;\]] -&gt; start
+</I>&gt;&gt;<i>      );
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 2. Use a mini scanner. This is the kind of thing a scanner does really well,
+</I>&gt;&gt;<i> but it does not give you a machine definition you can embed elsewhere. You
+</I>&gt;&gt;<i> have to call it. This gives me an idea though. Some scanners can be
+</I>&gt;&gt;<i> optimized into a pure state machine with no backtracking. Perhaps we can
+</I>&gt;&gt;<i> allow these to be embedded elsewhere.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 3. Take ']' out of CData and add in some patterns like ']' [^\]] which
+</I>&gt;&gt;<i> accept only strings which look like they could start a termination sequence,
+</I>&gt;&gt;<i> but never go all the way. When they fail they can write out necessary number
+</I>&gt;&gt;<i> of ']' symbols.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hope this helps.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Colin Fleming wrote:
+</I>&gt;&gt;&gt;<i> Hi all,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> As part of parsing XML, I have the following rules for CData sections:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> CDStart = '&lt;![CDATA[';
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> CDEnd = ']]&gt;';
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> CData = (Char* -- CDEnd) $each_char;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> CDSect = CDStart CData CDEnd;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> where each_char is a simple action that stores fc in a buffer. The
+</I>&gt;&gt;&gt;<i> problem is that the last two characters in the buffer are always ]],
+</I>&gt;&gt;&gt;<i> because the machine doesn't know until it encounters the &gt; if it
+</I>&gt;&gt;&gt;<i> should exit the CData machine. I work around this with the following:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> CDSect = CDStart CData CDEnd %trim_content;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> where trim_content strips the last two characters of the buffer, but
+</I>&gt;&gt;&gt;<i> it's a bit ugly. It also wouldn't work if the terminator were some
+</I>&gt;&gt;&gt;<i> variable-length production. Is there any general way to handle this
+</I>&gt;&gt;&gt;<i> case?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Cheers,
+</I>&gt;&gt;&gt;<i> Colin
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001784.html">Multi-char terminators
+</A></li>
+	<LI>Next message: <A HREF="000013.html">speed vs. re2c?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1785">[ date ]</a>
+              <a href="thread.html#1785">[ thread ]</a>
+              <a href="subject.html#1785">[ subject ]</a>
+              <a href="author.html#1785">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

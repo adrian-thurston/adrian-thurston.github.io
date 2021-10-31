@@ -1,0 +1,113 @@
+<tt>
+2012/2/20&nbsp;&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:ragel-user@jgoettgens.de&quot;&gt;ragel-user@jgoettgens.de&lt;/a&gt;&gt;&lt;/span&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+<br>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;<br>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;<br>
+&lt;div&nbsp;style=&quot;font-size:12pt;font-family:&#39;Calibri&#39;&quot;&gt;<br>
+&lt;div&gt;Ivan,&lt;/div&gt;<br>
+&lt;div&gt; &lt;/div&gt;<br>
+&lt;div&gt;so&nbsp;you&nbsp;need&nbsp;to&nbsp;mark&nbsp;the&nbsp;beginning&nbsp;and&nbsp;the&nbsp;end&nbsp;of&nbsp;either&nbsp;“command”&nbsp;or&nbsp;“data”&nbsp;<br>
+mode&nbsp;given&nbsp;the&nbsp;keywords&nbsp;“*OPEN*” &nbsp;and&nbsp;“*CLOS*”.&nbsp;Right?&nbsp;Once&nbsp;matched&nbsp;it&nbsp;is&nbsp;<br>
+entirely&nbsp;up&nbsp;to&nbsp;you&nbsp;what&nbsp;to&nbsp;do&nbsp;with&nbsp;the&nbsp;matched&nbsp;text&nbsp;(User&nbsp;Actions,&nbsp;chapter&nbsp;3).&nbsp;<br>
+You&nbsp;could&nbsp;post&nbsp;a&nbsp;typical&nbsp;token&nbsp;stream&nbsp;and&nbsp;an&nbsp;outline&nbsp;of&nbsp;your&nbsp;ragel&nbsp;specs.&nbsp;<br>
+Otherwise&nbsp;it&nbsp;is&nbsp;difficult&nbsp;to&nbsp;see&nbsp;the&nbsp;cause&nbsp;of&nbsp;your&nbsp;problem.&nbsp;&lt;/div&gt;<br>
+&lt;div&gt; &lt;/div&gt;<br>
+&lt;div&gt;jg&lt;/div&gt;<br>
+&lt;div&nbsp;style=&quot;font-size:small;font-style:normal;text-decoration:none;font-family:&#39;Calibri&#39;;display:inline;font-weight:normal&quot;&gt; &lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+&lt;br&gt;_______________________________________________&lt;br&gt;<br>
+ragel-users&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:ragel-users@complang.org&quot;&gt;ragel-users@complang.org&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.complang.org/mailman/listinfo/ragel-users&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.complang.org/mailman/listinfo/ragel-users&lt;/a&gt;&lt;br&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;I&#39;m&nbsp;sorry&nbsp;if&nbsp;my&nbsp;post&nbsp;wasn&#39;t&nbsp;clear&nbsp;enough.&lt;br&gt;&lt;br&gt;<br>
+I&#39;ve&nbsp;managed&nbsp;to&nbsp;achieve&nbsp;the&nbsp;results&nbsp;that&nbsp;I&nbsp;expect,&nbsp;although&nbsp;I&nbsp;don&#39;t&nbsp;know<br>
+&nbsp;if&nbsp;it&nbsp;is&nbsp;the&nbsp;most&nbsp;effective&nbsp;way&nbsp;to&nbsp;do&nbsp;it.&nbsp;I&#39;m&nbsp;gonna&nbsp;post&nbsp;it&nbsp;in&nbsp;this&nbsp;<br>
+e-mail.&nbsp;My&nbsp;objective&nbsp;is&nbsp;to&nbsp;read&nbsp;the&nbsp;stream&nbsp;of&nbsp;characters&nbsp;between&nbsp;the&nbsp;<br>
+*OPEN*&nbsp;and&nbsp;*CLOS*&nbsp;&quot;tokens&quot;.&nbsp;Thanks&nbsp;in&nbsp;advance&nbsp;for&nbsp;any&nbsp;tips&nbsp;or&nbsp;insights&nbsp;<br>
+on&nbsp;this.&lt;br&gt;<br>
+&lt;br&gt;<br>
+#include&nbsp;&lt;stdio.h&gt;&lt;br&gt;<br>
+#include&nbsp;&lt;stdlib.h&gt;&lt;br&gt;<br>
+#include&nbsp;&lt;string.h&gt;&lt;br&gt;<br>
+#include&nbsp;&lt;stdbool.h&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+%%{&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;machine&nbsp;test;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;action&nbsp;open_found&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;FOUND&nbsp;OPEN\r\n&quot;);&lt;br&gt;<br>
+   &nbsp;   &nbsp;fgoto&nbsp;data;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+   &nbsp;action&nbsp;close_found&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;FOUND&nbsp;CLOSE\r\n&quot;);&lt;br&gt;<br>
+   &nbsp;   &nbsp;fgoto&nbsp;main;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+   &nbsp;action&nbsp;new_data_char&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;NEW&nbsp;CHAR:&nbsp;%c,&nbsp;lock:&nbsp;%d\n&quot;,&nbsp;fc,&nbsp;lock_data);&lt;br&gt;<br>
+   &nbsp;   &nbsp;if&nbsp;(!lock_data)&lt;br&gt;<br>
+   &nbsp;   &nbsp;   &nbsp;rec[count++]&nbsp;=&nbsp;fc;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+   &nbsp;action&nbsp;close_candidate&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;CLOSE&nbsp;CANDIDATE:&nbsp;%c\n&quot;,&nbsp;fc);&lt;br&gt;<br>
+   &nbsp;   &nbsp;lock_data&nbsp;=&nbsp;true;&lt;br&gt;<br>
+   &nbsp;   &nbsp;cacount&nbsp;=&nbsp;0;&lt;br&gt;<br>
+   &nbsp;   &nbsp;fhold;&nbsp;fgoto&nbsp;clos;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+   &nbsp;action&nbsp;not_close&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;NOT&nbsp;CLOSE:&nbsp;%c,&nbsp;candidate:&nbsp;%s,&nbsp;cacount:&nbsp;%d\n&quot;,&nbsp;fc,&nbsp;candidate,&nbsp;cacount);&lt;br&gt;<br>
+   &nbsp;   &nbsp;lock_data&nbsp;=&nbsp;false;&lt;br&gt;<br>
+   &nbsp;   &nbsp;strncat(rec,&nbsp;candidate,&nbsp;cacount);&lt;br&gt;<br>
+   &nbsp;   &nbsp;count&nbsp;+=&nbsp;cacount;&lt;br&gt;<br>
+   &nbsp;   &nbsp;fgoto&nbsp;data;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+   &nbsp;action&nbsp;store_candidate_char&nbsp;{&lt;br&gt;<br>
+   &nbsp;   &nbsp;printf(&quot;CANDIDATE&nbsp;CHAR:&nbsp;%c\n&quot;,&nbsp;fc);&lt;br&gt;<br>
+   &nbsp;   &nbsp;candidate[cacount++]&nbsp;=&nbsp;fc;&lt;br&gt;<br>
+   &nbsp;}&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;open&nbsp;=&nbsp;/.*\*OPEN\*/;&lt;br&gt;<br>
+   &nbsp;close&nbsp;=&nbsp;/.*\*CLOS\*/;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;main&nbsp;:=&lt;br&gt;<br>
+   &nbsp;   &nbsp;(open&nbsp;%open_found)+;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;data&nbsp;:=&nbsp;/.*\*/&nbsp;@~new_data_char&nbsp;%~close_candidate;&lt;br&gt;<br>
+   &nbsp;clos&nbsp;:=&nbsp;/\*CLOS\*/&nbsp;$/{fbreak;}&nbsp;$store_candidate_char&nbsp;@!(not_close)&nbsp;@close_found;&lt;br&gt;<br>
+&lt;br&gt;<br>
+}%%&lt;br&gt;<br>
+&lt;br&gt;<br>
+%%&nbsp;write&nbsp;data;&lt;br&gt;<br>
+&lt;br&gt;<br>
+const&nbsp;char&nbsp;*p,&nbsp;*pe,&nbsp;*eof;&lt;br&gt;<br>
+int&nbsp;cs;&lt;br&gt;<br>
+const&nbsp;char&nbsp;*ts,&nbsp;*te;&lt;br&gt;<br>
+int&nbsp;act;&lt;br&gt;<br>
+int&nbsp;stack[128]&nbsp;=&nbsp;{0};&lt;br&gt;<br>
+int&nbsp;top;&lt;br&gt;<br>
+&lt;br&gt;<br>
+char&nbsp;rec[1024]&nbsp;=&nbsp;{0};&lt;br&gt;<br>
+unsigned&nbsp;int&nbsp;count&nbsp;=&nbsp;0;&lt;br&gt;<br>
+char&nbsp;candidate[1024]&nbsp;=&nbsp;{0};;&lt;br&gt;<br>
+unsigned&nbsp;int&nbsp;cacount&nbsp;=&nbsp;0;&lt;br&gt;<br>
+bool&nbsp;lock_data&nbsp;=&nbsp;false;&lt;br&gt;<br>
+&lt;br&gt;<br>
+bool&nbsp;parse(const&nbsp;char&nbsp;*&nbsp;str)&nbsp;{&lt;br&gt;<br>
+   &nbsp;p&nbsp;=&nbsp;str;&nbsp;pe&nbsp;=&nbsp;str&nbsp;+&nbsp;strlen(str);&nbsp;eof&nbsp;=&nbsp;pe;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;%%&nbsp;write&nbsp;exec;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;return&nbsp;true;&lt;br&gt;<br>
+}&lt;br&gt;<br>
+&lt;br&gt;<br>
+int&nbsp;main(int&nbsp;argc,&nbsp;char&nbsp;**argv)&nbsp;{&lt;br&gt;<br>
+   &nbsp;char&nbsp;buf[2048]&nbsp;=&nbsp;&quot;aaaaaaaaaa*OPEN*bbbbbbbb*CLbbbbbbbbb*CLOS*aaaaaaaaaaaaaaaaaaaa&quot;;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;%%&nbsp;write&nbsp;init;&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;parse(buf);&lt;br&gt;<br>
+&lt;br&gt;<br>
+   &nbsp;printf(&quot;data[%d]&nbsp;=&nbsp;%s\n&quot;,&nbsp;count,&nbsp;rec);&lt;br&gt;<br>
+   &nbsp;return&nbsp;0;&lt;br&gt;<br>
+}&lt;br&gt;<br>
+&lt;br&gt;&lt;br&gt;<br>
+
+</tt>

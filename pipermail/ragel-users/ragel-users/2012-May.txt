@@ -1,0 +1,1510 @@
+From janzon at gmail.com  Tue May  1 21:07:00 2012
+From: janzon at gmail.com (Daniel Janzon)
+Date: Tue, 1 May 2012 23:07:00 +0200
+Subject: [ragel-users] What is a good pattern for reentering parser and
+	limiting repetitions?
+Message-ID: <CAAGHsvAe3878WKEjy0LUdiiQ5Vr7E9fJ=3mFvCqg4sRXh5yfhQ@mail.gmail.com>
+
+Hi Guys,
+
+I'd like to write a parser that can advance a little bit at a time as
+input becomes available, with no need to look back. I came up
+with the code below to test that. It's just a machine that must
+read at least on 'a' and then at least one 'b'. Does it look like a
+good pattern for this? I just save cs and set it againt when I come
+back the next time. I guess the "nocs" option is not needed,
+but does no harm either.
+
+I also wonder what's a good way to limit repetitions. In the code
+below, the buffer "result" could be overflowed. Either I build it
+into the machine somehow (how?) or I need to check the buffer
+limit for each byte in the action. I assume there must be a
+standard way to do it but I couldn't find anything useful in the
+manual.
+
+All the best,
+Daniel Janzon
+
+
+#include <stdio.h>
+#include <string.h>
+
+%%{
+  machine testreenter;
+  write data;
+}%%
+
+struct parser
+{
+  char result[1024];
+  int offset;
+  int state;
+};
+
+int parse(char *str, int len, struct parser *parser)
+{
+  char *p=str, *pe=str+len;
+  int cs;
+
+  %%{
+    action character { parser->result[parser->offset++] = *fpc; }
+    main := (('a'+ 'b'+) $character);
+    write init nocs;
+  }%%
+
+  cs = parser->state;
+
+  %%{
+    write exec;
+  }%%
+  parser->state = cs;
+}
+
+int main()
+{
+  char str1[] = "aaa";
+  char str2[] = "bbb";
+  struct parser parser;
+  memset(&parser, 0, sizeof(struct parser));
+  parser.state = testreenter_start;
+
+  parse(str1, strlen(str1), &parser);
+  parse(str2, strlen(str2), &parser);
+
+  printf("result is '%s'\n", parser.result);
+}
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed May  2 08:12:16 2012
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Wed, 2 May 2012 10:12:16 +0200
+Subject: [ragel-users] Problem building Ragel
+In-Reply-To: <CANkmNDfj2gaRgDDB=8=vbunwS_FDYitg7Jtp6rf0WvvMBNU_uQ@mail.gmail.com>
+References: <CANkmNDeGz75YdLWJpBiTdvD4tn5ASzzC5yYWFgVTXZE5krYb6g@mail.gmail.com><1685528235-1335818986-cardhu_decombobulator_blackberry.rim.net-922053211-@b17.c7.bise6.blackberry>
+	<CANkmNDfj2gaRgDDB=8=vbunwS_FDYitg7Jtp6rf0WvvMBNU_uQ@mail.gmail.com>
+Message-ID: <BF166AADC3FF4EABBC1892E7374D9BE7@localdomain>
+
+Aaron,
+
+mingw compiles fine with both flavors (x86 and x86-64). The homepage of Ragel has a link to a VisualStudio build, that also contains (slightly modified) sources and the accociated solution file. 
+
+jg
+
+From: Aaron Gray 
+Sent: Tuesday, May 01, 2012 12:39 AM
+To: ragel-users at complang.org 
+Subject: Re: [ragel-users] Problem building Ragel
+
+Thanks Adrian, 
+
+Built Colm on Fedora now, MinGW32 next, then see if I can port it to MS Visual Studio maybe ?
+
+Regards,
+
+Aaron
+
+On 30 April 2012 21:49, Adrian Thurston <thurston at complang.org> wrote:
+
+  Hi Aaron, building from the source code repository requires a built version of ragel. Grab one of the releases.
+  -----Original Message-----
+  From: Aaron Gray <aaronngray.lists at gmail.com>
+  Sender: ragel-users-bounces at complang.org
+  Date: Mon, 30 Apr 2012 19:37:48
+  To: <ragel-users at complang.org>
+  Reply-To: ragel-users at complang.org
+  Subject: [ragel-users] Problem building Ragel
+
+  _______________________________________________
+  ragel-users mailing list
+  ragel-users at complang.org
+  http://www.complang.org/mailman/listinfo/ragel-users
+
+
+  _______________________________________________
+  ragel-users mailing list
+  ragel-users at complang.org
+  http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+--------------------------------------------------------------------------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120502/0587b9d4/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From khim at chromium.org  Sun May 13 12:35:35 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Sun, 13 May 2012 16:35:35 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+Message-ID: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+
+Hello.
+
+I want to propose yet-another mode for ragel: -GT2. This is goto-driven fsm
+which sometimes uses tables.
+
+A bit of background. We've tried to use ragel to process x86 instructions
+stream. This produces large FSM (about thousand states and similar number
+of actions) which works fine with GCC, but which works much less fine with
+MSVC.
+
+Initially we've used MSVC 2008 and the main problem was slow compilation
+(where GCC required about minute to compile the G2-mode FSM with full
+optimization MSVC took half-hour to hour depending on what exactly we've
+tried to do with a stream) and slow execution (code produced by MSVC 2008
+was about 45% slower then code produced by GCC). But when we've tried to
+switch to MSVC 2010 we've hit worse problem: now compilation is instant
+(about 4-5 seconds), but execution speed is awful (almost three times
+slower then what GCC is producing). Looks like MSVC 2010 stops optimization
+attempts if it sees too many basic blocks and gotos. We've played a bit
+with different options and they all produce much slower code. Thus we've
+tried to take -G2 mode and "fix it": if the state has too many different
+transitions then we are using cs-dispatch table and _again switch. This
+produces version which is slower by about 20% on GCC but is faster then
+what MSVC 2008 produced by about the same 20% (MSVC 2008, MSVC 2010 and GCC
+have about the same speed in this case). And the compilation now takes 2-3
+minutes instead of hour. What do you think about it?
+
+Patch is attached. Note: the threshold (32 comparisons) is picked to make
+-G2 and -GT2 FSMs similar in size. On x86 comparison takes three bytes,
+jump takes six bytes, but you need about 1.5-2 times as much comparisons as
+you have final outcomes to guarantee there are O(log k) compleity, not O(k)
+complexity (compiler ensures this... if number of basic blocks as
+reasonable, that is). The exact number varies depending on options of the
+compiler and the exact nature of FSM and usually lies between 30 and 35
+thus 32 looks like good round number (minor variations produce tiny changes
+in speed and size as you can guess).
+
+P.S. Patch must probably be cleaned up a bit, but I wanted to discuss the
+feasibility of said mode first.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-6.7.patch
+Type: application/octet-stream
+Size: 8324 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon May 14 17:12:27 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 14 May 2012 17:12:27 +0000
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+Message-ID: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+
+Hi Victor, I haven't looked at the patch yet, I'll hopefully do that tonight. It sounds similar to the 'split goto' mode I had worked on some years back but is now unmaintained. The machine was partitioned naively -- psuedo optimally requires advanced heuristics. Between partitions, tables were used. Within a partition, directly executable was used. That sound the same?
+-----Original Message-----
+From: Victor Khimenko <khim at chromium.org>
+Sender: ragel-users-bounces at complang.org
+Date: Sun, 13 May 2012 16:35:35 
+To: <ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From khim at chromium.org  Mon May 14 17:26:00 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Mon, 14 May 2012 21:26:00 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+Message-ID: <CABLBYvStD39YrgyZ0Xb7cDkCboNXYGVdEPPzr7U3U1wj=Y+TJA@mail.gmail.com>
+
+On Mon, May 14, 2012 at 9:12 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Victor, I haven't looked at the patch yet, I'll hopefully do that
+> tonight. It sounds similar to the 'split goto' mode I had worked on some
+> years back but is now unmaintained. The machine was partitioned naively --
+> psuedo optimally requires advanced heuristics. Between partitions, tables
+> were used. Within a partition, directly executable was used. That sound the
+> same?
+>
+
+Well, the implementations are kind-of similar, but the end goals are
+different. In "split goto" mode you have few functions which call each
+other which of course makes compiler happier, but does not help us because
+we really want to convince compiler to keep some critical information on
+registers (in our case actions fire once per 2-3 bytes, function calls or
+lack of them really do a world of difference in such a case) - this is only
+possible if we keep everything in one large functions (plus may be some
+inlined functions which does not help the compiler at all).
+
+My patch replaces large switches with table which contains the next state
+and then does jump to _again label.This reduces number of basic blocks
+about 5-7 times and makes compiler much happier and the cost is small: I
+just add one table and one unconditional goto (which is easy for the CPU to
+predict). Of course I remove a lot of conditional jumps which makes it
+harder for the CPU to keep track of things - I think this is where 20%
+slowdown comes from.
+
+I can send you example of our .rl file and test-driver if you want to
+experiment (it's open-source projects, there are nothing secret here), but
+it's huge (about 3MB .rl file and 1MB test file) and the problem only
+happens on Windows thus it's not very hack-friendly case.
+
+
+> -----Original Message-----
+> From: Victor Khimenko <khim at chromium.org>
+> Sender: ragel-users-bounces at complang.org
+> Date: Sun, 13 May 2012 16:35:35
+> To: <ragel-users at complang.org>
+> Reply-To: ragel-users at complang.org
+> Subject: [ragel-users] MSVC-friendly -GT2 mode
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120514/806f2243/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From khim at chromium.org  Mon May 14 17:50:01 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Mon, 14 May 2012 21:50:01 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+Message-ID: <CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+
+Example of the change in -GT2 mode.
+
+Instead of this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+switch( (*p) ) {
+case 4u: goto tr118;
+case 5u: goto tr119;
+case 12u: goto tr118;
+case 13u: goto tr119;
+case 20u: goto tr118;
+case 21u: goto tr119;
+case 28u: goto tr118;
+case 29u: goto tr119;
+case 36u: goto tr118;
+case 37u: goto tr119;
+case 44u: goto tr118;
+case 45u: goto tr119;
+case 52u: goto tr118;
+case 53u: goto tr119;
+case 60u: goto tr118;
+case 61u: goto tr119;
+case 68u: goto tr121;
+case 76u: goto tr121;
+case 84u: goto tr121;
+case 92u: goto tr121;
+case 100u: goto tr121;
+case 108u: goto tr121;
+case 116u: goto tr121;
+case 124u: goto tr121;
+case 132u: goto tr123;
+case 140u: goto tr123;
+case 148u: goto tr123;
+case 156u: goto tr123;
+case 164u: goto tr123;
+case 172u: goto tr123;
+case 180u: goto tr123;
+case 188u: goto tr123;
+}
+if ( (*p) < 64u ) {
+if ( (*p) <= 63u )
+goto tr117;
+} else if ( (*p) > 127u ) {
+if ( 128u <= (*p) && (*p) <= 191u )
+goto tr122;
+} else
+goto tr120;
+goto tr124;
+
+We have this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+{
+static const unsigned char jump_table[] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0,
+0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0,
+0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0,
+1, 2, 0, 0, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4,
+3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3,
+3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 5, 5, 5, 5, 6, 5, 5,
+5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5,
+5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5,
+5, 5, 5, 6, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 };
+cs = jump_table[(*p)] + 933;
+goto _again;
+}
+
+And this is basically all. Very small, very local change to -G2 mode which,
+as I've explained above, makes a world of difference in our case. If you
+replace ALL cases with jump tables then speed really suffers and size of
+the result grows significantly, if you only do this for cases with large
+number of outcomes then size actually shrinks and speed drop is moderate
+(negative in case of MSVC because we obviously hit some limits of the
+beast) since original code needs to do quite a large number of comparisons
+(or may be use some table behind the scene) anyway.
+
+P.S. And is it possible to somehow really remove line numbers from the
+generated output? They are removed for all languages except C with -L flag,
+but for C they are just commented out. This increases size of generated
+file by about 10% needlessly :-( We can just filter them out, of course,
+but for all other languages you don't need this. Perhaps second -L can
+actually remove line numbers?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120514/bbb58d7b/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon May 14 18:20:35 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 14 May 2012 18:20:35 +0000
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+	<CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+Message-ID: <2107313512-1337019633-cardhu_decombobulator_blackberry.rim.net-211485438-@b17.c7.bise6.blackberry>
+
+I like it, thank you for submitting it. Can it wait for ragel 7.0? I can't really say when that will be done. If not it can go into a 6.8 (along with other patches that are waiting). 
+
+Adrian
+-----Original Message-----
+From: Victor Khimenko <khim at chromium.org>
+Sender: khim at google.com
+Date: Mon, 14 May 2012 21:50:01 
+To: <thurston at complang.org>; <ragel-users at complang.org>
+Subject: Re: [ragel-users] MSVC-friendly -GT2 mode
+
+Example of the change in -GT2 mode.
+
+Instead of this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+switch( (*p) ) {
+case 4u: goto tr118;
+case 5u: goto tr119;
+case 12u: goto tr118;
+case 13u: goto tr119;
+case 20u: goto tr118;
+case 21u: goto tr119;
+case 28u: goto tr118;
+case 29u: goto tr119;
+case 36u: goto tr118;
+case 37u: goto tr119;
+case 44u: goto tr118;
+case 45u: goto tr119;
+case 52u: goto tr118;
+case 53u: goto tr119;
+case 60u: goto tr118;
+case 61u: goto tr119;
+case 68u: goto tr121;
+case 76u: goto tr121;
+case 84u: goto tr121;
+case 92u: goto tr121;
+case 100u: goto tr121;
+case 108u: goto tr121;
+case 116u: goto tr121;
+case 124u: goto tr121;
+case 132u: goto tr123;
+case 140u: goto tr123;
+case 148u: goto tr123;
+case 156u: goto tr123;
+case 164u: goto tr123;
+case 172u: goto tr123;
+case 180u: goto tr123;
+case 188u: goto tr123;
+}
+if ( (*p) < 64u ) {
+if ( (*p) <= 63u )
+goto tr117;
+} else if ( (*p) > 127u ) {
+if ( 128u <= (*p) && (*p) <= 191u )
+goto tr122;
+} else
+goto tr120;
+goto tr124;
+
+We have this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+{
+static const unsigned char jump_table[] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0,
+0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0,
+0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0,
+1, 2, 0, 0, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4,
+3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3,
+3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 5, 5, 5, 5, 6, 5, 5,
+5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5,
+5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5,
+5, 5, 5, 6, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 };
+cs = jump_table[(*p)] + 933;
+goto _again;
+}
+
+And this is basically all. Very small, very local change to -G2 mode which,
+as I've explained above, makes a world of difference in our case. If you
+replace ALL cases with jump tables then speed really suffers and size of
+the result grows significantly, if you only do this for cases with large
+number of outcomes then size actually shrinks and speed drop is moderate
+(negative in case of MSVC because we obviously hit some limits of the
+beast) since original code needs to do quite a large number of comparisons
+(or may be use some table behind the scene) anyway.
+
+P.S. And is it possible to somehow really remove line numbers from the
+generated output? They are removed for all languages except C with -L flag,
+but for C they are just commented out. This increases size of generated
+file by about 10% needlessly :-( We can just filter them out, of course,
+but for all other languages you don't need this. Perhaps second -L can
+actually remove line numbers?
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120514/054f6e2c/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From flameeyes at flameeyes.eu  Tue May 22 23:29:48 2012
+From: flameeyes at flameeyes.eu (=?UTF-8?q?Diego=20Elio=20Petten=C3=B2?=)
+Date: Tue, 22 May 2012 16:29:48 -0700
+Subject: [ragel-users] [PATCH] aapl: fix building with gcc-4.7.0
+Message-ID: <1337729388-10853-1-git-send-email-flameeyes@flameeyes.eu>
+
+Starting with GCC 4.7, you have to explicit methods inherited from
+base templates, otherwise it will refuse to build.
+
+---
+
+The URL reported in the README is no longer registered, so I couldn't
+find a way to report this to an upstream project.
+
+Signed-off-by: Diego Elio Pettenò <flameeyes at flameeyes.eu>
+---
+ aapl/avlcommon.h  |   12 ++++++------
+ aapl/bstcommon.h  |   16 ++++++++--------
+ aapl/bubblesort.h |    2 +-
+ aapl/mergesort.h  |    2 +-
+ 4 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/aapl/avlcommon.h b/aapl/avlcommon.h
+index 06983bc..2e3c190 100644
+--- a/aapl/avlcommon.h
++++ b/aapl/avlcommon.h
+@@ -881,9 +881,9 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 		}
+ 
+ #ifdef AVL_BASIC
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this->compare( *element, *curEl );
+ #else
+-		keyRelation = compare( element->BASEKEY(getKey()), 
++		keyRelation = this->compare( element->BASEKEY(getKey()),
+ 				curEl->BASEKEY(getKey()) );
+ #endif
+ 
+@@ -920,7 +920,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this->compare( *element, *curEl );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 )
+@@ -969,7 +969,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare( key, curEl->BASEKEY(getKey()) );
++		keyRelation = this->compare( key, curEl->BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 ) {
+@@ -1023,7 +1023,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare(key, curEl->getKey());
++		keyRelation = this->compare(key, curEl->getKey());
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 ) {
+@@ -1058,7 +1058,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( key, curEl->BASEKEY(getKey()) );
++		keyRelation = this->compare( key, curEl->BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 )
+diff --git a/aapl/bstcommon.h b/aapl/bstcommon.h
+index 888717f..7c53ff3 100644
+--- a/aapl/bstcommon.h
++++ b/aapl/bstcommon.h
+@@ -361,7 +361,7 @@ template <BST_TEMPL_DEF> bool BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -373,12 +373,12 @@ template <BST_TEMPL_DEF> bool BstTable<BST_TEMPL_USE>::
+ 
+ 			lower = mid - 1;
+ 			while ( lower != lowEnd && 
+-					compare(key, GET_KEY(*lower)) == 0 )
++					this->compare(key, GET_KEY(*lower)) == 0 )
+ 				lower--;
+ 
+ 			upper = mid + 1;
+ 			while ( upper != highEnd && 
+-					compare(key, GET_KEY(*upper)) == 0 )
++					this->compare(key, GET_KEY(*upper)) == 0 )
+ 				upper++;
+ 			
+ 			low = (Element*)lower + 1;
+@@ -419,7 +419,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -457,7 +457,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -508,7 +508,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -603,7 +603,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this->compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -662,7 +662,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this->compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+diff --git a/aapl/bubblesort.h b/aapl/bubblesort.h
+index bcc2fb6..f0f4ce5 100644
+--- a/aapl/bubblesort.h
++++ b/aapl/bubblesort.h
+@@ -72,7 +72,7 @@ template <class T, class Compare> void BubbleSort<T,Compare>::
+ 		changed = false;
+ 		for ( long i = 0; i < len-pass; i++ ) {
+ 			/* Do we swap pos with the next one? */
+-			if ( compare( data[i], data[i+1] ) > 0 ) {
++			if ( this->compare( data[i], data[i+1] ) > 0 ) {
+ 				char tmp[sizeof(T)];
+ 
+ 				/* Swap the two items. */
+diff --git a/aapl/mergesort.h b/aapl/mergesort.h
+index 68b8426..8cefa73 100644
+--- a/aapl/mergesort.h
++++ b/aapl/mergesort.h
+@@ -110,7 +110,7 @@ template< class T, class Compare> void MergeSort<T,Compare>::
+ 		}
+ 		else {
+ 			/* Both upper and lower left. */
+-			if ( compare(*lower, *upper) <= 0 )
++			if ( this->compare(*lower, *upper) <= 0 )
+ 				memcpy( dest++, lower++, sizeof(T) );
+ 			else
+ 				memcpy( dest++, upper++, sizeof(T) );
+-- 
+1.7.8.6
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From flameeyes at flameeyes.eu  Tue May 22 23:36:28 2012
+From: flameeyes at flameeyes.eu (=?UTF-8?q?Diego=20Elio=20Petten=C3=B2?=)
+Date: Tue, 22 May 2012 16:36:28 -0700
+Subject: [ragel-users] [PATCH] build: do not reset CXXFLAGS.
+Message-ID: <1337729788-11174-1-git-send-email-flameeyes@flameeyes.eu>
+
+Without this change _all_ builds will _always_ use -g only as C++
+compiler flags. autoconf already uses `-O2 -g` as default if none is
+given to command line so this is useless.
+
+Signed-off-by: Diego Elio Pettenò <flameeyes at flameeyes.eu>
+---
+ configure.in |    3 ---
+ 1 files changed, 0 insertions(+), 3 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index 0bac0e2..7c15705 100644
+--- a/configure.in
++++ b/configure.in
+@@ -60,9 +60,6 @@ AC_PROG_CXX
+ AC_CHECK_TOOL(AR, ar)
+ AC_PROG_RANLIB
+ 
+-# Default flags.
+-CXXFLAGS="-g"
+-
+ dnl Set test on c++ compiler.
+ AC_LANG_CPLUSPLUS
+ 
+-- 
+1.7.8.6
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From janzon at gmail.com  Tue May  1 21:07:00 2012
+From: janzon at gmail.com (Daniel Janzon)
+Date: Tue, 1 May 2012 23:07:00 +0200
+Subject: [ragel-users] What is a good pattern for reentering parser and
+	limiting repetitions?
+Message-ID: <CAAGHsvAe3878WKEjy0LUdiiQ5Vr7E9fJ=3mFvCqg4sRXh5yfhQ@mail.gmail.com>
+
+Hi Guys,
+
+I'd like to write a parser that can advance a little bit at a time as
+input becomes available, with no need to look back. I came up
+with the code below to test that. It's just a machine that must
+read at least on 'a' and then at least one 'b'. Does it look like a
+good pattern for this? I just save cs and set it againt when I come
+back the next time. I guess the "nocs" option is not needed,
+but does no harm either.
+
+I also wonder what's a good way to limit repetitions. In the code
+below, the buffer "result" could be overflowed. Either I build it
+into the machine somehow (how?) or I need to check the buffer
+limit for each byte in the action. I assume there must be a
+standard way to do it but I couldn't find anything useful in the
+manual.
+
+All the best,
+Daniel Janzon
+
+
+#include <stdio.h>
+#include <string.h>
+
+%%{
+  machine testreenter;
+  write data;
+}%%
+
+struct parser
+{
+  char result[1024];
+  int offset;
+  int state;
+};
+
+int parse(char *str, int len, struct parser *parser)
+{
+  char *p=str, *pe=str+len;
+  int cs;
+
+  %%{
+    action character { parser->result[parser->offset++] = *fpc; }
+    main := (('a'+ 'b'+) $character);
+    write init nocs;
+  }%%
+
+  cs = parser->state;
+
+  %%{
+    write exec;
+  }%%
+  parser->state = cs;
+}
+
+int main()
+{
+  char str1[] = "aaa";
+  char str2[] = "bbb";
+  struct parser parser;
+  memset(&parser, 0, sizeof(struct parser));
+  parser.state = testreenter_start;
+
+  parse(str1, strlen(str1), &parser);
+  parse(str2, strlen(str2), &parser);
+
+  printf("result is '%s'\n", parser.result);
+}
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed May  2 08:12:16 2012
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Wed, 2 May 2012 10:12:16 +0200
+Subject: [ragel-users] Problem building Ragel
+In-Reply-To: <CANkmNDfj2gaRgDDB=8=vbunwS_FDYitg7Jtp6rf0WvvMBNU_uQ@mail.gmail.com>
+References: <CANkmNDeGz75YdLWJpBiTdvD4tn5ASzzC5yYWFgVTXZE5krYb6g@mail.gmail.com><1685528235-1335818986-cardhu_decombobulator_blackberry.rim.net-922053211-@b17.c7.bise6.blackberry>
+	<CANkmNDfj2gaRgDDB=8=vbunwS_FDYitg7Jtp6rf0WvvMBNU_uQ@mail.gmail.com>
+Message-ID: <BF166AADC3FF4EABBC1892E7374D9BE7@localdomain>
+
+Aaron,
+
+mingw compiles fine with both flavors (x86 and x86-64). The homepage of Ragel has a link to a VisualStudio build, that also contains (slightly modified) sources and the accociated solution file. 
+
+jg
+
+From: Aaron Gray 
+Sent: Tuesday, May 01, 2012 12:39 AM
+To: ragel-users at complang.org 
+Subject: Re: [ragel-users] Problem building Ragel
+
+Thanks Adrian, 
+
+Built Colm on Fedora now, MinGW32 next, then see if I can port it to MS Visual Studio maybe ?
+
+Regards,
+
+Aaron
+
+On 30 April 2012 21:49, Adrian Thurston <thurston at complang.org> wrote:
+
+  Hi Aaron, building from the source code repository requires a built version of ragel. Grab one of the releases.
+  -----Original Message-----
+  From: Aaron Gray <aaronngray.lists at gmail.com>
+  Sender: ragel-users-bounces at complang.org
+  Date: Mon, 30 Apr 2012 19:37:48
+  To: <ragel-users at complang.org>
+  Reply-To: ragel-users at complang.org
+  Subject: [ragel-users] Problem building Ragel
+
+  _______________________________________________
+  ragel-users mailing list
+  ragel-users at complang.org
+  http://www.complang.org/mailman/listinfo/ragel-users
+
+
+  _______________________________________________
+  ragel-users mailing list
+  ragel-users at complang.org
+  http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+--------------------------------------------------------------------------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120502/0587b9d4/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From khim at chromium.org  Sun May 13 12:35:35 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Sun, 13 May 2012 16:35:35 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+Message-ID: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+
+Hello.
+
+I want to propose yet-another mode for ragel: -GT2. This is goto-driven fsm
+which sometimes uses tables.
+
+A bit of background. We've tried to use ragel to process x86 instructions
+stream. This produces large FSM (about thousand states and similar number
+of actions) which works fine with GCC, but which works much less fine with
+MSVC.
+
+Initially we've used MSVC 2008 and the main problem was slow compilation
+(where GCC required about minute to compile the G2-mode FSM with full
+optimization MSVC took half-hour to hour depending on what exactly we've
+tried to do with a stream) and slow execution (code produced by MSVC 2008
+was about 45% slower then code produced by GCC). But when we've tried to
+switch to MSVC 2010 we've hit worse problem: now compilation is instant
+(about 4-5 seconds), but execution speed is awful (almost three times
+slower then what GCC is producing). Looks like MSVC 2010 stops optimization
+attempts if it sees too many basic blocks and gotos. We've played a bit
+with different options and they all produce much slower code. Thus we've
+tried to take -G2 mode and "fix it": if the state has too many different
+transitions then we are using cs-dispatch table and _again switch. This
+produces version which is slower by about 20% on GCC but is faster then
+what MSVC 2008 produced by about the same 20% (MSVC 2008, MSVC 2010 and GCC
+have about the same speed in this case). And the compilation now takes 2-3
+minutes instead of hour. What do you think about it?
+
+Patch is attached. Note: the threshold (32 comparisons) is picked to make
+-G2 and -GT2 FSMs similar in size. On x86 comparison takes three bytes,
+jump takes six bytes, but you need about 1.5-2 times as much comparisons as
+you have final outcomes to guarantee there are O(log k) compleity, not O(k)
+complexity (compiler ensures this... if number of basic blocks as
+reasonable, that is). The exact number varies depending on options of the
+compiler and the exact nature of FSM and usually lies between 30 and 35
+thus 32 looks like good round number (minor variations produce tiny changes
+in speed and size as you can guess).
+
+P.S. Patch must probably be cleaned up a bit, but I wanted to discuss the
+feasibility of said mode first.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120513/fb76b799/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-6.7.patch
+Type: application/octet-stream
+Size: 8324 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120513/fb76b799/attachment-0001.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon May 14 17:12:27 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 14 May 2012 17:12:27 +0000
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+Message-ID: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+
+Hi Victor, I haven't looked at the patch yet, I'll hopefully do that tonight. It sounds similar to the 'split goto' mode I had worked on some years back but is now unmaintained. The machine was partitioned naively -- psuedo optimally requires advanced heuristics. Between partitions, tables were used. Within a partition, directly executable was used. That sound the same?
+-----Original Message-----
+From: Victor Khimenko <khim at chromium.org>
+Sender: ragel-users-bounces at complang.org
+Date: Sun, 13 May 2012 16:35:35 
+To: <ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From khim at chromium.org  Mon May 14 17:26:00 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Mon, 14 May 2012 21:26:00 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+Message-ID: <CABLBYvStD39YrgyZ0Xb7cDkCboNXYGVdEPPzr7U3U1wj=Y+TJA@mail.gmail.com>
+
+On Mon, May 14, 2012 at 9:12 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Victor, I haven't looked at the patch yet, I'll hopefully do that
+> tonight. It sounds similar to the 'split goto' mode I had worked on some
+> years back but is now unmaintained. The machine was partitioned naively --
+> psuedo optimally requires advanced heuristics. Between partitions, tables
+> were used. Within a partition, directly executable was used. That sound the
+> same?
+>
+
+Well, the implementations are kind-of similar, but the end goals are
+different. In "split goto" mode you have few functions which call each
+other which of course makes compiler happier, but does not help us because
+we really want to convince compiler to keep some critical information on
+registers (in our case actions fire once per 2-3 bytes, function calls or
+lack of them really do a world of difference in such a case) - this is only
+possible if we keep everything in one large functions (plus may be some
+inlined functions which does not help the compiler at all).
+
+My patch replaces large switches with table which contains the next state
+and then does jump to _again label.This reduces number of basic blocks
+about 5-7 times and makes compiler much happier and the cost is small: I
+just add one table and one unconditional goto (which is easy for the CPU to
+predict). Of course I remove a lot of conditional jumps which makes it
+harder for the CPU to keep track of things - I think this is where 20%
+slowdown comes from.
+
+I can send you example of our .rl file and test-driver if you want to
+experiment (it's open-source projects, there are nothing secret here), but
+it's huge (about 3MB .rl file and 1MB test file) and the problem only
+happens on Windows thus it's not very hack-friendly case.
+
+
+> -----Original Message-----
+> From: Victor Khimenko <khim at chromium.org>
+> Sender: ragel-users-bounces at complang.org
+> Date: Sun, 13 May 2012 16:35:35
+> To: <ragel-users at complang.org>
+> Reply-To: ragel-users at complang.org
+> Subject: [ragel-users] MSVC-friendly -GT2 mode
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120514/806f2243/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From khim at chromium.org  Mon May 14 17:50:01 2012
+From: khim at chromium.org (Victor Khimenko)
+Date: Mon, 14 May 2012 21:50:01 +0400
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+Message-ID: <CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+
+Example of the change in -GT2 mode.
+
+Instead of this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+switch( (*p) ) {
+case 4u: goto tr118;
+case 5u: goto tr119;
+case 12u: goto tr118;
+case 13u: goto tr119;
+case 20u: goto tr118;
+case 21u: goto tr119;
+case 28u: goto tr118;
+case 29u: goto tr119;
+case 36u: goto tr118;
+case 37u: goto tr119;
+case 44u: goto tr118;
+case 45u: goto tr119;
+case 52u: goto tr118;
+case 53u: goto tr119;
+case 60u: goto tr118;
+case 61u: goto tr119;
+case 68u: goto tr121;
+case 76u: goto tr121;
+case 84u: goto tr121;
+case 92u: goto tr121;
+case 100u: goto tr121;
+case 108u: goto tr121;
+case 116u: goto tr121;
+case 124u: goto tr121;
+case 132u: goto tr123;
+case 140u: goto tr123;
+case 148u: goto tr123;
+case 156u: goto tr123;
+case 164u: goto tr123;
+case 172u: goto tr123;
+case 180u: goto tr123;
+case 188u: goto tr123;
+}
+if ( (*p) < 64u ) {
+if ( (*p) <= 63u )
+goto tr117;
+} else if ( (*p) > 127u ) {
+if ( 128u <= (*p) && (*p) <= 191u )
+goto tr122;
+} else
+goto tr120;
+goto tr124;
+
+We have this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+{
+static const unsigned char jump_table[] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0,
+0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0,
+0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0,
+1, 2, 0, 0, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4,
+3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3,
+3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 5, 5, 5, 5, 6, 5, 5,
+5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5,
+5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5,
+5, 5, 5, 6, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 };
+cs = jump_table[(*p)] + 933;
+goto _again;
+}
+
+And this is basically all. Very small, very local change to -G2 mode which,
+as I've explained above, makes a world of difference in our case. If you
+replace ALL cases with jump tables then speed really suffers and size of
+the result grows significantly, if you only do this for cases with large
+number of outcomes then size actually shrinks and speed drop is moderate
+(negative in case of MSVC because we obviously hit some limits of the
+beast) since original code needs to do quite a large number of comparisons
+(or may be use some table behind the scene) anyway.
+
+P.S. And is it possible to somehow really remove line numbers from the
+generated output? They are removed for all languages except C with -L flag,
+but for C they are just commented out. This increases size of generated
+file by about 10% needlessly :-( We can just filter them out, of course,
+but for all other languages you don't need this. Perhaps second -L can
+actually remove line numbers?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120514/bbb58d7b/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon May 14 18:20:35 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 14 May 2012 18:20:35 +0000
+Subject: [ragel-users] MSVC-friendly -GT2 mode
+In-Reply-To: <CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+References: <CABLBYvSavdDY8UGfSPRXp1nb9buoVAi+qvEhLpzjrY0eSzJr4Q@mail.gmail.com>
+	<75835391-1337015546-cardhu_decombobulator_blackberry.rim.net-1107185347-@b17.c7.bise6.blackberry>
+	<CABLBYvRs+7dEFqwOi9R9zTxYoUL_iXyC7mHOzLLczSCPZqOLkw@mail.gmail.com>
+Message-ID: <2107313512-1337019633-cardhu_decombobulator_blackberry.rim.net-211485438-@b17.c7.bise6.blackberry>
+
+I like it, thank you for submitting it. Can it wait for ragel 7.0? I can't really say when that will be done. If not it can go into a 6.8 (along with other patches that are waiting). 
+
+Adrian
+-----Original Message-----
+From: Victor Khimenko <khim at chromium.org>
+Sender: khim at google.com
+Date: Mon, 14 May 2012 21:50:01 
+To: <thurston at complang.org>; <ragel-users at complang.org>
+Subject: Re: [ragel-users] MSVC-friendly -GT2 mode
+
+Example of the change in -GT2 mode.
+
+Instead of this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+switch( (*p) ) {
+case 4u: goto tr118;
+case 5u: goto tr119;
+case 12u: goto tr118;
+case 13u: goto tr119;
+case 20u: goto tr118;
+case 21u: goto tr119;
+case 28u: goto tr118;
+case 29u: goto tr119;
+case 36u: goto tr118;
+case 37u: goto tr119;
+case 44u: goto tr118;
+case 45u: goto tr119;
+case 52u: goto tr118;
+case 53u: goto tr119;
+case 60u: goto tr118;
+case 61u: goto tr119;
+case 68u: goto tr121;
+case 76u: goto tr121;
+case 84u: goto tr121;
+case 92u: goto tr121;
+case 100u: goto tr121;
+case 108u: goto tr121;
+case 116u: goto tr121;
+case 124u: goto tr121;
+case 132u: goto tr123;
+case 140u: goto tr123;
+case 148u: goto tr123;
+case 156u: goto tr123;
+case 164u: goto tr123;
+case 172u: goto tr123;
+case 180u: goto tr123;
+case 188u: goto tr123;
+}
+if ( (*p) < 64u ) {
+if ( (*p) <= 63u )
+goto tr117;
+} else if ( (*p) > 127u ) {
+if ( 128u <= (*p) && (*p) <= 191u )
+goto tr122;
+} else
+goto tr120;
+goto tr124;
+
+We have this:
+
+st47:
+if ( ++p == pe )
+goto _test_eof47;
+case 47:
+{
+static const unsigned char jump_table[] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0,
+0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0,
+0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0,
+1, 2, 0, 0, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4,
+3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3,
+3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 5, 5, 5, 5, 6, 5, 5,
+5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5,
+5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5,
+5, 5, 5, 6, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 };
+cs = jump_table[(*p)] + 933;
+goto _again;
+}
+
+And this is basically all. Very small, very local change to -G2 mode which,
+as I've explained above, makes a world of difference in our case. If you
+replace ALL cases with jump tables then speed really suffers and size of
+the result grows significantly, if you only do this for cases with large
+number of outcomes then size actually shrinks and speed drop is moderate
+(negative in case of MSVC because we obviously hit some limits of the
+beast) since original code needs to do quite a large number of comparisons
+(or may be use some table behind the scene) anyway.
+
+P.S. And is it possible to somehow really remove line numbers from the
+generated output? They are removed for all languages except C with -L flag,
+but for C they are just commented out. This increases size of generated
+file by about 10% needlessly :-( We can just filter them out, of course,
+but for all other languages you don't need this. Perhaps second -L can
+actually remove line numbers?
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120514/054f6e2c/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From flameeyes at flameeyes.eu  Tue May 22 23:29:48 2012
+From: flameeyes at flameeyes.eu (=?UTF-8?q?Diego=20Elio=20Petten=C3=B2?=)
+Date: Tue, 22 May 2012 16:29:48 -0700
+Subject: [ragel-users] [PATCH] aapl: fix building with gcc-4.7.0
+Message-ID: <1337729388-10853-1-git-send-email-flameeyes@flameeyes.eu>
+
+Starting with GCC 4.7, you have to explicit methods inherited from
+base templates, otherwise it will refuse to build.
+
+---
+
+The URL reported in the README is no longer registered, so I couldn't
+find a way to report this to an upstream project.
+
+Signed-off-by: Diego Elio Pettenò <flameeyes at flameeyes.eu>
+---
+ aapl/avlcommon.h  |   12 ++++++------
+ aapl/bstcommon.h  |   16 ++++++++--------
+ aapl/bubblesort.h |    2 +-
+ aapl/mergesort.h  |    2 +-
+ 4 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/aapl/avlcommon.h b/aapl/avlcommon.h
+index 06983bc..2e3c190 100644
+--- a/aapl/avlcommon.h
++++ b/aapl/avlcommon.h
+@@ -881,9 +881,9 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 		}
+ 
+ #ifdef AVL_BASIC
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this->compare( *element, *curEl );
+ #else
+-		keyRelation = compare( element->BASEKEY(getKey()), 
++		keyRelation = this->compare( element->BASEKEY(getKey()),
+ 				curEl->BASEKEY(getKey()) );
+ #endif
+ 
+@@ -920,7 +920,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( *element, *curEl );
++		keyRelation = this->compare( *element, *curEl );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 )
+@@ -969,7 +969,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare( key, curEl->BASEKEY(getKey()) );
++		keyRelation = this->compare( key, curEl->BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 ) {
+@@ -1023,7 +1023,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 			return element;
+ 		}
+ 
+-		keyRelation = compare(key, curEl->getKey());
++		keyRelation = this->compare(key, curEl->getKey());
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 ) {
+@@ -1058,7 +1058,7 @@ template <AVLMEL_TEMPDEF> Element *AvlTree<AVLMEL_TEMPUSE>::
+ 	long keyRelation;
+ 
+ 	while (curEl) {
+-		keyRelation = compare( key, curEl->BASEKEY(getKey()) );
++		keyRelation = this->compare( key, curEl->BASEKEY(getKey()) );
+ 
+ 		/* Do we go left? */
+ 		if ( keyRelation < 0 )
+diff --git a/aapl/bstcommon.h b/aapl/bstcommon.h
+index 888717f..7c53ff3 100644
+--- a/aapl/bstcommon.h
++++ b/aapl/bstcommon.h
+@@ -361,7 +361,7 @@ template <BST_TEMPL_DEF> bool BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -373,12 +373,12 @@ template <BST_TEMPL_DEF> bool BstTable<BST_TEMPL_USE>::
+ 
+ 			lower = mid - 1;
+ 			while ( lower != lowEnd && 
+-					compare(key, GET_KEY(*lower)) == 0 )
++					this->compare(key, GET_KEY(*lower)) == 0 )
+ 				lower--;
+ 
+ 			upper = mid + 1;
+ 			while ( upper != highEnd && 
+-					compare(key, GET_KEY(*upper)) == 0 )
++					this->compare(key, GET_KEY(*upper)) == 0 )
+ 				upper++;
+ 			
+ 			low = (Element*)lower + 1;
+@@ -419,7 +419,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -457,7 +457,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -508,7 +508,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(key, GET_KEY(*mid));
++		keyRelation = this->compare(key, GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -603,7 +603,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this->compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+@@ -662,7 +662,7 @@ template <BST_TEMPL_DEF> Element *BstTable<BST_TEMPL_USE>::
+ 		}
+ 
+ 		mid = lower + ((upper-lower)>>1);
+-		keyRelation = compare(GET_KEY(el), GET_KEY(*mid));
++		keyRelation = this->compare(GET_KEY(el), GET_KEY(*mid));
+ 
+ 		if ( keyRelation < 0 )
+ 			upper = mid - 1;
+diff --git a/aapl/bubblesort.h b/aapl/bubblesort.h
+index bcc2fb6..f0f4ce5 100644
+--- a/aapl/bubblesort.h
++++ b/aapl/bubblesort.h
+@@ -72,7 +72,7 @@ template <class T, class Compare> void BubbleSort<T,Compare>::
+ 		changed = false;
+ 		for ( long i = 0; i < len-pass; i++ ) {
+ 			/* Do we swap pos with the next one? */
+-			if ( compare( data[i], data[i+1] ) > 0 ) {
++			if ( this->compare( data[i], data[i+1] ) > 0 ) {
+ 				char tmp[sizeof(T)];
+ 
+ 				/* Swap the two items. */
+diff --git a/aapl/mergesort.h b/aapl/mergesort.h
+index 68b8426..8cefa73 100644
+--- a/aapl/mergesort.h
++++ b/aapl/mergesort.h
+@@ -110,7 +110,7 @@ template< class T, class Compare> void MergeSort<T,Compare>::
+ 		}
+ 		else {
+ 			/* Both upper and lower left. */
+-			if ( compare(*lower, *upper) <= 0 )
++			if ( this->compare(*lower, *upper) <= 0 )
+ 				memcpy( dest++, lower++, sizeof(T) );
+ 			else
+ 				memcpy( dest++, upper++, sizeof(T) );
+-- 
+1.7.8.6
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From flameeyes at flameeyes.eu  Tue May 22 23:36:28 2012
+From: flameeyes at flameeyes.eu (=?UTF-8?q?Diego=20Elio=20Petten=C3=B2?=)
+Date: Tue, 22 May 2012 16:36:28 -0700
+Subject: [ragel-users] [PATCH] build: do not reset CXXFLAGS.
+Message-ID: <1337729788-11174-1-git-send-email-flameeyes@flameeyes.eu>
+
+Without this change _all_ builds will _always_ use -g only as C++
+compiler flags. autoconf already uses `-O2 -g` as default if none is
+given to command line so this is useless.
+
+Signed-off-by: Diego Elio Pettenò <flameeyes at flameeyes.eu>
+---
+ configure.in |    3 ---
+ 1 files changed, 0 insertions(+), 3 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index 0bac0e2..7c15705 100644
+--- a/configure.in
++++ b/configure.in
+@@ -60,9 +60,6 @@ AC_PROG_CXX
+ AC_CHECK_TOOL(AR, ar)
+ AC_PROG_RANLIB
+ 
+-# Default flags.
+-CXXFLAGS="-g"
+-
+ dnl Set test on c++ compiler.
+ AC_LANG_CPLUSPLUS
+ 
+-- 
+1.7.8.6
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel falls to infinite loop then actions are	specified, and more questions about Ragel and ABNFGEN
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20falls%20to%20infinite%20loop%20then%20actions%20are%0A%09specified%2C%20and%20more%20questions%20about%20Ragel%20and%20ABNFGEN&In-Reply-To=%3C92800614.20130410095808%40mail.ru%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001571.html">
+   <LINK REL="Next"  HREF="001572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel falls to infinite loop then actions are	specified, and more questions about Ragel and ABNFGEN</H1>
+    <B>Александр Мартынов</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20falls%20to%20infinite%20loop%20then%20actions%20are%0A%09specified%2C%20and%20more%20questions%20about%20Ragel%20and%20ABNFGEN&In-Reply-To=%3C92800614.20130410095808%40mail.ru%3E"
+       TITLE="[ragel-users] Ragel falls to infinite loop then actions are	specified, and more questions about Ragel and ABNFGEN">amart at mail.ru
+       </A><BR>
+    <I>Wed Apr 10 05:58:08 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001571.html">[ragel-users] Ignoring whitespace
+</A></li>
+        <LI>Next message: <A HREF="001572.html">[ragel-users] how to install Ragel State Machine Compiler on	Windows 7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1569">[ date ]</a>
+              <a href="thread.html#1569">[ thread ]</a>
+              <a href="subject.html#1569">[ subject ]</a>
+              <a href="author.html#1569">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Ragel-users,
+
+
+ I try to create XML parser using abnfgen tool (<A HREF="http://www.2p.cz/en/abnf_gen/">http://www.2p.cz/en/abnf_gen/</A>),
+which I was found in the &quot;Links&quot; section on Ragel page (<A HREF="http://www.complang.org/ragel/">http://www.complang.org/ragel/</A>).
+
+ 1) The main problem is that the Ragel falls to infinite loop, eats all available memory 
+and cause the system message:
+
+    &quot;This application has requested the runtime to terminate it in unusual way.
+    Please contact the application support team for more information.&quot;
+
+when I try to add entering, leavint and &quot;all transitions&quot; actions to some machine.
+
+This machine defines the Xml comment.
+In ABNFGEN source I wrote:
+
+    ANYCHAREXCEPTMINUS = %x01-2C / %x2C-FF
+    XmlCommentText = *( (ANYCHAREXCEPTMINUS) / (&quot;-&quot; ANYCHAREXCEPTMINUS) )  ; - &quot;--&gt;&quot;
+    XmlComment  = &quot;&lt;!--&quot; XmlCommentText &quot;--&gt;&quot;
+
+which produces next Ragel code:
+
+    ANYCHAREXCEPTMINUS = 0x01..0x2c | 0x2c..0xff;
+    XmlCommentText = ( ANYCHAREXCEPTMINUS | ( &quot;-&quot; ANYCHAREXCEPTMINUS ) )*;
+    XmlComment = &quot;&lt;!--&quot; XmlCommentText &quot;--&gt;&quot;;
+
+The problem occurs when I try to add entering, leaving and &quot;all transitions&quot; 
+actions to XmlCommentText (or XmlComment) machine/statement:
+
+    XmlCommentText = ( ( ANYCHAREXCEPTMINUS | ( &quot;-&quot; ANYCHAREXCEPTMINUS ) )* )   &gt;pfs_sax_parser_e_XmlCommentText    %pfs_sax_parser_l_XmlCommentText    $pfs_sax_parser_t_XmlCommentText;
+    XmlComment = &quot;&lt;!--&quot; XmlCommentText &quot;--&gt;&quot;;
+
+In this case the Ragel fails. What I need to do here?
+
+ 2) Next question is about CData section, whis described in XML definition as:
+
+    [18]    CDSect     ::=       CDStart CData CDEnd
+    [19]    CDStart    ::=      '&lt;![CDATA['
+    [20]    CData      ::=      (Char* - (Char* ']]&gt;' Char*))
+    [21]    CDEnd      ::=      ']]&gt;'
+
+I can't understand, how to write BNF to ABNFGEN tool, or rule for Ragel both.
+
+ 3) The XML Element definition contains itself, and if I wrote exact
+
+    XmlElement = XmlEmptyTag | ( XmlStartTag ( XmlCharData? ( ( XmlElement | XmlCommentOrPiOrCDataOrRef ) XmlCharData? )? ) XmlEndTag );
+
+I got the message: graph lookup for 'XmlElement' failed.
+I think I need to call submachine XmlElement, but I can't understand 
+how and where I must do it, and where I need to return from submachine
+
+ 4) I was find that the Ragel generates invalid code, which can't be compiled with MSVC (but GCC can):
+
+    ...
+    if ( p == eof )
+    {
+    if ( _abnf_reader_eof_trans[cs] &gt; 0 ) {
+        _trans = _abnf_reader_eof_trans[cs] - 1;
+        goto _eof_trans;
+    }
+    const char *__acts = _abnf_reader_actions + _abnf_reader_eof_actions[cs]; /* !!! */
+    unsigned int __nacts = (unsigned int) *__acts++;
+    while ( __nacts-- &gt; 0 ) {
+        switch ( *__acts++ ) {
+    case 5:
+    ...
+
+MSVC fails on line marked with &quot;!!!&quot; with message 
+
+    error C2143: syntax error : missing ';' before 'const'
+
+I think occurs because variable __acts defined not at the block start, but after if statement.
+How this problem can be solved?
+
+
+  
+
+________________________________________________
+С уважением, Мартынов Александр (Marty)
+
+mailto: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">amart at mail.ru</A>
+
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001571.html">[ragel-users] Ignoring whitespace
+</A></li>
+	<LI>Next message: <A HREF="001572.html">[ragel-users] how to install Ragel State Machine Compiler on	Windows 7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1569">[ date ]</a>
+              <a href="thread.html#1569">[ thread ]</a>
+              <a href="subject.html#1569">[ subject ]</a>
+              <a href="author.html#1569">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

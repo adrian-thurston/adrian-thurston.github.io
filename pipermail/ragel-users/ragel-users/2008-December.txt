@@ -1,0 +1,3764 @@
+From gaspard at teti.ch  Tue Dec  2 12:50:41 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 2 Dec 2008 13:50:41 +0100
+Subject: [ragel-users] recursion with ragel
+Message-ID: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+
+Hi list !
+
+I am sure this question has been answered a thousand times, but I
+could not find the list archives (all pages from google point to
+"group not found").
+
+Anyway: I am implementing a json like parser and want to use recursion:
+
+This is what I want to parse:
+"{ url:'foo' opts:{ bar:4.5 }}"
+
+To cope with the hash in the hash, I want to open a new parser after each key:
+
+"{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+number of eaten chars
+
+I then want to update the position of *p. This is the code:
+
+action hash_value {
+  p++;
+  p += tmp_val.from_string(p);
+  tmp_h.set(key, tmp_val);
+  key = "";
+}
+
+My problem: closing '}' is not parsed correctly and then "@hash" is
+never executed.
+
+Regex:
+  ...
+  hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+  main     := ws* (string @string | number @number | hash @hash);
+
+Many thanks for your help !
+
+Gaspard
+
+
+
+From gaspard at teti.ch  Tue Dec  2 12:55:48 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 2 Dec 2008 13:55:48 +0100
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+Message-ID: <7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+
+> Hi list !
+>
+> I am sure this question has been answered a thousand times, but I
+> could not find the list archives (all pages from google point to
+> "group not found").
+>
+> Anyway: I am implementing a json like parser and want to use recursion:
+>
+> This is what I want to parse:
+> "{ url:'foo' opts:{ bar:4.5 }}"
+>
+> To cope with the hash in the hash, I want to open a new parser after each key:
+>
+> "{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+> number of eaten chars
+>
+> I then want to update the position of *p. This is the code:
+>
+> action hash_value {
+>  p++;
+>  p += tmp_val.from_string(p);
+>  tmp_h.set(key, tmp_val);
+>  key = "";
+> }
+>
+> My problem: closing '}' is not parsed correctly and then "@hash" is
+> never executed.
+>
+> Regex:
+>  ...
+>  hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+>  main     := ws* (string @string | number @number | hash @hash);
+>
+> Many thanks for your help !
+>
+> Gaspard
+>
+
+I just found the solution: add an 'fhold' in the "hash_value" action.
+My understanding is that >hash_value is executed "before" the pointer
+is advanced to the next char. So I need to hold it back so that the
+pointer is not advanced twice (since I do p++).
+
+Gaspard
+
+
+
+From thurston at complang.org  Tue Dec  2 14:51:26 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 02 Dec 2008 09:51:26 -0500
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+Message-ID: <49354B6E.1070904@complang.org>
+
+Hi Gaspard,
+
+You can find the old messages in the archive of the new list. I imported
+the messages from google groups. We just need the search engines to
+catch on.
+
+-Adrian
+
+Gaspard Bucher wrote:
+> Hi list !
+> 
+> I am sure this question has been answered a thousand times, but I
+> could not find the list archives (all pages from google point to
+> "group not found").
+> 
+> Anyway: I am implementing a json like parser and want to use recursion:
+> 
+> This is what I want to parse:
+> "{ url:'foo' opts:{ bar:4.5 }}"
+> 
+> To cope with the hash in the hash, I want to open a new parser after each key:
+> 
+> "{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+> number of eaten chars
+> 
+> I then want to update the position of *p. This is the code:
+> 
+> action hash_value {
+>   p++;
+>   p += tmp_val.from_string(p);
+>   tmp_h.set(key, tmp_val);
+>   key = "";
+> }
+> 
+> My problem: closing '}' is not parsed correctly and then "@hash" is
+> never executed.
+> 
+> Regex:
+>   ...
+>   hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+>   main     := ws* (string @string | number @number | hash @hash);
+> 
+> Many thanks for your help !
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Tue Dec  2 14:53:15 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 02 Dec 2008 09:53:15 -0500
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+	<7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+Message-ID: <49354BDB.1000505@complang.org>
+
+
+Gaspard Bucher wrote:
+> I just found the solution: add an 'fhold' in the "hash_value" action.
+> My understanding is that >hash_value is executed "before" the pointer
+> is advanced to the next char. So I need to hold it back so that the
+> pointer is not advanced twice (since I do p++).
+
+You're right. The p pointer is advanced after the action to guarantee
+that it points to the character that the transition is moving over. You
+can just take out the p++. The fhold just translates to p--;
+
+-Adrian
+
+
+
+From gaspard at teti.ch  Wed Dec  3 14:43:19 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 15:43:19 +0100
+Subject: [ragel-users] string representation of entities in dot files
+Message-ID: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+
+Hi list !
+
+Anyone knows if there is an option to "ragel -V" to show litteral
+values instead of numerical ones in the "dot" generated file ?
+
+A --- 34 ---> B
+
+is less readable then
+
+A --- " ---> B
+
+If there is no such option and such a filter could help others, here's
+a simple ruby script that does the job.
+
+====== filter.rb =======
+#!/usr/bin/env ruby
+STDIN.read.split("\n").each do |l|
+  new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+    pre = $1
+    str = $2
+    str.gsub!(/([0-9]+)/) do
+      val = $1.to_i
+      if val <= 31
+        val.to_s
+      elsif val == 32
+        "' '"
+      elsif val == 47
+        "'/'"
+      elsif val == 34
+        "\\\""
+      elsif val == 92
+        "'\\\\'"
+      elsif val < 126
+        val.chr
+      else
+        val.to_s
+      end
+    end
+    "#{pre}\"#{str}\""
+  end
+  puts new_l
+end
+===================
+
+
+Gaspard
+
+
+
+From gaspard at teti.ch  Wed Dec  3 14:52:27 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 15:52:27 +0100
+Subject: [ragel-users] [newbie] eof actions never executed...
+Message-ID: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+
+Hi there !
+
+This might look like a silly question.
+
+I cannot seem to get this right: parse "1.24"
+
+real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+number    = real | integer;
+
+main     := ws* (string %string | number %number | hash %hash);
+
+%number is never executed...
+
+If I use @number, it is called several times.
+
+I sure am missing something...
+
+Thanks for your help.
+
+Gaspard
+
+
+
+From thurston at complang.org  Wed Dec  3 14:57:52 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 03 Dec 2008 09:57:52 -0500
+Subject: [ragel-users] string representation of entities in dot files
+In-Reply-To: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+References: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+Message-ID: <49369E70.7090506@complang.org>
+
+Yes there is, ragel -h will show you the -p option for writing printable
+label on transitions.
+
+Cheers,
+ Adrian
+
+Gaspard Bucher wrote:
+> Hi list !
+> 
+> Anyone knows if there is an option to "ragel -V" to show litteral
+> values instead of numerical ones in the "dot" generated file ?
+> 
+> A --- 34 ---> B
+> 
+> is less readable then
+> 
+> A --- " ---> B
+> 
+> If there is no such option and such a filter could help others, here's
+> a simple ruby script that does the job.
+> 
+> ====== filter.rb =======
+> #!/usr/bin/env ruby
+> STDIN.read.split("\n").each do |l|
+>   new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+>     pre = $1
+>     str = $2
+>     str.gsub!(/([0-9]+)/) do
+>       val = $1.to_i
+>       if val <= 31
+>         val.to_s
+>       elsif val == 32
+>         "' '"
+>       elsif val == 47
+>         "'/'"
+>       elsif val == 34
+>         "\\\""
+>       elsif val == 92
+>         "'\\\\'"
+>       elsif val < 126
+>         val.chr
+>       else
+>         val.to_s
+>       end
+>     end
+>     "#{pre}\"#{str}\""
+>   end
+>   puts new_l
+> end
+> ===================
+> 
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec  3 14:59:55 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 03 Dec 2008 09:59:55 -0500
+Subject: [ragel-users] [newbie] eof actions never executed...
+In-Reply-To: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+References: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+Message-ID: <49369EEB.60605@complang.org>
+
+Leaving actions are always executed on a following character (one char
+of lookahead) so either there needs to be something after the number or
+you need to set eof = pe to induce the action.
+
+-Adrian
+
+Gaspard Bucher wrote:
+> Hi there !
+> 
+> This might look like a silly question.
+> 
+> I cannot seem to get this right: parse "1.24"
+> 
+> real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+> integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+> number    = real | integer;
+> 
+> main     := ws* (string %string | number %number | hash %hash);
+> 
+> %number is never executed...
+> 
+> If I use @number, it is called several times.
+> 
+> I sure am missing something...
+> 
+> Thanks for your help.
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From gaspard at teti.ch  Wed Dec  3 15:20:32 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 16:20:32 +0100
+Subject: [ragel-users] string representation of entities in dot files
+In-Reply-To: <49369E70.7090506@complang.org>
+References: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+	<49369E70.7090506@complang.org>
+Message-ID: <7a9f744a0812030720o72a952ebq4170cad947666221@mail.gmail.com>
+
+Great !
+
+I tried "man ragel" but forgot the "ragel -h".
+
+Thanks.
+
+On Wed, Dec 3, 2008 at 3:57 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Yes there is, ragel -h will show you the -p option for writing printable
+> label on transitions.
+>
+> Cheers,
+>  Adrian
+>
+> Gaspard Bucher wrote:
+>> Hi list !
+>>
+>> Anyone knows if there is an option to "ragel -V" to show litteral
+>> values instead of numerical ones in the "dot" generated file ?
+>>
+>> A --- 34 ---> B
+>>
+>> is less readable then
+>>
+>> A --- " ---> B
+>>
+>> If there is no such option and such a filter could help others, here's
+>> a simple ruby script that does the job.
+>>
+>> ====== filter.rb =======
+>> #!/usr/bin/env ruby
+>> STDIN.read.split("\n").each do |l|
+>>   new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+>>     pre = $1
+>>     str = $2
+>>     str.gsub!(/([0-9]+)/) do
+>>       val = $1.to_i
+>>       if val <= 31
+>>         val.to_s
+>>       elsif val == 32
+>>         "' '"
+>>       elsif val == 47
+>>         "'/'"
+>>       elsif val == 34
+>>         "\\\""
+>>       elsif val == 92
+>>         "'\\\\'"
+>>       elsif val < 126
+>>         val.chr
+>>       else
+>>         val.to_s
+>>       end
+>>     end
+>>     "#{pre}\"#{str}\""
+>>   end
+>>   puts new_l
+>> end
+>> ===================
+>>
+>>
+>> Gaspard
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From gaspard at teti.ch  Wed Dec  3 15:24:49 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 16:24:49 +0100
+Subject: [ragel-users] [newbie] eof actions never executed...
+In-Reply-To: <49369EEB.60605@complang.org>
+References: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+	<49369EEB.60605@complang.org>
+Message-ID: <7a9f744a0812030724y5a6a60cen9d3b655fdae0c4b@mail.gmail.com>
+
+I changed the 'main' to include the end of buffer character and it works.
+
+main     := ws* (string %string | number %number | hash %hash) '\0';
+
+By the way, many thanks for your great software. As soon as rubyk
+(http://rubyk.org) gets back on its feets, I will let you know of what
+I'm doing with ragel (the Turing object might be fun...).
+
+Gaspard
+
+On Wed, Dec 3, 2008 at 3:59 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Leaving actions are always executed on a following character (one char
+> of lookahead) so either there needs to be something after the number or
+> you need to set eof = pe to induce the action.
+>
+> -Adrian
+>
+> Gaspard Bucher wrote:
+>> Hi there !
+>>
+>> This might look like a silly question.
+>>
+>> I cannot seem to get this right: parse "1.24"
+>>
+>> real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+>> integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+>> number    = real | integer;
+>>
+>> main     := ws* (string %string | number %number | hash %hash);
+>>
+>> %number is never executed...
+>>
+>> If I use @number, it is called several times.
+>>
+>> I sure am missing something...
+>>
+>> Thanks for your help.
+>>
+>> Gaspard
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From jose at ordinate.com  Fri Dec  5 00:34:09 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 04 Dec 2008 16:34:09 -0800
+Subject: [ragel-users] Strange difference between C and Java
+Message-ID: <49387701.6050607@ordinate.com>
+
+I have created what I think are identical machines (except for the host 
+code, that is) that don't behave the same way.  The ragel files are 
+attached.
+
+Here's a typical session with the C machine:
+
+$ ragel client_c.rl
+$ gcc -o client_c client_c.c
+$ echo "OK callnum 8108" | ./client_c
+figure out how to print out the call number.
+$ echo "OK callnum 8108 foo" | ./client_c
+Parse error.
+
+
+Here's the same session with the Java machine:
+
+$ ragel -J client_java.rl -o ClientParser.java
+$ javac ClientParser.java
+$ java ClientParser "OK callnum 8108"
+$ java ClientParser "OK callnum 8108 foo"
+Parse error.
+
+
+It seems like the "%" transition action works differently in Java and C. 
+  If I change the transition action to and "@" I get "figure out how to 
+print out the call number." several times. This is true for both the C 
+and Java versions.
+
+What am I doing wrong?
+
+Thanks,
+Jose.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: client_java.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20081204/0feb0adf/attachment.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: client_c.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20081204/0feb0adf/attachment-0001.ksh>
+
+From thurston at complang.org  Fri Dec  5 01:46:20 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 04 Dec 2008 20:46:20 -0500
+Subject: [ragel-users] Strange difference between C and Java
+In-Reply-To: <49387701.6050607@ordinate.com>
+References: <49387701.6050607@ordinate.com>
+Message-ID: <493887EC.7090703@complang.org>
+
+Hi Jose,
+
+It looks like there is no newline on the end of the string being passed 
+to the Java version. That could be it.
+
+-Adrian
+
+Jose Quinteiro wrote:
+> I have created what I think are identical machines (except for the host 
+> code, that is) that don't behave the same way.  The ragel files are 
+> attached.
+> 
+> Here's a typical session with the C machine:
+> 
+> $ ragel client_c.rl
+> $ gcc -o client_c client_c.c
+> $ echo "OK callnum 8108" | ./client_c
+> figure out how to print out the call number.
+> $ echo "OK callnum 8108 foo" | ./client_c
+> Parse error.
+> 
+> 
+> Here's the same session with the Java machine:
+> 
+> $ ragel -J client_java.rl -o ClientParser.java
+> $ javac ClientParser.java
+> $ java ClientParser "OK callnum 8108"
+> $ java ClientParser "OK callnum 8108 foo"
+> Parse error.
+> 
+> 
+> It seems like the "%" transition action works differently in Java and C. 
+>  If I change the transition action to and "@" I get "figure out how to 
+> print out the call number." several times. This is true for both the C 
+> and Java versions.
+> 
+> What am I doing wrong?
+> 
+> Thanks,
+> Jose.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Fri Dec  5 01:58:24 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 04 Dec 2008 17:58:24 -0800
+Subject: [ragel-users] Strange difference between C and Java
+In-Reply-To: <493887EC.7090703@complang.org>
+References: <49387701.6050607@ordinate.com> <493887EC.7090703@complang.org>
+Message-ID: <49388AC0.3040301@ordinate.com>
+
+I figured I missing something simple.  Thanks for the quick reply!
+
+Adrian Thurston wrote:
+> Hi Jose,
+> 
+> It looks like there is no newline on the end of the string being passed 
+> to the Java version. That could be it.
+> 
+> -Adrian
+> 
+> Jose Quinteiro wrote:
+>> I have created what I think are identical machines (except for the host 
+>> code, that is) that don't behave the same way.  The ragel files are 
+>> attached.
+>>
+>> Here's a typical session with the C machine:
+>>
+>> $ ragel client_c.rl
+>> $ gcc -o client_c client_c.c
+>> $ echo "OK callnum 8108" | ./client_c
+>> figure out how to print out the call number.
+>> $ echo "OK callnum 8108 foo" | ./client_c
+>> Parse error.
+>>
+>>
+>> Here's the same session with the Java machine:
+>>
+>> $ ragel -J client_java.rl -o ClientParser.java
+>> $ javac ClientParser.java
+>> $ java ClientParser "OK callnum 8108"
+>> $ java ClientParser "OK callnum 8108 foo"
+>> Parse error.
+>>
+>>
+>> It seems like the "%" transition action works differently in Java and C. 
+>>  If I change the transition action to and "@" I get "figure out how to 
+>> print out the call number." several times. This is true for both the C 
+>> and Java versions.
+>>
+>> What am I doing wrong?
+>>
+>> Thanks,
+>> Jose.
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 00:42:52 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 16:42:52 -0800
+Subject: [ragel-users] Scanner question
+Message-ID: <4939CA8C.7060206@ordinate.com>
+
+I'm trying to write a scanner that accepts "num", "numb", "numbe", etc. 
+as the same token.  The only way I can think of that accomplishes this is:
+
+main := |*
+		/num/i => number;
+		/numb/i => number;
+		/numbe/i => number;
+		/number/i => number;
+	*|;
+
+Is there a better way?
+
+Thanks,
+Jose.
+
+
+
+From flameeyes at gmail.com  Sat Dec  6 01:41:02 2008
+From: flameeyes at gmail.com (=?UTF-8?Q?Diego_E._"Flameeyes"_Petten=C3=B2?=)
+Date: Sat, 6 Dec 2008 02:41:02 +0100
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939CA8C.7060206@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>
+Message-ID: <6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+
+On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+> as the same token.  The only way I can think of that accomplishes this is:
+
+I admit I haven't even tested, but I'd expect something like 'num'
+'b'?'e'?'r'? to work
+
+-- 
+Diego "Flameeyes" Pettenò - flameeyes at gmail.com
+Free Software developer and consultant
+http://blog.flameeyes.eu/
+
+From jose at ordinate.com  Sat Dec  6 01:52:35 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 17:52:35 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+References: <4939CA8C.7060206@ordinate.com>
+	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+Message-ID: <4939DAE3.8070801@ordinate.com>
+
+That also accepts "nume", "numr", etc., and I want those to be an error.
+
+Thanks,
+Jose.
+
+Diego E. "Flameeyes" Pettenò wrote:
+> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>> as the same token.  The only way I can think of that accomplishes this is:
+> 
+> I admit I haven't even tested, but I'd expect something like 'num'
+> 'b'?'e'?'r'? to work
+> 
+
+
+
+From thurston at complang.org  Sat Dec  6 02:07:16 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 05 Dec 2008 21:07:16 -0500
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DAE3.8070801@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+	<4939DAE3.8070801@ordinate.com>
+Message-ID: <4939DE54.3090802@complang.org>
+
+Try this:
+
+'num' ( 'b' ('e' 'r'?)? )?
+
+A long time ago there was talk of adding a machine construction function 
+(called prefix I think) for this case but it never got done because it 
+depended on adding some new syntax forms and I didn't have the time. 
+Hopefully I can revive that soon. I defended my PhD yesterday and life 
+should return to normal soon :)
+
+-Adrian
+
+Jose Quinteiro wrote:
+> That also accepts "nume", "numr", etc., and I want those to be an error.
+> 
+> Thanks,
+> Jose.
+> 
+> Diego E. "Flameeyes" Pettenò wrote:
+>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>>> as the same token.  The only way I can think of that accomplishes this is:
+>> I admit I haven't even tested, but I'd expect something like 'num'
+>> 'b'?'e'?'r'? to work
+>>
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 02:14:16 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 18:14:16 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DE54.3090802@complang.org>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>	<4939DAE3.8070801@ordinate.com>
+	<4939DE54.3090802@complang.org>
+Message-ID: <4939DFF8.7000104@ordinate.com>
+
+Yep, that does it.  Thanks again.  I was trying something similar with 
+Kleene stars and getting nowhere.  I don't have a good feel for this yet.
+
+Saludos,
+Jose.
+
+Adrian Thurston wrote:
+> Try this:
+> 
+> 'num' ( 'b' ('e' 'r'?)? )?
+> 
+> A long time ago there was talk of adding a machine construction function 
+> (called prefix I think) for this case but it never got done because it 
+> depended on adding some new syntax forms and I didn't have the time. 
+> Hopefully I can revive that soon. I defended my PhD yesterday and life 
+> should return to normal soon :)
+> 
+> -Adrian
+> 
+> Jose Quinteiro wrote:
+>> That also accepts "nume", "numr", etc., and I want those to be an error.
+>>
+>> Thanks,
+>> Jose.
+>>
+>> Diego E. "Flameeyes" Pettenò wrote:
+>>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>>>> as the same token.  The only way I can think of that accomplishes this is:
+>>> I admit I haven't even tested, but I'd expect something like 'num'
+>>> 'b'?'e'?'r'? to work
+>>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 02:38:07 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 18:38:07 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DFF8.7000104@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>	<4939DAE3.8070801@ordinate.com>
+	<4939DE54.3090802@complang.org> <4939DFF8.7000104@ordinate.com>
+Message-ID: <4939E58F.7010306@ordinate.com>
+
+And BTW, congrats on your defense.
+
+Saludos,
+Jose.
+
+Jose Quinteiro wrote:
+> Yep, that does it.  Thanks again.  I was trying something similar with 
+> Kleene stars and getting nowhere.  I don't have a good feel for this yet.
+> 
+> Saludos,
+> Jose.
+> 
+> Adrian Thurston wrote:
+>> Try this:
+>>
+>> 'num' ( 'b' ('e' 'r'?)? )?
+>>
+>> A long time ago there was talk of adding a machine construction 
+>> function (called prefix I think) for this case but it never got done 
+>> because it depended on adding some new syntax forms and I didn't have 
+>> the time. Hopefully I can revive that soon. I defended my PhD 
+>> yesterday and life should return to normal soon :)
+>>
+>> -Adrian
+>>
+>> Jose Quinteiro wrote:
+>>> That also accepts "nume", "numr", etc., and I want those to be an error.
+>>>
+>>> Thanks,
+>>> Jose.
+>>>
+>>> Diego E. "Flameeyes" Pettenò wrote:
+>>>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> 
+>>>> wrote:
+>>>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", 
+>>>>> etc.
+>>>>> as the same token.  The only way I can think of that accomplishes 
+>>>>> this is:
+>>>> I admit I haven't even tested, but I'd expect something like 'num'
+>>>> 'b'?'e'?'r'? to work
+>>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From jose at ordinate.com  Tue Dec  9 19:31:32 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Tue, 09 Dec 2008 11:31:32 -0800
+Subject: [ragel-users] Possible copy-paste error in doc
+Message-ID: <493EC794.5090608@ordinate.com>
+
+On page 23 near the end where it reads:
+
+$!action $eof(name) $err{...} - all states
+
+I think it should read:
+
+$!action $err(name) $err{...} - all states
+
+
+Thanks,
+Jose.
+
+
+
+From gaspard at teti.ch  Tue Dec  9 21:27:51 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 9 Dec 2008 22:27:51 +0100
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DE54.3090802@complang.org>
+References: <4939CA8C.7060206@ordinate.com>
+	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+	<4939DAE3.8070801@ordinate.com> <4939DE54.3090802@complang.org>
+Message-ID: <7a9f744a0812091327he79f37bmbee86e5406116514@mail.gmail.com>
+
+> Hopefully I can revive that soon. I defended my PhD yesterday and life
+> should return to normal soon :)
+
+Bravo ! Cheers !!
+
+Gaspard
+
+
+
+From thurston at complang.org  Thu Dec 11 04:41:52 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 10 Dec 2008 23:41:52 -0500
+Subject: [ragel-users] Possible copy-paste error in doc
+In-Reply-To: <493EC794.5090608@ordinate.com>
+References: <493EC794.5090608@ordinate.com>
+Message-ID: <49409A10.5000703@complang.org>
+
+Good catch, thanks!
+
+-Adrian
+
+Jose Quinteiro wrote:
+> On page 23 near the end where it reads:
+> 
+> $!action $eof(name) $err{...} - all states
+> 
+> I think it should read:
+> 
+> $!action $err(name) $err{...} - all states
+> 
+> 
+> Thanks,
+> Jose.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Wed Dec 17 13:44:56 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Wed, 17 Dec 2008 19:14:56 +0530
+Subject: [ragel-users] Need Help on Backward Reference concept of Regular
+	Expression in Ragel Language
+Message-ID: <200812171344.CEP98707@persistent.co.in>
+
+Hi 
+
+I want to use backward reference in ragel regular expression for creating
+parser for my language. The requirement is kind of begining and end of tag
+matching where tag can be any arbitary string. e.g
+
+1./test/ this is sample /test/ 
+
+or it can be 
+
+2./hello/ this is test /hello/ 
+
+and following can be consider as a invalide
+
+3./abc/ this is invalid /xyz/ 
+
+So as in above example tag can be any arbitary string but requirement is to
+match begining and ending tag string should be same. To write regular
+expression for above requirement in ragel language i want to use backward
+reference as in javascript. So can somebody give valuable suggestion how can
+we achieve it in ragel or any pointer related to same would be great help
+
+Thanks & Regards
+
+Hardik Parikh
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20081217/82ff99af/attachment.html>
+
+From thurston at complang.org  Thu Dec 18 04:24:39 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 17 Dec 2008 23:24:39 -0500
+Subject: [ragel-users] Need Help on Backward Reference concept of
+ Regular Expression in Ragel Language
+In-Reply-To: <200812171344.CEP98707@persistent.co.in>
+References: <200812171344.CEP98707@persistent.co.in>
+Message-ID: <4949D087.7090600@complang.org>
+
+Hi Hardik,
+
+There is no inbuilt support for back references. What you'll have to do 
+is to capture the text of the back reference, then in the place where 
+you wish the back reference to appear give a pattern that subsumes the 
+back reference, and then test the strings at runtime using a call to 
+strcmp in a condition.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi
+> 
+> I want to use backward reference in ragel regular expression for 
+> creating parser for my language. The requirement is kind of begining and 
+> end of tag matching where tag can be any arbitary string. e.g
+> 
+> 1./test/ this is sample /test/
+> 
+> or it can be
+> 
+> 2./hello/ this is test /hello/
+> 
+> and following can be consider as a invalide
+> 
+> 3./abc/ this is invalid /xyz/
+> 
+> So as in above example tag can be any arbitary string but requirement is 
+> to match begining and ending tag string should be same. To write regular 
+> expression for above requirement in ragel language i want to use 
+> backward reference as in javascript. So can somebody give valuable 
+> suggestion how can we achieve it in ragel or any pointer related to same 
+> would be great help
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Fri Dec 19 10:26:50 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Fri, 19 Dec 2008 15:56:50 +0530
+Subject: [ragel-users] Problem with tag comment implementation
+Message-ID: <200812191027.CER79317@persistent.co.in>
+
+Hi,
+
+ 
+
+    I have requirement to consider following as valid comment in source
+language
+
+ 
+
+    |abc#
+
+             Some description ...
+
+   #abc|
+
+ 
+
+  And following is invalid comment
+
+ 
+
+    |abc#
+
+             Some description ...
+
+    #xyz|
+
+ 
+
+And for above requirement I need to capture token string and performed match
+operation as there is no inbuilt support for backward reference in ragel
+
+I tried out with following implementation
+
+ 
+
+action mark_start{
+
+     start = fpc+1;
+
+    // printf(" Mark start at %c\n",fc);
+
+  }
+
+ action tagstart{
+
+    size_t len = fpc - start ;
+
+    s = calloc(len,sizeof(char));
+
+    strncpy(s,start,len);
+
+    s[len]='\0';
+
+  //  printf("Start : %s\n",s);
+
+  }
+
+ 
+
+ action tagend{
+
+    size_t len = fpc - start ;
+
+    e = calloc(len,sizeof(char));
+
+    strncpy(e,start,len);
+
+    e[len]='\0';
+
+   stringcmp = strncmp(e,s,sizeof(s));
+
+    //printf("End : %s\n",e);
+
+  }
+
+ 
+
+   curl_tag_comment =
+
+    '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+
+      newline %{ entity = INTERNAL_NL; } %curl_ccallback
+
+      |
+
+      ws
+
+      |
+
+      (nonnewline - ws) @comment
+
+    )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { stringcmp
+== 0}) @comment;
+
+ 
+
+ 
+
+Now I am able to capture both start and end substring properly and able to
+do math operation in when condition but it produces as a valid commet in
+parser for even a non valid statement.
+
+ 
+
+Like
+
+ 
+
+curl comment |abc#
+
+curl comment             Some  description ...
+
+curl comment  #xyz|
+
+ 
+
+Please provide me any suggestions where I am doing something wrong or is
+there any other better way to implement the same.
+
+ 
+
+Thanks & Regards
+
+Hardik Parikh
+
+ 
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20081219/9ca0b1f2/attachment.html>
+
+From thurston at complang.org  Sun Dec 21 03:30:59 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 20 Dec 2008 22:30:59 -0500
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <200812191027.CER79317@persistent.co.in>
+References: <200812191027.CER79317@persistent.co.in>
+Message-ID: <494DB873.2060100@complang.org>
+
+Hi Hardik,
+
+The problem here is very subtle. Conditions are executed before the 
+actions on the same character, so the test of stringcmp is running 
+before it is set. Change the embedding of tagend to a "to state" action 
+using:
+
+ >to(tagend)
+
+That should do it.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi,
+> 
+>  
+> 
+>     I have requirement to consider following as valid comment in source 
+> language
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description …….
+> 
+>    #abc|
+> 
+>  
+> 
+>   And following is invalid comment
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description …….
+> 
+>     #xyz|
+> 
+>  
+> 
+> And for above requirement I need to capture token string and performed 
+> match operation as there is no inbuilt support for backward reference in 
+> ragel
+> 
+> I tried out with following implementation
+> 
+>  
+> 
+> action mark_start{
+> 
+>      start = fpc+1;
+> 
+>     // printf(" Mark start at %c\n",fc);
+> 
+>   }
+> 
+>  action tagstart{
+> 
+>     size_t len = fpc - start ;
+> 
+>     s = calloc(len,sizeof(char));
+> 
+>     strncpy(s,start,len);
+> 
+>     s[len]='\0';
+> 
+>   //  printf("Start : %s\n",s);
+> 
+>   }
+> 
+>  
+> 
+>  action tagend{
+> 
+>     size_t len = fpc - start ;
+> 
+>     e = calloc(len,sizeof(char));
+> 
+>     strncpy(e,start,len);
+> 
+>     e[len]='\0';
+> 
+>    stringcmp = strncmp(e,s,sizeof(s));
+> 
+>     //printf("End : %s\n",e);
+> 
+>   }
+> 
+>  
+> 
+>    curl_tag_comment =
+> 
+>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+> 
+>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+> 
+>       |
+> 
+>       ws
+> 
+>       |
+> 
+>       (nonnewline - ws) @comment
+> 
+>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+> stringcmp == 0}) @comment;
+> 
+>  
+> 
+>  
+> 
+> Now I am able to capture both start and end substring properly and able 
+> to do math operation in when condition but it produces as a valid commet 
+> in parser for even a non valid statement.
+> 
+>  
+> 
+> Like
+> 
+>  
+> 
+> curl comment |abc#
+> 
+> curl comment             Some  description …….
+> 
+> curl comment  #xyz|
+> 
+>  
+> 
+> Please provide me any suggestions where I am doing something wrong or is 
+> there any other better way to implement the same.
+> 
+>  
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+>  
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Wed Dec 24 12:26:55 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Wed, 24 Dec 2008 17:56:55 +0530
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <494DB873.2060100@complang.org>
+Message-ID: <200812241226.CEW19221@persistent.co.in>
+
+Hi Adrian
+
+I tried to work out with your suggestion but seeing not any reflection in
+output. I am not able to understand where it is going wrong?
+
+Thanks & Regards
+Hardik Parikh
+
+-----Original Message-----
+From: Adrian Thurston [mailto:thurston at complang.org] 
+Sent: Sunday, December 21, 2008 9:01 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Problem with tag comment implementation
+
+Hi Hardik,
+
+The problem here is very subtle. Conditions are executed before the 
+actions on the same character, so the test of stringcmp is running 
+before it is set. Change the embedding of tagend to a "to state" action 
+using:
+
+ >to(tagend)
+
+That should do it.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi,
+> 
+>  
+> 
+>     I have requirement to consider following as valid comment in source 
+> language
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description ...
+> 
+>    #abc|
+> 
+>  
+> 
+>   And following is invalid comment
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description ...
+> 
+>     #xyz|
+> 
+>  
+> 
+> And for above requirement I need to capture token string and performed 
+> match operation as there is no inbuilt support for backward reference in 
+> ragel
+> 
+> I tried out with following implementation
+> 
+>  
+> 
+> action mark_start{
+> 
+>      start = fpc+1;
+> 
+>     // printf(" Mark start at %c\n",fc);
+> 
+>   }
+> 
+>  action tagstart{
+> 
+>     size_t len = fpc - start ;
+> 
+>     s = calloc(len,sizeof(char));
+> 
+>     strncpy(s,start,len);
+> 
+>     s[len]='\0';
+> 
+>   //  printf("Start : %s\n",s);
+> 
+>   }
+> 
+>  
+> 
+>  action tagend{
+> 
+>     size_t len = fpc - start ;
+> 
+>     e = calloc(len,sizeof(char));
+> 
+>     strncpy(e,start,len);
+> 
+>     e[len]='\0';
+> 
+>    stringcmp = strncmp(e,s,sizeof(s));
+> 
+>     //printf("End : %s\n",e);
+> 
+>   }
+> 
+>  
+> 
+>    curl_tag_comment =
+> 
+>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+> 
+>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+> 
+>       |
+> 
+>       ws
+> 
+>       |
+> 
+>       (nonnewline - ws) @comment
+> 
+>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+> stringcmp == 0}) @comment;
+> 
+>  
+> 
+>  
+> 
+> Now I am able to capture both start and end substring properly and able 
+> to do math operation in when condition but it produces as a valid commet 
+> in parser for even a non valid statement.
+> 
+>  
+> 
+> Like
+> 
+>  
+> 
+> curl comment |abc#
+> 
+> curl comment             Some  description ...
+> 
+> curl comment  #xyz|
+> 
+>  
+> 
+> Please provide me any suggestions where I am doing something wrong or is 
+> there any other better way to implement the same.
+> 
+>  
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+>  
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+
+
+
+From thurston at complang.org  Wed Dec 24 15:13:36 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 24 Dec 2008 10:13:36 -0500
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <200812241226.CEW19221@persistent.co.in>
+References: <200812241226.CEW19221@persistent.co.in>
+Message-ID: <495251A0.70005@complang.org>
+
+Sorry I forgot to mention that you won't see any change in the dot
+output, since in the visualization there is no difference between
+to/char/from actions.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi Adrian
+> 
+> I tried to work out with your suggestion but seeing not any reflection in
+> output. I am not able to understand where it is going wrong?
+> 
+> Thanks & Regards
+> Hardik Parikh
+> 
+> -----Original Message-----
+> From: Adrian Thurston [mailto:thurston at complang.org] 
+> Sent: Sunday, December 21, 2008 9:01 AM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Problem with tag comment implementation
+> 
+> Hi Hardik,
+> 
+> The problem here is very subtle. Conditions are executed before the 
+> actions on the same character, so the test of stringcmp is running 
+> before it is set. Change the embedding of tagend to a "to state" action 
+> using:
+> 
+>  >to(tagend)
+> 
+> That should do it.
+> 
+> -Adrian
+> 
+> Hardik Parikh wrote:
+>> Hi,
+>>
+>>  
+>>
+>>     I have requirement to consider following as valid comment in source 
+>> language
+>>
+>>  
+>>
+>>     |abc#
+>>
+>>              Some description ...
+>>
+>>    #abc|
+>>
+>>  
+>>
+>>   And following is invalid comment
+>>
+>>  
+>>
+>>     |abc#
+>>
+>>              Some description ...
+>>
+>>     #xyz|
+>>
+>>  
+>>
+>> And for above requirement I need to capture token string and performed 
+>> match operation as there is no inbuilt support for backward reference in 
+>> ragel
+>>
+>> I tried out with following implementation
+>>
+>>  
+>>
+>> action mark_start{
+>>
+>>      start = fpc+1;
+>>
+>>     // printf(" Mark start at %c\n",fc);
+>>
+>>   }
+>>
+>>  action tagstart{
+>>
+>>     size_t len = fpc - start ;
+>>
+>>     s = calloc(len,sizeof(char));
+>>
+>>     strncpy(s,start,len);
+>>
+>>     s[len]='\0';
+>>
+>>   //  printf("Start : %s\n",s);
+>>
+>>   }
+>>
+>>  
+>>
+>>  action tagend{
+>>
+>>     size_t len = fpc - start ;
+>>
+>>     e = calloc(len,sizeof(char));
+>>
+>>     strncpy(e,start,len);
+>>
+>>     e[len]='\0';
+>>
+>>    stringcmp = strncmp(e,s,sizeof(s));
+>>
+>>     //printf("End : %s\n",e);
+>>
+>>   }
+>>
+>>  
+>>
+>>    curl_tag_comment =
+>>
+>>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+>>
+>>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+>>
+>>       |
+>>
+>>       ws
+>>
+>>       |
+>>
+>>       (nonnewline - ws) @comment
+>>
+>>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+>> stringcmp == 0}) @comment;
+>>
+>>  
+>>
+>>  
+>>
+>> Now I am able to capture both start and end substring properly and able 
+>> to do math operation in when condition but it produces as a valid commet 
+>> in parser for even a non valid statement.
+>>
+>>  
+>>
+>> Like
+>>
+>>  
+>>
+>> curl comment |abc#
+>>
+>> curl comment             Some  description ...
+>>
+>> curl comment  #xyz|
+>>
+>>  
+>>
+>> Please provide me any suggestions where I am doing something wrong or is 
+>> there any other better way to implement the same.
+>>
+>>  
+>>
+>> Thanks & Regards
+>>
+>> Hardik Parikh
+>>
+>>  
+>>
+>> DISCLAIMER ========== This e-mail may contain privileged and 
+>> confidential information which is the property of Persistent Systems 
+>> Ltd. It is intended only for the use of the individual or entity to 
+>> which it is addressed. If you are not the intended recipient, you are 
+>> not authorized to read, retain, copy, print, distribute or use this 
+>> message. If you have received this communication in error, please notify 
+>> the sender and delete all copies of this message. Persistent Systems 
+>> Ltd. does not accept any liability for virus infected mails.
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> DISCLAIMER
+> ==========
+> This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From rustompmody at gmail.com  Wed Dec 31 07:02:44 2008
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Wed, 31 Dec 2008 12:32:44 +0530
+Subject: [ragel-users] interpreting ragel visualization
+Message-ID: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+
+I am trying to understand the ragel visuallization output.
+In particular the alphabet elements are converted to numbers.
+ie when I see something like the following on a transition
+-128..8, 11, 14..31, 33..34, 36..123, 125..127, 124(!59;65)
+Some could be ASCII; some (-128) are obviously not. Also some other
+things (!59) there are not clear to me
+Where can I find out more about them?
+
+Rustom
+
+PS Thanks for a neat piece of software.
+Wish I had it 25 years ago when I grappled with lex as a student :-)
+
+
+
+From thurston at complang.org  Wed Dec 31 17:13:22 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 31 Dec 2008 12:13:22 -0500 (EST)
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+Message-ID: <50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+
+Hi Rustom,
+
+When the alphabet type is a signed value like char, the values with high
+bit set are displayed as negative. If you change the alphabet type to
+unsigned char they'll show up as > 127.
+
+The values inside parens are references to conditions. If a named action
+is used a name shows up there. Otherwise you get line;col. The bang means
+that the transition is taken only when the condition fails (returns
+false).
+
+Happy New Year!
+
+Adrian
+
+> I am trying to understand the ragel visuallization output.
+> In particular the alphabet elements are converted to numbers.
+> ie when I see something like the following on a transition
+> -128..8, 11, 14..31, 33..34, 36..123, 125..127, 124(!59;65)
+> Some could be ASCII; some (-128) are obviously not. Also some other
+> things (!59) there are not clear to me
+> Where can I find out more about them?
+>
+> Rustom
+>
+> PS Thanks for a neat piece of software.
+> Wish I had it 25 years ago when I grappled with lex as a student :-)
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+
+From gaspard at teti.ch  Tue Dec  2 12:50:41 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 2 Dec 2008 13:50:41 +0100
+Subject: [ragel-users] recursion with ragel
+Message-ID: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+
+Hi list !
+
+I am sure this question has been answered a thousand times, but I
+could not find the list archives (all pages from google point to
+"group not found").
+
+Anyway: I am implementing a json like parser and want to use recursion:
+
+This is what I want to parse:
+"{ url:'foo' opts:{ bar:4.5 }}"
+
+To cope with the hash in the hash, I want to open a new parser after each key:
+
+"{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+number of eaten chars
+
+I then want to update the position of *p. This is the code:
+
+action hash_value {
+  p++;
+  p += tmp_val.from_string(p);
+  tmp_h.set(key, tmp_val);
+  key = "";
+}
+
+My problem: closing '}' is not parsed correctly and then "@hash" is
+never executed.
+
+Regex:
+  ...
+  hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+  main     := ws* (string @string | number @number | hash @hash);
+
+Many thanks for your help !
+
+Gaspard
+
+
+
+From gaspard at teti.ch  Tue Dec  2 12:55:48 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 2 Dec 2008 13:55:48 +0100
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+Message-ID: <7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+
+> Hi list !
+>
+> I am sure this question has been answered a thousand times, but I
+> could not find the list archives (all pages from google point to
+> "group not found").
+>
+> Anyway: I am implementing a json like parser and want to use recursion:
+>
+> This is what I want to parse:
+> "{ url:'foo' opts:{ bar:4.5 }}"
+>
+> To cope with the hash in the hash, I want to open a new parser after each key:
+>
+> "{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+> number of eaten chars
+>
+> I then want to update the position of *p. This is the code:
+>
+> action hash_value {
+>  p++;
+>  p += tmp_val.from_string(p);
+>  tmp_h.set(key, tmp_val);
+>  key = "";
+> }
+>
+> My problem: closing '}' is not parsed correctly and then "@hash" is
+> never executed.
+>
+> Regex:
+>  ...
+>  hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+>  main     := ws* (string @string | number @number | hash @hash);
+>
+> Many thanks for your help !
+>
+> Gaspard
+>
+
+I just found the solution: add an 'fhold' in the "hash_value" action.
+My understanding is that >hash_value is executed "before" the pointer
+is advanced to the next char. So I need to hold it back so that the
+pointer is not advanced twice (since I do p++).
+
+Gaspard
+
+
+
+From thurston at complang.org  Tue Dec  2 14:51:26 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 02 Dec 2008 09:51:26 -0500
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+Message-ID: <49354B6E.1070904@complang.org>
+
+Hi Gaspard,
+
+You can find the old messages in the archive of the new list. I imported
+the messages from google groups. We just need the search engines to
+catch on.
+
+-Adrian
+
+Gaspard Bucher wrote:
+> Hi list !
+> 
+> I am sure this question has been answered a thousand times, but I
+> could not find the list archives (all pages from google point to
+> "group not found").
+> 
+> Anyway: I am implementing a json like parser and want to use recursion:
+> 
+> This is what I want to parse:
+> "{ url:'foo' opts:{ bar:4.5 }}"
+> 
+> To cope with the hash in the hash, I want to open a new parser after each key:
+> 
+> "{ url:" ===> new parser with "'foo' opts:{ bar:4.5 }}", returns
+> number of eaten chars
+> 
+> I then want to update the position of *p. This is the code:
+> 
+> action hash_value {
+>   p++;
+>   p += tmp_val.from_string(p);
+>   tmp_h.set(key, tmp_val);
+>   key = "";
+> }
+> 
+> My problem: closing '}' is not parsed correctly and then "@hash" is
+> never executed.
+> 
+> Regex:
+>   ...
+>   hash      = '{' (ws* string ':' >hash_value)* ws* '}';
+>   main     := ws* (string @string | number @number | hash @hash);
+> 
+> Many thanks for your help !
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Tue Dec  2 14:53:15 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 02 Dec 2008 09:53:15 -0500
+Subject: [ragel-users] recursion with ragel
+In-Reply-To: <7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+References: <7a9f744a0812020450p50e0e213kbbb11860e362c102@mail.gmail.com>
+	<7a9f744a0812020455q67c05717wcacdb19b5912b395@mail.gmail.com>
+Message-ID: <49354BDB.1000505@complang.org>
+
+
+Gaspard Bucher wrote:
+> I just found the solution: add an 'fhold' in the "hash_value" action.
+> My understanding is that >hash_value is executed "before" the pointer
+> is advanced to the next char. So I need to hold it back so that the
+> pointer is not advanced twice (since I do p++).
+
+You're right. The p pointer is advanced after the action to guarantee
+that it points to the character that the transition is moving over. You
+can just take out the p++. The fhold just translates to p--;
+
+-Adrian
+
+
+
+From gaspard at teti.ch  Wed Dec  3 14:43:19 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 15:43:19 +0100
+Subject: [ragel-users] string representation of entities in dot files
+Message-ID: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+
+Hi list !
+
+Anyone knows if there is an option to "ragel -V" to show litteral
+values instead of numerical ones in the "dot" generated file ?
+
+A --- 34 ---> B
+
+is less readable then
+
+A --- " ---> B
+
+If there is no such option and such a filter could help others, here's
+a simple ruby script that does the job.
+
+====== filter.rb =======
+#!/usr/bin/env ruby
+STDIN.read.split("\n").each do |l|
+  new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+    pre = $1
+    str = $2
+    str.gsub!(/([0-9]+)/) do
+      val = $1.to_i
+      if val <= 31
+        val.to_s
+      elsif val == 32
+        "' '"
+      elsif val == 47
+        "'/'"
+      elsif val == 34
+        "\\\""
+      elsif val == 92
+        "'\\\\'"
+      elsif val < 126
+        val.chr
+      else
+        val.to_s
+      end
+    end
+    "#{pre}\"#{str}\""
+  end
+  puts new_l
+end
+===================
+
+
+Gaspard
+
+
+
+From gaspard at teti.ch  Wed Dec  3 14:52:27 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 15:52:27 +0100
+Subject: [ragel-users] [newbie] eof actions never executed...
+Message-ID: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+
+Hi there !
+
+This might look like a silly question.
+
+I cannot seem to get this right: parse "1.24"
+
+real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+number    = real | integer;
+
+main     := ws* (string %string | number %number | hash %hash);
+
+%number is never executed...
+
+If I use @number, it is called several times.
+
+I sure am missing something...
+
+Thanks for your help.
+
+Gaspard
+
+
+
+From thurston at complang.org  Wed Dec  3 14:57:52 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 03 Dec 2008 09:57:52 -0500
+Subject: [ragel-users] string representation of entities in dot files
+In-Reply-To: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+References: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+Message-ID: <49369E70.7090506@complang.org>
+
+Yes there is, ragel -h will show you the -p option for writing printable
+label on transitions.
+
+Cheers,
+ Adrian
+
+Gaspard Bucher wrote:
+> Hi list !
+> 
+> Anyone knows if there is an option to "ragel -V" to show litteral
+> values instead of numerical ones in the "dot" generated file ?
+> 
+> A --- 34 ---> B
+> 
+> is less readable then
+> 
+> A --- " ---> B
+> 
+> If there is no such option and such a filter could help others, here's
+> a simple ruby script that does the job.
+> 
+> ====== filter.rb =======
+> #!/usr/bin/env ruby
+> STDIN.read.split("\n").each do |l|
+>   new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+>     pre = $1
+>     str = $2
+>     str.gsub!(/([0-9]+)/) do
+>       val = $1.to_i
+>       if val <= 31
+>         val.to_s
+>       elsif val == 32
+>         "' '"
+>       elsif val == 47
+>         "'/'"
+>       elsif val == 34
+>         "\\\""
+>       elsif val == 92
+>         "'\\\\'"
+>       elsif val < 126
+>         val.chr
+>       else
+>         val.to_s
+>       end
+>     end
+>     "#{pre}\"#{str}\""
+>   end
+>   puts new_l
+> end
+> ===================
+> 
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec  3 14:59:55 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 03 Dec 2008 09:59:55 -0500
+Subject: [ragel-users] [newbie] eof actions never executed...
+In-Reply-To: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+References: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+Message-ID: <49369EEB.60605@complang.org>
+
+Leaving actions are always executed on a following character (one char
+of lookahead) so either there needs to be something after the number or
+you need to set eof = pe to induce the action.
+
+-Adrian
+
+Gaspard Bucher wrote:
+> Hi there !
+> 
+> This might look like a silly question.
+> 
+> I cannot seem to get this right: parse "1.24"
+> 
+> real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+> integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+> number    = real | integer;
+> 
+> main     := ws* (string %string | number %number | hash %hash);
+> 
+> %number is never executed...
+> 
+> If I use @number, it is called several times.
+> 
+> I sure am missing something...
+> 
+> Thanks for your help.
+> 
+> Gaspard
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From gaspard at teti.ch  Wed Dec  3 15:20:32 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 16:20:32 +0100
+Subject: [ragel-users] string representation of entities in dot files
+In-Reply-To: <49369E70.7090506@complang.org>
+References: <7a9f744a0812030643qfe169bcv1155f357bf9e369e@mail.gmail.com>
+	<49369E70.7090506@complang.org>
+Message-ID: <7a9f744a0812030720o72a952ebq4170cad947666221@mail.gmail.com>
+
+Great !
+
+I tried "man ragel" but forgot the "ragel -h".
+
+Thanks.
+
+On Wed, Dec 3, 2008 at 3:57 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Yes there is, ragel -h will show you the -p option for writing printable
+> label on transitions.
+>
+> Cheers,
+>  Adrian
+>
+> Gaspard Bucher wrote:
+>> Hi list !
+>>
+>> Anyone knows if there is an option to "ragel -V" to show litteral
+>> values instead of numerical ones in the "dot" generated file ?
+>>
+>> A --- 34 ---> B
+>>
+>> is less readable then
+>>
+>> A --- " ---> B
+>>
+>> If there is no such option and such a filter could help others, here's
+>> a simple ruby script that does the job.
+>>
+>> ====== filter.rb =======
+>> #!/usr/bin/env ruby
+>> STDIN.read.split("\n").each do |l|
+>>   new_l = l.sub(/([^\"]*)\"([^\"]*)\"/) do
+>>     pre = $1
+>>     str = $2
+>>     str.gsub!(/([0-9]+)/) do
+>>       val = $1.to_i
+>>       if val <= 31
+>>         val.to_s
+>>       elsif val == 32
+>>         "' '"
+>>       elsif val == 47
+>>         "'/'"
+>>       elsif val == 34
+>>         "\\\""
+>>       elsif val == 92
+>>         "'\\\\'"
+>>       elsif val < 126
+>>         val.chr
+>>       else
+>>         val.to_s
+>>       end
+>>     end
+>>     "#{pre}\"#{str}\""
+>>   end
+>>   puts new_l
+>> end
+>> ===================
+>>
+>>
+>> Gaspard
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From gaspard at teti.ch  Wed Dec  3 15:24:49 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Wed, 3 Dec 2008 16:24:49 +0100
+Subject: [ragel-users] [newbie] eof actions never executed...
+In-Reply-To: <49369EEB.60605@complang.org>
+References: <7a9f744a0812030652s70b2ccf8pc4cf3569139ab1a3@mail.gmail.com>
+	<49369EEB.60605@complang.org>
+Message-ID: <7a9f744a0812030724y5a6a60cen9d3b655fdae0c4b@mail.gmail.com>
+
+I changed the 'main' to include the end of buffer character and it works.
+
+main     := ws* (string %string | number %number | hash %hash) '\0';
+
+By the way, many thanks for your great software. As soon as rubyk
+(http://rubyk.org) gets back on its feets, I will let you know of what
+I'm doing with ragel (the Turing object might be fun...).
+
+Gaspard
+
+On Wed, Dec 3, 2008 at 3:59 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Leaving actions are always executed on a following character (one char
+> of lookahead) so either there needs to be something after the number or
+> you need to set eof = pe to induce the action.
+>
+> -Adrian
+>
+> Gaspard Bucher wrote:
+>> Hi there !
+>>
+>> This might look like a silly question.
+>>
+>> I cannot seem to get this right: parse "1.24"
+>>
+>> real      = ([\-+]? $num_a ('0'..'9' digit* '.' digit+) $num_a );
+>> integer   = ([\-+]? $num_a ('0'..'9' digit*) $num_a );
+>> number    = real | integer;
+>>
+>> main     := ws* (string %string | number %number | hash %hash);
+>>
+>> %number is never executed...
+>>
+>> If I use @number, it is called several times.
+>>
+>> I sure am missing something...
+>>
+>> Thanks for your help.
+>>
+>> Gaspard
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From jose at ordinate.com  Fri Dec  5 00:34:09 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 04 Dec 2008 16:34:09 -0800
+Subject: [ragel-users] Strange difference between C and Java
+Message-ID: <49387701.6050607@ordinate.com>
+
+I have created what I think are identical machines (except for the host 
+code, that is) that don't behave the same way.  The ragel files are 
+attached.
+
+Here's a typical session with the C machine:
+
+$ ragel client_c.rl
+$ gcc -o client_c client_c.c
+$ echo "OK callnum 8108" | ./client_c
+figure out how to print out the call number.
+$ echo "OK callnum 8108 foo" | ./client_c
+Parse error.
+
+
+Here's the same session with the Java machine:
+
+$ ragel -J client_java.rl -o ClientParser.java
+$ javac ClientParser.java
+$ java ClientParser "OK callnum 8108"
+$ java ClientParser "OK callnum 8108 foo"
+Parse error.
+
+
+It seems like the "%" transition action works differently in Java and C. 
+  If I change the transition action to and "@" I get "figure out how to 
+print out the call number." several times. This is true for both the C 
+and Java versions.
+
+What am I doing wrong?
+
+Thanks,
+Jose.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: client_java.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20081204/0feb0adf/attachment-0002.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: client_c.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20081204/0feb0adf/attachment-0003.ksh>
+
+From thurston at complang.org  Fri Dec  5 01:46:20 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 04 Dec 2008 20:46:20 -0500
+Subject: [ragel-users] Strange difference between C and Java
+In-Reply-To: <49387701.6050607@ordinate.com>
+References: <49387701.6050607@ordinate.com>
+Message-ID: <493887EC.7090703@complang.org>
+
+Hi Jose,
+
+It looks like there is no newline on the end of the string being passed 
+to the Java version. That could be it.
+
+-Adrian
+
+Jose Quinteiro wrote:
+> I have created what I think are identical machines (except for the host 
+> code, that is) that don't behave the same way.  The ragel files are 
+> attached.
+> 
+> Here's a typical session with the C machine:
+> 
+> $ ragel client_c.rl
+> $ gcc -o client_c client_c.c
+> $ echo "OK callnum 8108" | ./client_c
+> figure out how to print out the call number.
+> $ echo "OK callnum 8108 foo" | ./client_c
+> Parse error.
+> 
+> 
+> Here's the same session with the Java machine:
+> 
+> $ ragel -J client_java.rl -o ClientParser.java
+> $ javac ClientParser.java
+> $ java ClientParser "OK callnum 8108"
+> $ java ClientParser "OK callnum 8108 foo"
+> Parse error.
+> 
+> 
+> It seems like the "%" transition action works differently in Java and C. 
+>  If I change the transition action to and "@" I get "figure out how to 
+> print out the call number." several times. This is true for both the C 
+> and Java versions.
+> 
+> What am I doing wrong?
+> 
+> Thanks,
+> Jose.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Fri Dec  5 01:58:24 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 04 Dec 2008 17:58:24 -0800
+Subject: [ragel-users] Strange difference between C and Java
+In-Reply-To: <493887EC.7090703@complang.org>
+References: <49387701.6050607@ordinate.com> <493887EC.7090703@complang.org>
+Message-ID: <49388AC0.3040301@ordinate.com>
+
+I figured I missing something simple.  Thanks for the quick reply!
+
+Adrian Thurston wrote:
+> Hi Jose,
+> 
+> It looks like there is no newline on the end of the string being passed 
+> to the Java version. That could be it.
+> 
+> -Adrian
+> 
+> Jose Quinteiro wrote:
+>> I have created what I think are identical machines (except for the host 
+>> code, that is) that don't behave the same way.  The ragel files are 
+>> attached.
+>>
+>> Here's a typical session with the C machine:
+>>
+>> $ ragel client_c.rl
+>> $ gcc -o client_c client_c.c
+>> $ echo "OK callnum 8108" | ./client_c
+>> figure out how to print out the call number.
+>> $ echo "OK callnum 8108 foo" | ./client_c
+>> Parse error.
+>>
+>>
+>> Here's the same session with the Java machine:
+>>
+>> $ ragel -J client_java.rl -o ClientParser.java
+>> $ javac ClientParser.java
+>> $ java ClientParser "OK callnum 8108"
+>> $ java ClientParser "OK callnum 8108 foo"
+>> Parse error.
+>>
+>>
+>> It seems like the "%" transition action works differently in Java and C. 
+>>  If I change the transition action to and "@" I get "figure out how to 
+>> print out the call number." several times. This is true for both the C 
+>> and Java versions.
+>>
+>> What am I doing wrong?
+>>
+>> Thanks,
+>> Jose.
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 00:42:52 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 16:42:52 -0800
+Subject: [ragel-users] Scanner question
+Message-ID: <4939CA8C.7060206@ordinate.com>
+
+I'm trying to write a scanner that accepts "num", "numb", "numbe", etc. 
+as the same token.  The only way I can think of that accomplishes this is:
+
+main := |*
+		/num/i => number;
+		/numb/i => number;
+		/numbe/i => number;
+		/number/i => number;
+	*|;
+
+Is there a better way?
+
+Thanks,
+Jose.
+
+
+
+From flameeyes at gmail.com  Sat Dec  6 01:41:02 2008
+From: flameeyes at gmail.com (=?UTF-8?Q?Diego_E._"Flameeyes"_Petten=C3=B2?=)
+Date: Sat, 6 Dec 2008 02:41:02 +0100
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939CA8C.7060206@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>
+Message-ID: <6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+
+On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+> as the same token.  The only way I can think of that accomplishes this is:
+
+I admit I haven't even tested, but I'd expect something like 'num'
+'b'?'e'?'r'? to work
+
+-- 
+Diego "Flameeyes" Pettenò - flameeyes at gmail.com
+Free Software developer and consultant
+http://blog.flameeyes.eu/
+
+From jose at ordinate.com  Sat Dec  6 01:52:35 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 17:52:35 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+References: <4939CA8C.7060206@ordinate.com>
+	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+Message-ID: <4939DAE3.8070801@ordinate.com>
+
+That also accepts "nume", "numr", etc., and I want those to be an error.
+
+Thanks,
+Jose.
+
+Diego E. "Flameeyes" Pettenò wrote:
+> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>> as the same token.  The only way I can think of that accomplishes this is:
+> 
+> I admit I haven't even tested, but I'd expect something like 'num'
+> 'b'?'e'?'r'? to work
+> 
+
+
+
+From thurston at complang.org  Sat Dec  6 02:07:16 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 05 Dec 2008 21:07:16 -0500
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DAE3.8070801@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+	<4939DAE3.8070801@ordinate.com>
+Message-ID: <4939DE54.3090802@complang.org>
+
+Try this:
+
+'num' ( 'b' ('e' 'r'?)? )?
+
+A long time ago there was talk of adding a machine construction function 
+(called prefix I think) for this case but it never got done because it 
+depended on adding some new syntax forms and I didn't have the time. 
+Hopefully I can revive that soon. I defended my PhD yesterday and life 
+should return to normal soon :)
+
+-Adrian
+
+Jose Quinteiro wrote:
+> That also accepts "nume", "numr", etc., and I want those to be an error.
+> 
+> Thanks,
+> Jose.
+> 
+> Diego E. "Flameeyes" Pettenò wrote:
+>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>>> as the same token.  The only way I can think of that accomplishes this is:
+>> I admit I haven't even tested, but I'd expect something like 'num'
+>> 'b'?'e'?'r'? to work
+>>
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 02:14:16 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 18:14:16 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DE54.3090802@complang.org>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>	<4939DAE3.8070801@ordinate.com>
+	<4939DE54.3090802@complang.org>
+Message-ID: <4939DFF8.7000104@ordinate.com>
+
+Yep, that does it.  Thanks again.  I was trying something similar with 
+Kleene stars and getting nowhere.  I don't have a good feel for this yet.
+
+Saludos,
+Jose.
+
+Adrian Thurston wrote:
+> Try this:
+> 
+> 'num' ( 'b' ('e' 'r'?)? )?
+> 
+> A long time ago there was talk of adding a machine construction function 
+> (called prefix I think) for this case but it never got done because it 
+> depended on adding some new syntax forms and I didn't have the time. 
+> Hopefully I can revive that soon. I defended my PhD yesterday and life 
+> should return to normal soon :)
+> 
+> -Adrian
+> 
+> Jose Quinteiro wrote:
+>> That also accepts "nume", "numr", etc., and I want those to be an error.
+>>
+>> Thanks,
+>> Jose.
+>>
+>> Diego E. "Flameeyes" Pettenò wrote:
+>>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> wrote:
+>>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", etc.
+>>>> as the same token.  The only way I can think of that accomplishes this is:
+>>> I admit I haven't even tested, but I'd expect something like 'num'
+>>> 'b'?'e'?'r'? to work
+>>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Sat Dec  6 02:38:07 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Fri, 05 Dec 2008 18:38:07 -0800
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DFF8.7000104@ordinate.com>
+References: <4939CA8C.7060206@ordinate.com>	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>	<4939DAE3.8070801@ordinate.com>
+	<4939DE54.3090802@complang.org> <4939DFF8.7000104@ordinate.com>
+Message-ID: <4939E58F.7010306@ordinate.com>
+
+And BTW, congrats on your defense.
+
+Saludos,
+Jose.
+
+Jose Quinteiro wrote:
+> Yep, that does it.  Thanks again.  I was trying something similar with 
+> Kleene stars and getting nowhere.  I don't have a good feel for this yet.
+> 
+> Saludos,
+> Jose.
+> 
+> Adrian Thurston wrote:
+>> Try this:
+>>
+>> 'num' ( 'b' ('e' 'r'?)? )?
+>>
+>> A long time ago there was talk of adding a machine construction 
+>> function (called prefix I think) for this case but it never got done 
+>> because it depended on adding some new syntax forms and I didn't have 
+>> the time. Hopefully I can revive that soon. I defended my PhD 
+>> yesterday and life should return to normal soon :)
+>>
+>> -Adrian
+>>
+>> Jose Quinteiro wrote:
+>>> That also accepts "nume", "numr", etc., and I want those to be an error.
+>>>
+>>> Thanks,
+>>> Jose.
+>>>
+>>> Diego E. "Flameeyes" Pettenò wrote:
+>>>> On Sat, Dec 6, 2008 at 1:42 AM, Jose Quinteiro <jose at ordinate.com> 
+>>>> wrote:
+>>>>> I'm trying to write a scanner that accepts "num", "numb", "numbe", 
+>>>>> etc.
+>>>>> as the same token.  The only way I can think of that accomplishes 
+>>>>> this is:
+>>>> I admit I haven't even tested, but I'd expect something like 'num'
+>>>> 'b'?'e'?'r'? to work
+>>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From jose at ordinate.com  Tue Dec  9 19:31:32 2008
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Tue, 09 Dec 2008 11:31:32 -0800
+Subject: [ragel-users] Possible copy-paste error in doc
+Message-ID: <493EC794.5090608@ordinate.com>
+
+On page 23 near the end where it reads:
+
+$!action $eof(name) $err{...} - all states
+
+I think it should read:
+
+$!action $err(name) $err{...} - all states
+
+
+Thanks,
+Jose.
+
+
+
+From gaspard at teti.ch  Tue Dec  9 21:27:51 2008
+From: gaspard at teti.ch (Gaspard Bucher)
+Date: Tue, 9 Dec 2008 22:27:51 +0100
+Subject: [ragel-users] Scanner question
+In-Reply-To: <4939DE54.3090802@complang.org>
+References: <4939CA8C.7060206@ordinate.com>
+	<6befb1c60812051741t4b998899k3e5201d0adfce8b3@mail.gmail.com>
+	<4939DAE3.8070801@ordinate.com> <4939DE54.3090802@complang.org>
+Message-ID: <7a9f744a0812091327he79f37bmbee86e5406116514@mail.gmail.com>
+
+> Hopefully I can revive that soon. I defended my PhD yesterday and life
+> should return to normal soon :)
+
+Bravo ! Cheers !!
+
+Gaspard
+
+
+
+From thurston at complang.org  Thu Dec 11 04:41:52 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 10 Dec 2008 23:41:52 -0500
+Subject: [ragel-users] Possible copy-paste error in doc
+In-Reply-To: <493EC794.5090608@ordinate.com>
+References: <493EC794.5090608@ordinate.com>
+Message-ID: <49409A10.5000703@complang.org>
+
+Good catch, thanks!
+
+-Adrian
+
+Jose Quinteiro wrote:
+> On page 23 near the end where it reads:
+> 
+> $!action $eof(name) $err{...} - all states
+> 
+> I think it should read:
+> 
+> $!action $err(name) $err{...} - all states
+> 
+> 
+> Thanks,
+> Jose.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Wed Dec 17 13:44:56 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Wed, 17 Dec 2008 19:14:56 +0530
+Subject: [ragel-users] Need Help on Backward Reference concept of Regular
+	Expression in Ragel Language
+Message-ID: <200812171344.CEP98707@persistent.co.in>
+
+Hi 
+
+I want to use backward reference in ragel regular expression for creating
+parser for my language. The requirement is kind of begining and end of tag
+matching where tag can be any arbitary string. e.g
+
+1./test/ this is sample /test/ 
+
+or it can be 
+
+2./hello/ this is test /hello/ 
+
+and following can be consider as a invalide
+
+3./abc/ this is invalid /xyz/ 
+
+So as in above example tag can be any arbitary string but requirement is to
+match begining and ending tag string should be same. To write regular
+expression for above requirement in ragel language i want to use backward
+reference as in javascript. So can somebody give valuable suggestion how can
+we achieve it in ragel or any pointer related to same would be great help
+
+Thanks & Regards
+
+Hardik Parikh
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20081217/82ff99af/attachment-0001.html>
+
+From thurston at complang.org  Thu Dec 18 04:24:39 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 17 Dec 2008 23:24:39 -0500
+Subject: [ragel-users] Need Help on Backward Reference concept of
+ Regular Expression in Ragel Language
+In-Reply-To: <200812171344.CEP98707@persistent.co.in>
+References: <200812171344.CEP98707@persistent.co.in>
+Message-ID: <4949D087.7090600@complang.org>
+
+Hi Hardik,
+
+There is no inbuilt support for back references. What you'll have to do 
+is to capture the text of the back reference, then in the place where 
+you wish the back reference to appear give a pattern that subsumes the 
+back reference, and then test the strings at runtime using a call to 
+strcmp in a condition.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi
+> 
+> I want to use backward reference in ragel regular expression for 
+> creating parser for my language. The requirement is kind of begining and 
+> end of tag matching where tag can be any arbitary string. e.g
+> 
+> 1./test/ this is sample /test/
+> 
+> or it can be
+> 
+> 2./hello/ this is test /hello/
+> 
+> and following can be consider as a invalide
+> 
+> 3./abc/ this is invalid /xyz/
+> 
+> So as in above example tag can be any arbitary string but requirement is 
+> to match begining and ending tag string should be same. To write regular 
+> expression for above requirement in ragel language i want to use 
+> backward reference as in javascript. So can somebody give valuable 
+> suggestion how can we achieve it in ragel or any pointer related to same 
+> would be great help
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Fri Dec 19 10:26:50 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Fri, 19 Dec 2008 15:56:50 +0530
+Subject: [ragel-users] Problem with tag comment implementation
+Message-ID: <200812191027.CER79317@persistent.co.in>
+
+Hi,
+
+ 
+
+    I have requirement to consider following as valid comment in source
+language
+
+ 
+
+    |abc#
+
+             Some description ...
+
+   #abc|
+
+ 
+
+  And following is invalid comment
+
+ 
+
+    |abc#
+
+             Some description ...
+
+    #xyz|
+
+ 
+
+And for above requirement I need to capture token string and performed match
+operation as there is no inbuilt support for backward reference in ragel
+
+I tried out with following implementation
+
+ 
+
+action mark_start{
+
+     start = fpc+1;
+
+    // printf(" Mark start at %c\n",fc);
+
+  }
+
+ action tagstart{
+
+    size_t len = fpc - start ;
+
+    s = calloc(len,sizeof(char));
+
+    strncpy(s,start,len);
+
+    s[len]='\0';
+
+  //  printf("Start : %s\n",s);
+
+  }
+
+ 
+
+ action tagend{
+
+    size_t len = fpc - start ;
+
+    e = calloc(len,sizeof(char));
+
+    strncpy(e,start,len);
+
+    e[len]='\0';
+
+   stringcmp = strncmp(e,s,sizeof(s));
+
+    //printf("End : %s\n",e);
+
+  }
+
+ 
+
+   curl_tag_comment =
+
+    '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+
+      newline %{ entity = INTERNAL_NL; } %curl_ccallback
+
+      |
+
+      ws
+
+      |
+
+      (nonnewline - ws) @comment
+
+    )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { stringcmp
+== 0}) @comment;
+
+ 
+
+ 
+
+Now I am able to capture both start and end substring properly and able to
+do math operation in when condition but it produces as a valid commet in
+parser for even a non valid statement.
+
+ 
+
+Like
+
+ 
+
+curl comment |abc#
+
+curl comment             Some  description ...
+
+curl comment  #xyz|
+
+ 
+
+Please provide me any suggestions where I am doing something wrong or is
+there any other better way to implement the same.
+
+ 
+
+Thanks & Regards
+
+Hardik Parikh
+
+ 
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20081219/9ca0b1f2/attachment-0001.html>
+
+From thurston at complang.org  Sun Dec 21 03:30:59 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 20 Dec 2008 22:30:59 -0500
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <200812191027.CER79317@persistent.co.in>
+References: <200812191027.CER79317@persistent.co.in>
+Message-ID: <494DB873.2060100@complang.org>
+
+Hi Hardik,
+
+The problem here is very subtle. Conditions are executed before the 
+actions on the same character, so the test of stringcmp is running 
+before it is set. Change the embedding of tagend to a "to state" action 
+using:
+
+ >to(tagend)
+
+That should do it.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi,
+> 
+>  
+> 
+>     I have requirement to consider following as valid comment in source 
+> language
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description …….
+> 
+>    #abc|
+> 
+>  
+> 
+>   And following is invalid comment
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description …….
+> 
+>     #xyz|
+> 
+>  
+> 
+> And for above requirement I need to capture token string and performed 
+> match operation as there is no inbuilt support for backward reference in 
+> ragel
+> 
+> I tried out with following implementation
+> 
+>  
+> 
+> action mark_start{
+> 
+>      start = fpc+1;
+> 
+>     // printf(" Mark start at %c\n",fc);
+> 
+>   }
+> 
+>  action tagstart{
+> 
+>     size_t len = fpc - start ;
+> 
+>     s = calloc(len,sizeof(char));
+> 
+>     strncpy(s,start,len);
+> 
+>     s[len]='\0';
+> 
+>   //  printf("Start : %s\n",s);
+> 
+>   }
+> 
+>  
+> 
+>  action tagend{
+> 
+>     size_t len = fpc - start ;
+> 
+>     e = calloc(len,sizeof(char));
+> 
+>     strncpy(e,start,len);
+> 
+>     e[len]='\0';
+> 
+>    stringcmp = strncmp(e,s,sizeof(s));
+> 
+>     //printf("End : %s\n",e);
+> 
+>   }
+> 
+>  
+> 
+>    curl_tag_comment =
+> 
+>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+> 
+>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+> 
+>       |
+> 
+>       ws
+> 
+>       |
+> 
+>       (nonnewline - ws) @comment
+> 
+>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+> stringcmp == 0}) @comment;
+> 
+>  
+> 
+>  
+> 
+> Now I am able to capture both start and end substring properly and able 
+> to do math operation in when condition but it produces as a valid commet 
+> in parser for even a non valid statement.
+> 
+>  
+> 
+> Like
+> 
+>  
+> 
+> curl comment |abc#
+> 
+> curl comment             Some  description …….
+> 
+> curl comment  #xyz|
+> 
+>  
+> 
+> Please provide me any suggestions where I am doing something wrong or is 
+> there any other better way to implement the same.
+> 
+>  
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+>  
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From hardik_parikh at persistent.co.in  Wed Dec 24 12:26:55 2008
+From: hardik_parikh at persistent.co.in (Hardik Parikh)
+Date: Wed, 24 Dec 2008 17:56:55 +0530
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <494DB873.2060100@complang.org>
+Message-ID: <200812241226.CEW19221@persistent.co.in>
+
+Hi Adrian
+
+I tried to work out with your suggestion but seeing not any reflection in
+output. I am not able to understand where it is going wrong?
+
+Thanks & Regards
+Hardik Parikh
+
+-----Original Message-----
+From: Adrian Thurston [mailto:thurston at complang.org] 
+Sent: Sunday, December 21, 2008 9:01 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Problem with tag comment implementation
+
+Hi Hardik,
+
+The problem here is very subtle. Conditions are executed before the 
+actions on the same character, so the test of stringcmp is running 
+before it is set. Change the embedding of tagend to a "to state" action 
+using:
+
+ >to(tagend)
+
+That should do it.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi,
+> 
+>  
+> 
+>     I have requirement to consider following as valid comment in source 
+> language
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description ...
+> 
+>    #abc|
+> 
+>  
+> 
+>   And following is invalid comment
+> 
+>  
+> 
+>     |abc#
+> 
+>              Some description ...
+> 
+>     #xyz|
+> 
+>  
+> 
+> And for above requirement I need to capture token string and performed 
+> match operation as there is no inbuilt support for backward reference in 
+> ragel
+> 
+> I tried out with following implementation
+> 
+>  
+> 
+> action mark_start{
+> 
+>      start = fpc+1;
+> 
+>     // printf(" Mark start at %c\n",fc);
+> 
+>   }
+> 
+>  action tagstart{
+> 
+>     size_t len = fpc - start ;
+> 
+>     s = calloc(len,sizeof(char));
+> 
+>     strncpy(s,start,len);
+> 
+>     s[len]='\0';
+> 
+>   //  printf("Start : %s\n",s);
+> 
+>   }
+> 
+>  
+> 
+>  action tagend{
+> 
+>     size_t len = fpc - start ;
+> 
+>     e = calloc(len,sizeof(char));
+> 
+>     strncpy(e,start,len);
+> 
+>     e[len]='\0';
+> 
+>    stringcmp = strncmp(e,s,sizeof(s));
+> 
+>     //printf("End : %s\n",e);
+> 
+>   }
+> 
+>  
+> 
+>    curl_tag_comment =
+> 
+>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+> 
+>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+> 
+>       |
+> 
+>       ws
+> 
+>       |
+> 
+>       (nonnewline - ws) @comment
+> 
+>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+> stringcmp == 0}) @comment;
+> 
+>  
+> 
+>  
+> 
+> Now I am able to capture both start and end substring properly and able 
+> to do math operation in when condition but it produces as a valid commet 
+> in parser for even a non valid statement.
+> 
+>  
+> 
+> Like
+> 
+>  
+> 
+> curl comment |abc#
+> 
+> curl comment             Some  description ...
+> 
+> curl comment  #xyz|
+> 
+>  
+> 
+> Please provide me any suggestions where I am doing something wrong or is 
+> there any other better way to implement the same.
+> 
+>  
+> 
+> Thanks & Regards
+> 
+> Hardik Parikh
+> 
+>  
+> 
+> DISCLAIMER ========== This e-mail may contain privileged and 
+> confidential information which is the property of Persistent Systems 
+> Ltd. It is intended only for the use of the individual or entity to 
+> which it is addressed. If you are not the intended recipient, you are 
+> not authorized to read, retain, copy, print, distribute or use this 
+> message. If you have received this communication in error, please notify 
+> the sender and delete all copies of this message. Persistent Systems 
+> Ltd. does not accept any liability for virus infected mails.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+
+
+
+From thurston at complang.org  Wed Dec 24 15:13:36 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 24 Dec 2008 10:13:36 -0500
+Subject: [ragel-users] Problem with tag comment implementation
+In-Reply-To: <200812241226.CEW19221@persistent.co.in>
+References: <200812241226.CEW19221@persistent.co.in>
+Message-ID: <495251A0.70005@complang.org>
+
+Sorry I forgot to mention that you won't see any change in the dot
+output, since in the visualization there is no difference between
+to/char/from actions.
+
+-Adrian
+
+Hardik Parikh wrote:
+> Hi Adrian
+> 
+> I tried to work out with your suggestion but seeing not any reflection in
+> output. I am not able to understand where it is going wrong?
+> 
+> Thanks & Regards
+> Hardik Parikh
+> 
+> -----Original Message-----
+> From: Adrian Thurston [mailto:thurston at complang.org] 
+> Sent: Sunday, December 21, 2008 9:01 AM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Problem with tag comment implementation
+> 
+> Hi Hardik,
+> 
+> The problem here is very subtle. Conditions are executed before the 
+> actions on the same character, so the test of stringcmp is running 
+> before it is set. Change the embedding of tagend to a "to state" action 
+> using:
+> 
+>  >to(tagend)
+> 
+> That should do it.
+> 
+> -Adrian
+> 
+> Hardik Parikh wrote:
+>> Hi,
+>>
+>>  
+>>
+>>     I have requirement to consider following as valid comment in source 
+>> language
+>>
+>>  
+>>
+>>     |abc#
+>>
+>>              Some description ...
+>>
+>>    #abc|
+>>
+>>  
+>>
+>>   And following is invalid comment
+>>
+>>  
+>>
+>>     |abc#
+>>
+>>              Some description ...
+>>
+>>     #xyz|
+>>
+>>  
+>>
+>> And for above requirement I need to capture token string and performed 
+>> match operation as there is no inbuilt support for backward reference in 
+>> ragel
+>>
+>> I tried out with following implementation
+>>
+>>  
+>>
+>> action mark_start{
+>>
+>>      start = fpc+1;
+>>
+>>     // printf(" Mark start at %c\n",fc);
+>>
+>>   }
+>>
+>>  action tagstart{
+>>
+>>     size_t len = fpc - start ;
+>>
+>>     s = calloc(len,sizeof(char));
+>>
+>>     strncpy(s,start,len);
+>>
+>>     s[len]='\0';
+>>
+>>   //  printf("Start : %s\n",s);
+>>
+>>   }
+>>
+>>  
+>>
+>>  action tagend{
+>>
+>>     size_t len = fpc - start ;
+>>
+>>     e = calloc(len,sizeof(char));
+>>
+>>     strncpy(e,start,len);
+>>
+>>     e[len]='\0';
+>>
+>>    stringcmp = strncmp(e,s,sizeof(s));
+>>
+>>     //printf("End : %s\n",e);
+>>
+>>   }
+>>
+>>  
+>>
+>>    curl_tag_comment =
+>>
+>>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+>>
+>>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+>>
+>>       |
+>>
+>>       ws
+>>
+>>       |
+>>
+>>       (nonnewline - ws) @comment
+>>
+>>     )* :>> ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+>> stringcmp == 0}) @comment;
+>>
+>>  
+>>
+>>  
+>>
+>> Now I am able to capture both start and end substring properly and able 
+>> to do math operation in when condition but it produces as a valid commet 
+>> in parser for even a non valid statement.
+>>
+>>  
+>>
+>> Like
+>>
+>>  
+>>
+>> curl comment |abc#
+>>
+>> curl comment             Some  description ...
+>>
+>> curl comment  #xyz|
+>>
+>>  
+>>
+>> Please provide me any suggestions where I am doing something wrong or is 
+>> there any other better way to implement the same.
+>>
+>>  
+>>
+>> Thanks & Regards
+>>
+>> Hardik Parikh
+>>
+>>  
+>>
+>> DISCLAIMER ========== This e-mail may contain privileged and 
+>> confidential information which is the property of Persistent Systems 
+>> Ltd. It is intended only for the use of the individual or entity to 
+>> which it is addressed. If you are not the intended recipient, you are 
+>> not authorized to read, retain, copy, print, distribute or use this 
+>> message. If you have received this communication in error, please notify 
+>> the sender and delete all copies of this message. Persistent Systems 
+>> Ltd. does not accept any liability for virus infected mails.
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> DISCLAIMER
+> ==========
+> This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From rustompmody at gmail.com  Wed Dec 31 07:02:44 2008
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Wed, 31 Dec 2008 12:32:44 +0530
+Subject: [ragel-users] interpreting ragel visualization
+Message-ID: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+
+I am trying to understand the ragel visuallization output.
+In particular the alphabet elements are converted to numbers.
+ie when I see something like the following on a transition
+-128..8, 11, 14..31, 33..34, 36..123, 125..127, 124(!59;65)
+Some could be ASCII; some (-128) are obviously not. Also some other
+things (!59) there are not clear to me
+Where can I find out more about them?
+
+Rustom
+
+PS Thanks for a neat piece of software.
+Wish I had it 25 years ago when I grappled with lex as a student :-)
+
+
+
+From thurston at complang.org  Wed Dec 31 17:13:22 2008
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 31 Dec 2008 12:13:22 -0500 (EST)
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+Message-ID: <50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+
+Hi Rustom,
+
+When the alphabet type is a signed value like char, the values with high
+bit set are displayed as negative. If you change the alphabet type to
+unsigned char they'll show up as > 127.
+
+The values inside parens are references to conditions. If a named action
+is used a name shows up there. Otherwise you get line;col. The bang means
+that the transition is taken only when the condition fails (returns
+false).
+
+Happy New Year!
+
+Adrian
+
+> I am trying to understand the ragel visuallization output.
+> In particular the alphabet elements are converted to numbers.
+> ie when I see something like the following on a transition
+> -128..8, 11, 14..31, 33..34, 36..123, 125..127, 124(!59;65)
+> Some could be ASCII; some (-128) are obviously not. Also some other
+> things (!59) there are not clear to me
+> Where can I find out more about them?
+>
+> Rustom
+>
+> PS Thanks for a neat piece of software.
+> Wish I had it 25 years ago when I grappled with lex as a student :-)
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+

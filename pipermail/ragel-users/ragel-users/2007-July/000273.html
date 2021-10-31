@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707111022m1eb0188aj2d739d1372a62af9%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000272.html">
+   <LINK REL="Next"  HREF="000274.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707111022m1eb0188aj2d739d1372a62af9%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Inline scanner">cmantu... at gmail.com
+       </A><BR>
+    <I>Wed Jul 11 17:22:51 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000272.html">[ragel-users] Re: Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="000274.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#273">[ date ]</a>
+              <a href="thread.html#273">[ thread ]</a>
+              <a href="subject.html#273">[ subject ]</a>
+              <a href="author.html#273">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Adrian,
+
+The prefix operatior would be GREAT!
+
+&lt;carlos_thinking_out_loud&gt;
+
+And it's a incremental step toward that holy &quot;inline scanner&quot; grail :)
+
+&lt;/carlos_thinking_out_loud&gt;
+
+Now, it would be AWESOME, if one could apply that prefix operator to
+*any* machine, including scanners, obviating the need to do it
+explicitly. Following your example below, one would simply do
+prefix(inline_scanner), for example.
+
+I'll be anxiously checking ragel-trunk for news!
+
+Thanks!
+
+Carlos
+
+On 7/11/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hi Carlos,
+</I>&gt;<i>
+</I>&gt;<i> After much thought I've decided that inline scanners are not a suitable
+</I>&gt;<i> feature for ragel. It is a good technique but there are a few issues.
+</I>&gt;<i>
+</I>&gt;<i> I think that calls and returns should not be encoded in a language
+</I>&gt;<i> construct. They need to be treated with care and I'm not comfortable
+</I>&gt;<i> with encapsulating them.
+</I>&gt;<i>
+</I>&gt;<i> There is the issue of when to return. Since the feature would be using
+</I>&gt;<i> the scanning machinery, one might expect to be able to match multiple
+</I>&gt;<i> tokens as an alternative to matching just a single token. Letting the
+</I>&gt;<i> user implement the technique allows them to chose. Also, it allows for
+</I>&gt;<i> the option of erring when no pattern matches.
+</I>&gt;<i>
+</I>&gt;<i> So far all the inline machine construction operators are compositional.
+</I>&gt;<i> Inline scanners are not. For example you cannot safely union a machine
+</I>&gt;<i> that contains an inline scanner because the call necessary to invoke it
+</I>&gt;<i> could interfere with the other machine. This is related to the issue of
+</I>&gt;<i> encapsulating calls and returns.
+</I>&gt;<i>
+</I>&gt;<i> I would however be interested to add a prefix operator which would allow
+</I>&gt;<i> you to automatically set up the machine that the call is embedded in.
+</I>&gt;<i> The prefix operator would simply set every state final (this might have
+</I>&gt;<i> another name in the literature). After you run the prefix operator you
+</I>&gt;<i> could intersect it with something else to get the correct length (one in
+</I>&gt;<i> this case).
+</I>&gt;<i>
+</I>&gt;<i> pat = [a-z][a-z0-9]*;
+</I>&gt;<i>
+</I>&gt;<i> inline_scanner = |*
+</I>&gt;<i>     pat =&gt; { fret; };
+</I>&gt;<i>     any =&gt; { fhold; fret; };
+</I>&gt;<i>   *|;
+</I>&gt;<i>
+</I>&gt;<i> call_pat = ( prefix(pat) &amp; any ) @{ fhold; fcall inline_scanner; };
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i>  Adrian
+</I>&gt;<i>
+</I>&gt;<i> Carlos Antunes wrote:
+</I>&gt;<i> &gt; On 7/5/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt;&gt; Assuming I understand the idea you are trying to convey here (there's
+</I>&gt;<i> &gt;&gt;&gt; a good chance that I don't), isn't it possible to transition directly
+</I>&gt;<i> &gt;&gt;&gt; to the scanner by looking at all the potential transitions of the
+</I>&gt;<i> &gt;&gt;&gt; scanner as if it was a &quot;normal&quot; state machine?
+</I>&gt;<i> &gt;&gt; Yes, that's possible. The code I sent does exactly that, only it's
+</I>&gt;<i> &gt;&gt; explicitly implemented. When it sees a whitespace character it jumps to
+</I>&gt;<i> &gt;&gt; the whitespace scanner. I'll rework what I sent so hopefully it's clear
+</I>&gt;<i> &gt;&gt; that it is an implementation of an inline scanner.
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Adrian, now that you've been able to explicitly design an inline
+</I>&gt;<i> &gt; scanner, would you be able to code ragel to do it implicitly? Although
+</I>&gt;<i> &gt; one can always do it by hand, as you did, it is error prone and
+</I>&gt;<i> &gt; sometimes somewhat difficult, depending on what you have inside the
+</I>&gt;<i> &gt; scanner. This feature would be very much appreciated.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thanks!
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Carlos Antunes
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000272.html">[ragel-users] Re: Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="000274.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#273">[ date ]</a>
+              <a href="thread.html#273">[ thread ]</a>
+              <a href="subject.html#273">[ subject ]</a>
+              <a href="author.html#273">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

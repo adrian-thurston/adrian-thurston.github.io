@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Bad code generation for C# ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Bad%20code%20generation%20for%20C%23%20%3F&In-Reply-To=%3CAANLkTikpxaG27_%3DTZcqjWrPjvmiDTJEGYdRkTiMXFFV0%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003032.html">
+   <LINK REL="Next"  HREF="003033.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Bad code generation for C# ?</H1>
+    <B>Denis Naumov</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Bad%20code%20generation%20for%20C%23%20%3F&In-Reply-To=%3CAANLkTikpxaG27_%3DTZcqjWrPjvmiDTJEGYdRkTiMXFFV0%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Bad code generation for C# ?">alexander.me at gmail.com
+       </A><BR>
+    <I>Fri Mar 25 08:16:31 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003032.html">[ragel-users] Bad code generation for C# ?
+</A></li>
+        <LI>Next message: <A HREF="003033.html">[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3037">[ date ]</a>
+              <a href="thread.html#3037">[ thread ]</a>
+              <a href="subject.html#3037">[ subject ]</a>
+              <a href="author.html#3037">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+To solve problem with alphtype... i search ragel source code and found
+string CSharpFsmCodeGen::ALPHA_KEY( Key key ) in cscodegen.cpp
+
+is this the the only place where ALPHA constants generates? or is
+where any one else?
+
+C# type is sbyte, byte, short, ushort, char, int, uint, long, ulong
+from common.cpp
+
+and for only for 'char' type ragel must generate '\u****' constants.
+for all other types it must generate number.
+
+simple patch:
+
+==================================================================
+ FILE     =&gt; cscodegen.cpp
+ FUNCTION =&gt; string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+==================================================================
+---- OLD CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() &gt; 0xFFFF) {
+        ret &lt;&lt; key.getVal();
+    } else {
+        ret &lt;&lt; &quot;'\\u&quot; &lt;&lt; std::hex &lt;&lt; std::setw(4) &lt;&lt; std::setfill('0') &lt;&lt;
+            key.getVal() &lt;&lt; &quot;'&quot;;
+    }
+    //ret &lt;&lt; &quot;(char) &quot; &lt;&lt; key.getVal();
+    return ret.str();
+}
+
+---- NEW CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() &gt; 0xFFFF) {
+        ret &lt;&lt; key.getVal();
+    } else {
+        if (strcmp(keyOps-&gt;alphType-&gt;data1, &quot;char&quot;) == 0)
+            ret &lt;&lt; &quot;'\\u&quot; &lt;&lt; std::hex &lt;&lt; std::setw(4) &lt;&lt;
+std::setfill('0') &lt;&lt; key.getVal() &lt;&lt; &quot;'&quot;;
+        else
+            ret &lt;&lt; key.getVal();
+    }
+    //ret &lt;&lt; &quot;(char) &quot; &lt;&lt; key.getVal();
+    return ret.str();
+}
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     =&gt; cstable.cpp
+ FUNCTION =&gt; std::ostream &amp;CSharpTabCodeGen::KEYS()
+==================================================================
+---- OLD CODE (at the end of function) ---------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out &lt;&lt; &quot;(char) &quot; &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps-&gt;alphType-&gt;data1, &quot;char&quot;) == 0)
+        out &lt;&lt; &quot;(char) &quot; &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    else
+        out &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    return out;
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     =&gt; csflat.cpp
+ FUNCTION =&gt; std::ostream &amp;CSharpFlatCodeGen::KEYS()
+ FUNCTION =&gt; std::ostream &amp;CSharpFlatCodeGen::COND_KEYS()
+==================================================================
+---- OLD CODE (at the end of functions) --------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out &lt;&lt; &quot;(char) &quot; &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps-&gt;alphType-&gt;data1, &quot;char&quot;) == 0)
+        out &lt;&lt; &quot;(char) &quot; &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    else
+    out &lt;&lt; 0 &lt;&lt; &quot;\n&quot;;
+    return out;
+
+---- END ---------------------------------------------------------
+
+Please, check this code. Is it right ? or i forgot something?
+
+
+Best regards,
+Denis Naumov.
+
+
+
+2011/3/24 Denis Naumov &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">alexander.me at gmail.com</A>&gt;:
+&gt;<i> Hi Adrian,
+</I>&gt;<i>
+</I>&gt;<i> I found that Alphtype Statement probably not work for C#.
+</I>&gt;<i>
+</I>&gt;<i> By default type is 'char'
+</I>&gt;<i>
+</I>&gt;<i> and ragel generate
+</I>&gt;<i>     static readonly char[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+</I>&gt;<i>
+</I>&gt;<i> for -T0 mode and
+</I>&gt;<i>
+</I>&gt;<i>    switch( data[(      _ctx.current)] )
+</I>&gt;<i>        {  case '\u0009': goto tr0;  ...  }
+</I>&gt;<i>
+</I>&gt;<i> for -G0 mode
+</I>&gt;<i>
+</I>&gt;<i> it's ok.
+</I>&gt;<i>
+</I>&gt;<i> but if i use &quot;alphtype byte;&quot; ragel generate
+</I>&gt;<i>
+</I>&gt;<i>     static readonly byte[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+</I>&gt;<i>
+</I>&gt;<i> for -T0 mode and
+</I>&gt;<i>
+</I>&gt;<i>    switch( data[(      _ctx.current)] )
+</I>&gt;<i>        {  case '\u0009': goto tr0;  ...  }
+</I>&gt;<i>
+</I>&gt;<i> for -G0 mode
+</I>&gt;<i>
+</I>&gt;<i> it's wrong. It must be
+</I>&gt;<i>     static readonly byte[] _test_trans_keys =  new ushort [] { 22, .... }
+</I>&gt;<i> and
+</I>&gt;<i>    switch( data[(      _ctx.current)] )
+</I>&gt;<i>        {  case 9: goto tr0;  ...  }
+</I>&gt;<i>
+</I>&gt;<i> it seems to be that ragel generate '\u****' constants for all alphtypes.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Best regards,
+</I>&gt;<i> Denis Naumov.
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003032.html">[ragel-users] Bad code generation for C# ?
+</A></li>
+	<LI>Next message: <A HREF="003033.html">[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3037">[ date ]</a>
+              <a href="thread.html#3037">[ thread ]</a>
+              <a href="subject.html#3037">[ subject ]</a>
+              <a href="author.html#3037">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

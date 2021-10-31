@@ -1,0 +1,261 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Newbie question: an extended comma or tab separated (CSV/TSV) Ragel 	scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Newbie%20question%3A%20an%20extended%20comma%20or%20tab%20separated%20%28CSV/TSV%29%20Ragel%20%0A%09scanner&In-Reply-To=%3C0ac67fdb-12ac-4977-a969-79be9372a135%40p25g2000hsf.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Newbie question: an extended comma or tab separated (CSV/TSV) Ragel 	scanner</H1>
+    <B>Heiko</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Newbie%20question%3A%20an%20extended%20comma%20or%20tab%20separated%20%28CSV/TSV%29%20Ragel%20%0A%09scanner&In-Reply-To=%3C0ac67fdb-12ac-4977-a969-79be9372a135%40p25g2000hsf.googlegroups.com%3E"
+       TITLE="Newbie question: an extended comma or tab separated (CSV/TSV) Ragel 	scanner">heiko.pael... at gmail.com
+       </A><BR>
+    <I>Sat Jun 28 15:52:35 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2425">[ date ]</a>
+              <a href="thread.html#2425">[ thread ]</a>
+              <a href="subject.html#2425">[ subject ]</a>
+              <a href="author.html#2425">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear list members,
+
+I am trying to implement a CSV scanner based on the fantastic Ragel,
+with a small few modifications to the standard:
+
+- it should work for different types of Unix/Mac/Windows line endings
+( \n, \r, \r\n)
+- it should use both commas and tabs as item separators
+- it should honour quoted values
+- it should collapse multiple empty lines into single line
+separators ...
+
+I have written the following ragel code (below) to accomplish this,
+but there is a problem that I cannot locate ...
+When the line endings are \r (CR), everything seems to work fine,
+however, if they are \n (LF), the first character of the next field is
+swallowed by the scanner ....
+I am pulling my hair out, and suspect it has to do with ambiguities in
+the definition of the scanner. I am also unsure as to which transition
+action I should choose (currently '@').
+
+Does anyone have any ideas?
+
+Cheers,
+Heiko
+
+
+
+
+
+
+
+//
+//  csv_parse.m
+//  RagelCsv
+//
+//
+
+
+
+#define HPDEBUG 1
+#import &lt;Foundation/Foundation.h&gt;
+
+void csv_parse(unsigned char *input, size_t len, NSMutableArray
+**parsedData, long *maxcols, long *nlines, long *nrecords) {
+    long tempmaxcols=0, tempnrecords=0;
+    int cs=0, act, curline = 1; //ragel variables to keep states
+    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+for Scanner
+	unsigned char *p = input, *pe = input + len; //ragel variables to
+keep track of position in stream
+    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+elements from each row/record
+	NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+Array of row arrays
+	NSString *coldata; //string that holds entry in field
+	NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+*)input];
+
+//Discussion
+//On UNIX, text file line-endings are terminated with a newline (n),
+also referred to as a linefeed (LF).
+//On Windows, line-endings are terminated with a combination of a
+carriage return (r) and a newline(n), also referred to as CR/LF.
+//On the Mac Classic, line-endings are terminated with a single
+carriage return (CR). (Mac OS X uses the UNIX convention.)
+
+//A line is delimited by any of these characters, the longest possible
+sequence being preferred to any shorter:
+//U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+LF) //U+2029 (Unicode paragraph separator)
+// \r\n, in that order (also known as CRLF)
+
+
+//append end of line if not present so we can obtain all records.
+[row autorelease];
+
+%%{
+    machine csv_scan;
+	alphtype unsigned char;
+
+	newline =('\r\n') | ('\n') | ('\r') %{
+         curline += 1;
+    };
+	multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
++  @{
+         curline += 1;
+    };
+
+	ws = ' ';
+    Separator = [,\t];
+	UnQuotedValue = [^ \t&quot;,\r\n].[^&quot;\t,\r\n]*;
+	QuotedChar = ( '&quot;&quot;' | [^&quot;] | (newline|multiline) );
+    QuotedValue = '&quot;' . QuotedChar* . '&quot;';
+
+    main := |*
+      ws;
+      multiline     @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@&quot;multiline&quot;);
+	  };
+      newline  @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@&quot;newline&quot;);
+	  };
+      Separator {
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		tempnrecords++;
+		coldata=nil;
+if (HPDEBUG) NSLog(@&quot;separator&quot;);
+	  };
+
+      UnQuotedValue {
+          unsigned char ch, *endp;
+          int datalen;
+          datalen = tokend - tokstart;
+          endp = tokend - 1;
+          while(datalen&gt;0) {
+              ch = *endp--;
+/*              if (ch==' ' || ch=='\t') {*/
+              if (ch==' ') {
+                  datalen--;
+              } else {
+                  break;
+              }
+          }
+
+          if (datalen==0) {
+				coldata = (NSString *)[NSNull null];
+          } else {
+				coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+          }
+	 if (HPDEBUG)		  		  NSLog(@&quot;Unquoted value: %@&quot;,coldata);
+      };
+      QuotedValue {
+          unsigned char ch, *start_p, *wptr, *rptr;
+          int rest, datalen;
+          start_p = wptr = tokstart;
+          rptr = tokstart + 1;
+          rest = tokend - tokstart - 2;
+          datalen = 0;
+          while(rest&gt;0) {
+              ch = *rptr++;
+              if (ch=='&quot;') {
+                rptr++;
+                rest--;
+              }
+              *wptr++ = ch;
+              datalen++;
+              rest--;
+          }
+		  tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+reset tempInputString after messing with chars in input
+		  coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+	if (HPDEBUG)						NSLog(@&quot;  Quoted value: %@&quot;,coldata);
+       };
+    *|;
+}%%
+%% write data nofinal;
+
+
+%%write init;
+%%write exec;
+%%write eof;
+
+    if(row) {
+//	  [tempParsedData addObject:row];
+//	  if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+//	  [row autorelease];
+	  row=nil;
+	  }
+
+	*parsedData=tempParsedData;
+
+
+if ( cs == csv_scan_error ) {
+           NSLog(@&quot;CSVscan parse error on line %d.&quot;, curline);
+        }
+
+	*nrecords=tempnrecords;
+	*nlines=curline-1;
+	*maxcols=tempmaxcols;
+
+}
+
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2425">[ date ]</a>
+              <a href="thread.html#2425">[ thread ]</a>
+              <a href="subject.html#2425">[ subject ]</a>
+              <a href="author.html#2425">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

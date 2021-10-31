@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm-users] Off by one error in pdarun.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20Off%20by%20one%20error%20in%20pdarun.c&In-Reply-To=%3C20190301074620.tqazbat7y4bvm5ll%40klein.local%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm-users] Off by one error in pdarun.c</H1>
+    <B>Wictor Lund</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20Off%20by%20one%20error%20in%20pdarun.c&In-Reply-To=%3C20190301074620.tqazbat7y4bvm5ll%40klein.local%3E"
+       TITLE="[colm-users] Off by one error in pdarun.c">wlund at iki.fi
+       </A><BR>
+    <I>Fri Mar  1 02:46:20 UTC 2019</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#208">[ date ]</a>
+              <a href="thread.html#208">[ thread ]</a>
+              <a href="subject.html#208">[ subject ]</a>
+              <a href="author.html#208">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Feb 28, 2019 at 06:28:54PM +0200, Adrian Thurston wrote:
+&gt;<i> Hi Wictor,
+</I>&gt;<i> 
+</I>&gt;<i> Strings in colm are not normally null terminated. Probably the error you're
+</I>&gt;<i> seeing originates from when the string is printed. Can you share some code
+</I>&gt;<i> that exhibits the problem?
+</I>&gt;<i> 
+</I>
+Ok, I didn't know this. However, the string in question is being printed as
+C string here:
+         src/compiler.cc    void Compiler::parsePatterns()
+ 1014                 if ( pdaRun-&gt;parse_error_text != 0 ) {
+ 1015                         cerr &lt;&lt; &quot;: relative error: &quot; &lt;&lt; 
+ 1016                                         pdaRun-&gt;parse_error_text-&gt;tokdata-&gt;data;
+ 1017                 }
+ 1018                 else {
+ 1019                         cerr &lt;&lt; &quot;: parse error&quot;;
+ 1020                 }
+
+--
+Wictor Lund
+
+&gt;<i> On 2019-02-27 14:58, Wictor Lund wrote:
+</I>&gt;<i> &gt; diff --git a/src/pdarun.c b/src/pdarun.c
+</I>&gt;<i> &gt; index ab0de7eb..3914bc65 100644
+</I>&gt;<i> &gt; --- a/src/pdarun.c
+</I>&gt;<i> &gt; +++ b/src/pdarun.c
+</I>&gt;<i> &gt; @@ -436,9 +436,15 @@ static void report_parse_error( program_t *prg,
+</I>&gt;<i> &gt; tree_t **sp, struct pda_run *pda
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt;                 if ( name == 0 )
+</I>&gt;<i> &gt;                         name = &quot;&lt;input&gt;&quot;;
+</I>&gt;<i> &gt; -               char *formatted = malloc( strlen( name ) + 128 );
+</I>&gt;<i> &gt; -               sprintf( formatted, &quot;%s:%ld:%ld: parse error&quot;, name,
+</I>&gt;<i> &gt; line, column );
+</I>&gt;<i> &gt; -               error_head = string_alloc_full( prg, formatted,
+</I>&gt;<i> &gt; strlen(formatted) );
+</I>&gt;<i> &gt; +               size_t formatted_s = strlen( name ) + 128;
+</I>&gt;<i> &gt; +               char *formatted = malloc( formatted_s );
+</I>&gt;<i> &gt; +               size_t fmt_s = snprintf( formatted, formatted_s,
+</I>&gt;<i> &gt; +                                        &quot;%s:%ld:%ld: parse error&quot;,
+</I>&gt;<i> &gt; +                                        name, line, column );
+</I>&gt;<i> &gt; +               if ( fmt_s &gt;= formatted_s ) {
+</I>&gt;<i> &gt; +                       fmt_s = formatted_s - 1;
+</I>&gt;<i> &gt; +               }
+</I>&gt;<i> &gt; +               error_head = string_alloc_full( prg, formatted, fmt_s +
+</I>&gt;<i> &gt; 1 );
+</I>&gt;<i> &gt;                 free( formatted );
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt;                 error_head-&gt;location = location_allocate( prg );
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#208">[ date ]</a>
+              <a href="thread.html#208">[ thread ]</a>
+              <a href="subject.html#208">[ subject ]</a>
+              <a href="author.html#208">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

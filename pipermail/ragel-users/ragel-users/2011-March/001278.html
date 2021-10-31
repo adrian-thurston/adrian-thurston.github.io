@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Path handling of the native Windows build
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Path%20handling%20of%20the%20native%20Windows%20build&In-Reply-To=%3C17B587A11A814C0499E07DCC05B3F2CD%40localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001270.html">
+   <LINK REL="Next"  HREF="001291.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Path handling of the native Windows build</H1>
+    <B>ragel-user at jgoettgens.de</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Path%20handling%20of%20the%20native%20Windows%20build&In-Reply-To=%3C17B587A11A814C0499E07DCC05B3F2CD%40localdomain%3E"
+       TITLE="[ragel-users] Path handling of the native Windows build">ragel-user at jgoettgens.de
+       </A><BR>
+    <I>Sat Mar 26 16:30:00 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001270.html">[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)
+</A></li>
+        <LI>Next message: <A HREF="001291.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1278">[ date ]</a>
+              <a href="thread.html#1278">[ thread ]</a>
+              <a href="subject.html#1278">[ subject ]</a>
+              <a href="author.html#1278">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Recently Austin Hastings reported about a bug of the native Windows build when further machines are included when the include directories are given on the command line. There is more than the bug Austin discovered as path handling for non Posix platforms is at least somewhat incomplete and inconsistent.  You can blame the maintainer of the Windows port for this :)
+
+I have patched the source code such that you can now include additional machines by specifying sub directories from the include statement and by specifying them on the command line with the -I option. All include directories may be specified as relative or absolute paths and the path separator may be either '/' odr '\'---you can even mix them.
+
+The patched sources and binaries can be downloaded from:
+
+<A HREF="http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z">http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z</A>
+
+Please test the patched version as I have done only basic testing, and drop a line in case of any dodgy behavior.
+
+Although there is a Windows specific (aka _WIN32 is defined) definition for a path separator, include statements like  #include inner &quot;xdir\testinc.rl&quot;;  work, because the current Windows runtime libraries accept also the separtor '/'.  Using '\' is not enforced by Ragel.  Interestingly, statements like  #include inner &quot;xdir\testinc.rl&quot;;  fail, because the include file is handled by the scanner inside Ragel which calls prepareLitString() for new tokens.  If the path contains a valid '\', the next char is either dropped or translated, because the '\' is interpreted as an escape character.  So when it is time to open the include file, its name has been changed to &quot;xdir&lt;tab char&gt;estinc.rl&quot;. Obviously, this file exists only by coincidence.
+
+Since I did not want to touch the data structures of Ragel, I simply hacked argv as various paths are just pointers into argv.  The only source code change was to remove the constness of argv in addition to a routine that normalizes paths.  If Adrian decides to copy the names, my patches are obsolete, but then his path data will be no longer read-only and a similar patch could be applied to these variables. Of course a better solution would be to make Ragel platform path agnostic...
+
+As far as the failing -I &lt;include dir&gt; is concerned, it's just that the Microsoft compiler doesn't let you read or write to a file when its state is not &quot;good&quot;.  The good old days are over when gcc was the stricter compiler.  When iterating through all possible file names, the state of the ifstream is &quot;fail&quot;.  The patch (the correct way?) is to call  inFile-&gt;clear()  if opening fails.  If you specify a sub directory inside your FSM description, the current algorithm at first tries to open this file relative to the path of the main file (unless it is an absolute path, which also works).  The first file never suffers from the state problem, so this method worked without patching, although the same routines are involved.
+
+To explore my source code changes use WinMerge or Meld on the entire source trees.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20110326/1143a800/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20110326/1143a800/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001270.html">[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)
+</A></li>
+	<LI>Next message: <A HREF="001291.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1278">[ date ]</a>
+              <a href="thread.html#1278">[ thread ]</a>
+              <a href="subject.html#1278">[ subject ]</a>
+              <a href="author.html#1278">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

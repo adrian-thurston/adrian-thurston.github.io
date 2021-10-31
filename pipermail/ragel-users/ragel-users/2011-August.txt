@@ -1,0 +1,1918 @@
+From graham.miller at gmail.com  Mon Aug  1 22:14:44 2011
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 1 Aug 2011 18:14:44 -0400
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <CAAd2J_ROD7ZJ6iKhEF7OsLTzbvLmvmdL7g1jVQjc=pgy_1DJGQ@mail.gmail.com>
+
+On Fri, Jul 15, 2011 at 4:29 AM, Miek Gieben <miek at miek.nl> wrote:
+
+> ... with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> ... This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>
+That day has now come ;)
+
+http://golang.org/doc/devel/release.html#r59
+
+graham
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110801/ff146f33/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From a.bramley at gmail.com  Thu Aug  4 19:38:58 2011
+From: a.bramley at gmail.com (Alex)
+Date: Thu, 4 Aug 2011 20:38:58 +0100
+Subject: [ragel-users] Goto changes in r59 have broken Ragel's Go code
+	generation.
+Message-ID: <CAMxFj=yoi0dHcsVm8DQKYhgxo-Ei7967bWvAkOXD4HNxy9VrQA@mail.gmail.com>
+
+Hi all,
+
+Quoth the r59 release notes[1]:
+
+"In essence, a goto statement outside a block cannot jump to a label
+inside that block."
+
+Unfortunately, Ragel's Go backend relied on this pretty much
+exclusively to create its FSM. Ragel's author and the ragel-users list
+is already aware[2], just thought I'd mention it here too.
+
+Cue pouty "I was using that!" face ;-)
+--alex
+
+[1] http://golang.org/doc/devel/release.html#r59
+[2] http://www.complang.org/pipermail/ragel-users/2011-July/002685.html
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rob.harris at gmail.com  Fri Aug  5 13:13:25 2011
+From: rob.harris at gmail.com (=?UTF-8?B?8J2EhiBSb2IgSGFycmlzIPCdhIc=?=)
+Date: Fri, 5 Aug 2011 09:13:25 -0400
+Subject: [ragel-users] confused about scanning
+Message-ID: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+
+All, help. I've R'd TFM all week trying to figure this out, but am still
+confused (so please pardon the potential n00bness.)
+
+I have to parse a config file for an app I'm working on, whose format is
+basically of the format:
+group MyGroup {
+  tcpclient( host: foo, port: 49152 );
+  udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );
+  udp:foo:49152.nonblocking = true;
+}
+
+>From what I've read on the Intertubes, it seems that the SOP for processing
+this is to define a main := which will match a particular line of the text
+and then upon matching call a another machine to "scan" the message.
+However, I'm not sure how to do that because it seem that regardless of
+whether I define main as a matcher or a scanner, executing the parser always
+seems to consume the text as it matches. For instance, when I parse the
+group definition, I can simply match on the word "group" and then pass the
+rest of the line (up to the {) in to the scanner and I can get 'MyGroup' out
+relatively easily. However, when I try to parse the first encapsulated line,
+I don't know whether I'm dealing with a string of the first line form or
+third line form (or if the command is "chained" as in the second line) until
+I've done a kleene star match of the entire line (up to the ;) at which
+point it seems that the parser has already consumed the entire line and when
+I pass it into a scanner the pointers are already at the next line. Do I
+need the store the starting pointer before the first main scan (and if so,
+how?) and then how would I tell the downstream scanner where to start? I
+thought of making a number of nested c++ "parser objects" but that just seem
+inherently wrong.
+
+Below is what I've written so far--just enough to hopefully pass the first
+two cases. Again, I don't know if I'm only a character or so off or if my
+mindset is completely off. Any help would be appreciated.
+
+--
+Rob Harris
+  Technological Pragmatist
+  rob period harris shift-2 gmail decimal-point com
+  "The universe tends towards maximum irony." --Jamie Zawinsky
+
+ %%{
+    machine sas_scanner;
+    ml_comment = '/*' ( any )* :>> '*/';
+    sl_comment = '//' [^\n]* '\n';
+    comment    = ml_comment | sl_comment;
+    wspace     = comment | space+ ;
+    integer    = [0-9]*;
+    float      = [0-9]* '.' [0-9]*;
+    identifier = [a-zA-Z][a-zA-Z0-9]*;
+    fqsm       = [a-zA-Z] ( [a-zA-Z0-9:][a-zA-Z0-9_] )*;
+    sqstring   = '\'' [^\n]* :>> '\'';
+    dqstring   = '\"' [^\n]* :>> '\"';
+    strvalue   = ( integer | float | identifier | sqstring | dqstring );
+    action DEBUG { fprintf( stderr, "state: %4d, char: %c\n", cs, *p ); }
+    action RESET { reset(); }
+    action CRLF  { std::cout << std::endl << std::endl; }
+    action NAME  { m_name.append( 1, fc ); }
+    action KEY   {  m_key.append( 1, fc ); }
+    action VAL   {  m_val.append( 1, fc ); }
+    action QKV
+    {
+      printf( "[%s]=>[%s]\n", m_key.c_str(), m_val.c_str());
+      m_kvMap[ m_key ] = m_val;
+      m_key.clear();
+      m_val.clear();
+    }
+    action SNAME { printf( "NAME: [%s]\n", m_name.c_str() ); }
+    kvpair = ( identifier space* ':' space* strvalue );
+    kvlist = ( space+ | kvpair | ',' space+ kvpair );
+    instantiation = ( identifier '(' kvlist* ')' );
+
+    instantiation_chain = (
+      instantiation $NAME ( space* '>' space* instantiation )*
+      ) $NAME >RESET ';' @SNAME;
+
+    inst_chain_scanner :=
+    |*
+      space+;
+      identifier => { diff(); };
+      strvalue => { diff(); };
+    *|;
+
+    group_name = ( 'g' 'r' 'o' 'u' 'p' );
+    group_id = ( identifier - group_name ) @NAME;
+    group_line = ( group_name space+ group_id :>> space* '{' );
+
+    group_scanner :=
+    |*
+      space+ => { m_name.clear(); };
+      group_name;
+      group_id => { printf( ">> %s\n", m_name.c_str() ); };
+      '{' => { fret; };
+    *|;
+
+    main :=
+    |*
+      wspace+;
+      group_name => { fcall group_scanner; };
+      instantiation_chain => { fcall inst_chain_scanner; };
+    *|;
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110805/c354b607/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From luis.kornblueh at zmaw.de  Thu Aug 11 09:36:01 2011
+From: luis.kornblueh at zmaw.de (Luis Kornblueh)
+Date: Thu, 11 Aug 2011 11:36:01 +0200
+Subject: [ragel-users] Parsing date strings
+Message-ID: <4E43A281.3090800@zmaw.de>
+
+Hi everybody,
+
+I came around ragel and read the user guide, which I understood only 
+partly (I'm not having CS as background ;-)
+
+I would like to write a parser for iso 8601 date, duration and 
+recurrence strings. As we are related to climate science the dates
+which needs to be handled aren't the once everybody has done.
+
+I didn't manage to solve my problem and wnat to kindly ask everybody 
+around here, having more experience, for help.
+
+The first thing I have is parsing simple dates:
+
+- something like 20340203 (3rd of February 2034) for example
+   is no real problem
+- -3456781203 in contrast is (3rd of May of the year -345678,
+   proleptic Gregorian)
+
+I'd like to use the same expr for both strings.
+
+iso_year = ('-'? . digit+) >tag_iso_year;
+iso_month = ('0' . [1-9] | '1' . [0-2]) >tag_iso_month;
+iso_day = ('0' . [1-9] | [12] . [0-9] | '3' . [01]) >tag_iso_day;
+
+iso_date = (iso_year . iso_month . iso_day) %set_iso_date;
+
+Now iso 8601 is providing en extended format containg hyphens between 
+the components:
+
+iso_date_extended = (iso_year . '-' . iso_month . '-' . iso_day)
+
+How can I manage the transparent handling in one machine.
+
+The last issue is that I didn't understood error handling. It would be 
+great to have something like a pointer to the point in the string, where 
+parsing failed ...
+
+The whole code is supposed to be C.
+
+Thanks in advance for any kind of help,
+Luis
+
+-- 
+                              \\\\\\
+                              (-0^0-)
+--------------------------oOO--(_)--OOo-----------------------------
+
+  Luis Kornblueh                           Tel. : +49-40-41173289
+  Max-Planck-Institute for Meteorology     Fax. : +49-40-41173298
+  Bundesstr. 53
+  D-20146 Hamburg                   Email: luis.kornblueh at zmaw.de
+  Federal Republic of Germany
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 4634 bytes
+Desc: S/MIME Cryptographic Signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110811/2ea6c01e/attachment.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Aug 11 14:15:32 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 11 Aug 2011 16:15:32 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <4E43A281.3090800@zmaw.de>
+References: <4E43A281.3090800@zmaw.de>
+Message-ID: <38F7297C6CF94E99BE070B111CA37E99@localdomain>
+
+Hi Luis,
+
+my Maya colleague next door  believes that "-3456781203" refers to a date in 
+December instead of May. Could he be right?
+
+Given the fixed format of your date strings, the question is not really 
+whether you can scan it with Ragel (or flex, or what else), but whether such 
+a tool is the right tool to do that.  Somehow you always need to extract the 
+last 2+2 chars and validate them, but this essentially makes you going 
+backwards in your machine (or using further memory) which is not within the 
+realm of a "pure" FSM (http://en.wikipedia.org/wiki/Finite_state_machine). 
+However, Ragel allows you to easily add the necessary "counting".
+
+It depends on how you get your date strings whether using Ragel is benficial 
+or not. If you have just isolated strings (i.e. the entire string, so you 
+know where it ends) it probably doesn't. If you need to extract the date 
+from a stream of other tokens that can easily described by a FSM, then it 
+will.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From luis.kornblueh at zmaw.de  Thu Aug 11 14:26:19 2011
+From: luis.kornblueh at zmaw.de (Luis Kornblueh)
+Date: Thu, 11 Aug 2011 16:26:19 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <38F7297C6CF94E99BE070B111CA37E99@localdomain>
+References: <4E43A281.3090800@zmaw.de>
+	<38F7297C6CF94E99BE070B111CA37E99@localdomain>
+Message-ID: <4E43E68B.5050502@zmaw.de>
+
+On 11/08/2011 16:15, ragel-user at jgoettgens.de wrote:
+> Hi Luis,
+>
+> my Maya colleague next door believes that "-3456781203" refers to a date
+> in December instead of May. Could he be right?
+>
+> Given the fixed format of your date strings, the question is not really
+> whether you can scan it with Ragel (or flex, or what else), but whether
+> such a tool is the right tool to do that. Somehow you always need to
+> extract the last 2+2 chars and validate them, but this essentially makes
+> you going backwards in your machine (or using further memory) which is
+> not within the realm of a "pure" FSM
+> (http://en.wikipedia.org/wiki/Finite_state_machine). However, Ragel
+> allows you to easily add the necessary "counting".
+>
+> It depends on how you get your date strings whether using Ragel is
+> benficial or not. If you have just isolated strings (i.e. the entire
+> string, so you know where it ends) it probably doesn't. If you need to
+> extract the date from a stream of other tokens that can easily described
+> by a FSM, then it will.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+Hi jg,
+
+of course your Maya colleague is of course right. The reason why I like
+to be able to do the parsing with ragel is, that all other things I have 
+are perfectly fine working and I'm really happy with it. The only
+thing remaining are this 'ugly' date strings with arbitrary number of 
+years ... As it is nice to use a single tool for a set of 'equal' kind 
+of things, it would be nice to be able to do it. And it'll be only part
+of a stream ...
+
+Luis
+
+
+
+-- 
+                              \\\\\\
+                              (-0^0-)
+--------------------------oOO--(_)--OOo-----------------------------
+
+  Luis Kornblueh                           Tel. : +49-40-41173289
+  Max-Planck-Institute for Meteorology     Fax. : +49-40-41173298
+  Bundesstr. 53
+  D-20146 Hamburg                   Email: luis.kornblueh at zmaw.de
+  Federal Republic of Germany
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 5998 bytes
+Desc: S/MIME Cryptographic Signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110811/434d35db/attachment.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Aug 11 14:41:38 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 11 Aug 2011 16:41:38 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <4E43E68B.5050502@zmaw.de>
+References: <4E43A281.3090800@zmaw.de><38F7297C6CF94E99BE070B111CA37E99@localdomain>
+	<4E43E68B.5050502@zmaw.de>
+Message-ID: <479BAA2605EF453198884DCF08F85E6F@localdomain>
+
+Can you give a somewhat comprehensive example?
+
+Anyway, you have to do the following steps once you start scanning a date 
+string:
+(1) push all elements (at this point you are just scanning a signed integer) 
+onto a stack, possibly recognizing bogus characters (but not the correct day 
+and month chars (because you need to have the end of the string to do that))
+(2) at the end of the string (not just a valid final state), start to pop 
+the elements and check them semantically for correctness:
+(first 2 pops: day, next 2 pops: month, rest: year)
+How you do that depends a bit on the characteristics of your stream 
+(essentially how easy it is do detect when going out of the "date machine").
+
+I hope this helps.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Fri Aug 12 02:45:12 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Thu, 11 Aug 2011 22:45:12 -0400
+Subject: [ragel-users] confused about scanning
+In-Reply-To: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+References: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+Message-ID: <CALBzPR=3O7tX2M-WFLwB2p6E7oPrdmOED_a6W8f3_TYbUNHk=g@mail.gmail.com>
+
+I took what I think you were trying to accomplish (at least to some
+degree) and tried to develop a state machine based on the
+specifications as I understood them.  I did this partially to help me
+understand Ragel a little bit better, so I hope you don't mind that I
+didn't use much of what you provided in your original email.  Some
+notes related to your email though:
+
+- I don't think you want a scanner for what you are trying to
+accomplish.  A scanner spits out things like "number" or "string" or
+"operator" without regards to how those things are put together.  I
+think you want something that understands the structure of what can
+happen where (e.g., udp:foo = true "sets" udp:foo equal to true ... a
+scanner might kick out "identifer" [for udp:foo], "operator" or
+"equals" for '=' and "keyword" or "identifier" for 'true'.).
+- I think you might be able to accomplish some of what you were
+intending (even with a scanner) by using fgoto instead of fcall
+(although I'm not entirely sure as I didn't fully grasp your code).
+
+The following is in C (not C++), but I think should be easy to follow.
+ Note that the last section of my 'main' (checking for errors) was
+very helpful in letting me know when I screwed something up (e.g.,
+forgot a specific char in a machine, etc.).  All I'm doing is printing
+stuff out, but you could adapt it to your needs.  Hope this helps (PS
+- you may want to read
+http://zedshaw.com/essays/ragel_state_charts.html - I also found it
+very helpful in getting started with Ragel):
+
+
+#include <stdio.h>
+#include <string.h>
+
+%%{
+    machine sas_scanner;
+
+    action init {
+        printf("group: ");
+        start = fpc+1;
+    }
+    action args {
+        printf("call: %.*s\n", fpc-start, start);
+        start = fpc+1;
+    }
+    action pr {
+        printf("%.*s\n", fpc-start, start);
+        start = fpc+1;
+    }
+    action kwd {
+        printf("  %.*s = ", fpc-start, start);
+        start = fpc+1;
+    }
+    action nl {
+        printf("\n");
+        start = fpc+1;
+    }
+    action reset { start = fpc; }
+    action chain {
+        printf("- Chained call -\n");
+        start = fpc+1;
+    }
+    action prset {
+        printf(" Set: %.*s ->", fpc-start, start);
+        start = fpc+1;
+    }
+
+    main := (
+        start: (
+            "group " @init -> group_name
+        ),
+
+        group_name: (
+            alpha+ -> group_name |
+            " " @pr -> group_name |
+            "{" -> details
+        ),
+
+        details: (
+            '('  @args  -> arguments |
+            [:.]        -> details |
+            '>'  @chain -> details |
+            alpha+      -> details |
+            '\n' @reset -> details |
+            ';'  @reset -> details |
+            '='  @prset -> set     |
+            ' '         -> details |
+            digit+      -> details |
+            '}'         -> final
+        ),
+
+        arguments: (
+            ',' @pr    -> arguments |
+            alpha+     -> arguments |
+            ':' @kwd   -> arguments |
+            ' '        -> arguments |
+            digit+     -> arguments |
+            ')' @pr    -> details
+        ),
+
+        set: (
+            alpha+  -> set |
+            ' '     -> set |
+            ';' @pr -> details
+        )
+    );
+}%%
+
+%% write data;
+
+int main () {
+    char* to_parse =
+        "group MyGroup {\n"
+        "   tcpclient( host: foo, port: 49152 );\n"
+        "   udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );\n"
+        "   udp:foo:49152.nonblocking = true;\n"
+        "}";
+
+    int cs, act;
+    const char* p = to_parse;
+    const char* pe = to_parse + strlen(to_parse);
+
+    const char* start;
+    const char* end;
+
+    %% write init;
+    %% write exec;
+
+    if (cs == sas_scanner_error) {
+        printf("Error parsing @ %s\n", p);
+    }
+    return 0;
+}
+
+---------------------
+Kevin T. Ryan
+http://blog.gridmule.com/
+
+
+
+On Fri, Aug 5, 2011 at 9:13 AM, 𝄆 Rob Harris 𝄇 <rob.harris at gmail.com> wrote:
+>
+> All, help. I've R'd TFM all week trying to figure this out, but am still
+> confused (so please pardon the potential n00bness.)
+>
+> I have to parse a config file for an app I'm working on, whose format is
+> basically of the format:
+> group MyGroup {
+>   tcpclient( host: foo, port: 49152 );
+>   udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );
+>   udp:foo:49152.nonblocking = true;
+> }
+>
+> From what I've read on the Intertubes, it seems that the SOP for processing
+> this is to define a main := which will match a particular line of the text
+> and then upon matching call a another machine to "scan" the message.
+> However, I'm not sure how to do that because it seem that regardless of
+> whether I define main as a matcher or a scanner, executing the parser always
+> seems to consume the text as it matches. For instance, when I parse the
+> group definition, I can simply match on the word "group" and then pass the
+> rest of the line (up to the {) in to the scanner and I can get 'MyGroup' out
+> relatively easily. However, when I try to parse the first encapsulated line,
+> I don't know whether I'm dealing with a string of the first line form or
+> third line form (or if the command is "chained" as in the second line) until
+> I've done a kleene star match of the entire line (up to the ;) at which
+> point it seems that the parser has already consumed the entire line and when
+> I pass it into a scanner the pointers are already at the next line. Do I
+> need the store the starting pointer before the first main scan (and if so,
+> how?) and then how would I tell the downstream scanner where to start? I
+> thought of making a number of nested c++ "parser objects" but that just seem
+> inherently wrong.
+>
+> Below is what I've written so far--just enough to hopefully pass the first
+> two cases. Again, I don't know if I'm only a character or so off or if my
+> mindset is completely off. Any help would be appreciated.
+>
+> --
+> Rob Harris
+>   Technological Pragmatist
+>   rob period harris shift-2 gmail decimal-point com
+>   "The universe tends towards maximum irony." --Jamie Zawinsky
+>
+>  %%{
+>     machine sas_scanner;
+>     ml_comment = '/*' ( any )* :>> '*/';
+>     sl_comment = '//' [^\n]* '\n';
+>     comment    = ml_comment | sl_comment;
+>     wspace     = comment | space+ ;
+>     integer    = [0-9]*;
+>     float      = [0-9]* '.' [0-9]*;
+>     identifier = [a-zA-Z][a-zA-Z0-9]*;
+>     fqsm       = [a-zA-Z] ( [a-zA-Z0-9:][a-zA-Z0-9_] )*;
+>     sqstring   = '\'' [^\n]* :>> '\'';
+>     dqstring   = '\"' [^\n]* :>> '\"';
+>     strvalue   = ( integer | float | identifier | sqstring | dqstring );
+>     action DEBUG { fprintf( stderr, "state: %4d, char: %c\n", cs, *p ); }
+>     action RESET { reset(); }
+>     action CRLF  { std::cout << std::endl << std::endl; }
+>     action NAME  { m_name.append( 1, fc ); }
+>     action KEY   {  m_key.append( 1, fc ); }
+>     action VAL   {  m_val.append( 1, fc ); }
+>     action QKV
+>     {
+>       printf( "[%s]=>[%s]\n", m_key.c_str(), m_val.c_str());
+>       m_kvMap[ m_key ] = m_val;
+>       m_key.clear();
+>       m_val.clear();
+>     }
+>     action SNAME { printf( "NAME: [%s]\n", m_name.c_str() ); }
+>     kvpair = ( identifier space* ':' space* strvalue );
+>     kvlist = ( space+ | kvpair | ',' space+ kvpair );
+>     instantiation = ( identifier '(' kvlist* ')' );
+>
+>     instantiation_chain = (
+>       instantiation $NAME ( space* '>' space* instantiation )*
+>       ) $NAME >RESET ';' @SNAME;
+>
+>     inst_chain_scanner :=
+>     |*
+>       space+;
+>       identifier => { diff(); };
+>       strvalue => { diff(); };
+>     *|;
+>
+>     group_name = ( 'g' 'r' 'o' 'u' 'p' );
+>     group_id = ( identifier - group_name ) @NAME;
+>     group_line = ( group_name space+ group_id :>> space* '{' );
+>
+>     group_scanner :=
+>     |*
+>       space+ => { m_name.clear(); };
+>       group_name;
+>       group_id => { printf( ">> %s\n", m_name.c_str() ); };
+>       '{' => { fret; };
+>     *|;
+>
+>     main :=
+>     |*
+>       wspace+;
+>       group_name => { fcall group_scanner; };
+>       instantiation_chain => { fcall inst_chain_scanner; };
+>     *|;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Aug 15 15:32:45 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 17:32:45 +0200
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+Message-ID: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+
+Hi, I do know that Ragel cannot parse bits but just bytes. Anyhow,
+maybe is it possible to use it for a binary packet format as WebSocket
+frames as defined in:
+
+   http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I see it possible by getting entire bytes and later, at application
+level extract each bit value.
+
+Also, I have this requirement for a set of 8 bytes:
+
+      8 bytes interpreted as a 64-bit unsigned integer are the payload
+      length.  Multibyte length quantities are expressed in network byte
+      order.
+
+Is it a problem for Ragel?
+
+Thanks a lot.
+
+--
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graceindustries at gmail.com  Mon Aug 15 15:54:28 2011
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Mon, 15 Aug 2011 11:54:28 -0400
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+Message-ID: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+
+On Mon, Aug 15, 2011 at 11:32 AM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+> Hi, I do know that Ragel cannot parse bits but just bytes.
+
+The language Erlang will do pattern matching at the bit level.
+That certainly would be a nice addition to Ragel for using it in
+Embedded Systems work.
+
+> maybe is it possible to use it for a binary packet format as WebSocket
+> frames as defined in:
+
+This of any help?:
+
+http://www.zedshaw.com/essays/ragel_state_charts.html
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Aug 15 20:37:33 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 22:37:33 +0200
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+	<CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+Message-ID: <CALiegfnBfmTmg2XpeoKDEKPc58QTK4adY4cah5ydR-3q4zxFiw@mail.gmail.com>
+
+2011/8/15 Bob Paddock <graceindustries at gmail.com>:
+> http://www.zedshaw.com/essays/ragel_state_charts.html
+
+Intersting, thanks. I will learn from there.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Aug 15 20:43:13 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 22:43:13 +0200
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Message-ID: <CALiegfnQb2tYe_ZmCm-cgL7nNaDA=jP0g7YHSUW=1r3RAmXfWA@mail.gmail.com>
+
+Hi, trying to make a parser for a binary protocol:
+
+  http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I get the following case:
+
+Byte number 2 in the protocol message is as follows:
+
+- bit 0:       FIN bit
+- bits 1-7:   Payload length (means 2^N bytes).
+
+I receive the data from the network. The data is read from a Ruby
+server and then passed to a C parser built with Ragel. So within Ragel
+code (actions) I must check if bit 0 (FIN) is 1 or 0.
+The Ragel grammar alphabetic is "char", so I can check whether such
+char is > some value (which means that first bit is 0 or 1, so I get
+FIN bit value).
+
+The question is: how can I know if I'm cheking the byte in big-endian
+or in litte-endian? Probably this question makes no sense at all since
+data was already received by the Ruby server, so it has been converted
+to host byte order, so I must not care about it, am I right?
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Aug 17 03:04:24 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Wed, 17 Aug 2011 03:04:24 +0000
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Message-ID: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+
+Unfortunately, specifying certain low bits is a problem for the definition language. You end up needing to write 0 or 2 or 4 or 6 ... 
+
+Underlying implementation can do it, but it's not an efficient implementation. 
+High bits are easy for both language and implementation: 0 .. 127. 
+
+-Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Sent: Aug 15, 2011 1:43 PM
+
+Hi, trying to make a parser for a binary protocol:
+
+  http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I get the following case:
+
+Byte number 2 in the protocol message is as follows:
+
+- bit 0:       FIN bit
+- bits 1-7:   Payload length (means 2^N bytes).
+
+I receive the data from the network. The data is read from a Ruby
+server and then passed to a C parser built with Ragel. So within Ragel
+code (actions) I must check if bit 0 (FIN) is 1 or 0.
+The Ragel grammar alphabetic is "char", so I can check whether such
+char is > some value (which means that first bit is 0 or 1, so I get
+FIN bit value).
+
+The question is: how can I know if I'm cheking the byte in big-endian
+or in litte-endian? Probably this question makes no sense at all since
+data was already received by the Ruby server, so it has been converted
+to host byte order, so I must not care about it, am I right?
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Wed Aug 17 09:59:54 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 17 Aug 2011 11:59:54 +0200
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+In-Reply-To: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+References: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+Message-ID: <CALiegfmJuuLv3itom+9pK=jRbp_oWuqVe=hzyHFtYSvt-1C98w@mail.gmail.com>
+
+2011/8/17  <thurston at complang.org>:
+> Unfortunately, specifying certain low bits is a problem for the definition language. You end up needing to write 0 or 2 or 4 or 6 ...
+>
+> Underlying implementation can do it, but it's not an efficient implementation.
+> High bits are easy for both language and implementation: 0 .. 127.
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From swinchen at gmail.com  Fri Aug 26 13:54:02 2011
+From: swinchen at gmail.com (Samuel Winchenbach)
+Date: Fri, 26 Aug 2011 09:54:02 -0400
+Subject: [ragel-users] First time Ragel user...named parameters/help parsing.
+Message-ID: <CAK9s_Nz89uV6_VjnZFOkPx=cA1gWOuReY5DQ2Fp+FfY0Rvut5Q@mail.gmail.com>
+
+Hi all,
+
+I am trying to create an application that takes a command such as:
+#SET,1,57600,8,N,1\n
+
+The problem is, I don't now to cleanly extract each parameter.   In
+regular expressions you can use named groups.  I don't see anything
+similar in Ragel.   Below is my first attempt.  As you can see it kind
+of works, I would just need to do a little manual processing inside
+each action.   It seems like the way I am doing it here there is very
+little advantage over strtok.    I have tried searching for a solution
+to this, but I don't think I came up with very good search terms.
+Any help you could offer would be greatly appreciated.
+
+- Sam
+
+http://dumpz.org/79505/
+
+Output:
+#SET,1,57600,8,N,1    <--- this is my input
+1,57600,8,N,1
+57600,8,N,1
+8,N,1
+N,1
+1
+Do sweet uC stuff here
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Aug 26 18:26:12 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Fri, 26 Aug 2011 18:26:12 +0000
+Subject: [ragel-users] First time Ragel user...named parameters/help
+	parsing.
+Message-ID: <97058341-1314383173-cardhu_decombobulator_blackberry.rim.net-1252258530-@b26.c9.bise6.blackberry>
+
+Yes, that's the right idea. With Ragel you use actions to collect/print data. If you have all the data in a single buffer you can collect using pointers. Otherwise, use buffers. 
+------Original Message------
+From: Samuel Winchenbach
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] First time Ragel user...named parameters/help parsing.
+Sent: Aug 26, 2011 6:54 AM
+
+Hi all,
+
+I am trying to create an application that takes a command such as:
+#SET,1,57600,8,N,1\n
+
+The problem is, I don't now to cleanly extract each parameter.   In
+regular expressions you can use named groups.  I don't see anything
+similar in Ragel.   Below is my first attempt.  As you can see it kind
+of works, I would just need to do a little manual processing inside
+each action.   It seems like the way I am doing it here there is very
+little advantage over strtok.    I have tried searching for a solution
+to this, but I don't think I came up with very good search terms.
+Any help you could offer would be greatly appreciated.
+
+- Sam
+
+http://dumpz.org/79505/
+
+Output:
+#SET,1,57600,8,N,1    <--- this is my input
+1,57600,8,N,1
+57600,8,N,1
+8,N,1
+N,1
+1
+Do sweet uC stuff here
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graham.miller at gmail.com  Mon Aug  1 22:14:44 2011
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 1 Aug 2011 18:14:44 -0400
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <CAAd2J_ROD7ZJ6iKhEF7OsLTzbvLmvmdL7g1jVQjc=pgy_1DJGQ@mail.gmail.com>
+
+On Fri, Jul 15, 2011 at 4:29 AM, Miek Gieben <miek at miek.nl> wrote:
+
+> ... with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> ... This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>
+That day has now come ;)
+
+http://golang.org/doc/devel/release.html#r59
+
+graham
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110801/ff146f33/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From a.bramley at gmail.com  Thu Aug  4 19:38:58 2011
+From: a.bramley at gmail.com (Alex)
+Date: Thu, 4 Aug 2011 20:38:58 +0100
+Subject: [ragel-users] Goto changes in r59 have broken Ragel's Go code
+	generation.
+Message-ID: <CAMxFj=yoi0dHcsVm8DQKYhgxo-Ei7967bWvAkOXD4HNxy9VrQA@mail.gmail.com>
+
+Hi all,
+
+Quoth the r59 release notes[1]:
+
+"In essence, a goto statement outside a block cannot jump to a label
+inside that block."
+
+Unfortunately, Ragel's Go backend relied on this pretty much
+exclusively to create its FSM. Ragel's author and the ragel-users list
+is already aware[2], just thought I'd mention it here too.
+
+Cue pouty "I was using that!" face ;-)
+--alex
+
+[1] http://golang.org/doc/devel/release.html#r59
+[2] http://www.complang.org/pipermail/ragel-users/2011-July/002685.html
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rob.harris at gmail.com  Fri Aug  5 13:13:25 2011
+From: rob.harris at gmail.com (=?UTF-8?B?8J2EhiBSb2IgSGFycmlzIPCdhIc=?=)
+Date: Fri, 5 Aug 2011 09:13:25 -0400
+Subject: [ragel-users] confused about scanning
+Message-ID: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+
+All, help. I've R'd TFM all week trying to figure this out, but am still
+confused (so please pardon the potential n00bness.)
+
+I have to parse a config file for an app I'm working on, whose format is
+basically of the format:
+group MyGroup {
+  tcpclient( host: foo, port: 49152 );
+  udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );
+  udp:foo:49152.nonblocking = true;
+}
+
+>From what I've read on the Intertubes, it seems that the SOP for processing
+this is to define a main := which will match a particular line of the text
+and then upon matching call a another machine to "scan" the message.
+However, I'm not sure how to do that because it seem that regardless of
+whether I define main as a matcher or a scanner, executing the parser always
+seems to consume the text as it matches. For instance, when I parse the
+group definition, I can simply match on the word "group" and then pass the
+rest of the line (up to the {) in to the scanner and I can get 'MyGroup' out
+relatively easily. However, when I try to parse the first encapsulated line,
+I don't know whether I'm dealing with a string of the first line form or
+third line form (or if the command is "chained" as in the second line) until
+I've done a kleene star match of the entire line (up to the ;) at which
+point it seems that the parser has already consumed the entire line and when
+I pass it into a scanner the pointers are already at the next line. Do I
+need the store the starting pointer before the first main scan (and if so,
+how?) and then how would I tell the downstream scanner where to start? I
+thought of making a number of nested c++ "parser objects" but that just seem
+inherently wrong.
+
+Below is what I've written so far--just enough to hopefully pass the first
+two cases. Again, I don't know if I'm only a character or so off or if my
+mindset is completely off. Any help would be appreciated.
+
+--
+Rob Harris
+  Technological Pragmatist
+  rob period harris shift-2 gmail decimal-point com
+  "The universe tends towards maximum irony." --Jamie Zawinsky
+
+ %%{
+    machine sas_scanner;
+    ml_comment = '/*' ( any )* :>> '*/';
+    sl_comment = '//' [^\n]* '\n';
+    comment    = ml_comment | sl_comment;
+    wspace     = comment | space+ ;
+    integer    = [0-9]*;
+    float      = [0-9]* '.' [0-9]*;
+    identifier = [a-zA-Z][a-zA-Z0-9]*;
+    fqsm       = [a-zA-Z] ( [a-zA-Z0-9:][a-zA-Z0-9_] )*;
+    sqstring   = '\'' [^\n]* :>> '\'';
+    dqstring   = '\"' [^\n]* :>> '\"';
+    strvalue   = ( integer | float | identifier | sqstring | dqstring );
+    action DEBUG { fprintf( stderr, "state: %4d, char: %c\n", cs, *p ); }
+    action RESET { reset(); }
+    action CRLF  { std::cout << std::endl << std::endl; }
+    action NAME  { m_name.append( 1, fc ); }
+    action KEY   {  m_key.append( 1, fc ); }
+    action VAL   {  m_val.append( 1, fc ); }
+    action QKV
+    {
+      printf( "[%s]=>[%s]\n", m_key.c_str(), m_val.c_str());
+      m_kvMap[ m_key ] = m_val;
+      m_key.clear();
+      m_val.clear();
+    }
+    action SNAME { printf( "NAME: [%s]\n", m_name.c_str() ); }
+    kvpair = ( identifier space* ':' space* strvalue );
+    kvlist = ( space+ | kvpair | ',' space+ kvpair );
+    instantiation = ( identifier '(' kvlist* ')' );
+
+    instantiation_chain = (
+      instantiation $NAME ( space* '>' space* instantiation )*
+      ) $NAME >RESET ';' @SNAME;
+
+    inst_chain_scanner :=
+    |*
+      space+;
+      identifier => { diff(); };
+      strvalue => { diff(); };
+    *|;
+
+    group_name = ( 'g' 'r' 'o' 'u' 'p' );
+    group_id = ( identifier - group_name ) @NAME;
+    group_line = ( group_name space+ group_id :>> space* '{' );
+
+    group_scanner :=
+    |*
+      space+ => { m_name.clear(); };
+      group_name;
+      group_id => { printf( ">> %s\n", m_name.c_str() ); };
+      '{' => { fret; };
+    *|;
+
+    main :=
+    |*
+      wspace+;
+      group_name => { fcall group_scanner; };
+      instantiation_chain => { fcall inst_chain_scanner; };
+    *|;
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110805/c354b607/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From luis.kornblueh at zmaw.de  Thu Aug 11 09:36:01 2011
+From: luis.kornblueh at zmaw.de (Luis Kornblueh)
+Date: Thu, 11 Aug 2011 11:36:01 +0200
+Subject: [ragel-users] Parsing date strings
+Message-ID: <4E43A281.3090800@zmaw.de>
+
+Hi everybody,
+
+I came around ragel and read the user guide, which I understood only 
+partly (I'm not having CS as background ;-)
+
+I would like to write a parser for iso 8601 date, duration and 
+recurrence strings. As we are related to climate science the dates
+which needs to be handled aren't the once everybody has done.
+
+I didn't manage to solve my problem and wnat to kindly ask everybody 
+around here, having more experience, for help.
+
+The first thing I have is parsing simple dates:
+
+- something like 20340203 (3rd of February 2034) for example
+   is no real problem
+- -3456781203 in contrast is (3rd of May of the year -345678,
+   proleptic Gregorian)
+
+I'd like to use the same expr for both strings.
+
+iso_year = ('-'? . digit+) >tag_iso_year;
+iso_month = ('0' . [1-9] | '1' . [0-2]) >tag_iso_month;
+iso_day = ('0' . [1-9] | [12] . [0-9] | '3' . [01]) >tag_iso_day;
+
+iso_date = (iso_year . iso_month . iso_day) %set_iso_date;
+
+Now iso 8601 is providing en extended format containg hyphens between 
+the components:
+
+iso_date_extended = (iso_year . '-' . iso_month . '-' . iso_day)
+
+How can I manage the transparent handling in one machine.
+
+The last issue is that I didn't understood error handling. It would be 
+great to have something like a pointer to the point in the string, where 
+parsing failed ...
+
+The whole code is supposed to be C.
+
+Thanks in advance for any kind of help,
+Luis
+
+-- 
+                              \\\\\\
+                              (-0^0-)
+--------------------------oOO--(_)--OOo-----------------------------
+
+  Luis Kornblueh                           Tel. : +49-40-41173289
+  Max-Planck-Institute for Meteorology     Fax. : +49-40-41173298
+  Bundesstr. 53
+  D-20146 Hamburg                   Email: luis.kornblueh at zmaw.de
+  Federal Republic of Germany
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 4634 bytes
+Desc: S/MIME Cryptographic Signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110811/2ea6c01e/attachment-0001.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Aug 11 14:15:32 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 11 Aug 2011 16:15:32 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <4E43A281.3090800@zmaw.de>
+References: <4E43A281.3090800@zmaw.de>
+Message-ID: <38F7297C6CF94E99BE070B111CA37E99@localdomain>
+
+Hi Luis,
+
+my Maya colleague next door  believes that "-3456781203" refers to a date in 
+December instead of May. Could he be right?
+
+Given the fixed format of your date strings, the question is not really 
+whether you can scan it with Ragel (or flex, or what else), but whether such 
+a tool is the right tool to do that.  Somehow you always need to extract the 
+last 2+2 chars and validate them, but this essentially makes you going 
+backwards in your machine (or using further memory) which is not within the 
+realm of a "pure" FSM (http://en.wikipedia.org/wiki/Finite_state_machine). 
+However, Ragel allows you to easily add the necessary "counting".
+
+It depends on how you get your date strings whether using Ragel is benficial 
+or not. If you have just isolated strings (i.e. the entire string, so you 
+know where it ends) it probably doesn't. If you need to extract the date 
+from a stream of other tokens that can easily described by a FSM, then it 
+will.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From luis.kornblueh at zmaw.de  Thu Aug 11 14:26:19 2011
+From: luis.kornblueh at zmaw.de (Luis Kornblueh)
+Date: Thu, 11 Aug 2011 16:26:19 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <38F7297C6CF94E99BE070B111CA37E99@localdomain>
+References: <4E43A281.3090800@zmaw.de>
+	<38F7297C6CF94E99BE070B111CA37E99@localdomain>
+Message-ID: <4E43E68B.5050502@zmaw.de>
+
+On 11/08/2011 16:15, ragel-user at jgoettgens.de wrote:
+> Hi Luis,
+>
+> my Maya colleague next door believes that "-3456781203" refers to a date
+> in December instead of May. Could he be right?
+>
+> Given the fixed format of your date strings, the question is not really
+> whether you can scan it with Ragel (or flex, or what else), but whether
+> such a tool is the right tool to do that. Somehow you always need to
+> extract the last 2+2 chars and validate them, but this essentially makes
+> you going backwards in your machine (or using further memory) which is
+> not within the realm of a "pure" FSM
+> (http://en.wikipedia.org/wiki/Finite_state_machine). However, Ragel
+> allows you to easily add the necessary "counting".
+>
+> It depends on how you get your date strings whether using Ragel is
+> benficial or not. If you have just isolated strings (i.e. the entire
+> string, so you know where it ends) it probably doesn't. If you need to
+> extract the date from a stream of other tokens that can easily described
+> by a FSM, then it will.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+Hi jg,
+
+of course your Maya colleague is of course right. The reason why I like
+to be able to do the parsing with ragel is, that all other things I have 
+are perfectly fine working and I'm really happy with it. The only
+thing remaining are this 'ugly' date strings with arbitrary number of 
+years ... As it is nice to use a single tool for a set of 'equal' kind 
+of things, it would be nice to be able to do it. And it'll be only part
+of a stream ...
+
+Luis
+
+
+
+-- 
+                              \\\\\\
+                              (-0^0-)
+--------------------------oOO--(_)--OOo-----------------------------
+
+  Luis Kornblueh                           Tel. : +49-40-41173289
+  Max-Planck-Institute for Meteorology     Fax. : +49-40-41173298
+  Bundesstr. 53
+  D-20146 Hamburg                   Email: luis.kornblueh at zmaw.de
+  Federal Republic of Germany
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 5998 bytes
+Desc: S/MIME Cryptographic Signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110811/434d35db/attachment-0001.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Aug 11 14:41:38 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 11 Aug 2011 16:41:38 +0200
+Subject: [ragel-users] Parsing date strings
+In-Reply-To: <4E43E68B.5050502@zmaw.de>
+References: <4E43A281.3090800@zmaw.de><38F7297C6CF94E99BE070B111CA37E99@localdomain>
+	<4E43E68B.5050502@zmaw.de>
+Message-ID: <479BAA2605EF453198884DCF08F85E6F@localdomain>
+
+Can you give a somewhat comprehensive example?
+
+Anyway, you have to do the following steps once you start scanning a date 
+string:
+(1) push all elements (at this point you are just scanning a signed integer) 
+onto a stack, possibly recognizing bogus characters (but not the correct day 
+and month chars (because you need to have the end of the string to do that))
+(2) at the end of the string (not just a valid final state), start to pop 
+the elements and check them semantically for correctness:
+(first 2 pops: day, next 2 pops: month, rest: year)
+How you do that depends a bit on the characteristics of your stream 
+(essentially how easy it is do detect when going out of the "date machine").
+
+I hope this helps.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Fri Aug 12 02:45:12 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Thu, 11 Aug 2011 22:45:12 -0400
+Subject: [ragel-users] confused about scanning
+In-Reply-To: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+References: <CABRypXnDhgOhzPRUXSssAtdJWHK8uDzg1MZNY-EjLnkcxs-NgQ@mail.gmail.com>
+Message-ID: <CALBzPR=3O7tX2M-WFLwB2p6E7oPrdmOED_a6W8f3_TYbUNHk=g@mail.gmail.com>
+
+I took what I think you were trying to accomplish (at least to some
+degree) and tried to develop a state machine based on the
+specifications as I understood them.  I did this partially to help me
+understand Ragel a little bit better, so I hope you don't mind that I
+didn't use much of what you provided in your original email.  Some
+notes related to your email though:
+
+- I don't think you want a scanner for what you are trying to
+accomplish.  A scanner spits out things like "number" or "string" or
+"operator" without regards to how those things are put together.  I
+think you want something that understands the structure of what can
+happen where (e.g., udp:foo = true "sets" udp:foo equal to true ... a
+scanner might kick out "identifer" [for udp:foo], "operator" or
+"equals" for '=' and "keyword" or "identifier" for 'true'.).
+- I think you might be able to accomplish some of what you were
+intending (even with a scanner) by using fgoto instead of fcall
+(although I'm not entirely sure as I didn't fully grasp your code).
+
+The following is in C (not C++), but I think should be easy to follow.
+ Note that the last section of my 'main' (checking for errors) was
+very helpful in letting me know when I screwed something up (e.g.,
+forgot a specific char in a machine, etc.).  All I'm doing is printing
+stuff out, but you could adapt it to your needs.  Hope this helps (PS
+- you may want to read
+http://zedshaw.com/essays/ragel_state_charts.html - I also found it
+very helpful in getting started with Ragel):
+
+
+#include <stdio.h>
+#include <string.h>
+
+%%{
+    machine sas_scanner;
+
+    action init {
+        printf("group: ");
+        start = fpc+1;
+    }
+    action args {
+        printf("call: %.*s\n", fpc-start, start);
+        start = fpc+1;
+    }
+    action pr {
+        printf("%.*s\n", fpc-start, start);
+        start = fpc+1;
+    }
+    action kwd {
+        printf("  %.*s = ", fpc-start, start);
+        start = fpc+1;
+    }
+    action nl {
+        printf("\n");
+        start = fpc+1;
+    }
+    action reset { start = fpc; }
+    action chain {
+        printf("- Chained call -\n");
+        start = fpc+1;
+    }
+    action prset {
+        printf(" Set: %.*s ->", fpc-start, start);
+        start = fpc+1;
+    }
+
+    main := (
+        start: (
+            "group " @init -> group_name
+        ),
+
+        group_name: (
+            alpha+ -> group_name |
+            " " @pr -> group_name |
+            "{" -> details
+        ),
+
+        details: (
+            '('  @args  -> arguments |
+            [:.]        -> details |
+            '>'  @chain -> details |
+            alpha+      -> details |
+            '\n' @reset -> details |
+            ';'  @reset -> details |
+            '='  @prset -> set     |
+            ' '         -> details |
+            digit+      -> details |
+            '}'         -> final
+        ),
+
+        arguments: (
+            ',' @pr    -> arguments |
+            alpha+     -> arguments |
+            ':' @kwd   -> arguments |
+            ' '        -> arguments |
+            digit+     -> arguments |
+            ')' @pr    -> details
+        ),
+
+        set: (
+            alpha+  -> set |
+            ' '     -> set |
+            ';' @pr -> details
+        )
+    );
+}%%
+
+%% write data;
+
+int main () {
+    char* to_parse =
+        "group MyGroup {\n"
+        "   tcpclient( host: foo, port: 49152 );\n"
+        "   udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );\n"
+        "   udp:foo:49152.nonblocking = true;\n"
+        "}";
+
+    int cs, act;
+    const char* p = to_parse;
+    const char* pe = to_parse + strlen(to_parse);
+
+    const char* start;
+    const char* end;
+
+    %% write init;
+    %% write exec;
+
+    if (cs == sas_scanner_error) {
+        printf("Error parsing @ %s\n", p);
+    }
+    return 0;
+}
+
+---------------------
+Kevin T. Ryan
+http://blog.gridmule.com/
+
+
+
+On Fri, Aug 5, 2011 at 9:13 AM, 𝄆 Rob Harris 𝄇 <rob.harris at gmail.com> wrote:
+>
+> All, help. I've R'd TFM all week trying to figure this out, but am still
+> confused (so please pardon the potential n00bness.)
+>
+> I have to parse a config file for an app I'm working on, whose format is
+> basically of the format:
+> group MyGroup {
+>   tcpclient( host: foo, port: 49152 );
+>   udp( host: bar, port: 49152 ) > tcpserver( port: 11111 );
+>   udp:foo:49152.nonblocking = true;
+> }
+>
+> From what I've read on the Intertubes, it seems that the SOP for processing
+> this is to define a main := which will match a particular line of the text
+> and then upon matching call a another machine to "scan" the message.
+> However, I'm not sure how to do that because it seem that regardless of
+> whether I define main as a matcher or a scanner, executing the parser always
+> seems to consume the text as it matches. For instance, when I parse the
+> group definition, I can simply match on the word "group" and then pass the
+> rest of the line (up to the {) in to the scanner and I can get 'MyGroup' out
+> relatively easily. However, when I try to parse the first encapsulated line,
+> I don't know whether I'm dealing with a string of the first line form or
+> third line form (or if the command is "chained" as in the second line) until
+> I've done a kleene star match of the entire line (up to the ;) at which
+> point it seems that the parser has already consumed the entire line and when
+> I pass it into a scanner the pointers are already at the next line. Do I
+> need the store the starting pointer before the first main scan (and if so,
+> how?) and then how would I tell the downstream scanner where to start? I
+> thought of making a number of nested c++ "parser objects" but that just seem
+> inherently wrong.
+>
+> Below is what I've written so far--just enough to hopefully pass the first
+> two cases. Again, I don't know if I'm only a character or so off or if my
+> mindset is completely off. Any help would be appreciated.
+>
+> --
+> Rob Harris
+>   Technological Pragmatist
+>   rob period harris shift-2 gmail decimal-point com
+>   "The universe tends towards maximum irony." --Jamie Zawinsky
+>
+>  %%{
+>     machine sas_scanner;
+>     ml_comment = '/*' ( any )* :>> '*/';
+>     sl_comment = '//' [^\n]* '\n';
+>     comment    = ml_comment | sl_comment;
+>     wspace     = comment | space+ ;
+>     integer    = [0-9]*;
+>     float      = [0-9]* '.' [0-9]*;
+>     identifier = [a-zA-Z][a-zA-Z0-9]*;
+>     fqsm       = [a-zA-Z] ( [a-zA-Z0-9:][a-zA-Z0-9_] )*;
+>     sqstring   = '\'' [^\n]* :>> '\'';
+>     dqstring   = '\"' [^\n]* :>> '\"';
+>     strvalue   = ( integer | float | identifier | sqstring | dqstring );
+>     action DEBUG { fprintf( stderr, "state: %4d, char: %c\n", cs, *p ); }
+>     action RESET { reset(); }
+>     action CRLF  { std::cout << std::endl << std::endl; }
+>     action NAME  { m_name.append( 1, fc ); }
+>     action KEY   {  m_key.append( 1, fc ); }
+>     action VAL   {  m_val.append( 1, fc ); }
+>     action QKV
+>     {
+>       printf( "[%s]=>[%s]\n", m_key.c_str(), m_val.c_str());
+>       m_kvMap[ m_key ] = m_val;
+>       m_key.clear();
+>       m_val.clear();
+>     }
+>     action SNAME { printf( "NAME: [%s]\n", m_name.c_str() ); }
+>     kvpair = ( identifier space* ':' space* strvalue );
+>     kvlist = ( space+ | kvpair | ',' space+ kvpair );
+>     instantiation = ( identifier '(' kvlist* ')' );
+>
+>     instantiation_chain = (
+>       instantiation $NAME ( space* '>' space* instantiation )*
+>       ) $NAME >RESET ';' @SNAME;
+>
+>     inst_chain_scanner :=
+>     |*
+>       space+;
+>       identifier => { diff(); };
+>       strvalue => { diff(); };
+>     *|;
+>
+>     group_name = ( 'g' 'r' 'o' 'u' 'p' );
+>     group_id = ( identifier - group_name ) @NAME;
+>     group_line = ( group_name space+ group_id :>> space* '{' );
+>
+>     group_scanner :=
+>     |*
+>       space+ => { m_name.clear(); };
+>       group_name;
+>       group_id => { printf( ">> %s\n", m_name.c_str() ); };
+>       '{' => { fret; };
+>     *|;
+>
+>     main :=
+>     |*
+>       wspace+;
+>       group_name => { fcall group_scanner; };
+>       instantiation_chain => { fcall inst_chain_scanner; };
+>     *|;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Aug 15 15:32:45 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 17:32:45 +0200
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+Message-ID: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+
+Hi, I do know that Ragel cannot parse bits but just bytes. Anyhow,
+maybe is it possible to use it for a binary packet format as WebSocket
+frames as defined in:
+
+   http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I see it possible by getting entire bytes and later, at application
+level extract each bit value.
+
+Also, I have this requirement for a set of 8 bytes:
+
+      8 bytes interpreted as a 64-bit unsigned integer are the payload
+      length.  Multibyte length quantities are expressed in network byte
+      order.
+
+Is it a problem for Ragel?
+
+Thanks a lot.
+
+--
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graceindustries at gmail.com  Mon Aug 15 15:54:28 2011
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Mon, 15 Aug 2011 11:54:28 -0400
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+Message-ID: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+
+On Mon, Aug 15, 2011 at 11:32 AM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+> Hi, I do know that Ragel cannot parse bits but just bytes.
+
+The language Erlang will do pattern matching at the bit level.
+That certainly would be a nice addition to Ragel for using it in
+Embedded Systems work.
+
+> maybe is it possible to use it for a binary packet format as WebSocket
+> frames as defined in:
+
+This of any help?:
+
+http://www.zedshaw.com/essays/ragel_state_charts.html
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Aug 15 20:37:33 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 22:37:33 +0200
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+	<CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+Message-ID: <CALiegfnBfmTmg2XpeoKDEKPc58QTK4adY4cah5ydR-3q4zxFiw@mail.gmail.com>
+
+2011/8/15 Bob Paddock <graceindustries at gmail.com>:
+> http://www.zedshaw.com/essays/ragel_state_charts.html
+
+Intersting, thanks. I will learn from there.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Aug 15 20:43:13 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 15 Aug 2011 22:43:13 +0200
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Message-ID: <CALiegfnQb2tYe_ZmCm-cgL7nNaDA=jP0g7YHSUW=1r3RAmXfWA@mail.gmail.com>
+
+Hi, trying to make a parser for a binary protocol:
+
+  http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I get the following case:
+
+Byte number 2 in the protocol message is as follows:
+
+- bit 0:       FIN bit
+- bits 1-7:   Payload length (means 2^N bytes).
+
+I receive the data from the network. The data is read from a Ruby
+server and then passed to a C parser built with Ragel. So within Ragel
+code (actions) I must check if bit 0 (FIN) is 1 or 0.
+The Ragel grammar alphabetic is "char", so I can check whether such
+char is > some value (which means that first bit is 0 or 1, so I get
+FIN bit value).
+
+The question is: how can I know if I'm cheking the byte in big-endian
+or in litte-endian? Probably this question makes no sense at all since
+data was already received by the Ruby server, so it has been converted
+to host byte order, so I must not care about it, am I right?
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Aug 17 03:04:24 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Wed, 17 Aug 2011 03:04:24 +0000
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Message-ID: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+
+Unfortunately, specifying certain low bits is a problem for the definition language. You end up needing to write 0 or 2 or 4 or 6 ... 
+
+Underlying implementation can do it, but it's not an efficient implementation. 
+High bits are easy for both language and implementation: 0 .. 127. 
+
+-Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+Sent: Aug 15, 2011 1:43 PM
+
+Hi, trying to make a parser for a binary protocol:
+
+  http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10#section-4.2
+
+I get the following case:
+
+Byte number 2 in the protocol message is as follows:
+
+- bit 0:       FIN bit
+- bits 1-7:   Payload length (means 2^N bytes).
+
+I receive the data from the network. The data is read from a Ruby
+server and then passed to a C parser built with Ragel. So within Ragel
+code (actions) I must check if bit 0 (FIN) is 1 or 0.
+The Ragel grammar alphabetic is "char", so I can check whether such
+char is > some value (which means that first bit is 0 or 1, so I get
+FIN bit value).
+
+The question is: how can I know if I'm cheking the byte in big-endian
+or in litte-endian? Probably this question makes no sense at all since
+data was already received by the Ruby server, so it has been converted
+to host byte order, so I must not care about it, am I right?
+
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Wed Aug 17 09:59:54 2011
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 17 Aug 2011 11:59:54 +0200
+Subject: [ragel-users] Little-endian / big-endian (alphabetic char)
+In-Reply-To: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+References: <196194235-1313550263-cardhu_decombobulator_blackberry.rim.net-1293373313-@b26.c9.bise6.blackberry>
+Message-ID: <CALiegfmJuuLv3itom+9pK=jRbp_oWuqVe=hzyHFtYSvt-1C98w@mail.gmail.com>
+
+2011/8/17  <thurston at complang.org>:
+> Unfortunately, specifying certain low bits is a problem for the definition language. You end up needing to write 0 or 2 or 4 or 6 ...
+>
+> Underlying implementation can do it, but it's not an efficient implementation.
+> High bits are easy for both language and implementation: 0 .. 127.
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From swinchen at gmail.com  Fri Aug 26 13:54:02 2011
+From: swinchen at gmail.com (Samuel Winchenbach)
+Date: Fri, 26 Aug 2011 09:54:02 -0400
+Subject: [ragel-users] First time Ragel user...named parameters/help parsing.
+Message-ID: <CAK9s_Nz89uV6_VjnZFOkPx=cA1gWOuReY5DQ2Fp+FfY0Rvut5Q@mail.gmail.com>
+
+Hi all,
+
+I am trying to create an application that takes a command such as:
+#SET,1,57600,8,N,1\n
+
+The problem is, I don't now to cleanly extract each parameter.   In
+regular expressions you can use named groups.  I don't see anything
+similar in Ragel.   Below is my first attempt.  As you can see it kind
+of works, I would just need to do a little manual processing inside
+each action.   It seems like the way I am doing it here there is very
+little advantage over strtok.    I have tried searching for a solution
+to this, but I don't think I came up with very good search terms.
+Any help you could offer would be greatly appreciated.
+
+- Sam
+
+http://dumpz.org/79505/
+
+Output:
+#SET,1,57600,8,N,1    <--- this is my input
+1,57600,8,N,1
+57600,8,N,1
+8,N,1
+N,1
+1
+Do sweet uC stuff here
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Aug 26 18:26:12 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Fri, 26 Aug 2011 18:26:12 +0000
+Subject: [ragel-users] First time Ragel user...named parameters/help
+	parsing.
+Message-ID: <97058341-1314383173-cardhu_decombobulator_blackberry.rim.net-1252258530-@b26.c9.bise6.blackberry>
+
+Yes, that's the right idea. With Ragel you use actions to collect/print data. If you have all the data in a single buffer you can collect using pointers. Otherwise, use buffers. 
+------Original Message------
+From: Samuel Winchenbach
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] First time Ragel user...named parameters/help parsing.
+Sent: Aug 26, 2011 6:54 AM
+
+Hi all,
+
+I am trying to create an application that takes a command such as:
+#SET,1,57600,8,N,1\n
+
+The problem is, I don't now to cleanly extract each parameter.   In
+regular expressions you can use named groups.  I don't see anything
+similar in Ragel.   Below is my first attempt.  As you can see it kind
+of works, I would just need to do a little manual processing inside
+each action.   It seems like the way I am doing it here there is very
+little advantage over strtok.    I have tried searching for a solution
+to this, but I don't think I came up with very good search terms.
+Any help you could offer would be greatly appreciated.
+
+- Sam
+
+http://dumpz.org/79505/
+
+Output:
+#SET,1,57600,8,N,1    <--- this is my input
+1,57600,8,N,1
+57600,8,N,1
+8,N,1
+N,1
+1
+Do sweet uC stuff here
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

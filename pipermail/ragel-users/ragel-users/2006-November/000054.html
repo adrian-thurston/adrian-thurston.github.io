@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: fexec bug in v5.15?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20fexec%20bug%20in%20v5.15%3F&In-Reply-To=%3C454EDB38.8030800%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000053.html">
+   <LINK REL="Next"  HREF="000055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: fexec bug in v5.15?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20fexec%20bug%20in%20v5.15%3F&In-Reply-To=%3C454EDB38.8030800%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: fexec bug in v5.15?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Nov  6 06:50:32 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000053.html">fexec bug in v5.15?
+</A></li>
+        <LI>Next message: <A HREF="000055.html">[ragel-users] Re: fexec bug in v5.15?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Carlos,
+
+As it turns out, it's not safe to manipulate the current pointer in 
+pattern actions. I had realized this recently and in 5.15 an error is 
+emitted if you use fhold in a pattern action. It didn't occur to me that 
+I have to do the same for fexec. I should also put a warning in the docs 
+about directly manipulating p in pattern actions.
+
+The reason is that as a part of restarting the scanner, it's sometimes 
+necessary to manipulate p. Sometimes you need to shift it back one. 
+Other times you need to set it to tokend. Other times you don't need to 
+do anything at all. This all depends on the contents of the patterns. So 
+if you change p first, you mess the scanner up in ways that are hard to 
+predict.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+&gt;<i> Adrain,
+</I>&gt;<i> 
+</I>&gt;<i> Just wanted to clarify that v5.14 with that scanner patch you provided
+</I>&gt;<i> also exhibits the problem so I guess that patch is the culprit.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos
+</I>&gt;<i> 
+</I>&gt;<i> Carlos Antunes wrote:
+</I>&gt;&gt;<i> Adrian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I have the following defined:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> consume_sp_optional := |*
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>             ( ( '\r'? '\n' )? [ \t] )* { printf(&quot;===== sp_optional
+</I>&gt;&gt;<i> (%s)\n&quot;, p); };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>             '\r'? '\n' { printf(&quot;===== crlf (%s)\n&quot;, p); fexec
+</I>&gt;&gt;<i> tokstart; fret; };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>             any { printf(&quot;&lt;---- sp_optional (%s)\n&quot;, p); fexec
+</I>&gt;&gt;<i> tokstart; fret; };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>         *|;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> This machine basically eats up optional spaces and tabs including
+</I>&gt;&gt;<i> folding and returns when CRLF is encountered. This worked fine with
+</I>&gt;&gt;<i> v5.14. With version 5.15, however, I think there might be a bug in the
+</I>&gt;&gt;<i> way fexec is working. Looking at the generated C code, I see
+</I>&gt;&gt;<i> (corresponding to the \r'? '\n' line ):
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> tr6811:
+</I>&gt;&gt;<i> #line 26 &quot;test.rl&quot;
+</I>&gt;&gt;<i>         {tokend = p;{ printf(&quot;===== crlf (%s)\n&quot;, p); {p =
+</I>&gt;&gt;<i> ((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+</I>&gt;&gt;<i>         goto st6170;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+</I>&gt;&gt;<i> p-- that is never reached). Shouldn't the first expression be just p =
+</I>&gt;&gt;<i> tokstart? The purpose of the fexec in my code is to backtrack and make
+</I>&gt;&gt;<i> the CRLF available for further matching.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Carlos
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i> &quot;We hold [...] that all men are created equal; that they are
+</I>&gt;&gt;<i> endowed [...] with certain inalienable rights; that among
+</I>&gt;&gt;<i> these are life, liberty, and the pursuit of happiness&quot;
+</I>&gt;&gt;<i>         -- Thomas Jefferson
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000053.html">fexec bug in v5.15?
+</A></li>
+	<LI>Next message: <A HREF="000055.html">[ragel-users] Re: fexec bug in v5.15?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Multi-char terminators
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Multi-char%20terminators&In-Reply-To=%3C45258600.20609%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000019.html">
+   <LINK REL="Next"  HREF="001784.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Multi-char terminators</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Multi-char%20terminators&In-Reply-To=%3C45258600.20609%40cs.queensu.ca%3E"
+       TITLE="Multi-char terminators">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Oct  5 22:24:00 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000019.html">Multi-char terminators
+</A></li>
+        <LI>Next message: <A HREF="001784.html">Multi-char terminators
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1783">[ date ]</a>
+              <a href="thread.html#1783">[ thread ]</a>
+              <a href="subject.html#1783">[ subject ]</a>
+              <a href="author.html#1783">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+If you wanted to remove buffered items when the termination sequence was 
+variable length, you might be able to record the length of the buffer when 
+you start the termination sequence. This might not always work properly though.
+
+But if you want to avoid undoing work you've done, then you need to delay 
+buffering. At the moment I can't think of a general way to express the 
+delayed buffering of ']' using pure regular languages with embedded actions.
+
+The local error action embedding operators are related to this problem, but 
+not a good fit in this case.
+
+So, some options:
+
+1. You could build a machine manually. Basically draw out the state machine 
+you want and use the , and -&gt; operators to construct it. Note that you can 
+still embed actions anywhere you want. In places where you go back to start 
+buffer the necessary number of ']' characters.
+
+main :=
+     start: (
+         (any-']') -&gt; start |
+         ']'-&gt; one
+     ),
+     one: (
+         ']' -&gt; two |
+         [^\]] -&gt; start
+     ),
+     two: (
+         '&gt;' -&gt; final |
+         ']' -&gt; two |
+         [^&gt;\]] -&gt; start
+     );
+
+
+2. Use a mini scanner. This is the kind of thing a scanner does really well, 
+but it does not give you a machine definition you can embed elsewhere. You 
+have to call it. This gives me an idea though. Some scanners can be 
+optimized into a pure state machine with no backtracking. Perhaps we can 
+allow these to be embedded elsewhere.
+
+3. Take ']' out of CData and add in some patterns like ']' [^\]] which 
+accept only strings which look like they could start a termination sequence, 
+but never go all the way. When they fail they can write out necessary number 
+of ']' symbols.
+
+Hope this helps.
+
+-Adrian
+
+Colin Fleming wrote:
+&gt;<i> Hi all,
+</I>&gt;<i> 
+</I>&gt;<i> As part of parsing XML, I have the following rules for CData sections:
+</I>&gt;<i> 
+</I>&gt;<i> CDStart = '&lt;![CDATA[';
+</I>&gt;<i> 
+</I>&gt;<i> CDEnd = ']]&gt;';
+</I>&gt;<i> 
+</I>&gt;<i> CData = (Char* -- CDEnd) $each_char;
+</I>&gt;<i> 
+</I>&gt;<i> CDSect = CDStart CData CDEnd;
+</I>&gt;<i> 
+</I>&gt;<i> where each_char is a simple action that stores fc in a buffer. The
+</I>&gt;<i> problem is that the last two characters in the buffer are always ]],
+</I>&gt;<i> because the machine doesn't know until it encounters the &gt; if it
+</I>&gt;<i> should exit the CData machine. I work around this with the following:
+</I>&gt;<i> 
+</I>&gt;<i> CDSect = CDStart CData CDEnd %trim_content;
+</I>&gt;<i> 
+</I>&gt;<i> where trim_content strips the last two characters of the buffer, but
+</I>&gt;<i> it's a bit ugly. It also wouldn't work if the terminator were some
+</I>&gt;<i> variable-length production. Is there any general way to handle this
+</I>&gt;<i> case?
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Colin
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000019.html">Multi-char terminators
+</A></li>
+	<LI>Next message: <A HREF="001784.html">Multi-char terminators
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1783">[ date ]</a>
+              <a href="thread.html#1783">[ thread ]</a>
+              <a href="subject.html#1783">[ subject ]</a>
+              <a href="author.html#1783">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

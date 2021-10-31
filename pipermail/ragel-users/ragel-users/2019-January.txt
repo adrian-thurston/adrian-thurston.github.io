@@ -1,0 +1,185 @@
+From ralf at boomerangsworld.de  Sun Jan 13 06:42:29 2019
+From: ralf at boomerangsworld.de (Ralf Hoffmann)
+Date: Sun, 13 Jan 2019 12:42:29 +0100
+Subject: [ragel-users] compile issue on platforms with char being unsigned
+	by default
+Message-ID: <75a2397c-d612-694c-0b1e-32afde9f4086@boomerangsworld.de>
+
+Hi,
+
+I got a report for a project of mine that compilation does not work on
+platforms where the C type "char" is unsigned by default. The problem is
+within a file generated with ragel 7.0.0.10 (but 7.0.0.11 behaves the same).
+
+The array *trans_cond_spaces is of type const char[] but contains a lot
+of -1. This will lead to a compiler error: narrowing conversion of ‘-1’
+from ‘int’ to ‘char’ inside...
+
+I have attached a small (stripped-down) example which does not do
+anything useful but triggers the problem.
+
+Steps to reproduce:
+
+$ ragel test.rl -o test.cc
+$ g++ -funsigned-char test.cc -c
+
+g++ is 7.3.1.
+
+I don't want to compile a selected file with "-fsigned-char"  and all
+the rest with the default behavior so my current workaround is to patch
+the array to be of type "signed char[]". Since this is the intended
+behavior anyway may I suggest to change the generated output to use
+signed char? I don't know if any of the other arrays may contain
+negative values as well.
+
+Feedback is very welcome, maybe there is also some other way around this
+problem.
+
+Best regards,
+
+Ralf
+
+-- 
+Ralf Hoffmann <ralf at boomerangsworld.de>
+Homepage: http://www.boomerangsworld.de
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.rl
+Type: application/resource-lists+xml
+Size: 743 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20190113/0cb744b4/attachment.bin>
+
+From thurston at colm.net  Tue Jan 22 03:38:43 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 22 Jan 2019 10:38:43 +0200
+Subject: [ragel-users] compile issue on platforms with char being
+ unsigned by default
+In-Reply-To: <75a2397c-d612-694c-0b1e-32afde9f4086@boomerangsworld.de>
+References: <75a2397c-d612-694c-0b1e-32afde9f4086@boomerangsworld.de>
+Message-ID: <a5a890516c70aff84d9f2a9467405b3e@mail.colm.net>
+
+Thanks for the report Ralf. Part of a push of work that needs to be done 
+on cross compilation and types before 7.0 final.
+
+On 2019-01-13 13:42, Ralf Hoffmann wrote:
+> Hi,
+> 
+> I got a report for a project of mine that compilation does not work on
+> platforms where the C type "char" is unsigned by default. The problem 
+> is
+> within a file generated with ragel 7.0.0.10 (but 7.0.0.11 behaves the 
+> same).
+> 
+> The array *trans_cond_spaces is of type const char[] but contains a lot
+> of -1. This will lead to a compiler error: narrowing conversion of ‘-1’
+> from ‘int’ to ‘char’ inside...
+> 
+> I have attached a small (stripped-down) example which does not do
+> anything useful but triggers the problem.
+> 
+> Steps to reproduce:
+> 
+> $ ragel test.rl -o test.cc
+> $ g++ -funsigned-char test.cc -c
+> 
+> g++ is 7.3.1.
+> 
+> I don't want to compile a selected file with "-fsigned-char"  and all
+> the rest with the default behavior so my current workaround is to patch
+> the array to be of type "signed char[]". Since this is the intended
+> behavior anyway may I suggest to change the generated output to use
+> signed char? I don't know if any of the other arrays may contain
+> negative values as well.
+> 
+> Feedback is very welcome, maybe there is also some other way around 
+> this
+> problem.
+> 
+> Best regards,
+> 
+> Ralf
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From admin at computerquip.com  Thu Jan 31 01:01:23 2019
+From: admin at computerquip.com (Zachary Lund)
+Date: Thu, 31 Jan 2019 00:01:23 -0600
+Subject: [ragel-users] VC++/CMake Support
+Message-ID: <dbe7c856-1509-2992-54ad-4953b5639c8a@computerquip.com>
+
+I noticed that there were a few issues trying to compile Ragel with VC++ 
+and/or CMake, including but not limited to the use of GCC-specific 
+extensions and CMake build scripts failing to compile all necessary 
+files. I was wondering if patches would be welcome in trying to fix 
+those issues. In addition, I was wondering the best method of submitting 
+said patches assuming patches are welcome.
+
+Thanks, Zach
+
+
+
+From thurston at colm.net  Thu Jan 31 04:38:26 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 31 Jan 2019 11:38:26 +0200
+Subject: [ragel-users] VC++/CMake Support
+In-Reply-To: <dbe7c856-1509-2992-54ad-4953b5639c8a@computerquip.com>
+References: <dbe7c856-1509-2992-54ad-4953b5639c8a@computerquip.com>
+Message-ID: <530930ce98500e421f6ab15470aa518f@mail.colm.net>
+
+Hi Zachary, yes I take patches for that. I accepted the CMake build 
+scripts on the condition that I wouln't personally maintain them though.
+
+On 2019-01-31 08:01, Zachary Lund wrote:
+> I noticed that there were a few issues trying to compile Ragel with
+> VC++ and/or CMake, including but not limited to the use of
+> GCC-specific extensions and CMake build scripts failing to compile all
+> necessary files. I was wondering if patches would be welcome in trying
+> to fix those issues. In addition, I was wondering the best method of
+> submitting said patches assuming patches are welcome.
+> 
+> Thanks, Zach
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From lados.denes at gmail.com  Thu Jan 31 10:08:53 2019
+From: lados.denes at gmail.com (=?UTF-8?B?RMOpbmVzIExhZG9z?=)
+Date: Thu, 31 Jan 2019 16:08:53 +0100
+Subject: [ragel-users] Ragel syntax
+Message-ID: <CAJHgk8vw_itFi2HGGNBS5OzWi6E61m0kpHU7J=ehVk4FWOBoNg@mail.gmail.com>
+
+Hi,
+
+I am confused with the basic syntax of Ragel. Let's see this machine from
+the ragel guide:
+
+%%{ machine foo;
+> main :=
+> ( ’foo’ | ’bar’ )
+> 0 @{ res = 1; };
+> }%%
+>
+
+As far as I can understand this machine looks for the 'foo' or 'bar'
+strings and sets the variable from the host language 'res' to 1 if a match
+is found.
+
+What I don't understand is what the 0 and the @{} stands for. What the
+exact meaning of these signs and how they are used to run actions in case
+of a match?
+
+Thanks
+Denes Lados
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20190131/bc4af505/attachment.html>
+

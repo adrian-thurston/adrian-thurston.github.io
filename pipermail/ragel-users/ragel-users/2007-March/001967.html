@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Problem with a scanner dropping the first character of an identifier.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%20with%20a%20scanner%20dropping%20the%20first%20character%20of%20an%20identifier.&In-Reply-To=%3C000f01c76b3e%2450a3b980%24ab03040a%40poddy%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Problem with a scanner dropping the first character of an identifier.</H1>
+    <B>Patrick O'Grady</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%20with%20a%20scanner%20dropping%20the%20first%20character%20of%20an%20identifier.&In-Reply-To=%3C000f01c76b3e%2450a3b980%24ab03040a%40poddy%3E"
+       TITLE="Problem with a scanner dropping the first character of an identifier.">patr... at baymotion.com
+       </A><BR>
+    <I>Tue Mar 20 22:22:58 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1967">[ date ]</a>
+              <a href="thread.html#1967">[ thread ]</a>
+              <a href="subject.html#1967">[ subject ]</a>
+              <a href="author.html#1967">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, all--
+
+I've been struggling with a little self-test fixture which uses Ragel to 
+scan some input.  Here's the test program:
+
+
+#include &lt;stdio.h&gt;
+
+%%{
+    machine scanner ;
+
+    ids := |*
+
+        identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+
+        identifier
+                =&gt;  {   printf(&quot;Got identifier: %.*s.\n&quot;, tokend - tokstart, 
+tokstart);
+                        fret ;
+                    }
+                ;
+
+        (' '|'\n'|'\r')*
+                =&gt;  { fret; }
+                ;
+
+        any
+                =&gt;  { printf(&quot;Ignored.\n&quot;); fret; }
+                ;
+    *| ;
+
+    main := ( any %{ fhold; fcall ids; } )* ;
+}%%
+
+
+
+
+int main()
+{
+    unsigned cs ;
+    char const * p ;
+    char const * pe ;
+    char const * tokstart ;
+    char const * tokend ;
+    unsigned act ;
+    unsigned stack[100] ;
+    unsigned top ;
+
+    %%write data ;
+
+    %%write init ;
+
+    char const s[] = &quot;Once upon a time.&quot; ;
+
+    p = s ;
+    pe = &amp;(s[sizeof(s)]);
+
+    %%write exec ;
+
+    %% write eof ;
+
+    return 0 ;
+}
+
+
+I'm compling with Ragel 5.19/MSVC, and I get the following output.
+
+Got identifier: nce.
+Got identifier: upon.
+Got identifier: a.
+Got identifier: time.
+Ignored.
+Ignored.
+
+Everything here is as expected, except the first identifier, which should be 
+&quot;Once&quot;, not &quot;nce&quot;--it seems to have skipped over the first 'O'.  First--is 
+there a better way to get a list of all the tokens in the input?  Anyone 
+have any clues about this misbehavior?  Thanks in advance.
+
+-patrick
+
+
+
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1967">[ date ]</a>
+              <a href="thread.html#1967">[ thread ]</a>
+              <a href="subject.html#1967">[ subject ]</a>
+              <a href="author.html#1967">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

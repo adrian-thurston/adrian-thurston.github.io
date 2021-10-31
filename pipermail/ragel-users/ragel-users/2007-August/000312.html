@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: ragel 5.23 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20ragel%205.23%20released&In-Reply-To=%3C46B362B8.4060307%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000311.html">
+   <LINK REL="Next"  HREF="000313.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: ragel 5.23 released</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20ragel%205.23%20released&In-Reply-To=%3C46B362B8.4060307%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: ragel 5.23 released">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Aug  3 17:15:36 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000311.html">ragel 5.23 released
+</A></li>
+        <LI>Next message: <A HREF="000313.html">ragel 5.23 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#312">[ date ]</a>
+              <a href="thread.html#312">[ thread ]</a>
+              <a href="subject.html#312">[ subject ]</a>
+              <a href="author.html#312">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Steve,
+
+You can make such a machine like this:
+
+later = start: &quot;&quot;, &quot;&quot; -&gt; final;
+
+Though using this machine will be difficult. It will create unreachable
+states that Ragel removes during compilation. You could give the final
+state a label and then reference the label in an action to make sure
+that the path from final state onward sticks around, but that's somewhat
+hackish.
+
+I would suggest instead giving it a transition, preferably some
+character out of the range of allowable input characters.
+
+alphtype int;
+later = 0x100;
+main := 'm' later '\n';
+
+-Adrian
+
+
+Steve Horne wrote:
+&gt;<i> 
+</I>&gt;<i> None of the issues are all that important (esp. the underscores thing,
+</I>&gt;<i> of course ;-) ), but...
+</I>&gt;<i> 
+</I>&gt;<i> On Aug 1, 11:41 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Steve Horne wrote:
+</I>&gt;&gt;&gt;<i> First, any chance of a new built-in machine? - one that never matches
+</I>&gt;&gt;&gt;<i> anything? The idea is to use it in placeholder rules, that will be
+</I>&gt;&gt;&gt;<i> filled in later - options that aren't implemented yet.
+</I>&gt;&gt;<i> I don't understand this, filled in at what time? Could you please be
+</I>&gt;&gt;<i> specific in terms of the compilation of a Ragel program.
+</I>&gt;<i> 
+</I>&gt;<i> It's a development lifecycle thing, rather like being able to declare
+</I>&gt;<i> methods as deprecated in some programming languages but for use mainly
+</I>&gt;<i> at the beginning of the lifecycle rather than during maintenance.
+</I>&gt;<i> 
+</I>&gt;<i> I want to be able to reference a machine in higher level machines that
+</I>&gt;<i> I have defined, but not necessarily define what that new machine
+</I>&gt;<i> contains quite yet - top-down functional decomposition IOW. Declaring
+</I>&gt;<i> the new machine as not matching anything sounds like the easiest way
+</I>&gt;<i> to do that.
+</I>&gt;<i> 
+</I>&gt;<i> It's my view that any DSL should make life as easy as possible for
+</I>&gt;<i> users who are not particularly familiar with them, since DSLs are
+</I>&gt;<i> mostly used only occasionally. Ragel already does pretty well in this
+</I>&gt;<i> respect - e.g. the ability to generate dot visualisations means that a
+</I>&gt;<i> lot of initial development can be done without worrying about actions
+</I>&gt;<i> etc.
+</I>&gt;<i> 
+</I>&gt;<i> In implementation terms, it should just be a matter of having two
+</I>&gt;<i> states (a start state and an end state) that are disconnected from
+</I>&gt;<i> each other. Then, the only obvious new issues compared with what you
+</I>&gt;<i> already have would be elimination of unreachable states and
+</I>&gt;<i> elimination of states from which it would be impossible to reach an
+</I>&gt;<i> end state - FSM minimisation doesn't necessarily handle this. Since
+</I>&gt;<i> this is just an initial development thing, even these may be
+</I>&gt;<i> considered non-issues.
+</I>&gt;<i> 
+</I>&gt;&gt;&gt;<i> class classname
+</I>&gt;&gt;&gt;<i> {
+</I>&gt;&gt;&gt;<i>   static const int membername;
+</I>&gt;&gt;&gt;<i> };
+</I>&gt;&gt;&gt;<i> ...
+</I>&gt;&gt;&gt;<i> static const int classname::membername = 5;
+</I>&gt;&gt;<i> Is there a particular reason to want table data in a class? I can
+</I>&gt;&gt;<i> imagine wanting variables that identify states (such as start_state) in
+</I>&gt;&gt;<i> the class, but I can't see a reason to want table data.
+</I>&gt;<i> 
+</I>&gt;<i> It's entirely about programming style and habits.
+</I>&gt;<i> 
+</I>&gt;<i> Data that is only used by a particular class should in principle be
+</I>&gt;<i> member data, if only to express the intent that the data should not be
+</I>&gt;<i> accessed from outside the class. That won't be appropriate in every
+</I>&gt;<i> case, even assuming that a class is used at all, and its not that
+</I>&gt;<i> important since the static flags already tell both the user and
+</I>&gt;<i> compiler not to allow access from other source files, but it is not a
+</I>&gt;<i> good idea to get between a programmer and his good-style ideology ;-)
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070803/7cf8736a/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070803/7cf8736a/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000311.html">ragel 5.23 released
+</A></li>
+	<LI>Next message: <A HREF="000313.html">ragel 5.23 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#312">[ date ]</a>
+              <a href="thread.html#312">[ thread ]</a>
+              <a href="subject.html#312">[ subject ]</a>
+              <a href="author.html#312">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

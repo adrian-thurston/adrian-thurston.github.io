@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Error actions and error recovery
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C46DF1C90.5020003%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002096.html">
+   <LINK REL="Next"  HREF="002099.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Error actions and error recovery</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C46DF1C90.5020003%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Error actions and error recovery">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Sep  5 21:16:00 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002096.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+        <LI>Next message: <A HREF="002099.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2097">[ date ]</a>
+              <a href="thread.html#2097">[ thread ]</a>
+              <a href="subject.html#2097">[ subject ]</a>
+              <a href="author.html#2097">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Christer,
+
+I'm not sure why you expect se to be executed in the first error
+example. Since you're matching the closing '}' using handwritten code in
+the action, the state machine isn't executing actions.
+
+In the second error example the problem is that you're jumping back to
+the main machine and so 'b1' isn't matched (expecting '{').
+
+Here's an example that uses extra machines to handle the errors then
+jumps back to appropriate recovery point. Sorry if there are any coding
+mistakes in it. I went fast.
+
+Adrian
+
+
+Christer Sandberg wrote:
+&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> pr = alnum+ ';';
+</I>&gt;&gt;&gt;<i> se = '{' pr* '}';
+</I>&gt;&gt;&gt;<i> main := se+;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> What I would like to accomplish is that if there's an error in pr I
+</I>&gt;&gt;&gt;<i> would like to skip to the next ';' or '}'. I there's an error finding
+</I>&gt;&gt;&gt;<i> the first '{', I would like to skip to the next '}'.
+</I>&gt;&gt;<i> This expression doesn't search for '{' at all - it expects to find one
+</I>&gt;&gt;<i> right at the start of the input, and another one immediately after
+</I>&gt;&gt;<i> every '}' (with nothing in-between) until you reach the final '}' at
+</I>&gt;&gt;<i> the end of the input stream.
+</I>&gt;<i> 
+</I>&gt;<i> I know, it's a good point but I just posted a simplified example to
+</I>&gt;<i> keep the example as simple as possible.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> Perhaps you need to make use of an (any* -- se) term to skip any non-
+</I>&gt;&gt;<i> matching stuff between the blocks you are interested in...
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> In my &quot;real&quot; grammar I don't skip anything in between. It's all being handled.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> pr = alnum+ ';';
+</I>&gt;&gt;<i> se = '{' pr* '}';
+</I>&gt;&gt;<i> other = (any* -- se);
+</I>&gt;&gt;<i> main := other (se other)*;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Not sure how well this will work in practice - it looks like it needs
+</I>&gt;&gt;<i> backtracking and may need to use the scanner construct...
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> pr = alnum+ ';';
+</I>&gt;&gt;<i> se = '{' pr* '}';
+</I>&gt;&gt;<i> other = (any+ -- '{');
+</I>&gt;&gt;<i> main := |* se =&gt; { action };
+</I>&gt;&gt;<i>               other =&gt; { do nothing };
+</I>&gt;&gt;<i>               '{' =&gt; { last resort step past open brace action };
+</I>&gt;&gt;<i>            *|;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The idea here is the 'other' shouldn't even accept part of the 'se'
+</I>&gt;&gt;<i> pattern. As soon as it spots an open brace, it should stop and give
+</I>&gt;&gt;<i> the 'se' token a chance to match. If neither 'se' nor 'other' can
+</I>&gt;&gt;<i> accept any characters, you must have an open brace as the next
+</I>&gt;&gt;<i> character, so skip past that then continue.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For this to work, it is important that neither 'se' nor 'other' can
+</I>&gt;&gt;<i> accept a empty match - if they did, I suspect you'd get an infinite
+</I>&gt;&gt;<i> loop with the standalone '{' match never firing. Is that right,
+</I>&gt;&gt;<i> Adrian?
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> I've got it half working but not all the way. Here's the simple
+</I>&gt;<i> example machine again with some debugging output:
+</I>&gt;<i> 
+</I>&gt;<i>   action _pr {
+</I>&gt;<i>     printf(&quot;_pr on '%c'\n&quot;, *p);
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   action pr {
+</I>&gt;<i>     printf(&quot;pr on '%c'\n&quot;, *p);
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   action _se {
+</I>&gt;<i>     printf(&quot;_se on '%c'\n&quot;, *p);
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   action se {
+</I>&gt;<i>     printf(&quot;se on '%c'\n&quot;, *p);
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   action pr_err {
+</I>&gt;<i>     printf(&quot;pr_err on '%c'\n&quot;, *p);
+</I>&gt;<i>     while (p != pe &amp;&amp; *p != ';' &amp;&amp; *p != '}') {
+</I>&gt;<i>       p++;
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     p++;
+</I>&gt;<i>     printf(&quot;pr_err skipped to '%c'\n&quot;, *p);
+</I>&gt;<i>     fgoto main;
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   pr = alnum+ &gt;_pr ';' @pr;
+</I>&gt;<i>   se = '{' &gt;_se pr* $lerr(pr_err) '}' @se;
+</I>&gt;<i> 
+</I>&gt;<i>   main := se+;
+</I>&gt;<i> 
+</I>&gt;<i> If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+</I>&gt;<i> following:
+</I>&gt;<i> 
+</I>&gt;<i> _se on '{'
+</I>&gt;<i> _pr on 'a'
+</I>&gt;<i> pr on ';'
+</I>&gt;<i> se on '}'
+</I>&gt;<i> _se on '{'
+</I>&gt;<i> _pr on 'b'
+</I>&gt;<i> pr on ';'
+</I>&gt;<i> _pr on 'c'
+</I>&gt;<i> pr on ';'
+</I>&gt;<i> se on '}'
+</I>&gt;<i> css_error_first_final: 4
+</I>&gt;<i> 
+</I>&gt;<i> If I feed it with this incorrect string {$;}{a1;}, the output is this:
+</I>&gt;<i> 
+</I>&gt;<i> _se on '{'
+</I>&gt;<i> pr_err on '$'
+</I>&gt;<i> pr_err skipped to '}'
+</I>&gt;<i> _se on '{'
+</I>&gt;<i> _pr on 'a'
+</I>&gt;<i> pr on ';'
+</I>&gt;<i> se on '}'
+</I>&gt;<i> css_error_first_final: 4
+</I>&gt;<i> 
+</I>&gt;<i> The local error action skips to the closing '}' but then the se action
+</I>&gt;<i> is never invoked.
+</I>&gt;<i> 
+</I>&gt;<i> If I feet it with this incorrect string (which has more than one pr
+</I>&gt;<i> between the first braces) {$;b1;}{a1;}, the output is this:
+</I>&gt;<i> 
+</I>&gt;<i> _se on '{'
+</I>&gt;<i> pr_err on '$'
+</I>&gt;<i> pr_err skipped to 'b'
+</I>&gt;<i> css_error_error: 0
+</I>&gt;<i> 
+</I>&gt;<i> As you can see the machine exits with an error.
+</I>&gt;<i> Any clues of how to solve this?
+</I>&gt;<i> 
+</I>&gt;<i> /Christer
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: foo.rl
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.ksh">http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.ksh</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002096.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+	<LI>Next message: <A HREF="002099.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2097">[ date ]</a>
+              <a href="thread.html#2097">[ thread ]</a>
+              <a href="subject.html#2097">[ subject ]</a>
+              <a href="author.html#2097">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

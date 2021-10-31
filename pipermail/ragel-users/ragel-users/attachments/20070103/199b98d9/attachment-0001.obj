@@ -1,0 +1,163 @@
+#import "DiffParser.h"
+
+#import "assert.h"
+
+%%{
+	machine DiffParser;
+	
+### actions
+
+	action mark {
+//		NSLog( @"Marking @ %p '%c'", p, *p );
+		pmark = p;
+	}
+	
+	action copy_to_filespec {
+		NSLog( @"    filespec: %@", [self copyMarkedString] );
+	}
+	
+	action add_line {
+		[curHunk addLine:[self copyMarkedString]];
+	}
+
+	action enter_diff {
+		NSLog( @"begin_diff" );
+//		NSString* file = [self copyMarkedString];
+//		NSLog( @"Found a diff: %@", file );
+//		curDiff = [[DiffSpec alloc] init];
+//		[curDiff setFile:file];
+	}
+	
+	action exit_diff {
+		NSLog( @"end_diff" );
+//		[self addDiff:curDiff];
+	}
+	
+	action enter_hunk {
+		NSLog( @"  begin_hunk" );
+//		curHunk = [[Hunk alloc] init];
+	}
+	
+	action set_hunk_marker {
+	}
+	
+	action exit_hunk {
+		NSLog( @"  end_hunk" );
+//		NSLog( @"Leaving a hunk: %@", [curHunk description] );
+//		[curDiff addHunk:curHunk];
+	}
+	
+	action error {
+		NSLog( @"Error: '%c' not expected in state: %d [%s]", *p, fcurs, p );
+	}
+	
+	action track {
+		char c = *p;
+		if( c == '\n' )
+			c = '±';
+		NSLog( @"Tracking %d -> '%c' -> %d", fcurs, c, ftargs );
+	}
+	
+### expressions
+
+	lineChar = ( print | space ) - '\n';
+	
+	nbsp = space - '\n';
+	
+	line = ( ' ' | '-' | '+' ) @{ fhold; } lineChar* '\n'+ ;
+	
+	ignore_line = lineChar* '\n';
+
+	ignoreCode = '\\' line;
+	separator = '='+ '\n';
+	hunkEndChar = print - ( space | '+' | '-' );
+	
+	oldFile = '---' ignore_line;
+	newFile = '+++' ignore_line;
+	
+	hunkHeader = '@@' print+ '@@' '\n'+;
+	
+	hunkBody = ( line )+ ( ignoreCode | hunkEndChar @{ fhold; } );
+	
+	hunk = hunkHeader >enter_hunk hunkBody %exit_hunk;
+	
+	fileName = ( lineChar+ ) >mark %copy_to_filespec;
+	
+	fileSpec = "Index:" nbsp+ fileName '\n'+;
+	
+	diffHeader = ( fileSpec separator oldFile newFile );
+	diffBody = hunk* %exit_diff;
+	
+	diff = diffHeader >enter_diff diffBody;
+	
+#	main := diff* $!error $~track;
+#	main := diff* $!error;
+	main := diff*;
+	
+}%%	
+
+@implementation DiffParser
+
+%% write data;
+
+- (NSString*)copyMarkedString
+{
+	assert( p );
+	assert( pmark );
+	assert( p > pmark );
+	int size = p - pmark;
+	char* buffer = malloc( ( size + 1 ) * sizeof(char) );
+	assert( buffer );
+	memset( buffer, 0x00, size + 1 );
+	strncpy( buffer, pmark, size );
+	if( *( buffer + size ) == '\n' )
+		*( buffer + size ) = 0x00; // Jettison trailing '\n'
+	NSString* content = [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
+	free( buffer );
+	return content;
+}
+
+- (id)init
+{
+	[super init];
+	
+	diffs = [NSMutableArray arrayWithObjects:nil];
+	
+	%% write init;
+	return self;
+}
+
+- (void)finish
+{
+	%% write eof;
+}
+
+- (void)parse:(NSString*)data
+{
+	p = [data UTF8String];
+	const char* pe = p + [data length];
+
+	%% write exec;
+	
+	if( cs == DiffParser_error )
+	{
+		NSLog( @"Parser finished with an error." );
+	}
+}
+
+- (NSMutableArray*)diffs
+{
+	return diffs;
+}
+
+- (void)addDiff:(DiffSpec*)diff
+{
+	[diffs addObject:diff];
+}
+
+- (void)dealloc
+{
+	[super dealloc];
+}
+
+@end

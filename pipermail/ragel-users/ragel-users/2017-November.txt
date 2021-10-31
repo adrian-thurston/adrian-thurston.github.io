@@ -1,0 +1,335 @@
+From space.ship.traveller at gmail.com  Thu Nov  9 01:08:55 2017
+From: space.ship.traveller at gmail.com (Samuel Williams)
+Date: Thu, 9 Nov 2017 14:08:55 +1300
+Subject: [ragel] Ragel sanitise output - memory leaks
+In-Reply-To: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+References: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+Message-ID: <CAHkN8V8cE9=uL+fOd150KQNXkmK9agoRey1Fi0K_3jLD0nrdrA@mail.gmail.com>
+
+Any update to this? Still causing problems for me.
+
+On 9 October 2017 at 10:34, Samuel Williams <space.ship.traveller at gmail.com>
+wrote:
+
+> Here is some log output from a build which invokes ragel to generate
+> several parsers. I've cut out (most) unimportant output.
+>
+> The source code for the parsers: https://github.com/
+> kurocha/async-http/tree/master/source/Async/HTTP/V1
+>
+> The results from running Ragel several times with LLVM sanitisers:
+> https://gist.github.com/ioquatix/2e50ffb09697107338f8f75083400143
+>
+> The main issue I can see are memory leaks, but there could be other issues.
+>
+> Since Ragel is a one-shot "compiler", perhaps it's not important to
+> address these, except as a matter of correctness.
+>
+> I think there are potential problem with memory leaks and they might be
+> covering up bigger issues - there might be cases where memory is being
+> accessed incorrectly but it's not causing a crash because it's not freed at
+> the right point etc.
+>
+> I'd suggest that if there is a test suite for Ragel, it's updated to run
+> with the undefined behaviour sanitiser and address sanitiser - both provide
+> useful output IMHO.
+>
+> Happy to provide more feedback.
+>
+> Kind regards,
+> Samuel
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20171109/a0e3297e/attachment.html>
+
+From ptr at void-ptr.info  Wed Nov  1 20:40:16 2017
+From: ptr at void-ptr.info (Petr Ovtchenkov)
+Date: Wed, 1 Nov 2017 23:40:16 +0300
+Subject: [ragel] [PATCH] Use portable types in the C/C++ code generator
+Message-ID: <E1eEUzi-00061V-Ts@void-ptr.info>
+
+The char may be signed or unsigned, this is implementation
+defined. So, for platforms where char is unsigned (ARM, for example)
+assign negative value to char will lead to errors like
+
+  error: narrowing conversion of '-1' from 'int' to 'char' inside { } [-Wnarrowing]
+
+Use explicit "signed char" in such case.
+
+Use fixed-sized integral types. This provide that both host and target
+platforms use the same types with the equivalent range of storable values.
+Critical when ragel generate code that compiled for foreign platform.
+
+There is a problem: type that used on target platform is placed
+in the same table with size/signess derived at compile time
+on build host. Used _minimal_ requirements for integer types size from
+ISO/IEC 9899 (as :1999 (aka C99), :2011 (aka C11)).
+
+Similar to
+
+  commit dc238e78cd3024889b6fb2618fe5bbc20179a132
+  Author: Jan Kundrat <jkt at flaska.net>
+  Date:   Wed, 18 Sep 2013 15:34:24 +0200
+
+  Use portable types in the C/C++ code generator
+
+  commit 06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+  Author: Jan Kundrat <jkt at flaska.net>
+  Date:   Wed, 18 Sep 2013 12:26:20 +0200
+
+  Use signed char when working with char
+---
+ src/codegen.cc | 10 +++++-----
+ src/common.cc  | 18 ++++++++++--------
+ 2 files changed, 15 insertions(+), 13 deletions(-)
+
+ See also: http://www.colm.net/pipermail/ragel/2013-September/001592.html
+
+diff --git a/src/codegen.cc b/src/codegen.cc
+index e98002d..6491d99 100644
+--- a/src/codegen.cc
++++ b/src/codegen.cc
+@@ -96,19 +96,19 @@ void TableArray::finishAnalyze()
+ 	/* Calculate the type if it is not already set. */
+ 	if ( type.empty() ) {
+ 		if ( min >= S8BIT_MIN && max <= S8BIT_MAX ) {
+-			type = "char";
++			type = "int8_t";
+ 			width = sizeof(char);
+ 		}
+ 		else if ( min >= S16BIT_MIN && max <= S16BIT_MAX ) {
+-			type = "short";
++			type = "int16_t";
+ 			width = sizeof(short);
+ 		}
+ 		else if ( min >= S32BIT_MIN && max <= S32BIT_MAX ) {
+-			type = "int";
++			type = "int32_t";
+ 			width = sizeof(int);
+ 		}
+ 		else if ( min >= S64BIT_MAX && max <= S64BIT_MAX ) {
+-			type = "long";
++			type = "int64_t";
+ 			width = sizeof(long);
+ 		}
+ 		else  {
+@@ -121,7 +121,7 @@ void TableArray::finishAnalyze()
+ void TableArray::startGenerate()
+ {
+ 	if ( stringTables ) {
+-		out << "static const char S_" << codeGen.DATA_PREFIX() << name <<
++		out << "static const int8_t S_" << codeGen.DATA_PREFIX() << name <<
+ 			"[] __attribute__((aligned (16))) = \n\t\"";
+ 	}
+ 	else {
+diff --git a/src/common.cc b/src/common.cc
+index e0cf2cf..30ed1bf 100644
+--- a/src/common.cc
++++ b/src/common.cc
+@@ -20,6 +20,7 @@
+  * SOFTWARE.
+  */
+ 
++#include <stdint.h>
+ #include "pcheck.h"
+ #include "common.h"
+ #include "stdlib.h"
+@@ -30,14 +31,15 @@
+ 
+ HostType hostTypesC[] =
+ {
+-	{ "char",     0,       "char",    true,   true,  false,  CHAR_MIN,  CHAR_MAX,   0, 0,          sizeof(char) },
+-	{ "unsigned", "char",  "uchar",   false,  true,  false,  0, 0,                  0, UCHAR_MAX,  sizeof(unsigned char) },
+-	{ "short",    0,       "short",   true,   true,  false,  SHRT_MIN,  SHRT_MAX,   0, 0,          sizeof(short) },
+-	{ "unsigned", "short", "ushort",  false,  true,  false,  0, 0,                  0, USHRT_MAX,  sizeof(unsigned short) },
+-	{ "int",      0,       "int",     true,   true,  false,  INT_MIN,   INT_MAX,    0, 0,          sizeof(int) },
+-	{ "unsigned", "int",   "uint",    false,  true,  false,  0, 0,                  0, UINT_MAX,   sizeof(unsigned int) },
+-	{ "long",     0,       "long",    true,   true,  false,  LONG_MIN,  LONG_MAX,   0, 0,          sizeof(long) },
+-	{ "unsigned", "long",  "ulong",   false,  true,  false,  0, 0,                  0, ULONG_MAX,  sizeof(unsigned long) },
++	{ "char",     0,       "int8_t",    true,   true,  false,  INT8_MIN,  INT8_MAX,    0, 0,          sizeof(int8_t) },
++	{ "unsigned", "char",  "uint8_t",   false,  true,  false,  0, 0,                   0, UINT8_MAX,  sizeof(uint8_t) },
++	{ "short",    0,       "int16_t",   true,   true,  false,  INT16_MIN,  INT16_MAX,  0, 0,          sizeof(int16_t) },
++	{ "unsigned", "short", "uint16_t",  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ "int",      0,       "int16_t",   true,   true,  false,  INT16_MIN,   INT16_MAX, 0, 0,          sizeof(int16_t) },
++	{ "unsigned", "int",   "uint16_t",  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ "long",     0,       "int32_t",   true,   true,  false,  INT32_MIN,  INT32_MAX,  0, 0,          sizeof(int32_t) },
++	{ "unsigned", "long",  "uint32_t",  false,  true,  false,  0, 0,                   0, UINT32_MAX, sizeof(uint32_t) },
++	{ "long",     "long",  "int64_t",   true,   true,  false,  INT64_MIN,  INT64_MAX,  0, 0,          sizeof(int64_t) },
+ };
+ 
+ const HostLang hostLangC = {
+-- 
+2.10.1
+
+
+
+From space.ship.traveller at gmail.com  Thu Nov  9 01:08:55 2017
+From: space.ship.traveller at gmail.com (Samuel Williams)
+Date: Thu, 9 Nov 2017 14:08:55 +1300
+Subject: [ragel] Ragel sanitise output - memory leaks
+In-Reply-To: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+References: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+Message-ID: <CAHkN8V8cE9=uL+fOd150KQNXkmK9agoRey1Fi0K_3jLD0nrdrA@mail.gmail.com>
+
+Any update to this? Still causing problems for me.
+
+On 9 October 2017 at 10:34, Samuel Williams <space.ship.traveller at gmail.com>
+wrote:
+
+> Here is some log output from a build which invokes ragel to generate
+> several parsers. I've cut out (most) unimportant output.
+>
+> The source code for the parsers: https://github.com/
+> kurocha/async-http/tree/master/source/Async/HTTP/V1
+>
+> The results from running Ragel several times with LLVM sanitisers:
+> https://gist.github.com/ioquatix/2e50ffb09697107338f8f75083400143
+>
+> The main issue I can see are memory leaks, but there could be other issues.
+>
+> Since Ragel is a one-shot "compiler", perhaps it's not important to
+> address these, except as a matter of correctness.
+>
+> I think there are potential problem with memory leaks and they might be
+> covering up bigger issues - there might be cases where memory is being
+> accessed incorrectly but it's not causing a crash because it's not freed at
+> the right point etc.
+>
+> I'd suggest that if there is a test suite for Ragel, it's updated to run
+> with the undefined behaviour sanitiser and address sanitiser - both provide
+> useful output IMHO.
+>
+> Happy to provide more feedback.
+>
+> Kind regards,
+> Samuel
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20171109/a0e3297e/attachment-0002.html>
+
+From ptr at void-ptr.info  Wed Nov  1 20:40:16 2017
+From: ptr at void-ptr.info (Petr Ovtchenkov)
+Date: Wed, 1 Nov 2017 23:40:16 +0300
+Subject: [ragel] [PATCH] Use portable types in the C/C++ code generator
+Message-ID: <E1eEUzi-00061V-Ts@void-ptr.info>
+
+The char may be signed or unsigned, this is implementation
+defined. So, for platforms where char is unsigned (ARM, for example)
+assign negative value to char will lead to errors like
+
+  error: narrowing conversion of '-1' from 'int' to 'char' inside { } [-Wnarrowing]
+
+Use explicit "signed char" in such case.
+
+Use fixed-sized integral types. This provide that both host and target
+platforms use the same types with the equivalent range of storable values.
+Critical when ragel generate code that compiled for foreign platform.
+
+There is a problem: type that used on target platform is placed
+in the same table with size/signess derived at compile time
+on build host. Used _minimal_ requirements for integer types size from
+ISO/IEC 9899 (as :1999 (aka C99), :2011 (aka C11)).
+
+Similar to
+
+  commit dc238e78cd3024889b6fb2618fe5bbc20179a132
+  Author: Jan Kundrat <jkt at flaska.net>
+  Date:   Wed, 18 Sep 2013 15:34:24 +0200
+
+  Use portable types in the C/C++ code generator
+
+  commit 06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+  Author: Jan Kundrat <jkt at flaska.net>
+  Date:   Wed, 18 Sep 2013 12:26:20 +0200
+
+  Use signed char when working with char
+---
+ src/codegen.cc | 10 +++++-----
+ src/common.cc  | 18 ++++++++++--------
+ 2 files changed, 15 insertions(+), 13 deletions(-)
+
+ See also: http://www.colm.net/pipermail/ragel/2013-September/001592.html
+
+diff --git a/src/codegen.cc b/src/codegen.cc
+index e98002d..6491d99 100644
+--- a/src/codegen.cc
++++ b/src/codegen.cc
+@@ -96,19 +96,19 @@ void TableArray::finishAnalyze()
+ 	/* Calculate the type if it is not already set. */
+ 	if ( type.empty() ) {
+ 		if ( min >= S8BIT_MIN && max <= S8BIT_MAX ) {
+-			type = "char";
++			type = "int8_t";
+ 			width = sizeof(char);
+ 		}
+ 		else if ( min >= S16BIT_MIN && max <= S16BIT_MAX ) {
+-			type = "short";
++			type = "int16_t";
+ 			width = sizeof(short);
+ 		}
+ 		else if ( min >= S32BIT_MIN && max <= S32BIT_MAX ) {
+-			type = "int";
++			type = "int32_t";
+ 			width = sizeof(int);
+ 		}
+ 		else if ( min >= S64BIT_MAX && max <= S64BIT_MAX ) {
+-			type = "long";
++			type = "int64_t";
+ 			width = sizeof(long);
+ 		}
+ 		else  {
+@@ -121,7 +121,7 @@ void TableArray::finishAnalyze()
+ void TableArray::startGenerate()
+ {
+ 	if ( stringTables ) {
+-		out << "static const char S_" << codeGen.DATA_PREFIX() << name <<
++		out << "static const int8_t S_" << codeGen.DATA_PREFIX() << name <<
+ 			"[] __attribute__((aligned (16))) = \n\t\"";
+ 	}
+ 	else {
+diff --git a/src/common.cc b/src/common.cc
+index e0cf2cf..30ed1bf 100644
+--- a/src/common.cc
++++ b/src/common.cc
+@@ -20,6 +20,7 @@
+  * SOFTWARE.
+  */
+ 
++#include <stdint.h>
+ #include "pcheck.h"
+ #include "common.h"
+ #include "stdlib.h"
+@@ -30,14 +31,15 @@
+ 
+ HostType hostTypesC[] =
+ {
+-	{ "char",     0,       "char",    true,   true,  false,  CHAR_MIN,  CHAR_MAX,   0, 0,          sizeof(char) },
+-	{ "unsigned", "char",  "uchar",   false,  true,  false,  0, 0,                  0, UCHAR_MAX,  sizeof(unsigned char) },
+-	{ "short",    0,       "short",   true,   true,  false,  SHRT_MIN,  SHRT_MAX,   0, 0,          sizeof(short) },
+-	{ "unsigned", "short", "ushort",  false,  true,  false,  0, 0,                  0, USHRT_MAX,  sizeof(unsigned short) },
+-	{ "int",      0,       "int",     true,   true,  false,  INT_MIN,   INT_MAX,    0, 0,          sizeof(int) },
+-	{ "unsigned", "int",   "uint",    false,  true,  false,  0, 0,                  0, UINT_MAX,   sizeof(unsigned int) },
+-	{ "long",     0,       "long",    true,   true,  false,  LONG_MIN,  LONG_MAX,   0, 0,          sizeof(long) },
+-	{ "unsigned", "long",  "ulong",   false,  true,  false,  0, 0,                  0, ULONG_MAX,  sizeof(unsigned long) },
++	{ "char",     0,       "int8_t",    true,   true,  false,  INT8_MIN,  INT8_MAX,    0, 0,          sizeof(int8_t) },
++	{ "unsigned", "char",  "uint8_t",   false,  true,  false,  0, 0,                   0, UINT8_MAX,  sizeof(uint8_t) },
++	{ "short",    0,       "int16_t",   true,   true,  false,  INT16_MIN,  INT16_MAX,  0, 0,          sizeof(int16_t) },
++	{ "unsigned", "short", "uint16_t",  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ "int",      0,       "int16_t",   true,   true,  false,  INT16_MIN,   INT16_MAX, 0, 0,          sizeof(int16_t) },
++	{ "unsigned", "int",   "uint16_t",  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ "long",     0,       "int32_t",   true,   true,  false,  INT32_MIN,  INT32_MAX,  0, 0,          sizeof(int32_t) },
++	{ "unsigned", "long",  "uint32_t",  false,  true,  false,  0, 0,                   0, UINT32_MAX, sizeof(uint32_t) },
++	{ "long",     "long",  "int64_t",   true,   true,  false,  INT64_MIN,  INT64_MAX,  0, 0,          sizeof(int64_t) },
+ };
+ 
+ const HostLang hostLangC = {
+-- 
+2.10.1
+
+
+
+

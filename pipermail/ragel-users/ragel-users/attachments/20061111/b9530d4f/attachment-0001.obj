@@ -1,0 +1,445 @@
+#define _GNU_SOURCE
+#include <string.h>
+#include <stdio.h>
+
+static char *string_start = NULL;
+static char *string_captured = NULL;
+
+%%{
+
+    machine sip_message;
+
+    action StringCaptureOn {
+        free(string_captured);
+        string_start = p;
+    }
+
+    action StringCaptureOff {
+        string_captured = strndup(string_start, p - string_start);
+        string_start = NULL;
+    }
+
+    # 0x22 is double-quote
+    dquote = 0x22;
+
+    # 0x27 is single-quote
+    squote = 0x27;
+
+    # 0x2f is forward slash
+    fslash = 0x2f;
+
+    # 0x5c is back slash
+    bslash = 0x5c;
+
+    consume_sp_optional :=
+        (
+	    [ \t] |
+	    [^ \t\r\n] @{ fhold; fret; } |
+	    '\r'? '\n' [ \t] | 
+	    ( '\r'? '\n' [^ \t] @{ fhold; printf("===== CRLF (%s)\n", p); fhold; fret; } )
+	)+ >{ printf("----> consume_space (%s)\n", p); } @{ printf("===== consume_space (%s)\n", p); } %/{ printf("<---- consume_space (%s)\n", p); } ;
+
+
+    crlf = "\r"? "\n";
+
+    sp = ( crlf? [ \t] )+;
+
+    sp_left = sp;
+
+    sp_optional_left = sp_left?;
+
+    sp_optional_right = [ \t\r\n] @{ fhold; fcall consume_sp_optional; };
+
+    colon = sp_optional_left ":" @{ fcall consume_sp_optional; };
+
+    comma = sp_optional_left "," @{ fcall consume_sp_optional; };
+
+    slash = sp_optional_left "/" @{ fcall consume_sp_optional; };
+
+    equal = sp_optional_left "=" @{ fcall consume_sp_optional; };
+
+    semi = sp_optional_left ";" @{ fcall consume_sp_optional; };
+
+    laquot = sp_optional_left "<" @{ fcall consume_sp_optional; };
+
+    raquot = sp_optional_left ">" @{ fcall consume_sp_optional; };
+
+    ldquot = sp_optional_left dquote;
+
+    rdquot = ( '\"' @{ fcall consume_sp_optional; } ) >{ printf("----> rdquot(%s)\n", p); } @{ printf("===== rdquot(%s)\n", p); } %{ printf("<---- rdquot(%s)\n", p); };
+
+    star = sp_optional_left "*" @{ fcall consume_sp_optional; };
+
+    digits_8bit_num = ( ( "0" | "1" | "2" )? digit )? digit;
+
+    digits_16bit_num = digit{1,5};
+
+    digits_32bit_num = digit{1,10};
+
+    ipv4address = ( digits_8bit_num "." ){3} digits_8bit_num;
+
+    token = ( alnum | "-" | "." | "!" | "%" | "*"
+                    | "_" | "+" | "`" | "\'" | "~" )+;
+
+    word = ( alnum | "-" | "." | "!" | "%" | "*" | "_"
+                   | "+" | "`" | squote | "~" | "(" | ")"
+                   | "<" | ">" | ":" | bslash | fslash | "["
+                   | "]" | "?" | "{" | "}" | dquote )+;
+
+    sip_word = /sip/i;
+
+    sips_word = /sips/i;
+
+    sip_v2 = (sip_word slash "2.0");
+
+    toplabel = alpha | alpha ( alnum | "-" )* alnum;
+
+    domainlabel = alnum | alnum ( alnum | "-" | "_" )* alnum;
+
+    hostname = ( domainlabel "." )* toplabel "."?;
+
+    #host = hostname | IPv4address | IPv6reference;
+    host = hostname | ipv4address;
+
+    port = digits_16bit_num;
+
+    hostport = host ( colon port )?;
+
+    mark = "-" | "_" | "." | "!" | "~" | "*" | "'" | "(" | ")";
+
+    unreserved = alnum | mark;
+
+    escaped = "%" xdigit{2};
+
+    user_unreserved = "&" | "=" | "+" | "$" | "," | ";" | "?" | "/";
+
+    user = ( unreserved | escaped | user_unreserved )+;
+
+    password = ( unreserved | escaped | "&" | "=" | "+" | "$" | "," )*;
+
+    # telephone_subscriber needs to be defined
+    # userinfo = ( user | telephone_subscriber ) ( ":" password )? "@";
+    userinfo = ( user ) ( ":" password )? "@";
+
+    other_transport = token;    
+
+    transport_param = /transport=/i ( /udp/i | /tcp/i | /sctp/i | /tls/i
+                    | other_transport);
+
+    other_user = token;
+
+    user_param = /user=/i ( /phone/i | /ip/i | other_user);
+
+    method_invite = /INVITE/i;
+
+    method_ack = /ACK/i;
+
+    method_options = /OPTIONS/i;
+
+    method_bye = /BYE/i;
+
+    method_cancel = /CANCEL/i;
+
+    method_register = /REGISTER/i;
+
+    extension_method = token;
+
+    method = method_invite
+           | method_ack
+           | method_options
+           | method_bye
+           | method_cancel
+           | method_register
+           | extension_method;
+
+    method_param = /method=/i method;
+
+    ttl = digits_8bit_num;
+
+    ttl_param = /ttl=/i ttl;
+
+    maddr_param = /maddr=/i host;
+
+    lr_param = /lr/i;
+
+    param_unreserved = "[" | "]" | "/" | ":" | "&" | "+" | "$";
+
+    paramchar = param_unreserved | unreserved | escaped;
+
+    pname = paramchar+;
+
+    pvalue = paramchar+;
+
+    other_param = pname ( "=" pvalue )?;
+
+    uri_parameter = transport_param
+                  | user_param
+                  | method_param
+                  | ttl_param
+                  | maddr_param
+                  | lr_param
+                  | other_param;
+
+    uri_parameters = ( ";" uri_parameter )*;
+
+    hnv_unreserved = "[" | "]" | "/" | "?" | ":" | "+" | "$";
+
+    hnv_char = hnv_unreserved | unreserved | escaped;
+
+    hname = hnv_char+;
+
+    hvalue = hnv_char*;
+
+    header = hname "=" hvalue;
+
+    headers = "?" header ( "&" header )*;
+
+    sip_sips_rest = colon userinfo? hostport uri_parameters headers?;
+
+    sip_uri = sip_word sip_sips_rest;
+
+    sips_uri = sips_word sip_sips_rest;
+
+    utf8_cont = 0x80..0xbf;
+
+    utf8_nonascii = 0xc0..0xdf utf8_cont
+                  | 0xe0..0xef utf8_cont{2}
+                  | 0xf0..0xf7 utf8_cont{3}
+                  | 0xf8..0xfb utf8_cont{4}
+                  | 0xfc..0xfd utf8_cont{5};
+
+    text_utf8char = 0x21..0x7E | utf8_nonascii;
+
+    text_utf8_trim = ( text_utf8char ( ( sp* text_utf8char ) >(p_b, 1) )* @(p_b, 0) %(p_b, 1) );
+
+    qdtext = sp_left | 0x21 | 0x23..0x5b | 0x5d..0x7e | utf8_nonascii;
+
+    # Need to devise mechanism to avoid that <backslash><dquote>
+    # sequence ends quoted string
+    quoted_pair = '\\' ( 0x00..0x09 | 0x0b..0x0c | 0x0e..0x7f );
+
+    quoted_string = ldquot ( qdtext | quoted_pair )* rdquot;
+
+    display_name = ( token sp_left )* token | quoted_string;
+
+    reg_name = ( unreserved | escaped | "$" | ","
+                | ";" | ":" | "@" | "&" | "=" | "+" )+;
+
+    srvr = ( ( userinfo "@" )? hostport )?;
+
+    authority = srvr | reg_name;
+
+    pchar = unreserved | escaped | ":" | "@" | "&" | "=" | "+" | "$" | ",";
+
+    param = pchar*;
+
+    segment = pchar* ( ";" param )*;
+
+    path_segments = segment ( fslash segment )*;
+
+    abs_path = fslash path_segments;
+
+    net_path = fslash fslash authority ( abs_path )?;
+
+    reserved = ";" | fslash | "?" | ":" | "@" | "&" | "=" | "+" | "$" | ",";
+
+    uric = reserved | unreserved | escaped;
+
+    query = uric*;
+
+    hier_part = ( net_path | abs_path ) ( "?" query )?;
+
+    scheme = alpha ( alpha | digit | "+" | "-" | "." )*;
+
+    uric_no_slash = unreserved | escaped | ";" | "?" |
+                        ":" | "@" | "&" | "=" | "+" | "$" | ",";
+
+    opaque_part = uric_no_slash uric*;
+
+    absoluteuri = scheme ":" ( hier_part | opaque_part );
+
+    addr_spec = sip_uri | sips_uri | absoluteuri;
+
+    name_addr = display_name? laquot addr_spec raquot;
+
+    tag_param = /tag/i equal token;
+
+    gen_value = token | host | quoted_string;
+
+    generic_param  =  token ( equal gen_value )?;
+
+    qvalue = ( "0" ( "." digit{,3} )? ) | ( "1" ( "." "0"{,3} )? );
+
+    delta_seconds = digits_32bit_num;
+
+    x_token = /x-/i token;
+
+    ietf_token = token;
+
+    extension_token = ietf_token | x_token;
+
+    discrete_type = /text/i | /image/i | /audio/i
+                  | /video/i | /application/i | extension_token;
+
+    composite_type = /message/i | /multipart/i | extension_token;
+
+    m_type = discrete_type | composite_type;
+
+    iana_token = token;
+
+    m_subtype = iana_token | extension_token;
+
+    m_attribute = token;
+
+    m_value = quoted_string | token;
+
+    m_parameter = m_attribute equal m_value;
+
+    request_uri = sip_uri | sips_uri | absoluteuri;
+
+    nonce_value = quoted_string;
+
+    nonce = /nonce/i equal nonce_value;
+
+    qop_value = /auth/i | /auth-int/i | token;
+
+    message_qop = /qop/i equal qop_value;
+
+    cnonce_value = nonce_value;
+
+    cnonce = /cnonce/i equal cnonce_value;
+
+    nc_value = xdigit+;
+
+    nonce_count = /nc/i equal nc_value;
+
+    realm_value = quoted_string;
+
+    realm = /realm/i equal realm_value;
+
+    algorithm = /algorithm/i equal ( /MD5/i | /MD5-sess/i | token );
+
+    opaque = /opaque/i equal quoted_string;
+
+    auth_param_name = token;
+
+    auth_param = auth_param_name equal ( quoted_string | token );
+
+    auth_scheme = token;
+
+    #----------------------------------------------------------------------
+    # Authorization message header
+    #----------------------------------------------------------------------
+
+    username_value = quoted_string;
+
+    username = ( /username/i equal username_value );
+
+    digest_uri_value = request_uri;
+
+    digest_uri = /uri/i equal ldquot digest_uri_value rdquot;
+
+    request_digest = ldquot xdigit+ rdquot;
+
+    dresponse = /response/i equal request_digest;
+
+    dig_resp = (username @(prio_dig_resp, 1) %{ printf("<---- username (%s)\n", p); }
+             | realm @(prio_dig_resp, 1) %{ printf("<---- realm\n"); }
+             | nonce @(prio_dig_resp, 1) %{ printf("<---- nonce\n"); }
+             | digest_uri @(prio_dig_resp, 1) %{ printf("<---- digest_uri\n"); }
+             | dresponse @(prio_dig_resp, 1) %{ printf("<---- dresponse('%s')\n", p); }
+	     | algorithm @(prio_dig_resp, 1) %{ printf("<---- algorithm\n"); }
+	     | cnonce @(prio_dig_resp, 1) %{ printf("<---- cnonce\n"); }
+	     | opaque @(prio_dig_resp, 1) %{ printf("<---- opaque\n"); }
+	     | message_qop @(prio_dig_resp, 1) %{ printf("<---- message_qop\n"); }
+	     | nonce_count @(prio_dig_resp, 1) %{ printf("<---- nonce_count\n"); }
+	     | auth_param @(prio_dig_resp, 0) %{ printf("<---- auth_param\n"); }) >{ printf("----> dig_resp (%s)\n", p); } @{ printf("===== dig_resp (%s)\n", p); } %{ printf("<---- dig_resp (%s)\n", p); };
+
+    digest_response = ( dig_resp ( comma dig_resp )* );
+
+    other_response = ( auth_scheme sp_left ) @(prio_credentials, 0) auth_param ( comma auth_param )*;
+
+    credentials = ( ( /Digest/i @{ printf("digest-finishing (%s)\n", p); } sp_left %*{ printf("digest-from-state (%s)\n", p); } ) @(prio_credentials, 1) digest_response );
+#                | other_response;
+
+    authorization := credentials crlf @{ printf("<---- authorization (%s)\n", p); fret; };
+
+#    authorization = ( /Authorization/i colon ) @(mhprio, 1) credentials;
+
+    #-----------------------------------------------------------------------
+    # Organization message header
+    #-----------------------------------------------------------------------
+
+    organization := |*
+            sp => { };
+            text_utf8char ( sp* text_utf8char )* => { printf("===== org_name_utf8 (%s)\n", strndupa(tokstart, tokend - tokstart ) );};
+            text_utf8char ( sp* text_utf8char )* => { printf("===== org_name_utf8 (%s)\n", strndupa(tokstart, tokend - tokstart ) );};
+	    crlf => { printf("<---- organization (%s)\n", p); fret; };
+    	*|;
+
+#    organization = ( /Organization/i sp? ':' @{ fcall organization_get_name; } ) @(mhprio, 1);
+
+    #-----------------------------------------------------------------------
+    # extension-header message header
+    #-----------------------------------------------------------------------
+
+    header_value = ( ( text_utf8char | utf8_cont ) sp_left )*;
+
+    extension_header := |*
+
+        ( text_utf8char | utf8_cont | sp )* => { printf("===== extension_header_value (%s)\n", strndupa(tokstart, tokend - tokstart ) );};
+
+        crlf => { printf("<---- extension_header (%s)\n", p); fret; };
+
+        *|;
+
+    main := |*
+    
+        /Organization/i sp? ':' sp? => { printf("----> organization (%s)\n", p); fexec tokend; fcall organization; };
+    
+        /Authorization/i sp? ':' sp? => { printf("----> authorization (%s)\n", p); fcall authorization; };
+
+	token sp? ':' sp? => { printf("----> extension_header (%s)\n", p); fcall extension_header; }; 
+
+        crlf => { printf("THE END\n"); fbreak; };
+
+        *|;
+
+#    message_header = ( authorization %{ printf("<---- authorization (%s)\n", p); } )
+#                   | ( organization %{ printf("<---- organization (%s)\n", p); } )
+#                   | ( extension_header %{ printf("<---- extension_header (%s)\n", p); } );
+
+#    main := ( ( ( ( scan_header_name sp_optional_right ) :>> ( crlf [^ \t] ) @{ fhold; } ) >{ printf("----> message_header(%s)\n", p); } %{ printf("<---- message_header (%s)\n", p); } )+ crlf @{ printf("Final CRLF\n"); } ) $!{ printf("ERROR!('%s')\n", p); };
+
+}%%
+
+%% write data;
+
+int
+main(int argc, char *argv[])
+{
+	int cs, top, act, stack[32];
+        char *tokstart, *tokend;
+	char *p =
+	    "An-Extension-Header: 10 \n"
+            "Authorization: Digest      username=\"Alice\",realm=\"atlanta.com\"\n"
+            "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+            "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+	    "Organization: Boxes by\r\n Bob  \r\n      \n"
+	    "\r\n";
+        char *pe = p + strlen(p);
+
+        printf("*p = '%s'\n\n", p);
+
+	%% write init;
+	%% write exec;
+
+        if ( cs < sip_message_first_final )
+        {
+            printf("\n\nError: cs < sip_message_first_final\n\n");
+        }
+
+        printf("\n\n*p = '%s'\n", p);
+
+	return 0;
+}

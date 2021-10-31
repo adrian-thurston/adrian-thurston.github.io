@@ -1,0 +1,207 @@
+From deniska.nm at gmail.com  Sat Apr 13 13:09:25 2019
+From: deniska.nm at gmail.com (Denis Naumov)
+Date: Sat, 13 Apr 2019 20:09:25 +0300
+Subject: [ragel-users] Alternative syntax for Ragel spec blocks
+Message-ID: <CAD5e4C=sV_QKCs51L+hJzm1jpHcL5vAxgoLMfwoU=KC43YViTA@mail.gmail.com>
+
+Alternative syntax for Ragel spec blocks.
+
+Ragel uses code block syntax typical for other lexical generators (
+%%{...}%% ).
+But as a rule, we edit *.rl the file in some IDE and type of editor for
+*.rl file and for main code file is the same.
+I.e. if we use C++, then *.rl is often also edited as C++ the file.
+Using %%{...}%% blocks break IDE code analisis as C++(or other) code.
+
+It would be good if Ragel could maintain "comment syntax" of code blocks in
+style like Re2C:
+    /*!ragel
+        <multi-line FSM spec>
+    */
+    //!ragel <single-line FSM spec>
+
+"comment syntax" can be implement all languages with C-style comments.
+
+With "comment syntax" *.rl file would IDE frendly:
+- *.rl the file is 100% correct c/c++/java file.
+- syntax highlighting of the source code - works correctly.
+- IntelliSence, auto-formatting and so on - works correctly.
+
+Ragel can process %%{...}%% and /*! ragel... */ syntax at the same time or
+to use a special option (for example, --syntax=general/comment)
+
+Example:
+--- general ragel ragel file ------------------
+#include <string.h>
+#include <stdio.h>
+
+%%{
+    machine foo;
+    main := ( 'foo' | 'bar' ) 0 @{ res = 1; };
+}%%
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+    int cs, res = 0;
+
+    if ( argc > 1 ) {
+        char *p = argv[1];
+        char *pe = p + strlen(p) + 1;
+        %% write init;
+        %% write exec;
+    }
+
+    printf("result = %i\n", res );
+    return 0;
+}
+-----------------------------------------------
+
+--- IDE frendly ragel file --------------------
+#include <string.h>
+#include <stdio.h>
+
+/*!ragel
+    machine foo;
+    main := ( 'foo' | 'bar' ) 0 @{ res = 1; };
+*/
+
+//!ragel write data;
+
+int main( int argc, char **argv )
+{
+    int cs, res = 0;
+    if ( argc > 1 ) {
+        char *p = argv[1];
+        char *pe = p + strlen(p) + 1;
+        //!ragel write init;
+        //!ragel write exec;
+    }
+    printf("result = %i\n", res );
+    return 0;
+}
+-----------------------------------------------
+
+What do you think?
+
+Thanks for good tool.
+
+Best regards,
+Denis.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20190413/61484a48/attachment.html>
+
+From thurston at colm.net  Mon Apr 15 14:08:05 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 15 Apr 2019 14:08:05 -0400
+Subject: [ragel-users] Alternative syntax for Ragel spec blocks
+In-Reply-To: <CAD5e4C=sV_QKCs51L+hJzm1jpHcL5vAxgoLMfwoU=KC43YViTA@mail.gmail.com>
+References: <CAD5e4C=sV_QKCs51L+hJzm1jpHcL5vAxgoLMfwoU=KC43YViTA@mail.gmail.com>
+Message-ID: <500c96975ac5b9a01d4ea0c1ab5004c1@mail.colm.net>
+
+ 
+
+Hi Denis, I can see how it would be nice to have a mode that can be used
+with an IDE without having to add a customization. It should be easier
+to do with the ragel 7 frontend. I've added it as a feature request to
+my issue tracking system. 
+
+On 2019-04-13 13:09, Denis Naumov wrote: 
+
+> Alternative syntax for Ragel spec blocks.
+> 
+> Ragel uses code block syntax typical for other lexical generators ( %%{...}%% ).
+> But as a rule, we edit *.rl the file in some IDE and type of editor for *.rl file and for main code file is the same.
+> I.e. if we use C++, then *.rl is often also edited as C++ the file.
+> Using %%{...}%% blocks break IDE code analisis as C++(or other) code.
+> 
+> It would be good if Ragel could maintain "comment syntax" of code blocks in style like Re2C:
+> /*!ragel
+> <multi-line FSM spec>
+> */
+> //!ragel <single-line FSM spec>
+> 
+> "comment syntax" can be implement all languages with C-style comments.
+> 
+> With "comment syntax" *.rl file would IDE frendly:
+> - *.rl the file is 100% correct c/c++/java file.
+> - syntax highlighting of the source code - works correctly.
+> - IntelliSence, auto-formatting and so on - works correctly.
+> 
+> Ragel can process %%{...}%% and /*! ragel... */ syntax at the same time or to use a special option (for example, --syntax=general/comment)
+> 
+> Example:
+> --- general ragel ragel file ------------------
+> #include <string.h>
+> #include <stdio.h>
+> 
+> %%{
+> machine foo;
+> main := ( 'foo' | 'bar' ) 0 @{ res = 1; };
+> }%%
+> 
+> %% write data;
+> 
+> int main( int argc, char **argv )
+> {
+> int cs, res = 0;
+> 
+> if ( argc > 1 ) {
+> char *p = argv[1];
+> char *pe = p + strlen(p) + 1;
+> %% write init;
+> %% write exec;
+> }
+> 
+> printf("result = %in", res );
+> return 0;
+> }
+> -----------------------------------------------
+> 
+> --- IDE frendly ragel file --------------------
+> #include <string.h>
+> #include <stdio.h>
+> 
+> /*!ragel
+> machine foo;
+> main := ( 'foo' | 'bar' ) 0 @{ res = 1; };
+> */
+> 
+> //!ragel write data;
+> 
+> int main( int argc, char **argv )
+> {
+> int cs, res = 0;
+> if ( argc > 1 ) {
+> char *p = argv[1];
+> char *pe = p + strlen(p) + 1;
+> //!ragel write init;
+> //!ragel write exec;
+> }
+> printf("result = %in", res );
+> return 0;
+> }
+> -----------------------------------------------
+> 
+> What do you think?
+> 
+> Thanks for good tool.
+> 
+> Best regards,
+> Denis. 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20190415/6ac43241/attachment.html>
+

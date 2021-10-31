@@ -1,0 +1,635 @@
+Index: ragel/cdflat.h
+===================================================================
+--- ragel/cdflat.h	(Revision 1696)
++++ ragel/cdflat.h	(Arbeitskopie)
+@@ -105,4 +105,14 @@
+ 		FsmCodeGen(out), FlatCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * D2FlatCodeGen
++ */
++struct D2FlatCodeGen
++	: public FlatCodeGen, public D2CodeGen
++{
++	D2FlatCodeGen( ostream &out ) : 
++		FsmCodeGen(out), FlatCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdtable.h
+===================================================================
+--- ragel/cdtable.h	(Revision 1696)
++++ ragel/cdtable.h	(Arbeitskopie)
+@@ -111,4 +111,14 @@
+ 		FsmCodeGen(out), TabCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * D2TabCodeGen
++ */
++struct D2TabCodeGen
++	: public TabCodeGen, public D2CodeGen
++{
++	D2TabCodeGen( ostream &out ) : 
++		FsmCodeGen(out), TabCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdftable.h
+===================================================================
+--- ragel/cdftable.h	(Revision 1696)
++++ ragel/cdftable.h	(Arbeitskopie)
+@@ -74,4 +74,14 @@
+ 		FsmCodeGen(out), FTabCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * class D2FTabCodeGen
++ */
++struct D2FTabCodeGen
++	: public FTabCodeGen, public D2CodeGen
++{
++	D2FTabCodeGen( ostream &out ) : 
++		FsmCodeGen(out), FTabCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdipgoto.h
+===================================================================
+--- ragel/cdipgoto.h	(Revision 1696)
++++ ragel/cdipgoto.h	(Arbeitskopie)
+@@ -92,4 +92,14 @@
+ 		FsmCodeGen(out), IpGotoCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * class D2IpGotoCodeGen
++ */
++struct D2IpGotoCodeGen
++	: public IpGotoCodeGen, public D2CodeGen
++{
++	D2IpGotoCodeGen( ostream &out ) : 
++		FsmCodeGen(out), IpGotoCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdgoto.h
+===================================================================
+--- ragel/cdgoto.h	(Revision 1696)
++++ ragel/cdgoto.h	(Arbeitskopie)
+@@ -106,4 +106,14 @@
+ 		FsmCodeGen(out), GotoCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * class D2GotoCodeGen
++ */
++struct D2GotoCodeGen
++	: public GotoCodeGen, public D2CodeGen
++{
++	D2GotoCodeGen( ostream &out ) : 
++		FsmCodeGen(out), GotoCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdflat.cpp
+===================================================================
+--- ragel/cdflat.cpp	(Revision 1696)
++++ ragel/cdflat.cpp	(Arbeitskopie)
+@@ -698,17 +698,17 @@
+ 			redFsm->anyRegActions() || redFsm->anyFromStateActions() )
+ 	{
+ 		out << 
+-			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << POINTER() << "_acts;\n"
++			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << POINTER() << "_acts;\n"
+ 			"	" << UINT() << " _nacts;\n"; 
+ 	}
+ 
+ 	out <<
+-		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_keys;\n"
+-		"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxIndex) << POINTER() << "_inds;\n";
++		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_keys;\n"
++		"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxIndex) << PTR_CONST_END() << POINTER() << "_inds;\n";
+ 
+ 	if ( redFsm->anyConditions() ) {
+ 		out << 
+-			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxCond) << POINTER() << "_conds;\n"
++			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxCond) << PTR_CONST_END() << POINTER() << "_conds;\n"
+ 			"	" << WIDE_ALPH_TYPE() << " _widec;\n";
+ 	}
+ 
+@@ -827,7 +827,7 @@
+ 
+ 		if ( redFsm->anyEofActions() ) {
+ 			out <<
+-				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << 
++				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << 
+ 						POINTER() << "__acts = " << 
+ 						ARR_OFF( A(), EA() + "[" + vCS() + "]" ) << ";\n"
+ 				"	" << UINT() << " __nacts = " << CAST(UINT()) << " *__acts++;\n"
+Index: ragel/cdgoto.cpp
+===================================================================
+--- ragel/cdgoto.cpp	(Revision 1696)
++++ ragel/cdgoto.cpp	(Arbeitskopie)
+@@ -671,7 +671,7 @@
+ 			|| redFsm->anyFromStateActions() )
+ 	{
+ 		out << 
+-			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << POINTER() << "_acts;\n"
++			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << POINTER() << "_acts;\n"
+ 			"	" << UINT() << " _nacts;\n";
+ 	}
+ 
+@@ -777,7 +777,7 @@
+ 
+ 		if ( redFsm->anyEofActions() ) {
+ 			out <<
+-				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << 
++				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << 
+ 						POINTER() << "__acts = " << 
+ 						ARR_OFF( A(), EA() + "[" + vCS() + "]" ) << ";\n"
+ 				"	" << UINT() << " __nacts = " << CAST(UINT()) << " *__acts++;\n"
+Index: ragel/cdfflat.h
+===================================================================
+--- ragel/cdfflat.h	(Revision 1696)
++++ ragel/cdfflat.h	(Arbeitskopie)
+@@ -72,4 +72,14 @@
+ 		FsmCodeGen(out), FFlatCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * D2FFlatCodeGen
++ */
++struct D2FFlatCodeGen
++	: public FFlatCodeGen, public D2CodeGen
++{
++	D2FFlatCodeGen( ostream &out ) : 
++		FsmCodeGen(out), FFlatCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdcodegen.h
+===================================================================
+--- ragel/cdcodegen.h	(Revision 1696)
++++ ragel/cdcodegen.h	(Arbeitskopie)
+@@ -161,6 +161,7 @@
+ 	string FIRST_FINAL_STATE();
+ 
+ 	virtual string PTR_CONST() = 0;
++	virtual string PTR_CONST_END() = 0;
+ 	virtual ostream &OPEN_ARRAY( string type, string name ) = 0;
+ 	virtual ostream &CLOSE_ARRAY() = 0;
+ 	virtual ostream &STATIC_VAR( string type, string name ) = 0;
+@@ -199,6 +200,7 @@
+ 	virtual string CAST( string type );
+ 	virtual string UINT();
+ 	virtual string PTR_CONST();
++	virtual string PTR_CONST_END();
+ 	virtual string CTRL_FLOW();
+ 
+ 	virtual void writeExports();
+@@ -219,9 +221,31 @@
+ 	virtual string CAST( string type );
+ 	virtual string UINT();
+ 	virtual string PTR_CONST();
++	virtual string PTR_CONST_END();
+ 	virtual string CTRL_FLOW();
+ 
+ 	virtual void writeExports();
+ };
+ 
++class D2CodeGen : virtual public FsmCodeGen
++{
++public:
++	D2CodeGen( ostream &out ) : FsmCodeGen(out) {}
++
++	virtual string NULL_ITEM();
++	virtual string POINTER();
++	virtual ostream &SWITCH_DEFAULT();
++	virtual ostream &OPEN_ARRAY( string type, string name );
++	virtual ostream &CLOSE_ARRAY();
++	virtual ostream &STATIC_VAR( string type, string name );
++	virtual string ARR_OFF( string ptr, string offset );
++	virtual string CAST( string type );
++	virtual string UINT();
++	virtual string PTR_CONST();
++	virtual string PTR_CONST_END();
++	virtual string CTRL_FLOW();
++
++	virtual void writeExports();
++};
++
+ #endif
+Index: ragel/main.cpp
+===================================================================
+--- ragel/main.cpp	(Revision 1696)
++++ ragel/main.cpp	(Arbeitskopie)
+@@ -218,7 +218,7 @@
+ 
+ void processArgs( int argc, const char **argv, InputData &id )
+ {
+-	ParamCheck pc("xo:dnmleabjkS:M:I:CDJZRAvHh?-:sT:F:G:P:LpV", argc, argv);
++	ParamCheck pc("xo:dnmleabjkS:M:I:CDEJZRAvHh?-:sT:F:G:P:LpV", argc, argv);
+ 
+ 	/* FIXME: Need to check code styles VS langauge. */
+ 
+@@ -316,6 +316,9 @@
+ 			case 'D':
+ 				hostLang = &hostLangD;
+ 				break;
++			case 'E':
++				hostLang = &hostLangD2;
++				break;
+ 			case 'Z':
+ 				hostLang = &hostLangGo;
+ 				break;
+Index: ragel/common.cpp
+===================================================================
+--- ragel/common.cpp	(Revision 1696)
++++ ragel/common.cpp	(Arbeitskopie)
+@@ -116,6 +116,7 @@
+ 
+ HostLang hostLangC =    { HostLang::C,    hostTypesC,    8, hostTypesC+0,    true };
+ HostLang hostLangD =    { HostLang::D,    hostTypesD,    9, hostTypesD+2,    true };
++HostLang hostLangD2 =    { HostLang::D2,    hostTypesD,    9, hostTypesD+2,    true };
+ HostLang hostLangGo =   { HostLang::Go,   hostTypesGo,   7, hostTypesGo+0,   false };
+ HostLang hostLangJava = { HostLang::Java, hostTypesJava, 4, hostTypesJava+2, false };
+ HostLang hostLangRuby = { HostLang::Ruby, hostTypesRuby, 2, hostTypesRuby+0, false };
+Index: ragel/inputdata.cpp
+===================================================================
+--- ragel/inputdata.cpp	(Revision 1696)
++++ ragel/inputdata.cpp	(Arbeitskopie)
+@@ -46,6 +46,7 @@
+ 			switch ( hostLang->lang ) {
+ 				case HostLang::C: defExtension = ".c"; break;
+ 				case HostLang::D: defExtension = ".d"; break;
++				case HostLang::D2: defExtension = ".d"; break;
+ 				default: break;
+ 			}
+ 			outputFileName = fileNameFromStem( inputFile, defExtension );
+@@ -100,6 +101,7 @@
+ 		switch ( hostLang->lang ) {
+ 			case HostLang::C:
+ 			case HostLang::D:
++			case HostLang::D2:
+ 				cdDefaultFileName( inputFileName );
+ 				break;
+ 			case HostLang::Java:
+Index: ragel/cdfgoto.h
+===================================================================
+--- ragel/cdfgoto.h	(Revision 1696)
++++ ragel/cdfgoto.h	(Arbeitskopie)
+@@ -72,4 +72,14 @@
+ 		FsmCodeGen(out), FGotoCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * class DFGotoCodeGen
++ */
++struct D2FGotoCodeGen
++	: public FGotoCodeGen, public D2CodeGen
++{
++	D2FGotoCodeGen( ostream &out ) : 
++		FsmCodeGen(out), FGotoCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdtable.cpp
+===================================================================
+--- ragel/cdtable.cpp	(Revision 1696)
++++ ragel/cdtable.cpp	(Arbeitskopie)
+@@ -619,9 +619,9 @@
+ 		"\n"
+ 		"	_klen = " << SL() << "[" << vCS() << "];\n"
+ 		"	if ( _klen > 0 ) {\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_lower = _keys;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_mid;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_upper = _keys + _klen - 1;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_lower = _keys;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_mid;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_upper = _keys + _klen - 1;\n"
+ 		"		while (1) {\n"
+ 		"			if ( _upper < _lower )\n"
+ 		"				break;\n"
+@@ -642,9 +642,9 @@
+ 		"\n"
+ 		"	_klen = " << RL() << "[" << vCS() << "];\n"
+ 		"	if ( _klen > 0 ) {\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_lower = _keys;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_mid;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_upper = _keys + (_klen<<1) - 2;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_lower = _keys;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_mid;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_upper = _keys + (_klen<<1) - 2;\n"
+ 		"		while (1) {\n"
+ 		"			if ( _upper < _lower )\n"
+ 		"				break;\n"
+@@ -876,9 +876,9 @@
+ 		"	_klen = " << CL() << "[" << vCS() << "];\n"
+ 		"	_keys = " << ARR_OFF( CK(), "(" + CO() + "[" + vCS() + "]*2)" ) << ";\n"
+ 		"	if ( _klen > 0 ) {\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_lower = _keys;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_mid;\n"
+-		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_upper = _keys + (_klen<<1) - 2;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_lower = _keys;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_mid;\n"
++		"		" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_upper = _keys + (_klen<<1) - 2;\n"
+ 		"		while (1) {\n"
+ 		"			if ( _upper < _lower )\n"
+ 		"				break;\n"
+@@ -945,13 +945,13 @@
+ 			|| redFsm->anyFromStateActions() )
+ 	{
+ 		out << 
+-			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << 
++			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << 
+ 					POINTER() << "_acts;\n"
+ 			"	" << UINT() << " _nacts;\n";
+ 	}
+ 
+ 	out <<
+-		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_keys;\n"
++		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_keys;\n"
+ 		"\n";
+ 
+ 	if ( !noEnd ) {
+@@ -1072,7 +1072,7 @@
+ 
+ 		if ( redFsm->anyEofActions() ) {
+ 			out <<
+-				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << 
++				"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxActArrItem) << PTR_CONST_END() << 
+ 						POINTER() << "__acts = " << 
+ 						ARR_OFF( A(), EA() + "[" + vCS() + "]" ) << ";\n"
+ 				"	" << UINT() << " __nacts = " << CAST(UINT()) << " *__acts++;\n"
+Index: ragel/gendata.cpp
+===================================================================
+--- ragel/gendata.cpp	(Revision 1696)
++++ ragel/gendata.cpp	(Arbeitskopie)
+@@ -147,6 +147,35 @@
+ 		}
+ 		break;
+ 
++	case HostLang::D2:
++		switch ( codeStyle ) {
++		case GenTables:
++			codeGen = new D2TabCodeGen(out);
++			break;
++		case GenFTables:
++			codeGen = new D2FTabCodeGen(out);
++			break;
++		case GenFlat:
++			codeGen = new D2FlatCodeGen(out);
++			break;
++		case GenFFlat:
++			codeGen = new D2FFlatCodeGen(out);
++			break;
++		case GenGoto:
++			codeGen = new D2GotoCodeGen(out);
++			break;
++		case GenFGoto:
++			codeGen = new D2FGotoCodeGen(out);
++			break;
++		case GenIpGoto:
++			codeGen = new D2IpGotoCodeGen(out);
++			break;
++		case GenSplit:
++			codeGen = new D2SplitCodeGen(out);
++			break;
++		}
++		break;
++
+ 	default: break;
+ 	}
+ 
+@@ -275,6 +304,8 @@
+ 		cgd = cdMakeCodeGen( sourceFileName, fsmName, out );
+ 	else if ( hostLang == &hostLangD )
+ 		cgd = cdMakeCodeGen( sourceFileName, fsmName, out );
++	else if ( hostLang == &hostLangD2 )
++		cgd = cdMakeCodeGen( sourceFileName, fsmName, out );
+ 	else if ( hostLang == &hostLangGo )
+ 		cgd = goMakeCodeGen( sourceFileName, fsmName, out );
+ 	else if ( hostLang == &hostLangJava )
+@@ -293,6 +324,8 @@
+ 			cdLineDirective( out, fileName, line );
+ 		else if ( hostLang == &hostLangD )
+ 			cdLineDirective( out, fileName, line );
++		else if ( hostLang == &hostLangD2 )
++			cdLineDirective( out, fileName, line );
+ 		else if ( hostLang == &hostLangGo )
+ 			gothicLineDirective( out, fileName, line );
+ 		else if ( hostLang == &hostLangJava )
+Index: ragel/cdfflat.cpp
+===================================================================
+--- ragel/cdfflat.cpp	(Revision 1696)
++++ ragel/cdfflat.cpp	(Arbeitskopie)
+@@ -257,12 +257,12 @@
+ 	out << ";\n";
+ 
+ 	out <<
+-		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_keys;\n"
+-		"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxIndex) << POINTER() << "_inds;\n";
++		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_keys;\n"
++		"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxIndex) << PTR_CONST_END() << POINTER() << "_inds;\n";
+ 
+ 	if ( redFsm->anyConditions() ) {
+ 		out << 
+-			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxCond) << POINTER() << "_conds;\n"
++			"	" << PTR_CONST() << ARRAY_TYPE(redFsm->maxCond) << PTR_CONST_END() << POINTER() << "_conds;\n"
+ 			"	" << WIDE_ALPH_TYPE() << " _widec;\n";
+ 	}
+ 
+Index: ragel/cdftable.cpp
+===================================================================
+--- ragel/cdftable.cpp	(Revision 1696)
++++ ragel/cdftable.cpp	(Arbeitskopie)
+@@ -304,7 +304,7 @@
+ 
+ 	out <<
+ 		";\n"
+-		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << POINTER() << "_keys;\n"
++		"	" << PTR_CONST() << WIDE_ALPH_TYPE() << PTR_CONST_END() << POINTER() << "_keys;\n"
+ 		"	int _trans;\n";
+ 
+ 	if ( redFsm->anyConditions() )
+Index: ragel/cdsplit.h
+===================================================================
+--- ragel/cdsplit.h	(Revision 1696)
++++ ragel/cdsplit.h	(Arbeitskopie)
+@@ -67,4 +67,14 @@
+ 		FsmCodeGen(out), SplitCodeGen(out), DCodeGen(out) {}
+ };
+ 
++/*
++ * class D2SplitCodeGen
++ */
++struct D2SplitCodeGen
++	: public SplitCodeGen, public D2CodeGen
++{
++	D2SplitCodeGen( ostream &out ) : 
++		FsmCodeGen(out), SplitCodeGen(out), D2CodeGen(out) {}
++};
++
+ #endif
+Index: ragel/cdcodegen.cpp
+===================================================================
+--- ragel/cdcodegen.cpp	(Revision 1696)
++++ ragel/cdcodegen.cpp	(Arbeitskopie)
+@@ -397,7 +397,7 @@
+ 		ret << "	break;\n";
+ 	}
+ 
+-	if ( hostLang->lang == HostLang::D && !haveDefault )
++	if ( (hostLang->lang == HostLang::D || hostLang->lang == HostLang::D2) && !haveDefault )
+ 		ret << "	default: break;";
+ 
+ 	ret << 
+@@ -689,6 +689,11 @@
+ 	return "const ";
+ }
+ 
++string CCodeGen::PTR_CONST_END()
++{
++	return "";
++}
++
+ std::ostream &CCodeGen::OPEN_ARRAY( string type, string name )
+ {
+ 	out << "static const " << type << " " << name << "[] = {\n";
+@@ -772,6 +777,11 @@
+ 	return "";
+ }
+ 
++string DCodeGen::PTR_CONST_END()
++{
++	return "";
++}
++
+ std::ostream &DCodeGen::OPEN_ARRAY( string type, string name )
+ {
+ 	out << "static const " << type << "[] " << name << " = [\n";
+@@ -830,6 +840,89 @@
+  * End D-specific code.
+  */
+ 
++/*
++ * D2 Specific
++ */
++
++string D2CodeGen::NULL_ITEM()
++{
++	return "null";
++}
++
++string D2CodeGen::POINTER()
++{
++	// multiple items seperated by commas can also be pointer types.
++	return "* ";
++}
++
++string D2CodeGen::PTR_CONST()
++{
++	return "const(";
++}
++
++string D2CodeGen::PTR_CONST_END()
++{
++	return ")";
++}
++
++std::ostream &D2CodeGen::OPEN_ARRAY( string type, string name )
++{
++	out << "enum " << type << "[] " << name << " = [\n";
++	return out;
++}
++
++std::ostream &D2CodeGen::CLOSE_ARRAY()
++{
++	return out << "];\n";
++}
++
++std::ostream &D2CodeGen::STATIC_VAR( string type, string name )
++{
++	out << "enum " << type << " " << name;
++	return out;
++}
++
++string D2CodeGen::ARR_OFF( string ptr, string offset )
++{
++	return "&" + ptr + "[" + offset + "]";
++}
++
++string D2CodeGen::CAST( string type )
++{
++	return "cast(" + type + ")";
++}
++
++string D2CodeGen::UINT( )
++{
++	return "uint";
++}
++
++std::ostream &D2CodeGen::SWITCH_DEFAULT()
++{
++	out << "		default: break;\n";
++	return out;
++}
++
++string D2CodeGen::CTRL_FLOW()
++{
++	return "if (true) ";
++}
++
++void D2CodeGen::writeExports()
++{
++	if ( exportList.length() > 0 ) {
++		for ( ExportList::Iter ex = exportList; ex.lte(); ex++ ) {
++			out << "enum " << ALPH_TYPE() << " " << DATA_PREFIX() << 
++					"ex_" << ex->name << " = " << KEY(ex->key) << ";\n";
++		}
++		out << "\n";
++	}
++}
++
++/*
++ * End D2-specific code.
++ */
++
+ void FsmCodeGen::finishRagelDef()
+ {
+ 	if ( codeStyle == GenGoto || codeStyle == GenFGoto || 
+Index: ragel/xmlcodegen.cpp
+===================================================================
+--- ragel/xmlcodegen.cpp	(Revision 1696)
++++ ragel/xmlcodegen.cpp	(Arbeitskopie)
+@@ -1403,6 +1403,7 @@
+ 	switch ( hostLang->lang ) {
+ 		case HostLang::C:    out << "C"; break;
+ 		case HostLang::D:    out << "D"; break;
++		case HostLang::D2:    out << "D2"; break;
+ 		case HostLang::Go:   out << "Go"; break;
+ 		case HostLang::Java: out << "Java"; break;
+ 		case HostLang::Ruby: out << "Ruby"; break;
+Index: ragel/common.h
+===================================================================
+--- ragel/common.h	(Revision 1696)
++++ ragel/common.h	(Arbeitskopie)
+@@ -124,7 +124,7 @@
+ 	/* Target language. */
+ 	enum Lang
+ 	{
+-		C, D, Go, Java, Ruby, CSharp
++		C, D, D2, Go, Java, Ruby, CSharp
+ 	};
+ 
+ 	Lang lang;
+@@ -138,6 +138,7 @@
+ 
+ extern HostLang hostLangC;
+ extern HostLang hostLangD;
++extern HostLang hostLangD2;
+ extern HostLang hostLangGo;
+ extern HostLang hostLangJava;
+ extern HostLang hostLangRuby;

@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Path handling of the native Windows build
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Path%20handling%20of%20the%20native%20Windows%20build&In-Reply-To=%3C4D94064C.50409%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001278.html">
+   <LINK REL="Next"  HREF="001292.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Path handling of the native Windows build</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Path%20handling%20of%20the%20native%20Windows%20build&In-Reply-To=%3C4D94064C.50409%40complang.org%3E"
+       TITLE="[ragel-users] Path handling of the native Windows build">thurston at complang.org
+       </A><BR>
+    <I>Thu Mar 31 04:42:52 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001278.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+        <LI>Next message: <A HREF="001292.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1291">[ date ]</a>
+              <a href="thread.html#1291">[ thread ]</a>
+              <a href="subject.html#1291">[ subject ]</a>
+              <a href="author.html#1291">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've applied your fix for the failing -I option. I'm not yet sure what 
+to do about the other path issues ... there seems to be no pressing 
+issue, just overall design problems. I've got urgent coding to do 
+elsewhere (DSNP) so I'm going to leave that for now.
+
+On 03/26/2011 09:30 AM, <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-user at jgoettgens.de</A> wrote:
+&gt;<i> Recently Austin Hastings reported about a bug of the native Windows
+</I>&gt;<i> build when further machines are included when the include directories
+</I>&gt;<i> are given on the command line. There is more than the bug Austin
+</I>&gt;<i> discovered as path handling for non Posix platforms is at least somewhat
+</I>&gt;<i> incomplete and inconsistent. You can blame the maintainer of the Windows
+</I>&gt;<i> port for this :)
+</I>&gt;<i> I have patched the source code such that you can now include additional
+</I>&gt;<i> machines by specifying sub directories from the include statement and by
+</I>&gt;<i> specifying them on the command line with the -I option. All include
+</I>&gt;<i> directories may be specified as relative or absolute paths and the path
+</I>&gt;<i> separator may be either '/' odr '\'---you can even mix them.
+</I>&gt;<i> The patched sources and binaries can be downloaded from:
+</I>&gt;<i> <A HREF="http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z">http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z</A>
+</I>&gt;<i> Please test the patched version as I have done only basic testing, and
+</I>&gt;<i> drop a line in case of any dodgy behavior.
+</I>&gt;<i> Although there is a Windows specific (aka _WIN32 is defined) definition
+</I>&gt;<i> for a path separator, include statements like #include inner
+</I>&gt;<i> &quot;xdir\testinc.rl&quot;; work, because the current Windows runtime libraries
+</I>&gt;<i> accept also the separtor '/'. Using '\' is not enforced by Ragel.
+</I>&gt;<i> Interestingly, statements like #include inner &quot;xdir\testinc.rl&quot;; fail,
+</I>&gt;<i> because the include file is handled by the scanner inside Ragel which
+</I>&gt;<i> calls prepareLitString() for new tokens. If the path contains a valid
+</I>&gt;<i> '\', the next char is either dropped or translated, because the '\' is
+</I>&gt;<i> interpreted as an escape character. So when it is time to open the
+</I>&gt;<i> include file, its name has been changed to &quot;xdir&lt;tab char&gt;estinc.rl&quot;.
+</I>&gt;<i> Obviously, this file exists only by coincidence.
+</I>&gt;<i> Since I did not want to touch the data structures of Ragel, I simply
+</I>&gt;<i> hacked argv as various paths are just pointers into argv. The only
+</I>&gt;<i> source code change was to remove the constness of argv in addition to a
+</I>&gt;<i> routine that normalizes paths. If Adrian decides to copy the names, my
+</I>&gt;<i> patches are obsolete, but then his path data will be no longer read-only
+</I>&gt;<i> and a similar patch could be applied to these variables. Of course a
+</I>&gt;<i> better solution would be to make Ragel platform path agnostic...
+</I>&gt;<i> As far as the failing -I &lt;include dir&gt; is concerned, it's just that the
+</I>&gt;<i> Microsoft compiler doesn't let you read or write to a file when its
+</I>&gt;<i> state is not &quot;good&quot;. The good old days are over when gcc was the
+</I>&gt;<i> stricter compiler. When iterating through all possible file names, the
+</I>&gt;<i> state of the ifstream is &quot;fail&quot;. The patch (the correct way?) is to call
+</I>&gt;<i> inFile-&gt;clear() if opening fails. If you specify a sub directory inside
+</I>&gt;<i> your FSM description, the current algorithm at first tries to open this
+</I>&gt;<i> file relative to the path of the main file (unless it is an absolute
+</I>&gt;<i> path, which also works). The first file never suffers from the state
+</I>&gt;<i> problem, so this method worked without patching, although the same
+</I>&gt;<i> routines are involved.
+</I>&gt;<i> To explore my source code changes use WinMerge or Meld on the entire
+</I>&gt;<i> source trees.
+</I>&gt;<i> jg
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+-- 
+Adrian D. Thurston
+<A HREF="http://www.complang.org/thurston/">http://www.complang.org/thurston/</A>
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001278.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+	<LI>Next message: <A HREF="001292.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1291">[ date ]</a>
+              <a href="thread.html#1291">[ thread ]</a>
+              <a href="subject.html#1291">[ subject ]</a>
+              <a href="author.html#1291">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

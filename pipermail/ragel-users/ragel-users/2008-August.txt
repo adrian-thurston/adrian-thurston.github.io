@@ -1,0 +1,2380 @@
+From will... at 25thandClement.com  Fri Aug  1 00:13:20 2008
+From: will... at 25thandClement.com (William Ahern)
+Date: Thu, 31 Jul 2008 17:13:20 -0700
+Subject: Parsing From Ring Buffers
+Message-ID: <20080801001320.GA4657@wilbur.25thandClement.com>
+
+Cursorily looking at the generated code, it appears to be deceptively easy
+to turn `p', `pe', and `eof' into indexes, rather than pointers, given the
+`fpc' macro. Perhaps by simply adding a second macro to increment and
+decrement the index?
+
+Am I missing anything that would throw a monkey wrench into such a patch?
+This could make scanners more efficient, because there would be no need to
+use memmove().
+
+It might even work without a patch, but technically it's undefined behavior
+in C to derive pointer values outside arrays or malloc'd blocks. Compilers
+like TinyCC have the ability to catch such errors, which can be useful when
+tracking down bugs. But to keep from having to re-adjust `ts' and `te', and
+so that Ragel sees a linear input space during scanning, the indexing would
+have to extend beyond the ring buffer (and fpc would just be a simple
+modulus operation).
+
+
+From thurs... at cs.queensu.ca  Fri Aug  8 16:37:27 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 8 Aug 2008 12:37:27 -0400 (EDT)
+Subject: [ragel-users] Parsing From Ring Buffers
+In-Reply-To: <20080801001320.GA4657@wilbur.25thandClement.com>
+Message-ID: <Pine.SOL.4.33.0808081232530.8786-100000@innovate>
+
+Yeah, that shouldn't be too hard. In fact it is already done for java and
+ruby code generators due to the lack of pointers. These languages only
+have table-based drivers though and since you are after speed you probably
+want to make it work with -G2. Should be straightforward. Send the results
+here if you try it :)
+
+Adrian
+
+
+On Thu, 31 Jul 2008, William Ahern wrote:
+
+>
+> Cursorily looking at the generated code, it appears to be deceptively easy
+> to turn `p', `pe', and `eof' into indexes, rather than pointers, given the
+> `fpc' macro. Perhaps by simply adding a second macro to increment and
+> decrement the index?
+>
+> Am I missing anything that would throw a monkey wrench into such a patch?
+> This could make scanners more efficient, because there would be no need to
+> use memmove().
+>
+> It might even work without a patch, but technically it's undefined behavior
+> in C to derive pointer values outside arrays or malloc'd blocks. Compilers
+> like TinyCC have the ability to catch such errors, which can be useful when
+> tracking down bugs. But to keep from having to re-adjust `ts' and `te', and
+> so that Ragel sees a linear input space during scanning, the indexing would
+> have to extend beyond the ring buffer (and fpc would just be a simple
+> modulus operation).
+>
+>
+> >
+
+
+From svv1... at hotmail.com  Thu Aug 21 14:03:06 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Thu, 21 Aug 2008 07:03:06 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+Message-ID: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com>
+
+I still haven't found a way to embed an action into the entry point of
+a starred expression.
+
+Given some arbitrary regular expression `e=(ax)*y': how to execute an
+action, whenever the starred expression `ax' is started over, i.e. the
+`a' is read?
+
+
+From la... at laramies.com  Fri Aug 22 11:32:19 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Fri, 22 Aug 2008 13:32:19 +0200 (CEST)
+Subject: [ragel-users] Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de>
+References: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com>
+ <Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de>
+Message-ID: <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+
+I am not sure, if I understand you correctly, but have a look at the
+example file. Depending on the placement of the >{} action it is either
+executed every time a is found or only on the first a.
+
+best
+
+arne
+
+On Thu, 21 Aug 2008, Manfred_Nowak wrote:
+>
+>  I still haven't found a way to embed an action into the entry point of
+>  a starred expression.
+>
+>  Given some arbitrary regular expression `e=(ax)*y': how to execute an
+>  action, whenever the starred expression `ax' is started over, i.e. the
+>  `a' is read?
+>
+>  -manfred
+-------------- next part --------------
+#include <string.h>
+#include <printf.h>
+// vim:syntax=ragel
+
+%%{
+    machine test;
+    alphtype char;
+
+
+    main := ('ax' >{ printf("starting over.\n");})* >{ printf("first\n");} ;
+}%%
+
+int main() {
+    int cs;
+    char s[] = "axaxaxaxsad";
+    char *p = &s, *pe = p + strlen(s);
+
+
+    %% write data;
+
+    %% write init;
+    %% write exec;
+
+
+    return 0;
+}
+
+From svv1... at hotmail.com  Sat Aug 23 12:58:11 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 23 Aug 2008 05:58:11 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+References: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com> 
+	<Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de> <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+Message-ID: <1ec543e5-7173-480f-bf34-0f8d9e2166e8@z66g2000hsc.googlegroups.com>
+
+> Depending on the placement of the >{} action it is either
+> executed every time a is found or only on the first a.
+
+Arne, thank you for this suggestion, but it requires to know about the
+decomposition of `e', which I gave for explanation only.
+
+I understand Adrian's design decision, for excluding by default the
+start state of a machine from some inner loops, as your example shows.
+But your example also shows, that you also seems to be unaware of a
+possibility to overwrite this default.
+
+I need to overwrite this default, because I want to use ragel as a
+code generator and I do not know about the composition of the regular
+expression in general. Of course I can decompose it in a preprocessing
+step :-(
+
+
+From thurs... at cs.queensu.ca  Sat Aug 23 20:01:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 23 Aug 2008 16:01:17 -0400 (EDT)
+Subject: [ragel-users] Re: Action at the Beginning of Starred Expression
+In-Reply-To: <1ec543e5-7173-480f-bf34-0f8d9e2166e8@z66g2000hsc.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+
+Hey Manfred,
+
+So you can't write something like:
+
+e=(ax >action)*y;
+
+?
+
+What do you know about e? If you know that a only occurs at the start you
+can write:
+
+e | (any | a at action)*;
+
+-Adrian
+
+On Sat, 23 Aug 2008, Manfred_Nowak wrote:
+
+>
+> > Depending on the placement of the >{} action it is either
+> > executed every time a is found or only on the first a.
+>
+> Arne, thank you for this suggestion, but it requires to know about the
+> decomposition of `e', which I gave for explanation only.
+>
+> I understand Adrian's design decision, for excluding by default the
+> start state of a machine from some inner loops, as your example shows.
+> But your example also shows, that you also seems to be unaware of a
+> possibility to overwrite this default.
+>
+> I need to overwrite this default, because I want to use ragel as a
+> code generator and I do not know about the composition of the regular
+> expression in general. Of course I can decompose it in a preprocessing
+> step :-(
+>
+> -manfred
+> >
+
+
+
+
+From svv1... at hotmail.com  Sun Aug 24 04:08:55 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 23 Aug 2008 21:08:55 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+References: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+Message-ID: <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+
+> e=(ax >action)*y;
+[...]
+> What do you know about e?
+[...]
+> e | (any | a at action)*;
+
+`e' is given as input, therefore I do know close to nothing about `e'.
+I want to generate something like
+    `e >$action'
+and ragel decomposes `e' according to your suggestions---if they are
+detailed enough.
+
+But this is only one step. As it seems, I might have the need to
+parameterize `>>>action' at least with the character read. In total I
+fear, that my view on finite automata and my requirements are quite
+different from your view and that there is no room for both views in
+ragel.
+
+Thank you all for your suggestions. I will continue to have a look on
+ragel.
+
+-manfred
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:43:57 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:43:57 -0400
+Subject: [ragel-users] Re: Action at the Beginning of Starred Expression
+In-Reply-To: <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+References: <Pine.SOL.4.33.0808231555100.1364-100000@innovate> <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+Message-ID: <48B7545D.6090305@cs.queensu.ca>
+
+If you want to modify the ragel source to behave the way you expect you 
+can pretty easily. Just remove calls to isolateStartState in fsmap.cpp.
+
+Cheers,
+  Adrian
+
+Manfred_Nowak wrote:
+>> e=(ax >action)*y;
+> [...]
+>> What do you know about e?
+> [...]
+>> e | (any | a at action)*;
+> 
+> `e' is given as input, therefore I do know close to nothing about `e'.
+> I want to generate something like
+>     `e >$action'
+> and ragel decomposes `e' according to your suggestions---if they are
+> detailed enough.
+> 
+> But this is only one step. As it seems, I might have the need to
+> parameterize `>>>action' at least with the character read. In total I
+> fear, that my view on finite automata and my requirements are quite
+> different from your view and that there is no room for both views in
+> ragel.
+> 
+> Thank you all for your suggestions. I will continue to have a look on
+> ragel.
+> 
+> -manfred
+> 
+> 
+
+
+From svv1... at hotmail.com  Sat Aug  2 11:01:36 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 2 Aug 2008 04:01:36 -0700 (PDT)
+Subject: runaway action
+Message-ID: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+
+I am using the state chart facility described in 6.4 of the manual.
+Everything went fine until I tried to attribute the start state with
+an action.
+
+On the minimization process the start state gets incoming edges and a
+self loop.
+
+First I attributed the start state with `>from(action)', which worked
+well.
+
+Then I attributed the start state with `>to(action)'---nothing
+happened. On inspecting the resulting automaton I had to recognize,
+that the start state had no more incoming edges and no self loop:
+ragel had introduced a new inner node to which all previously incoming
+edges and the self loop of the previous start state were attached; the
+new start state had only outgoing edges :-(
+
+How to fix this?
+
+
+From svv1... at hotmail.com  Sat Aug  2 18:52:30 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 2 Aug 2008 11:52:30 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+References: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+Message-ID: <c01ddcb2-72d4-4d9f-af92-bd1aef05bede@f63g2000hsf.googlegroups.com>
+
+On 2 Aug., 13:01, Manfred_Nowak <svv1... at hotmail.com> wrote:
+> How to fix this?
+
+For this the source might be helpful. The host language is D.
+-manfred
+
+
+%%{
+  machine sink;
+  write data;
+}%%
+import std.stdio;
+void main( char[][] argv){
+  assert( argv.length>1);
+  int cs;
+  char* eof;
+  char* p=&(argv[1][0]);
+  char* pe=&(argv[1][argv[1].length-1]);
+  pe++;
+  eof= pe;
+%%{
+action clr {
+  writefln( "clr");
+}
+action a1 {}
+all= start: ( '' -> l1),
+l1:
+(
+'b' -> l2
+| 'd' -> l7
+| any -> l1
+)
+,
+l2: (
+'c' -> l3
+| any -> l1
+)
+,
+l3: (
+'d' -> l4
+| any -> l1
+)
+,
+l4: (
+'a' -> l5
+| any -> l1
+)
+,
+l5: (
+'b' -> l6
+| any -> l1
+)
+,
+l6: (
+'b' -> l12
+| 'c' -> l3
+| any -> l1
+)
+,
+l7: (
+'a' -> l8
+| any -> l1
+)
+,
+l8: (
+'b' -> l9
+| any -> l1
+)
+,
+l9: (
+'c' -> l10
+| any -> l1
+)
+,
+l10: (
+'d' -> l11
+| any -> l1
+)
+,
+l11: (
+'a' -> l8
+| 'd' -> l12
+| any -> l1
+)
+,
+l12: (
+any -> l12
+| '' -> final
+)
+;
+main:=  all ;
+     write init;
+     write exec;
+}%%
+  if( cs >= sink_first_final ){
+    writefln("accepted.");
+  } else {
+    writefln( "sorry.");
+  }
+}
+
+
+From thurs... at cs.queensu.ca  Fri Aug  8 16:32:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 8 Aug 2008 12:32:23 -0400 (EDT)
+Subject: [ragel-users] runaway action
+In-Reply-To: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+
+Hi Manfred, could you provide us with some code and the expected result?
+
+Adrian
+
+On Sat, 2 Aug 2008, Manfred_Nowak wrote:
+
+>
+> I am using the state chart facility described in 6.4 of the manual.
+> Everything went fine until I tried to attribute the start state with
+> an action.
+>
+> On the minimization process the start state gets incoming edges and a
+> self loop.
+>
+> First I attributed the start state with `>from(action)', which worked
+> well.
+>
+> Then I attributed the start state with `>to(action)'---nothing
+> happened. On inspecting the resulting automaton I had to recognize,
+> that the start state had no more incoming edges and no self loop:
+> ragel had introduced a new inner node to which all previously incoming
+> edges and the self loop of the previous start state were attached; the
+> new start state had only outgoing edges :-(
+>
+> How to fix this?
+>
+> -manfred
+> >
+
+
+From svv1... at hotmail.com  Fri Aug  8 19:12:09 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Fri, 8 Aug 2008 12:12:09 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+References: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+Message-ID: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+
+
+On 8 Aug., 18:32, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> some code and the expected result?
+
+The ragel source is in the second post, except, that the closing curly
+bracket is dropped somehow. Please insert '}' at the end of the ragel
+source.
+
+If you save the source as "fsm.rl", then the commands
+
+  ragel -D fsm.rl
+  dmd  fsm
+  fsm <arg>
+
+should be ececutable, where <arg> should be replaced by arguments like
+`aa' , `bc' or `bca'.
+
+In the source the action `clr' is defined but not used. The goal is to
+attribute the FSM in such a way, that whenever the start state is
+entered a `clr' action is executed. Because the `clr' action simply
+writes the string "clr", this means that:
+`fsm aa' should produce 2 times "clr",
+`fsm bc' should prdouce 1 "clr" and
+`fsm bca' should produce 2 times "clr".
+
+In the definition of the machine `all' the state labelled `start'
+corresponds via epsilon production `''->l1' with the state labelled
+`l1'. In principle this means, that whenever a transition `-> l1' is
+followed a `clr' action should be executed.
+
+But all I managed to get is a "clr" for every character read or no
+"clr" at all.
+
+
+From svv1... at hotmail.com  Sat Aug  9 03:24:55 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Fri, 8 Aug 2008 20:24:55 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+References: <Pine.SOL.4.33.0808081231230.8786-100000@innovate> 
+	<f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+Message-ID: <8a89708d-2dc9-40ee-b077-21f35cbd1a0d@m73g2000hsh.googlegroups.com>
+
+
+
+On 8 Aug., 21:12, Manfred_Nowak <svv1... at hotmail.com> wrote:
+> But all I managed to get
+
+I forgot to remark, that instead of `-> l1' I also tried `-> start'.
+But there was no observable change in the behaviour of the resulting
+FSM.
+
+
+From thurs... at cs.queensu.ca  Sun Aug 10 17:52:11 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 10 Aug 2008 13:52:11 -0400 (EDT)
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+
+
+
+On Fri, 8 Aug 2008, Manfred_Nowak wrote:
+
+> The ragel source is in the second post, except, that the closing curly
+> bracket is dropped somehow. Please insert '}' at the end of the ragel
+> source.
+
+Sorry! I tried to move a little too fast.
+
+The -> operator produces an epsilon transition, which is removed
+when ragel converts from an NFA to a DFA. It does not produce a
+transition in the resulting machine. The transition comes from whatever is
+in front of the epsilon operator. In the case of ''-> there is just a
+single state and also no real transition. That combination effectively
+merges the single state of '' with the target of the epsilon transition.
+
+The from(a) and to(a) operators apply only to physical transitions
+leaving from or entering into a state, which I think is the reason why you
+are not getting the desired results.
+
+Also note that the | opertor is not exclusive. I noticed you had
+expressions like:
+
+'a' ->l1 |
+any ->l2
+
+The second line of the above will take you to l1 and l2 on 'a' and to l2
+on anything else.
+
+-Adrian
+
+>
+> If you save the source as "fsm.rl", then the commands
+>
+>   ragel -D fsm.rl
+>   dmd  fsm
+>   fsm <arg>
+>
+> should be ececutable, where <arg> should be replaced by arguments like
+> `aa' , `bc' or `bca'.
+>
+> In the source the action `clr' is defined but not used. The goal is to
+> attribute the FSM in such a way, that whenever the start state is
+> entered a `clr' action is executed. Because the `clr' action simply
+> writes the string "clr", this means that:
+> `fsm aa' should produce 2 times "clr",
+> `fsm bc' should prdouce 1 "clr" and
+> `fsm bca' should produce 2 times "clr".
+>
+
+
+
+From svv1... at hotmail.com  Mon Aug 11 15:01:48 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Mon, 11 Aug 2008 08:01:48 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+Message-ID: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+
+On Aug 10, 7:52 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> which I think is the reason why you
+> are not getting the desired results.
+
+From your answer I conclude, that you also failed to attribute the
+start state of the machine `all' with some action; more precisely: the
+start state of the minimal DFA resulting out of the ragel definition
+for the automaton `all'.
+
+Factually I am quite content with the resulting minimal DFA--but from
+your explanations it seems, that ragel does not use the resulting
+minimal DFA as the basis for the attribution with actions.
+
+If this is true, then what exactly is the basis---and how can one
+debug that basis?
+
+
+From er... at atlasocean.com  Mon Aug 11 17:17:18 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 11 Aug 2008 10:17:18 -0700
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate> <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+Message-ID: <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+
+Manfred,
+
+Are you examining the dot output? I find most Ragel answers can be  
+found by adding actions and operators, and looking at the results.
+
+Best, Erich
+
+On Aug 11, 2008, at 8:01 AM, Manfred_Nowak wrote:
+
+>
+> On Aug 10, 7:52 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> which I think is the reason why you
+>> are not getting the desired results.
+>
+> From your answer I conclude, that you also failed to attribute the
+> start state of the machine `all' with some action; more precisely: the
+> start state of the minimal DFA resulting out of the ragel definition
+> for the automaton `all'.
+>
+> Factually I am quite content with the resulting minimal DFA--but from
+> your explanations it seems, that ragel does not use the resulting
+> minimal DFA as the basis for the attribution with actions.
+>
+> If this is true, then what exactly is the basis---and how can one
+> debug that basis?
+>
+> -manfred
+> >
+
+
+From svv1... at hotmail.com  Mon Aug 11 21:57:47 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Mon, 11 Aug 2008 14:57:47 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate> 
+	<66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com> 
+	<BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+Message-ID: <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+
+
+
+On 11 Aug., 19:17, Erich Ocean <er... at atlasocean.com> wrote:
+> Are you examining the dot output?
+
+Yes. The .dot output from ragel is what my first post is based on:
+without any actions the minimal DFA tested okay as executable as well
+as "on paper", i.e. the output of graphviz.
+
+Then, when attributing the `clr' action to the start state, ragel
+split the start state up into two states, from which the inner one got
+all the back edges---only outgoing transitions remained for the start
+state. That's why this thread is titled "runaway action".
+
+-manfred
+
+
+From er... at atlasocean.com  Mon Aug 11 22:06:14 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 11 Aug 2008 15:06:14 -0700
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>  <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>  <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com> <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+Message-ID: <FF71A1BC-6399-474E-98B0-4E6612A421B6@atlasocean.com>
+
+Based on your description, the thread sounds misnamed. Nevertheless, I  
+have nothing further to add. Good luck.
+
+Best, Erich
+
+On Aug 11, 2008, at 2:57 PM, Manfred_Nowak wrote:
+
+>
+>
+>
+> On 11 Aug., 19:17, Erich Ocean <er... at atlasocean.com> wrote:
+>> Are you examining the dot output?
+>
+> Yes. The .dot output from ragel is what my first post is based on:
+> without any actions the minimal DFA tested okay as executable as well
+> as "on paper", i.e. the output of graphviz.
+>
+> Then, when attributing the `clr' action to the start state, ragel
+> split the start state up into two states, from which the inner one got
+> all the back edges---only outgoing transitions remained for the start
+> state. That's why this thread is titled "runaway action".
+>
+> -manfred
+>
+>
+> >
+
+
+From thurs... at cs.queensu.ca  Tue Aug 12 18:05:56 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 12 Aug 2008 14:05:56 -0400 (EDT)
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+
+Hi Manfred,
+
+Ragel produces a DFA after every operation, including both regular
+language and action embedding operators. These machines aren't necessary
+minimal; minimization is performed at the end. It could also be performed
+at every step in the construction, but that wouldn't affect the results.
+
+Note that the ">" operators isolate the start state on purpose, causing
+the start state not to have any back edges. The idea is that start state
+is a unique state that is used only once. The user of the ">" should not
+have to be concerned with whether or not the start state in the final DFA
+ends up getting reused (possibly by the minimization process, or by the
+kleene star operator, or something else).
+
+-Adrian
+
+On Mon, 11 Aug 2008, Manfred_Nowak wrote:
+
+>
+> On Aug 10, 7:52�pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> > which I think is the reason why you
+> > are not getting the desired results.
+>
+> >From your answer I conclude, that you also failed to attribute the
+> start state of the machine `all' with some action; more precisely: the
+> start state of the minimal DFA resulting out of the ragel definition
+> for the automaton `all'.
+>
+> Factually I am quite content with the resulting minimal DFA--but from
+> your explanations it seems, that ragel does not use the resulting
+> minimal DFA as the basis for the attribution with actions.
+>
+> If this is true, then what exactly is the basis---and how can one
+> debug that basis?
+>
+> -manfred
+> >
+>
+
+
+From svv1... at hotmail.com  Tue Aug 12 23:47:28 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Tue, 12 Aug 2008 16:47:28 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+References: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+Message-ID: <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+
+
+
+On 12 Aug., 20:05, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Note that the ">" operators isolate the start state on purpose, causing
+> the start state not to have any back edges.
+
+Now I understand. But then: why are epsilon transitions to start
+states allowed at all? And is there any usefulness  in the
+>to(action)?
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:52:51 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:52:51 -0400
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+References: <Pine.SOL.4.33.0808121353250.17569-100000@innovate> <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+Message-ID: <48B75673.9080207@cs.queensu.ca>
+
+The start state is like any other, except that it has the added 
+privilege of being the one the machine starts out in.
+
+The to action wasn't driven by any really important need. It seemed like 
+a reasonable thing to do at the time. It can be used to get actions to 
+execute before any other (or after depending on how you look at it).
+
+Adrian
+
+Manfred_Nowak wrote:
+> Now I understand. But then: why are epsilon transitions to start
+> states allowed at all? And is there any usefulness  in the
+>> to(action)?
+
+
+From m... at hoebeke.eu  Thu Aug 28 10:06:01 2008
+From: m... at hoebeke.eu (markh)
+Date: Thu, 28 Aug 2008 03:06:01 -0700 (PDT)
+Subject: SVN server down ?
+Message-ID: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+
+Hi all,
+
+in order to compile ohcount, It seems I need the latest repository
+version of ragel. However, I've been trying to check it out for a
+couple of days now, but every attempt timed out.
+
+Can anyone confirm or deny that the repository is not-oline at this
+time ?
+
+Thanks a lot.
+
+Mark
+
+
+From thurs... at cs.queensu.ca  Thu Aug 28 13:06:09 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 09:06:09 -0400 (EDT)
+Subject: [ragel-users] SVN server down ?
+In-Reply-To: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808280903350.6581-100000@innovate>
+
+Yes it's down. It'll be back up by tomorrow. Sorry for the inconvenience.
+
+Cheers,
+ Adrian
+
+On Thu, 28 Aug 2008, markh wrote:
+
+>
+> Hi all,
+>
+> in order to compile ohcount, It seems I need the latest repository
+> version of ragel. However, I've been trying to check it out for a
+> couple of days now, but every attempt timed out.
+>
+> Can anyone confirm or deny that the repository is not-oline at this
+> time ?
+>
+> Thanks a lot.
+>
+> Mark
+>
+>
+> >
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:23:42 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:23:42 -0400
+Subject: [ragel-users] SVN server down ?
+In-Reply-To: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+References: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+Message-ID: <48B74F9E.1010003@cs.queensu.ca>
+
+Hey Mark, it's back up now.
+
+Cheers,
+  Adrian
+
+markh wrote:
+> Hi all,
+> 
+> in order to compile ohcount, It seems I need the latest repository
+> version of ragel. However, I've been trying to check it out for a
+> couple of days now, but every attempt timed out.
+> 
+> Can anyone confirm or deny that the repository is not-oline at this
+> time ?
+> 
+> Thanks a lot.
+> 
+> Mark
+> 
+> 
+> 
+
+
+From m... at hoebeke.eu  Fri Aug 29 07:08:10 2008
+From: m... at hoebeke.eu (Mark Hoebeke)
+Date: Fri, 29 Aug 2008 09:08:10 +0200
+Subject: [ragel-users] Re: SVN server down ?
+In-Reply-To: <48B74F9E.1010...@cs.queensu.ca>
+References: <d23275d6-aa8f-4176-9db8-5030d71c6...@56g2000hsm.googlegroups.com>
+	 <48B74F9E.1010...@cs.queensu.ca>
+Message-ID: <f839a97f0808290008v4330106ckffc89c2bd26d5...@mail.gmail.com>
+
+Thanks a lot, I checked out the most recent release, and (after a few
+hassles) managed to build and use it.
+
+Cheers,
+
+Mark
+
+
+2008/8/29 Adrian Thurston <thurs... at cs.queensu.ca>:
+>
+> Hey Mark, it's back up now.
+>
+> Cheers,
+>  Adrian
+>
+> markh wrote:
+>> Hi all,
+>>
+>> in order to compile ohcount, It seems I need the latest repository
+>> version of ragel. However, I've been trying to check it out for a
+>> couple of days now, but every attempt timed out.
+>>
+>> Can anyone confirm or deny that the repository is not-oline at this
+>> time ?
+>>
+>> Thanks a lot.
+>>
+>> Mark
+>>
+>>
+>>
+>
+> >
+>
+
+
+From loopys... at gmail.com  Mon Aug 25 23:03:43 2008
+From: loopys... at gmail.com (Matt Reynolds)
+Date: Mon, 25 Aug 2008 16:03:43 -0700 (PDT)
+Subject: Ragel pointers
+Message-ID: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+
+So, I've been struggling on and off for some time with creating a
+lightweight "humane text" parser with Ragel.  Here's what I've got.
+
+%%{
+machine simtex;
+
+	newline = "\n" @ { curline++; newline(); };
+
+	text = (print -- newline)* >{ markTextStart(fpc);} %
+{ captureText(fpc);};
+
+    comment_to_eol = "#!" %{ fire(Token.Type.COMMENT);} ;
+
+    heading = "%" {1,5} % { fire(Token.Type.HEADING); };
+    separator = "-" {5,} % { fire(Token.Type.SEPARATOR); };
+
+    set = "*" {1,5} @ { fire(Token.Type.SET); };
+    list = ([0-9]+ . ".") {1} @ { fire(Token.Type.LIST); };
+
+    uninterpolated_command_start = "$<{";
+    uninterpolated_command_end = "}>$";
+
+    stanzas = (comment_to_eol | heading | separator | set | list);
+
+	main := (stanzas? . text . newline+ )*;
+}%%
+
+I've tried various permutations, with some success, but this is the
+configuration that has yielded the most results.  I'm attempting to
+parse text in two passes, with the first pass catching all line-based
+formatting and the second catching any inter-line formatting.
+
+At this point, I'm just looking for some more general explanation of
+best practices for how to write parsers like this in Ragel.  I've
+followed the examples, and each time I come back to this hobby project
+I understand a little more, but I figured I'd ask if people have
+general tips (or more full fledged examples) of how to write these
+sorts of parsers in Ragel.
+
+I've looked around for other examples of wiki-text parsers and what
+not, but they're generally very complicated and very lengthy, which
+seem to go against the elegance that Ragel embodies.
+
+Anyway, thanks for any help you might be able to give,
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:30:58 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:30:58 -0400
+Subject: [ragel-users] Ragel pointers
+In-Reply-To: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+References: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+Message-ID: <48B75152.2040004@cs.queensu.ca>
+
+I've never made a wikitext parser using ragel but it looks reasonable to 
+me. First you organize by lines, then by what can appear on them. There 
+are probably a number of ways to parse wikitext. You should go with the 
+one that's most natural for you.
+
+-Adrian
+
+Matt Reynolds wrote:
+> So, I've been struggling on and off for some time with creating a
+> lightweight "humane text" parser with Ragel.  Here's what I've got.
+> 
+> %%{
+> machine simtex;
+> 
+> 	newline = "\n" @ { curline++; newline(); };
+> 
+> 	text = (print -- newline)* >{ markTextStart(fpc);} %
+> { captureText(fpc);};
+> 
+>     comment_to_eol = "#!" %{ fire(Token.Type.COMMENT);} ;
+> 
+>     heading = "%" {1,5} % { fire(Token.Type.HEADING); };
+>     separator = "-" {5,} % { fire(Token.Type.SEPARATOR); };
+> 
+>     set = "*" {1,5} @ { fire(Token.Type.SET); };
+>     list = ([0-9]+ . ".") {1} @ { fire(Token.Type.LIST); };
+> 
+>     uninterpolated_command_start = "$<{";
+>     uninterpolated_command_end = "}>$";
+> 
+>     stanzas = (comment_to_eol | heading | separator | set | list);
+> 
+> 	main := (stanzas? . text . newline+ )*;
+> }%%
+> 
+> I've tried various permutations, with some success, but this is the
+> configuration that has yielded the most results.  I'm attempting to
+> parse text in two passes, with the first pass catching all line-based
+> formatting and the second catching any inter-line formatting.
+> 
+> At this point, I'm just looking for some more general explanation of
+> best practices for how to write parsers like this in Ragel.  I've
+> followed the examples, and each time I come back to this hobby project
+> I understand a little more, but I figured I'd ask if people have
+> general tips (or more full fledged examples) of how to write these
+> sorts of parsers in Ragel.
+> 
+> I've looked around for other examples of wiki-text parsers and what
+> not, but they're generally very complicated and very lengthy, which
+> seem to go against the elegance that Ragel embodies.
+> 
+> Anyway, thanks for any help you might be able to give,
+> Matt
+> 
+
+
+From w... at wincent.com  Sat Aug 30 13:25:34 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sat, 30 Aug 2008 15:25:34 +0200
+Subject: [ragel-users] Ragel pointers
+In-Reply-To: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+References: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+Message-ID: <B826B95C-4279-4C27-ADB9-D044CCC9FB08@wincent.com>
+
+El 26/8/2008, a las 1:03, Matt Reynolds escribió:
+
+> I've tried various permutations, with some success, but this is the
+> configuration that has yielded the most results.  I'm attempting to
+> parse text in two passes, with the first pass catching all line-based
+> formatting and the second catching any inter-line formatting.
+>
+> At this point, I'm just looking for some more general explanation of
+> best practices for how to write parsers like this in Ragel.  I've
+> followed the examples, and each time I come back to this hobby project
+> I understand a little more, but I figured I'd ask if people have
+> general tips (or more full fledged examples) of how to write these
+> sorts of parsers in Ragel.
+>
+> I've looked around for other examples of wiki-text parsers and what
+> not, but they're generally very complicated and very lengthy, which
+> seem to go against the elegance that Ragel embodies.
+
+I wrote a wikitext translator in C (as a Ruby extension) which uses a  
+Ragel-generated lexer and a hand-coded C parser. Probably falls into  
+the category of "very complicated and very lengthy" but it still may  
+be worth a look:
+
+http://git.wincent.com/wikitext.git
+
+It's worth noting that the Ragel part, the lexer, is relatively simple  
+and elegant; all of the complexity is in the parser. Compare the Ragel  
+lexer:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+
+With the hand-coded C parser:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/parser.c
+
+Trouble is that if you want to get into stuff like nested lists your  
+code _is_ going to get pretty complicated; can't see anyway around  
+that. But the payoff is that the translator is very, very fast (thanks  
+to Ragel) and very, very robust. To get an idea of the kind of things  
+the translator can handle check out the spec (test) suite; here's an  
+example of an integration spec that includes a bit of everything:
+
+http://git.wincent.com/wikitext.git?a=blob;f=spec/integration_spec.rb
+
+Cheers,
+Wincent
+
+
+
+
+From mforal.n... at gmail.com  Mon Aug 11 19:10:04 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 11 Aug 2008 12:10:04 -0700 (PDT)
+Subject: Next Ragel Release?
+Message-ID: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+
+Adrian,
+
+I'm not sure if you remember, but I've been spending my Google Summer
+of Code working with Ragel, and earlier I notified you of a bug that
+you fixed in SVN. Unfortunately that means the tool I've been working
+on requires SVN trunk and there are plenty of hoops to jump through as
+my coworkers and me have found. Is there any plan for a new release?
+
+Thanks for the info,
+
+
+From thurs... at cs.queensu.ca  Tue Aug 12 18:14:31 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 12 Aug 2008 14:14:31 -0400 (EDT)
+Subject: [ragel-users] Next Ragel Release?
+In-Reply-To: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808121406240.17569-100000@innovate>
+
+Hey, Mitchell,
+
+Yeah, sorry about that, the svn is currently down as well. I won't be
+able to do a release for a couple of weeks still.
+
+There is a variable called BUILD_PARSERS in the configure script that
+causes the makefiles to act as if all the ragel-generated and
+kelbt-generated files exist. This is set to false for the releases. If you
+want to give them a tarball that they can use to build ragel using just
+gcc you can make the parsers then turn off this flag and tar it up. Hope
+this helps.
+
+-Adrian
+
+On Mon, 11 Aug 2008, mitchell wrote:
+
+>
+> Adrian,
+>
+> I'm not sure if you remember, but I've been spending my Google Summer
+> of Code working with Ragel, and earlier I notified you of a bug that
+> you fixed in SVN. Unfortunately that means the tool I've been working
+> on requires SVN trunk and there are plenty of hoops to jump through as
+> my coworkers and me have found. Is there any plan for a new release?
+>
+> Thanks for the info,
+> -Mitchell;
+> >
+
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 15:38:52 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 29 Aug 2008 11:38:52 -0400
+Subject: [ragel-users] Next Ragel Release?
+In-Reply-To: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+References: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+Message-ID: <48B8180C.6050001@cs.queensu.ca>
+
+I just released 6.3.
+
+Regards,
+  Adrian
+
+mitchell wrote:
+> Adrian,
+> 
+> I'm not sure if you remember, but I've been spending my Google Summer
+> of Code working with Ragel, and earlier I notified you of a bug that
+> you fixed in SVN. Unfortunately that means the tool I've been working
+> on requires SVN trunk and there are plenty of hoops to jump through as
+> my coworkers and me have found. Is there any plan for a new release?
+> 
+> Thanks for the info,
+> -Mitchell;
+> 
+
+
+From mforal.n... at gmail.com  Sun Aug 31 15:42:19 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sun, 31 Aug 2008 08:42:19 -0700 (PDT)
+Subject: Next Ragel Release?
+In-Reply-To: <48B8180C.6050001@cs.queensu.ca>
+References: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com> 
+	<48B8180C.6050001@cs.queensu.ca>
+Message-ID: <d67965ca-466d-4dad-b06b-24c6f8e7bf43@c65g2000hsa.googlegroups.com>
+
+Adrian,
+
+> I just released 6.3.
+
+Great. Thanks so much; works wonderfully :)
+
+Take care,
+
+
+From will... at 25thandClement.com  Fri Aug  1 00:13:20 2008
+From: will... at 25thandClement.com (William Ahern)
+Date: Thu, 31 Jul 2008 17:13:20 -0700
+Subject: Parsing From Ring Buffers
+Message-ID: <20080801001320.GA4657@wilbur.25thandClement.com>
+
+Cursorily looking at the generated code, it appears to be deceptively easy
+to turn `p', `pe', and `eof' into indexes, rather than pointers, given the
+`fpc' macro. Perhaps by simply adding a second macro to increment and
+decrement the index?
+
+Am I missing anything that would throw a monkey wrench into such a patch?
+This could make scanners more efficient, because there would be no need to
+use memmove().
+
+It might even work without a patch, but technically it's undefined behavior
+in C to derive pointer values outside arrays or malloc'd blocks. Compilers
+like TinyCC have the ability to catch such errors, which can be useful when
+tracking down bugs. But to keep from having to re-adjust `ts' and `te', and
+so that Ragel sees a linear input space during scanning, the indexing would
+have to extend beyond the ring buffer (and fpc would just be a simple
+modulus operation).
+
+
+From thurs... at cs.queensu.ca  Fri Aug  8 16:37:27 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 8 Aug 2008 12:37:27 -0400 (EDT)
+Subject: [ragel-users] Parsing From Ring Buffers
+In-Reply-To: <20080801001320.GA4657@wilbur.25thandClement.com>
+Message-ID: <Pine.SOL.4.33.0808081232530.8786-100000@innovate>
+
+Yeah, that shouldn't be too hard. In fact it is already done for java and
+ruby code generators due to the lack of pointers. These languages only
+have table-based drivers though and since you are after speed you probably
+want to make it work with -G2. Should be straightforward. Send the results
+here if you try it :)
+
+Adrian
+
+
+On Thu, 31 Jul 2008, William Ahern wrote:
+
+>
+> Cursorily looking at the generated code, it appears to be deceptively easy
+> to turn `p', `pe', and `eof' into indexes, rather than pointers, given the
+> `fpc' macro. Perhaps by simply adding a second macro to increment and
+> decrement the index?
+>
+> Am I missing anything that would throw a monkey wrench into such a patch?
+> This could make scanners more efficient, because there would be no need to
+> use memmove().
+>
+> It might even work without a patch, but technically it's undefined behavior
+> in C to derive pointer values outside arrays or malloc'd blocks. Compilers
+> like TinyCC have the ability to catch such errors, which can be useful when
+> tracking down bugs. But to keep from having to re-adjust `ts' and `te', and
+> so that Ragel sees a linear input space during scanning, the indexing would
+> have to extend beyond the ring buffer (and fpc would just be a simple
+> modulus operation).
+>
+>
+> >
+
+
+From svv1... at hotmail.com  Thu Aug 21 14:03:06 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Thu, 21 Aug 2008 07:03:06 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+Message-ID: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com>
+
+I still haven't found a way to embed an action into the entry point of
+a starred expression.
+
+Given some arbitrary regular expression `e=(ax)*y': how to execute an
+action, whenever the starred expression `ax' is started over, i.e. the
+`a' is read?
+
+
+From la... at laramies.com  Fri Aug 22 11:32:19 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Fri, 22 Aug 2008 13:32:19 +0200 (CEST)
+Subject: [ragel-users] Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de>
+References: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com>
+ <Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de>
+Message-ID: <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+
+I am not sure, if I understand you correctly, but have a look at the
+example file. Depending on the placement of the >{} action it is either
+executed every time a is found or only on the first a.
+
+best
+
+arne
+
+On Thu, 21 Aug 2008, Manfred_Nowak wrote:
+>
+>  I still haven't found a way to embed an action into the entry point of
+>  a starred expression.
+>
+>  Given some arbitrary regular expression `e=(ax)*y': how to execute an
+>  action, whenever the starred expression `ax' is started over, i.e. the
+>  `a' is read?
+>
+>  -manfred
+-------------- next part --------------
+#include <string.h>
+#include <printf.h>
+// vim:syntax=ragel
+
+%%{
+    machine test;
+    alphtype char;
+
+
+    main := ('ax' >{ printf("starting over.\n");})* >{ printf("first\n");} ;
+}%%
+
+int main() {
+    int cs;
+    char s[] = "axaxaxaxsad";
+    char *p = &s, *pe = p + strlen(s);
+
+
+    %% write data;
+
+    %% write init;
+    %% write exec;
+
+
+    return 0;
+}
+
+From svv1... at hotmail.com  Sat Aug 23 12:58:11 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 23 Aug 2008 05:58:11 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+References: <865c1f9c-3a64-4098-9400-3070a8c80223@c58g2000hsc.googlegroups.com> 
+	<Pine.LNX.4.64.0808221102180.10893@phpmy.l.tobij.de> <Pine.LNX.4.64.0808221331200.10893@phpmy.l.tobij.de>
+Message-ID: <1ec543e5-7173-480f-bf34-0f8d9e2166e8@z66g2000hsc.googlegroups.com>
+
+> Depending on the placement of the >{} action it is either
+> executed every time a is found or only on the first a.
+
+Arne, thank you for this suggestion, but it requires to know about the
+decomposition of `e', which I gave for explanation only.
+
+I understand Adrian's design decision, for excluding by default the
+start state of a machine from some inner loops, as your example shows.
+But your example also shows, that you also seems to be unaware of a
+possibility to overwrite this default.
+
+I need to overwrite this default, because I want to use ragel as a
+code generator and I do not know about the composition of the regular
+expression in general. Of course I can decompose it in a preprocessing
+step :-(
+
+
+From thurs... at cs.queensu.ca  Sat Aug 23 20:01:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 23 Aug 2008 16:01:17 -0400 (EDT)
+Subject: [ragel-users] Re: Action at the Beginning of Starred Expression
+In-Reply-To: <1ec543e5-7173-480f-bf34-0f8d9e2166e8@z66g2000hsc.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+
+Hey Manfred,
+
+So you can't write something like:
+
+e=(ax >action)*y;
+
+?
+
+What do you know about e? If you know that a only occurs at the start you
+can write:
+
+e | (any | a at action)*;
+
+-Adrian
+
+On Sat, 23 Aug 2008, Manfred_Nowak wrote:
+
+>
+> > Depending on the placement of the >{} action it is either
+> > executed every time a is found or only on the first a.
+>
+> Arne, thank you for this suggestion, but it requires to know about the
+> decomposition of `e', which I gave for explanation only.
+>
+> I understand Adrian's design decision, for excluding by default the
+> start state of a machine from some inner loops, as your example shows.
+> But your example also shows, that you also seems to be unaware of a
+> possibility to overwrite this default.
+>
+> I need to overwrite this default, because I want to use ragel as a
+> code generator and I do not know about the composition of the regular
+> expression in general. Of course I can decompose it in a preprocessing
+> step :-(
+>
+> -manfred
+> >
+
+
+
+
+From svv1... at hotmail.com  Sun Aug 24 04:08:55 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 23 Aug 2008 21:08:55 -0700 (PDT)
+Subject: Action at the Beginning of Starred Expression
+In-Reply-To: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+References: <Pine.SOL.4.33.0808231555100.1364-100000@innovate>
+Message-ID: <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+
+> e=(ax >action)*y;
+[...]
+> What do you know about e?
+[...]
+> e | (any | a at action)*;
+
+`e' is given as input, therefore I do know close to nothing about `e'.
+I want to generate something like
+    `e >$action'
+and ragel decomposes `e' according to your suggestions---if they are
+detailed enough.
+
+But this is only one step. As it seems, I might have the need to
+parameterize `>>>action' at least with the character read. In total I
+fear, that my view on finite automata and my requirements are quite
+different from your view and that there is no room for both views in
+ragel.
+
+Thank you all for your suggestions. I will continue to have a look on
+ragel.
+
+-manfred
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:43:57 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:43:57 -0400
+Subject: [ragel-users] Re: Action at the Beginning of Starred Expression
+In-Reply-To: <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+References: <Pine.SOL.4.33.0808231555100.1364-100000@innovate> <f1be41ab-7687-480f-89b1-729ba569a45c@e39g2000hsf.googlegroups.com>
+Message-ID: <48B7545D.6090305@cs.queensu.ca>
+
+If you want to modify the ragel source to behave the way you expect you 
+can pretty easily. Just remove calls to isolateStartState in fsmap.cpp.
+
+Cheers,
+  Adrian
+
+Manfred_Nowak wrote:
+>> e=(ax >action)*y;
+> [...]
+>> What do you know about e?
+> [...]
+>> e | (any | a at action)*;
+> 
+> `e' is given as input, therefore I do know close to nothing about `e'.
+> I want to generate something like
+>     `e >$action'
+> and ragel decomposes `e' according to your suggestions---if they are
+> detailed enough.
+> 
+> But this is only one step. As it seems, I might have the need to
+> parameterize `>>>action' at least with the character read. In total I
+> fear, that my view on finite automata and my requirements are quite
+> different from your view and that there is no room for both views in
+> ragel.
+> 
+> Thank you all for your suggestions. I will continue to have a look on
+> ragel.
+> 
+> -manfred
+> 
+> 
+
+
+From svv1... at hotmail.com  Sat Aug  2 11:01:36 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 2 Aug 2008 04:01:36 -0700 (PDT)
+Subject: runaway action
+Message-ID: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+
+I am using the state chart facility described in 6.4 of the manual.
+Everything went fine until I tried to attribute the start state with
+an action.
+
+On the minimization process the start state gets incoming edges and a
+self loop.
+
+First I attributed the start state with `>from(action)', which worked
+well.
+
+Then I attributed the start state with `>to(action)'---nothing
+happened. On inspecting the resulting automaton I had to recognize,
+that the start state had no more incoming edges and no self loop:
+ragel had introduced a new inner node to which all previously incoming
+edges and the self loop of the previous start state were attached; the
+new start state had only outgoing edges :-(
+
+How to fix this?
+
+
+From svv1... at hotmail.com  Sat Aug  2 18:52:30 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Sat, 2 Aug 2008 11:52:30 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+References: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+Message-ID: <c01ddcb2-72d4-4d9f-af92-bd1aef05bede@f63g2000hsf.googlegroups.com>
+
+On 2 Aug., 13:01, Manfred_Nowak <svv1... at hotmail.com> wrote:
+> How to fix this?
+
+For this the source might be helpful. The host language is D.
+-manfred
+
+
+%%{
+  machine sink;
+  write data;
+}%%
+import std.stdio;
+void main( char[][] argv){
+  assert( argv.length>1);
+  int cs;
+  char* eof;
+  char* p=&(argv[1][0]);
+  char* pe=&(argv[1][argv[1].length-1]);
+  pe++;
+  eof= pe;
+%%{
+action clr {
+  writefln( "clr");
+}
+action a1 {}
+all= start: ( '' -> l1),
+l1:
+(
+'b' -> l2
+| 'd' -> l7
+| any -> l1
+)
+,
+l2: (
+'c' -> l3
+| any -> l1
+)
+,
+l3: (
+'d' -> l4
+| any -> l1
+)
+,
+l4: (
+'a' -> l5
+| any -> l1
+)
+,
+l5: (
+'b' -> l6
+| any -> l1
+)
+,
+l6: (
+'b' -> l12
+| 'c' -> l3
+| any -> l1
+)
+,
+l7: (
+'a' -> l8
+| any -> l1
+)
+,
+l8: (
+'b' -> l9
+| any -> l1
+)
+,
+l9: (
+'c' -> l10
+| any -> l1
+)
+,
+l10: (
+'d' -> l11
+| any -> l1
+)
+,
+l11: (
+'a' -> l8
+| 'd' -> l12
+| any -> l1
+)
+,
+l12: (
+any -> l12
+| '' -> final
+)
+;
+main:=  all ;
+     write init;
+     write exec;
+}%%
+  if( cs >= sink_first_final ){
+    writefln("accepted.");
+  } else {
+    writefln( "sorry.");
+  }
+}
+
+
+From thurs... at cs.queensu.ca  Fri Aug  8 16:32:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 8 Aug 2008 12:32:23 -0400 (EDT)
+Subject: [ragel-users] runaway action
+In-Reply-To: <8620343a-eb57-4caf-8060-df1a9bb8938c@l42g2000hsc.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+
+Hi Manfred, could you provide us with some code and the expected result?
+
+Adrian
+
+On Sat, 2 Aug 2008, Manfred_Nowak wrote:
+
+>
+> I am using the state chart facility described in 6.4 of the manual.
+> Everything went fine until I tried to attribute the start state with
+> an action.
+>
+> On the minimization process the start state gets incoming edges and a
+> self loop.
+>
+> First I attributed the start state with `>from(action)', which worked
+> well.
+>
+> Then I attributed the start state with `>to(action)'---nothing
+> happened. On inspecting the resulting automaton I had to recognize,
+> that the start state had no more incoming edges and no self loop:
+> ragel had introduced a new inner node to which all previously incoming
+> edges and the self loop of the previous start state were attached; the
+> new start state had only outgoing edges :-(
+>
+> How to fix this?
+>
+> -manfred
+> >
+
+
+From svv1... at hotmail.com  Fri Aug  8 19:12:09 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Fri, 8 Aug 2008 12:12:09 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+References: <Pine.SOL.4.33.0808081231230.8786-100000@innovate>
+Message-ID: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+
+
+On 8 Aug., 18:32, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> some code and the expected result?
+
+The ragel source is in the second post, except, that the closing curly
+bracket is dropped somehow. Please insert '}' at the end of the ragel
+source.
+
+If you save the source as "fsm.rl", then the commands
+
+  ragel -D fsm.rl
+  dmd  fsm
+  fsm <arg>
+
+should be ececutable, where <arg> should be replaced by arguments like
+`aa' , `bc' or `bca'.
+
+In the source the action `clr' is defined but not used. The goal is to
+attribute the FSM in such a way, that whenever the start state is
+entered a `clr' action is executed. Because the `clr' action simply
+writes the string "clr", this means that:
+`fsm aa' should produce 2 times "clr",
+`fsm bc' should prdouce 1 "clr" and
+`fsm bca' should produce 2 times "clr".
+
+In the definition of the machine `all' the state labelled `start'
+corresponds via epsilon production `''->l1' with the state labelled
+`l1'. In principle this means, that whenever a transition `-> l1' is
+followed a `clr' action should be executed.
+
+But all I managed to get is a "clr" for every character read or no
+"clr" at all.
+
+
+From svv1... at hotmail.com  Sat Aug  9 03:24:55 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Fri, 8 Aug 2008 20:24:55 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+References: <Pine.SOL.4.33.0808081231230.8786-100000@innovate> 
+	<f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+Message-ID: <8a89708d-2dc9-40ee-b077-21f35cbd1a0d@m73g2000hsh.googlegroups.com>
+
+
+
+On 8 Aug., 21:12, Manfred_Nowak <svv1... at hotmail.com> wrote:
+> But all I managed to get
+
+I forgot to remark, that instead of `-> l1' I also tried `-> start'.
+But there was no observable change in the behaviour of the resulting
+FSM.
+
+
+From thurs... at cs.queensu.ca  Sun Aug 10 17:52:11 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 10 Aug 2008 13:52:11 -0400 (EDT)
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <f690eb55-5555-44bb-a820-305d1a95f6cf@k30g2000hse.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+
+
+
+On Fri, 8 Aug 2008, Manfred_Nowak wrote:
+
+> The ragel source is in the second post, except, that the closing curly
+> bracket is dropped somehow. Please insert '}' at the end of the ragel
+> source.
+
+Sorry! I tried to move a little too fast.
+
+The -> operator produces an epsilon transition, which is removed
+when ragel converts from an NFA to a DFA. It does not produce a
+transition in the resulting machine. The transition comes from whatever is
+in front of the epsilon operator. In the case of ''-> there is just a
+single state and also no real transition. That combination effectively
+merges the single state of '' with the target of the epsilon transition.
+
+The from(a) and to(a) operators apply only to physical transitions
+leaving from or entering into a state, which I think is the reason why you
+are not getting the desired results.
+
+Also note that the | opertor is not exclusive. I noticed you had
+expressions like:
+
+'a' ->l1 |
+any ->l2
+
+The second line of the above will take you to l1 and l2 on 'a' and to l2
+on anything else.
+
+-Adrian
+
+>
+> If you save the source as "fsm.rl", then the commands
+>
+>   ragel -D fsm.rl
+>   dmd  fsm
+>   fsm <arg>
+>
+> should be ececutable, where <arg> should be replaced by arguments like
+> `aa' , `bc' or `bca'.
+>
+> In the source the action `clr' is defined but not used. The goal is to
+> attribute the FSM in such a way, that whenever the start state is
+> entered a `clr' action is executed. Because the `clr' action simply
+> writes the string "clr", this means that:
+> `fsm aa' should produce 2 times "clr",
+> `fsm bc' should prdouce 1 "clr" and
+> `fsm bca' should produce 2 times "clr".
+>
+
+
+
+From svv1... at hotmail.com  Mon Aug 11 15:01:48 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Mon, 11 Aug 2008 08:01:48 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>
+Message-ID: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+
+On Aug 10, 7:52 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> which I think is the reason why you
+> are not getting the desired results.
+
+From your answer I conclude, that you also failed to attribute the
+start state of the machine `all' with some action; more precisely: the
+start state of the minimal DFA resulting out of the ragel definition
+for the automaton `all'.
+
+Factually I am quite content with the resulting minimal DFA--but from
+your explanations it seems, that ragel does not use the resulting
+minimal DFA as the basis for the attribution with actions.
+
+If this is true, then what exactly is the basis---and how can one
+debug that basis?
+
+
+From er... at atlasocean.com  Mon Aug 11 17:17:18 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 11 Aug 2008 10:17:18 -0700
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate> <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+Message-ID: <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+
+Manfred,
+
+Are you examining the dot output? I find most Ragel answers can be  
+found by adding actions and operators, and looking at the results.
+
+Best, Erich
+
+On Aug 11, 2008, at 8:01 AM, Manfred_Nowak wrote:
+
+>
+> On Aug 10, 7:52 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> which I think is the reason why you
+>> are not getting the desired results.
+>
+> From your answer I conclude, that you also failed to attribute the
+> start state of the machine `all' with some action; more precisely: the
+> start state of the minimal DFA resulting out of the ragel definition
+> for the automaton `all'.
+>
+> Factually I am quite content with the resulting minimal DFA--but from
+> your explanations it seems, that ragel does not use the resulting
+> minimal DFA as the basis for the attribution with actions.
+>
+> If this is true, then what exactly is the basis---and how can one
+> debug that basis?
+>
+> -manfred
+> >
+
+
+From svv1... at hotmail.com  Mon Aug 11 21:57:47 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Mon, 11 Aug 2008 14:57:47 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate> 
+	<66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com> 
+	<BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com>
+Message-ID: <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+
+
+
+On 11 Aug., 19:17, Erich Ocean <er... at atlasocean.com> wrote:
+> Are you examining the dot output?
+
+Yes. The .dot output from ragel is what my first post is based on:
+without any actions the minimal DFA tested okay as executable as well
+as "on paper", i.e. the output of graphviz.
+
+Then, when attributing the `clr' action to the start state, ragel
+split the start state up into two states, from which the inner one got
+all the back edges---only outgoing transitions remained for the start
+state. That's why this thread is titled "runaway action".
+
+-manfred
+
+
+From er... at atlasocean.com  Mon Aug 11 22:06:14 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 11 Aug 2008 15:06:14 -0700
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+References: <Pine.SOL.4.33.0808101333510.20489-100000@innovate>  <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>  <BCF0A9AB-975C-45B4-889A-08667EB8A711@atlasocean.com> <b9b69a9b-1066-4483-bf78-88ebaf31df63@j22g2000hsf.googlegroups.com>
+Message-ID: <FF71A1BC-6399-474E-98B0-4E6612A421B6@atlasocean.com>
+
+Based on your description, the thread sounds misnamed. Nevertheless, I  
+have nothing further to add. Good luck.
+
+Best, Erich
+
+On Aug 11, 2008, at 2:57 PM, Manfred_Nowak wrote:
+
+>
+>
+>
+> On 11 Aug., 19:17, Erich Ocean <er... at atlasocean.com> wrote:
+>> Are you examining the dot output?
+>
+> Yes. The .dot output from ragel is what my first post is based on:
+> without any actions the minimal DFA tested okay as executable as well
+> as "on paper", i.e. the output of graphviz.
+>
+> Then, when attributing the `clr' action to the start state, ragel
+> split the start state up into two states, from which the inner one got
+> all the back edges---only outgoing transitions remained for the start
+> state. That's why this thread is titled "runaway action".
+>
+> -manfred
+>
+>
+> >
+
+
+From thurs... at cs.queensu.ca  Tue Aug 12 18:05:56 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 12 Aug 2008 14:05:56 -0400 (EDT)
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <66d6485a-a497-4d54-b61a-b363c591ccc2@79g2000hsk.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+
+Hi Manfred,
+
+Ragel produces a DFA after every operation, including both regular
+language and action embedding operators. These machines aren't necessary
+minimal; minimization is performed at the end. It could also be performed
+at every step in the construction, but that wouldn't affect the results.
+
+Note that the ">" operators isolate the start state on purpose, causing
+the start state not to have any back edges. The idea is that start state
+is a unique state that is used only once. The user of the ">" should not
+have to be concerned with whether or not the start state in the final DFA
+ends up getting reused (possibly by the minimization process, or by the
+kleene star operator, or something else).
+
+-Adrian
+
+On Mon, 11 Aug 2008, Manfred_Nowak wrote:
+
+>
+> On Aug 10, 7:52�pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> > which I think is the reason why you
+> > are not getting the desired results.
+>
+> >From your answer I conclude, that you also failed to attribute the
+> start state of the machine `all' with some action; more precisely: the
+> start state of the minimal DFA resulting out of the ragel definition
+> for the automaton `all'.
+>
+> Factually I am quite content with the resulting minimal DFA--but from
+> your explanations it seems, that ragel does not use the resulting
+> minimal DFA as the basis for the attribution with actions.
+>
+> If this is true, then what exactly is the basis---and how can one
+> debug that basis?
+>
+> -manfred
+> >
+>
+
+
+From svv1... at hotmail.com  Tue Aug 12 23:47:28 2008
+From: svv1... at hotmail.com (Manfred_Nowak)
+Date: Tue, 12 Aug 2008 16:47:28 -0700 (PDT)
+Subject: runaway action
+In-Reply-To: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+References: <Pine.SOL.4.33.0808121353250.17569-100000@innovate>
+Message-ID: <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+
+
+
+On 12 Aug., 20:05, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Note that the ">" operators isolate the start state on purpose, causing
+> the start state not to have any back edges.
+
+Now I understand. But then: why are epsilon transitions to start
+states allowed at all? And is there any usefulness  in the
+>to(action)?
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:52:51 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:52:51 -0400
+Subject: [ragel-users] Re: runaway action
+In-Reply-To: <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+References: <Pine.SOL.4.33.0808121353250.17569-100000@innovate> <28513f56-cf35-481e-9f21-312f78b7f591@m36g2000hse.googlegroups.com>
+Message-ID: <48B75673.9080207@cs.queensu.ca>
+
+The start state is like any other, except that it has the added 
+privilege of being the one the machine starts out in.
+
+The to action wasn't driven by any really important need. It seemed like 
+a reasonable thing to do at the time. It can be used to get actions to 
+execute before any other (or after depending on how you look at it).
+
+Adrian
+
+Manfred_Nowak wrote:
+> Now I understand. But then: why are epsilon transitions to start
+> states allowed at all? And is there any usefulness  in the
+>> to(action)?
+
+
+From m... at hoebeke.eu  Thu Aug 28 10:06:01 2008
+From: m... at hoebeke.eu (markh)
+Date: Thu, 28 Aug 2008 03:06:01 -0700 (PDT)
+Subject: SVN server down ?
+Message-ID: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+
+Hi all,
+
+in order to compile ohcount, It seems I need the latest repository
+version of ragel. However, I've been trying to check it out for a
+couple of days now, but every attempt timed out.
+
+Can anyone confirm or deny that the repository is not-oline at this
+time ?
+
+Thanks a lot.
+
+Mark
+
+
+From thurs... at cs.queensu.ca  Thu Aug 28 13:06:09 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 09:06:09 -0400 (EDT)
+Subject: [ragel-users] SVN server down ?
+In-Reply-To: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808280903350.6581-100000@innovate>
+
+Yes it's down. It'll be back up by tomorrow. Sorry for the inconvenience.
+
+Cheers,
+ Adrian
+
+On Thu, 28 Aug 2008, markh wrote:
+
+>
+> Hi all,
+>
+> in order to compile ohcount, It seems I need the latest repository
+> version of ragel. However, I've been trying to check it out for a
+> couple of days now, but every attempt timed out.
+>
+> Can anyone confirm or deny that the repository is not-oline at this
+> time ?
+>
+> Thanks a lot.
+>
+> Mark
+>
+>
+> >
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:23:42 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:23:42 -0400
+Subject: [ragel-users] SVN server down ?
+In-Reply-To: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+References: <d23275d6-aa8f-4176-9db8-5030d71c65bf@56g2000hsm.googlegroups.com>
+Message-ID: <48B74F9E.1010003@cs.queensu.ca>
+
+Hey Mark, it's back up now.
+
+Cheers,
+  Adrian
+
+markh wrote:
+> Hi all,
+> 
+> in order to compile ohcount, It seems I need the latest repository
+> version of ragel. However, I've been trying to check it out for a
+> couple of days now, but every attempt timed out.
+> 
+> Can anyone confirm or deny that the repository is not-oline at this
+> time ?
+> 
+> Thanks a lot.
+> 
+> Mark
+> 
+> 
+> 
+
+
+From m... at hoebeke.eu  Fri Aug 29 07:08:10 2008
+From: m... at hoebeke.eu (Mark Hoebeke)
+Date: Fri, 29 Aug 2008 09:08:10 +0200
+Subject: [ragel-users] Re: SVN server down ?
+In-Reply-To: <48B74F9E.1010...@cs.queensu.ca>
+References: <d23275d6-aa8f-4176-9db8-5030d71c6...@56g2000hsm.googlegroups.com>
+	 <48B74F9E.1010...@cs.queensu.ca>
+Message-ID: <f839a97f0808290008v4330106ckffc89c2bd26d5...@mail.gmail.com>
+
+Thanks a lot, I checked out the most recent release, and (after a few
+hassles) managed to build and use it.
+
+Cheers,
+
+Mark
+
+
+2008/8/29 Adrian Thurston <thurs... at cs.queensu.ca>:
+>
+> Hey Mark, it's back up now.
+>
+> Cheers,
+>  Adrian
+>
+> markh wrote:
+>> Hi all,
+>>
+>> in order to compile ohcount, It seems I need the latest repository
+>> version of ragel. However, I've been trying to check it out for a
+>> couple of days now, but every attempt timed out.
+>>
+>> Can anyone confirm or deny that the repository is not-oline at this
+>> time ?
+>>
+>> Thanks a lot.
+>>
+>> Mark
+>>
+>>
+>>
+>
+> >
+>
+
+
+From loopys... at gmail.com  Mon Aug 25 23:03:43 2008
+From: loopys... at gmail.com (Matt Reynolds)
+Date: Mon, 25 Aug 2008 16:03:43 -0700 (PDT)
+Subject: Ragel pointers
+Message-ID: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+
+So, I've been struggling on and off for some time with creating a
+lightweight "humane text" parser with Ragel.  Here's what I've got.
+
+%%{
+machine simtex;
+
+	newline = "\n" @ { curline++; newline(); };
+
+	text = (print -- newline)* >{ markTextStart(fpc);} %
+{ captureText(fpc);};
+
+    comment_to_eol = "#!" %{ fire(Token.Type.COMMENT);} ;
+
+    heading = "%" {1,5} % { fire(Token.Type.HEADING); };
+    separator = "-" {5,} % { fire(Token.Type.SEPARATOR); };
+
+    set = "*" {1,5} @ { fire(Token.Type.SET); };
+    list = ([0-9]+ . ".") {1} @ { fire(Token.Type.LIST); };
+
+    uninterpolated_command_start = "$<{";
+    uninterpolated_command_end = "}>$";
+
+    stanzas = (comment_to_eol | heading | separator | set | list);
+
+	main := (stanzas? . text . newline+ )*;
+}%%
+
+I've tried various permutations, with some success, but this is the
+configuration that has yielded the most results.  I'm attempting to
+parse text in two passes, with the first pass catching all line-based
+formatting and the second catching any inter-line formatting.
+
+At this point, I'm just looking for some more general explanation of
+best practices for how to write parsers like this in Ragel.  I've
+followed the examples, and each time I come back to this hobby project
+I understand a little more, but I figured I'd ask if people have
+general tips (or more full fledged examples) of how to write these
+sorts of parsers in Ragel.
+
+I've looked around for other examples of wiki-text parsers and what
+not, but they're generally very complicated and very lengthy, which
+seem to go against the elegance that Ragel embodies.
+
+Anyway, thanks for any help you might be able to give,
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 01:30:58 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 28 Aug 2008 21:30:58 -0400
+Subject: [ragel-users] Ragel pointers
+In-Reply-To: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+References: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+Message-ID: <48B75152.2040004@cs.queensu.ca>
+
+I've never made a wikitext parser using ragel but it looks reasonable to 
+me. First you organize by lines, then by what can appear on them. There 
+are probably a number of ways to parse wikitext. You should go with the 
+one that's most natural for you.
+
+-Adrian
+
+Matt Reynolds wrote:
+> So, I've been struggling on and off for some time with creating a
+> lightweight "humane text" parser with Ragel.  Here's what I've got.
+> 
+> %%{
+> machine simtex;
+> 
+> 	newline = "\n" @ { curline++; newline(); };
+> 
+> 	text = (print -- newline)* >{ markTextStart(fpc);} %
+> { captureText(fpc);};
+> 
+>     comment_to_eol = "#!" %{ fire(Token.Type.COMMENT);} ;
+> 
+>     heading = "%" {1,5} % { fire(Token.Type.HEADING); };
+>     separator = "-" {5,} % { fire(Token.Type.SEPARATOR); };
+> 
+>     set = "*" {1,5} @ { fire(Token.Type.SET); };
+>     list = ([0-9]+ . ".") {1} @ { fire(Token.Type.LIST); };
+> 
+>     uninterpolated_command_start = "$<{";
+>     uninterpolated_command_end = "}>$";
+> 
+>     stanzas = (comment_to_eol | heading | separator | set | list);
+> 
+> 	main := (stanzas? . text . newline+ )*;
+> }%%
+> 
+> I've tried various permutations, with some success, but this is the
+> configuration that has yielded the most results.  I'm attempting to
+> parse text in two passes, with the first pass catching all line-based
+> formatting and the second catching any inter-line formatting.
+> 
+> At this point, I'm just looking for some more general explanation of
+> best practices for how to write parsers like this in Ragel.  I've
+> followed the examples, and each time I come back to this hobby project
+> I understand a little more, but I figured I'd ask if people have
+> general tips (or more full fledged examples) of how to write these
+> sorts of parsers in Ragel.
+> 
+> I've looked around for other examples of wiki-text parsers and what
+> not, but they're generally very complicated and very lengthy, which
+> seem to go against the elegance that Ragel embodies.
+> 
+> Anyway, thanks for any help you might be able to give,
+> Matt
+> 
+
+
+From w... at wincent.com  Sat Aug 30 13:25:34 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sat, 30 Aug 2008 15:25:34 +0200
+Subject: [ragel-users] Ragel pointers
+In-Reply-To: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+References: <beaee1e7-dfc8-48de-948e-4a3b42b458bd@z6g2000pre.googlegroups.com>
+Message-ID: <B826B95C-4279-4C27-ADB9-D044CCC9FB08@wincent.com>
+
+El 26/8/2008, a las 1:03, Matt Reynolds escribió:
+
+> I've tried various permutations, with some success, but this is the
+> configuration that has yielded the most results.  I'm attempting to
+> parse text in two passes, with the first pass catching all line-based
+> formatting and the second catching any inter-line formatting.
+>
+> At this point, I'm just looking for some more general explanation of
+> best practices for how to write parsers like this in Ragel.  I've
+> followed the examples, and each time I come back to this hobby project
+> I understand a little more, but I figured I'd ask if people have
+> general tips (or more full fledged examples) of how to write these
+> sorts of parsers in Ragel.
+>
+> I've looked around for other examples of wiki-text parsers and what
+> not, but they're generally very complicated and very lengthy, which
+> seem to go against the elegance that Ragel embodies.
+
+I wrote a wikitext translator in C (as a Ruby extension) which uses a  
+Ragel-generated lexer and a hand-coded C parser. Probably falls into  
+the category of "very complicated and very lengthy" but it still may  
+be worth a look:
+
+http://git.wincent.com/wikitext.git
+
+It's worth noting that the Ragel part, the lexer, is relatively simple  
+and elegant; all of the complexity is in the parser. Compare the Ragel  
+lexer:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+
+With the hand-coded C parser:
+
+http://git.wincent.com/wikitext.git?a=blob;f=ext/parser.c
+
+Trouble is that if you want to get into stuff like nested lists your  
+code _is_ going to get pretty complicated; can't see anyway around  
+that. But the payoff is that the translator is very, very fast (thanks  
+to Ragel) and very, very robust. To get an idea of the kind of things  
+the translator can handle check out the spec (test) suite; here's an  
+example of an integration spec that includes a bit of everything:
+
+http://git.wincent.com/wikitext.git?a=blob;f=spec/integration_spec.rb
+
+Cheers,
+Wincent
+
+
+
+
+From mforal.n... at gmail.com  Mon Aug 11 19:10:04 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 11 Aug 2008 12:10:04 -0700 (PDT)
+Subject: Next Ragel Release?
+Message-ID: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+
+Adrian,
+
+I'm not sure if you remember, but I've been spending my Google Summer
+of Code working with Ragel, and earlier I notified you of a bug that
+you fixed in SVN. Unfortunately that means the tool I've been working
+on requires SVN trunk and there are plenty of hoops to jump through as
+my coworkers and me have found. Is there any plan for a new release?
+
+Thanks for the info,
+
+
+From thurs... at cs.queensu.ca  Tue Aug 12 18:14:31 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 12 Aug 2008 14:14:31 -0400 (EDT)
+Subject: [ragel-users] Next Ragel Release?
+In-Reply-To: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+Message-ID: <Pine.SOL.4.33.0808121406240.17569-100000@innovate>
+
+Hey, Mitchell,
+
+Yeah, sorry about that, the svn is currently down as well. I won't be
+able to do a release for a couple of weeks still.
+
+There is a variable called BUILD_PARSERS in the configure script that
+causes the makefiles to act as if all the ragel-generated and
+kelbt-generated files exist. This is set to false for the releases. If you
+want to give them a tarball that they can use to build ragel using just
+gcc you can make the parsers then turn off this flag and tar it up. Hope
+this helps.
+
+-Adrian
+
+On Mon, 11 Aug 2008, mitchell wrote:
+
+>
+> Adrian,
+>
+> I'm not sure if you remember, but I've been spending my Google Summer
+> of Code working with Ragel, and earlier I notified you of a bug that
+> you fixed in SVN. Unfortunately that means the tool I've been working
+> on requires SVN trunk and there are plenty of hoops to jump through as
+> my coworkers and me have found. Is there any plan for a new release?
+>
+> Thanks for the info,
+> -Mitchell;
+> >
+
+
+
+From thurs... at cs.queensu.ca  Fri Aug 29 15:38:52 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 29 Aug 2008 11:38:52 -0400
+Subject: [ragel-users] Next Ragel Release?
+In-Reply-To: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+References: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com>
+Message-ID: <48B8180C.6050001@cs.queensu.ca>
+
+I just released 6.3.
+
+Regards,
+  Adrian
+
+mitchell wrote:
+> Adrian,
+> 
+> I'm not sure if you remember, but I've been spending my Google Summer
+> of Code working with Ragel, and earlier I notified you of a bug that
+> you fixed in SVN. Unfortunately that means the tool I've been working
+> on requires SVN trunk and there are plenty of hoops to jump through as
+> my coworkers and me have found. Is there any plan for a new release?
+> 
+> Thanks for the info,
+> -Mitchell;
+> 
+
+
+From mforal.n... at gmail.com  Sun Aug 31 15:42:19 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sun, 31 Aug 2008 08:42:19 -0700 (PDT)
+Subject: Next Ragel Release?
+In-Reply-To: <48B8180C.6050001@cs.queensu.ca>
+References: <8e72c3f3-14a1-496d-be34-806fc63af9c9@t54g2000hsg.googlegroups.com> 
+	<48B8180C.6050001@cs.queensu.ca>
+Message-ID: <d67965ca-466d-4dad-b06b-24c6f8e7bf43@c65g2000hsa.googlegroups.com>
+
+Adrian,
+
+> I just released 6.3.
+
+Great. Thanks so much; works wonderfully :)
+
+Take care,
+
+

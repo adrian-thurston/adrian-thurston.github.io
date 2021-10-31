@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Primitive lookahead question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Primitive%20lookahead%20question&In-Reply-To=%3C46F2CA63.9060205%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000358.html">
+   <LINK REL="Next"  HREF="000360.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Primitive lookahead question</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Primitive%20lookahead%20question&In-Reply-To=%3C46F2CA63.9060205%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Primitive lookahead question">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Sep 20 19:30:43 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000358.html">Primitive lookahead question
+</A></li>
+        <LI>Next message: <A HREF="000360.html">[ragel-users] Re: Primitive lookahead question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#359">[ date ]</a>
+              <a href="thread.html#359">[ thread ]</a>
+              <a href="subject.html#359">[ subject ]</a>
+              <a href="author.html#359">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Wincent,
+
+I would suggesting using your first solution, then manually shorten the
+from_file by 2 characters. It's a simple solution which avoids more
+elaborate backtracking/scanning approaches.
+
+What does git produce if the from file contains &quot; b/&quot;?
+
+-Adrian
+
+Wincent Colaiuta wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I'm trying to parse the output of &quot;git diff&quot; and in particular lines  
+</I>&gt;<i> which look like this:
+</I>&gt;<i> 
+</I>&gt;<i>    diff --git a/my file b/my file
+</I>&gt;<i> 
+</I>&gt;<i> Where &quot;a/my file&quot; is the &quot;from file&quot; and &quot;b/my file&quot; is the &quot;to  
+</I>&gt;<i> file&quot;. This is slightly tricky because as you can see there are no  
+</I>&gt;<i> delimiters between the two paths other than a space, but spaces are  
+</I>&gt;<i> also allowed inside the paths (and Git only uses quotation marks here  
+</I>&gt;<i> when the filenames contain embedded tabs, newlines, double-quotes or  
+</I>&gt;<i> backslash charcters).
+</I>&gt;<i> 
+</I>&gt;<i> This means that the only sign that the &quot;from file&quot; has ended and the  
+</I>&gt;<i> &quot;to file&quot; has begun is when you hit &quot; b/&quot;, but by the time you see  
+</I>&gt;<i> that you're already inside the &quot;to file&quot; part. So I made rules to  
+</I>&gt;<i> capture the &quot;from file&quot; and the &quot;to file&quot;, but my initial attempt at  
+</I>&gt;<i> a &quot;from file&quot; rule was broken:
+</I>&gt;<i> 
+</I>&gt;<i>    from_file = &quot;a/&quot; (any+ -- &quot; b/&quot;) ;
+</I>&gt;<i> 
+</I>&gt;<i> The resulting state machine (quite correctly) takes input like:
+</I>&gt;<i> 
+</I>&gt;<i>    a/hello b/world
+</I>&gt;<i> 
+</I>&gt;<i> And identifies the &quot;from file&quot; as:
+</I>&gt;<i> 
+</I>&gt;<i>    a/hello b
+</I>&gt;<i> 
+</I>&gt;<i> Which is not what we want. One tactic is mash the &quot;from_file&quot; and  
+</I>&gt;<i> &quot;to_file&quot; rules into a single rule:
+</I>&gt;<i> 
+</I>&gt;<i>    from_to_files = &quot;a/&quot; (any - linefeed)+ &quot; b/&quot; (any - linefeed)+ ;
+</I>&gt;<i> 
+</I>&gt;<i> But that produces a fairly ugly DFA (especially when you add in rules  
+</I>&gt;<i> for parsing quotes filenames with embedded escape sequences). So I  
+</I>&gt;<i> tried to implement a primitive form of manual lookahead as follows:
+</I>&gt;<i> 
+</I>&gt;<i>    from_file = &quot;a/&quot; (any - linefeed)+ %store &quot; b/&quot; @jumpback;
+</I>&gt;<i> 
+</I>&gt;<i> Where &quot;store&quot; is an action which records the recognized file and  
+</I>&gt;<i> &quot;jumpback&quot; is just:
+</I>&gt;<i> 
+</I>&gt;<i>    action jumpback { p -= 3; }
+</I>&gt;<i> 
+</I>&gt;<i> The idea being that I have to &quot;lookahead&quot; and see the &quot; b/&quot; to know  
+</I>&gt;<i> that the &quot;from file&quot; has been scanned, but then bump the current  
+</I>&gt;<i> character pointer back by three so that the machine can resume  
+</I>&gt;<i> scanning and looking for the &quot;to file&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> The generated DFA for the rule looks correct to me and isn't too ugly  
+</I>&gt;<i> (7 states, about 14 transitions). Is my approach ok, or is there a  
+</I>&gt;<i> better way?
+</I>&gt;<i> 
+</I>&gt;<i> Apart from that the format I am trying to parse is totally regular,  
+</I>&gt;<i> unambiguous, and can be parsed without backtracking, which is nice  
+</I>&gt;<i> for a change!
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Wincent
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070920/0b139318/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070920/0b139318/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000358.html">Primitive lookahead question
+</A></li>
+	<LI>Next message: <A HREF="000360.html">[ragel-users] Re: Primitive lookahead question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#359">[ date ]</a>
+              <a href="thread.html#359">[ thread ]</a>
+              <a href="subject.html#359">[ subject ]</a>
+              <a href="author.html#359">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

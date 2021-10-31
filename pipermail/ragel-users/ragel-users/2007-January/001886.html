@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Reproducable crash
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Reproducable%20crash&In-Reply-To=%3C1169588305.955977.317210%40k78g2000cwa.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Reproducable crash</H1>
+    <B>Alexander Strange</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Reproducable%20crash&In-Reply-To=%3C1169588305.955977.317210%40k78g2000cwa.googlegroups.com%3E"
+       TITLE="Reproducable crash">astra... at gmail.com
+       </A><BR>
+    <I>Tue Jan 23 21:38:25 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1886">[ date ]</a>
+              <a href="thread.html#1886">[ thread ]</a>
+              <a href="subject.html#1886">[ subject ]</a>
+              <a href="author.html#1886">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>The attached file causes &quot;ragel&quot; (not rlcodegen) to bus error.
+
+Program received signal EXC_BAD_ACCESS, Could not access memory.
+Reason: KERN_PROTECTION_FAILURE at address: 0x00000064
+0x0002e355 in STable&lt;SBstMapEl&lt;int, Action*&gt; &gt;::length (this=0x64) at
+../aapl/table.h:152
+152                     { return data == 0 ? 0 : (((STabHead*)data) -
+1)-&gt;tabLen; }
+(gdb) bt
+#0  0x0002e355 in STable&lt;SBstMapEl&lt;int, Action*&gt; &gt;::length (this=0x64)
+at ../aapl/table.h:152
+#1  0x00022432 in FsmAp::hasOutData (this=0x60a8c0, state=0x0) at
+fsmap.cpp:790
+#2  0x00020796 in FsmAp::mergeStatesLeaving (this=0x60a8c0,
+md=@0xbfffeda4, destState=0x0, srcState=0x610af0) at fsmgraph.cpp:1178
+#3  0x00021b7c in FsmAp::starOp (this=0x60a8c0) at fsmgraph.cpp:228
+#4  0x000119f9 in FactorWithRep::walk (this=0x609c50, pd=0x600460) at
+parsetree.cpp:1356
+#5  0x00012316 in FactorWithAug::walk (this=0x609c80, pd=0x600460) at
+parsetree.cpp:1109
+#6  0x00012af9 in Term::walk (this=0x609cd0, pd=0x600460,
+lastInSeq=true) at parsetree.cpp:845
+#7  0x00012d5e in Expression::walk (this=0x609cf0, pd=0x600460,
+lastInSeq=true) at parsetree.cpp:687
+#8  0x00012f98 in Join::walk (this=0x609d10, pd=0x600460) at
+parsetree.cpp:502
+#9  0x000112b4 in JoinOrLm::walk (this=0x609d30, pd=0x600460) at
+parsetree.cpp:446
+#10 0x00011329 in VarDef::walk (this=0x609d70, pd=0x600460) at
+parsetree.cpp:44
+#11 0x00017cbb in ParseData::makeInstance (this=0x600460,
+gdNode=0x609d40) at parsedata.cpp:1025
+#12 0x00017ef6 in ParseData::makeAll (this=0x600460) at
+parsedata.cpp:1141
+#13 0x000180a1 in ParseData::prepareMachineGen (this=0x600460,
+graphDictEl=0x0) at parsedata.cpp:1302
+#14 0x00018184 in writeMachines (out=@0xa0b0a920, hostData=@0xbffff284,
+inputFileName=0xbffff41c &quot;SSATagParsing.m.rl&quot;) at parsedata.cpp:1368
+#15 0x0000c66b in main (argc=2, argv=0xbffff300) at main.cpp:372
+
+The error can be worked around by removing &quot;crasher&quot; from the &quot;tag&quot;
+machine.
+
+(The intent of this was to be able to match any text inside a special
+tag as valid, so my added actions would clean tags out of the text even
+if I hadn't implemented all the commands inside them.)
+
+Some other issues I've noticed writing this (a parser for text style
+annotations in a subtitle format):
+
+1. I get a warning:
+SSATagParsing.m.rl:200:28: warning: applying plus operator to a machine
+that accpets zero length word
+
+This is obviously misspelled. Besides that, is there a way to avoid
+this? I really am scanning any text that may have optional special
+codes in it at random places, and empty text is perfectly fine by me.
+
+2. According to the graph, once inside the &quot;tag&quot; machine, it generates
+transitions to reenter that state upon reading '{', or to enter the nl
+machine upon '\'. tag and nl should be exclusive, according to:
+
+				tag = &quot;{&quot; cmd* &quot;}&quot;;
+
+				nl = &quot;\\&quot; [Nn];
+
+				special = nl % nl_handler |
+						 (tag &gt; enter_tag % exit_tag);
+
+and it shouldn't be looking for either of those until it's met a '}'.
+Am I wrong?
+
+Finally, just as a feature request, the things I'm using actions for
+some of the time seem too obvious. I use several just to save the
+current buffer position, since all the ending actions get is a pointer
+past the end of what they want to read, and one to reimplement strtod.
+I don't want to use the full tokenizing machinery since I have the
+entire buffer available at once, but I would like beginning positions
+of machines.
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1886">[ date ]</a>
+              <a href="thread.html#1886">[ thread ]</a>
+              <a href="subject.html#1886">[ subject ]</a>
+              <a href="author.html#1886">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

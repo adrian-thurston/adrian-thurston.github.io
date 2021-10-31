@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to execute a % action only when a zero-length match/accept occurs.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20How%20to%20execute%20a%20%25%20action%20only%20when%20a%20zero-length%20match/accept%20occurs.&In-Reply-To=%3C6711A787-4EFC-4DC8-AB38-3A16AAF5DE6B%40atlasocean.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001911.html">
+   <LINK REL="Next"  HREF="000162.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to execute a % action only when a zero-length match/accept occurs.</H1>
+    <B>Erich Ocean</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20How%20to%20execute%20a%20%25%20action%20only%20when%20a%20zero-length%20match/accept%20occurs.&In-Reply-To=%3C6711A787-4EFC-4DC8-AB38-3A16AAF5DE6B%40atlasocean.com%3E"
+       TITLE="How to execute a % action only when a zero-length match/accept occurs.">er... at atlasocean.com
+       </A><BR>
+    <I>Fri Feb  9 06:01:51 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001911.html">[ragel-users] making \n, \t etc printable
+</A></li>
+        <LI>Next message: <A HREF="000162.html">Some Ragel Ideas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#149">[ date ]</a>
+              <a href="thread.html#149">[ thread ]</a>
+              <a href="subject.html#149">[ subject ]</a>
+              <a href="author.html#149">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Suppose we had the following machine:
+
+%%{
+machine test;
+
+action FIRST {}
+# Executed on recognition of the first character
+
+action MATCH {}
+# Executed on each character that puts the machine in a match state
+
+action ACCEPT {}
+# Executed when the machine accepts a match
+
+main:= ( lower* &gt;FIRST @MATCH %ACCEPT )? . ' ';
+}%%
+
+and we wanted the exact same machine, but with the ACCEPT action  
+split into two:
+- ACCEPT_AFTER_ZERO_LENGTH_MATCH_ONLY
+- ACCEPT_AFTER_CHAR_MATCH_ONLY
+
+Here's one way to do that in Ragel:
+
+%%{
+machine test;
+
+action FIRST {}
+# Executed on recognition of the first character
+
+action MATCH {}
+# Executed on each character that put the original machine in a match  
+state
+
+action ACCEPT_AFTER_CHAR_MATCH_ONLY {}
+# Executed when the machine above accepted a match without  
+recognizing any character
+
+action ACCEPT_AFTER_ZERO_LENGTH_MATCH_ONLY {}
+# Executed when the machine above accepted a match after recognizing  
+a character
+
+main := ( ('' %ACCEPT_AFTER_ZERO_LENGTH_MATCH_ONLY) | (lower+ &gt;FIRST  
+@MATCH %ACCEPT_AFTER_CHAR_MATCH_ONLY) ) . ' ';
+}%%
+
+The generated finite state machines are identical; only the actions  
+executed are different. Notice that the Kleene star operator on lower  
+has been changed to the one-or-more (+) operator.
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001911.html">[ragel-users] making \n, \t etc printable
+</A></li>
+	<LI>Next message: <A HREF="000162.html">Some Ragel Ideas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#149">[ date ]</a>
+              <a href="thread.html#149">[ thread ]</a>
+              <a href="subject.html#149">[ subject ]</a>
+              <a href="author.html#149">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

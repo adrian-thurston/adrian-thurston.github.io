@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Packaging ragel for Fedora Extras
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C20070324002635.GB3475%40hinegardner.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Packaging ragel for Fedora Extras</H1>
+    <B>Jeremy Hinegardner</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C20070324002635.GB3475%40hinegardner.org%3E"
+       TITLE="Packaging ragel for Fedora Extras">jer... at hinegardner.org
+       </A><BR>
+    <I>Sat Mar 24 00:26:35 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1972">[ date ]</a>
+              <a href="thread.html#1972">[ thread ]</a>
+              <a href="subject.html#1972">[ subject ]</a>
+              <a href="author.html#1972">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I'm packaging up ragel for inclusion in Fedora Extras and I came across
+a parallel make dependency bug.  It seems the dependency graph as it
+currently stands can start building some of the command line
+applications before the common and redfsm libraries are complete. The
+attached patch should fix it.  
+
+I've also made a patch for the ragel(1) man page. It was referencing
+rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+ragel created ruby code.  It is also attached.
+
+I personally haven't used ragel for any of my projects, just seen it via
+other projects and noticed it hadn't been built for Fedora yet, so i
+thought I would do that.
+
+Once ragel is building in Fedora Extras I'll post another announcement
+here.  In the meantime if anyone would like to try out the rpm I've
+built feel free.  Please send any and all feedback.
+
+    <A HREF="http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm">http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm</A>
+    <A HREF="http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm">http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm</A>
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">jer... at hinegardner.org</A> 
+
+-------------- next part --------------
+--- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
++++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+@@ -18,9 +18,9 @@
+ #   along with Ragel; if not, write to the Free Software
+ #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ 
+-
+-BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+-ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
++BUILD_COMMON = common redfsm
++BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
++ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+ 
+ #*************************************
+ 
+@@ -33,11 +33,14 @@
+ # build targets
+ all: $(BUILD_SUBDIRS)
+ 
+-.PHONY: $(BUILD_SUBDIRS)
++.PHONY: $(ALL_SUBDIRS)
+ 
+-$(BUILD_SUBDIRS):
++$(BUILD_COMMON):
+ 	@cd $@ &amp;&amp; $(MAKE)
+ 
++$(BUILD_SUBDIRS): $(BUILD_COMMON)
++	cd $@ &amp;&amp; $(MAKE)
++
+ # clean targets.
+ 
+ CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+-------------- next part --------------
+--- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
++++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+@@ -33,13 +33,12 @@
+ this is the frontend component of Ragel, which generates an intermediate
+ file format that must be processed by rlcodegen(1).
+ 
+-Ragel compiles finite state machines from regular languages into executable
+-code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+-machines can not only recognize byte
+-sequences as regular expression machines do, but can also execute code at
+-arbitrary points in the recognition of a regular language.  User code is
+-embedded using inline operators that do not disrupt the regular language
+-syntax.
++Ragel compiles finite state machines from regular languages into
++executable code.  Ragel can generate C, C++, Objective-C, D, Java or
++Ruby code. Ragel state machines can not only recognize byte sequences as
++regular expression machines do, but can also execute code at arbitrary
++points in the recognition of a regular language.  User code is embedded
++using inline operators that do not disrupt the regular language syntax.
+ 
+ The core language consists of standard regular expression operators, such as
+ union, concatenation and kleene star, accompanied by action embedding
+@@ -554,7 +553,10 @@
+ Ragel was written by Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;.  Objective-C
+ output contributed by Erich Ocean. D output contributed by Alan West. 
+ .SH &quot;SEE ALSO&quot;
+-.BR rlcodegen (1),
++.BR rlgen-cd(1),
++.BR rlgen-dot(1),
++.BR rlgen-java(1),
++.BR rlgen-ruby(1),
+ .BR re2c (1),
+ .BR flex (1)
+ 
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1972">[ date ]</a>
+              <a href="thread.html#1972">[ thread ]</a>
+              <a href="subject.html#1972">[ subject ]</a>
+              <a href="author.html#1972">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

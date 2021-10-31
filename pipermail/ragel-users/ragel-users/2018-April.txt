@@ -1,0 +1,987 @@
+From ragel at zevv.nl  Wed Apr 18 22:12:51 2018
+From: ragel at zevv.nl (Ico)
+Date: Thu, 19 Apr 2018 00:12:51 +0200
+Subject: [ragel-users] Passing data to actions
+Message-ID: <20180418221251.28788.174@localhost.localdomain>
+
+Hello,
+
+First let me thank you for writing Ragel - my #1 tool for implementing
+protocol parsers.
+
+When writing machines I often find myself repeating a lot of similar
+code, for example like this when parsing the RTSP protocol:
+
+  action method_describe { rtsp.method = RTSP_DESCRIBE; }
+  action method_options  { rtsp.method = RTSP_OPTIONS; }
+  action method_play     { rtsp.method = RTSP_PLAY; }
+  action method_setup    { rtsp.method = RTSP_SETUP; }
+
+  method = ('DESCRIBE' %method_describe) |
+           ('OPTIONS' %method_options) |
+           ('PLAY' %method_play) |
+           ('SETUP' %method_setup);
+
+Would it be possible to pass information from the machine definition
+expressions into a action blocks do get a cpp/macro-like behaviour:
+  
+  action method(x) { rtsp.method = x; }
+
+  method = ('DESCRIBE' %method(RTSP_DESCRIBE)) |
+           ('OPTIONS' %method(RTSP_OPTIONS)) |
+           ('PLAY' %method(RTSP_PLAY)) |
+           ('SETUP' %method(RTSP_SETUP))
+
+Would something like this be feasible?
+
+Thanks,
+
+Ico
+
+--
+:wq
+^X^Cy^K^X^C^C^C^C
+
+
+From thurston at colm.net  Thu Apr 19 00:29:30 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 18 Apr 2018 20:29:30 -0400
+Subject: [ragel-users] Passing data to actions
+In-Reply-To: <20180418221251.28788.174@localhost.localdomain>
+References: <20180418221251.28788.174@localhost.localdomain>
+Message-ID: <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+
+Hi Ico,
+
+Nice to hear :)
+
+It's actually already implemented in ragel 7. See tests/args*.rl.
+
+Hopefully this year I'll start iterating some ragel 7 stable releases. 
+I'm almost done the researchy kind of things and soon I can start 
+addressing issues of a practical matter.
+
+Cheers,
+  Adrian
+
+On 2018-04-18 18:12, Ico wrote:
+> Hello,
+> 
+> First let me thank you for writing Ragel - my #1 tool for implementing
+> protocol parsers.
+> 
+> When writing machines I often find myself repeating a lot of similar
+> code, for example like this when parsing the RTSP protocol:
+> 
+>   action method_describe { rtsp.method = RTSP_DESCRIBE; }
+>   action method_options  { rtsp.method = RTSP_OPTIONS; }
+>   action method_play     { rtsp.method = RTSP_PLAY; }
+>   action method_setup    { rtsp.method = RTSP_SETUP; }
+> 
+>   method = ('DESCRIBE' %method_describe) |
+>            ('OPTIONS' %method_options) |
+>            ('PLAY' %method_play) |
+>            ('SETUP' %method_setup);
+> 
+> Would it be possible to pass information from the machine definition
+> expressions into a action blocks do get a cpp/macro-like behaviour:
+> 
+>   action method(x) { rtsp.method = x; }
+> 
+>   method = ('DESCRIBE' %method(RTSP_DESCRIBE)) |
+>            ('OPTIONS' %method(RTSP_OPTIONS)) |
+>            ('PLAY' %method(RTSP_PLAY)) |
+>            ('SETUP' %method(RTSP_SETUP))
+> 
+> Would something like this be feasible?
+> 
+> Thanks,
+> 
+> Ico
+> 
+> --
+> :wq
+> ^X^Cy^K^X^C^C^C^C
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From ragel at zevv.nl  Thu Apr 19 06:21:23 2018
+From: ragel at zevv.nl (Ico)
+Date: Thu, 19 Apr 2018 08:21:23 +0200
+Subject: [ragel-users] Passing data to actions
+In-Reply-To: <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+References: <20180418221251.28788.174@localhost.localdomain>
+ <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+Message-ID: <20180419062123.28788.8999@localhost.localdomain>
+
+Quoting Adrian Thurston (2018-04-19 02:29:30)
+
+> It's actually already implemented in ragel 7. See tests/args*.rl.
+
+Sweet, I will look into that, thank you.
+
+> Hopefully this year I'll start iterating some ragel 7 stable releases. 
+> I'm almost done the researchy kind of things and soon I can start 
+> addressing issues of a practical matter.
+
+After a quick test I found that the same ragel machine compiled by ragel 7
+results in a significant larger binary compared to ragel 6.10:
+
+  ico at platdoos:/tmp$ bloat-o-meter a6 a7
+  add/remove: 5/3 grow/shrink: 6/0 up/down: 5273/-1139 (4134)
+  function                                     old     new   delta
+  _rtsp_parser_trans_offsets                     -    1478   +1478
+  _rtsp_parser_cond_targs                        -    1478   +1478
+  _rtsp_parser_trans_lengths                     -     739    +739
+  _rtsp_parser_cond_keys                         -     739    +739
+  _rtsp_parser_cond_actions                      -     739    +739
+  parse                                        640     733     +93
+  _rtsp_parser_key_offsets                     350     352      +2
+  _rtsp_parser_index_offsets                   350     352      +2
+  _rtsp_parser_single_lengths                  175     176      +1
+  _rtsp_parser_range_lengths                   175     176      +1
+  _rtsp_parser_actions                         104     105      +1
+  _rtsp_parser_trans_targs                     200       -    -200
+  _rtsp_parser_trans_actions                   200       -    -200
+  _rtsp_parser_indicies                        739       -    -739
+
+I must admit I have not gone through the new documentation yet, but is
+there any obvious reason for this increase in size? As my parser will
+run on an embedded system with restricted resources it is always worth
+saving a few Kb's
+
+Thanks,
+
+Ico
+
+--
+:wq
+^X^Cy^K^X^C^C^C^C
+
+
+From will at autodeist.com  Thu Apr 19 06:24:54 2018
+From: will at autodeist.com (Will Dowling)
+Date: Thu, 19 Apr 2018 14:24:54 +0800
+Subject: [ragel-users] Passing data to actions
+In-Reply-To: <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+References: <20180418221251.28788.174@localhost.localdomain>
+ <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+Message-ID: <0B33156B-602C-4A79-9820-9BA2FEF4222E@autodeist.com>
+
+> It's actually already implemented in ragel 7. See tests/args*.rl.
+
+That’s awesome for me too - thanks for the heads up!
+Looking forward to 7 stable so I can use it.
+
+Cheers :)
+
+
+Will Dowling
+
+E: will at autodeist.com
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180419/df29b7dc/attachment.html>
+
+From thurston at colm.net  Thu Apr 19 13:55:45 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 19 Apr 2018 09:55:45 -0400
+Subject: [ragel-users] Passing data to actions
+In-Reply-To: <20180419062123.28788.8999@localhost.localdomain>
+References: <20180418221251.28788.174@localhost.localdomain>
+ <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+ <20180419062123.28788.8999@localhost.localdomain>
+Message-ID: <5df9aa975d958ba475b4f88112827a25@mail.colm.net>
+
+It's because of changes I made to support new features, without paying 
+much attention to keeping code size down. I'm still working on 
+correctness. When it's ready for optimization a lot of that can be 
+cleaned up.
+
+For example there are two sets of offset/targ arrays there, one prefixed 
+with trans and another with cond. That's because the transition search 
+has been made into a two-step process. First search on the input char, 
+then test conditions, then locate the final transition. But since you 
+probably don't use conditions that can be optimized back down to one.
+
+Adrian
+
+On 2018-04-19 02:21, Ico wrote:
+> Quoting Adrian Thurston (2018-04-19 02:29:30)
+> 
+>> It's actually already implemented in ragel 7. See tests/args*.rl.
+> 
+> Sweet, I will look into that, thank you.
+> 
+>> Hopefully this year I'll start iterating some ragel 7 stable releases.
+>> I'm almost done the researchy kind of things and soon I can start
+>> addressing issues of a practical matter.
+> 
+> After a quick test I found that the same ragel machine compiled by 
+> ragel 7
+> results in a significant larger binary compared to ragel 6.10:
+> 
+>   ico at platdoos:/tmp$ bloat-o-meter a6 a7
+>   add/remove: 5/3 grow/shrink: 6/0 up/down: 5273/-1139 (4134)
+>   function                                     old     new   delta
+>   _rtsp_parser_trans_offsets                     -    1478   +1478
+>   _rtsp_parser_cond_targs                        -    1478   +1478
+>   _rtsp_parser_trans_lengths                     -     739    +739
+>   _rtsp_parser_cond_keys                         -     739    +739
+>   _rtsp_parser_cond_actions                      -     739    +739
+>   parse                                        640     733     +93
+>   _rtsp_parser_key_offsets                     350     352      +2
+>   _rtsp_parser_index_offsets                   350     352      +2
+>   _rtsp_parser_single_lengths                  175     176      +1
+>   _rtsp_parser_range_lengths                   175     176      +1
+>   _rtsp_parser_actions                         104     105      +1
+>   _rtsp_parser_trans_targs                     200       -    -200
+>   _rtsp_parser_trans_actions                   200       -    -200
+>   _rtsp_parser_indicies                        739       -    -739
+> 
+> I must admit I have not gone through the new documentation yet, but is
+> there any obvious reason for this increase in size? As my parser will
+> run on an embedded system with restricted resources it is always worth
+> saving a few Kb's
+> 
+> Thanks,
+> 
+> Ico
+> 
+> --
+> :wq
+> ^X^Cy^K^X^C^C^C^C
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From thurston at colm.net  Thu Apr 19 15:51:55 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 19 Apr 2018 11:51:55 -0400
+Subject: [ragel-users] Passing data to actions
+In-Reply-To: <0B33156B-602C-4A79-9820-9BA2FEF4222E@autodeist.com>
+References: <20180418221251.28788.174@localhost.localdomain>
+ <133a3a82099a2ede63fab8c0731e7224@mail.colm.net>
+ <0B33156B-602C-4A79-9820-9BA2FEF4222E@autodeist.com>
+Message-ID: <057cfbfb3baece9e9fdb6acb0b541f0a@mail.colm.net>
+
+ 
+
+Thank Barracuda Networks for this feature add. Specifically, William
+Ahern and Zach Levow. 
+
+On 2018-04-19 02:24, Will Dowling wrote: 
+
+>> It's actually already implemented in ragel 7. See tests/args*.rl.
+> 
+> That's awesome for me too - thanks for the heads up! 
+> Looking forward to 7 stable so I can use it. 
+> 
+> Cheers :) 
+> 
+> Will Dowling
+> 
+> E: will at autodeist.com 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180419/ba125d42/attachment.html>
+
+From thurston at colm.net  Thu Apr 19 18:07:28 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 19 Apr 2018 14:07:28 -0400
+Subject: [ragel-users] test suite
+Message-ID: <683164e4cd7737a2aad4a1f6950aeea4@mail.colm.net>
+
+Hello,
+
+Just a heads up, I'll be moving the test suites for ragel and colm out 
+of the main source trees. The number of cases that I can't share 
+publicly is growing and I need to start putting all the cases that I 
+look after in one place and start using some common tools across the 
+collection. So what I'll do is export a 'public slice' of the full 
+colm.net test suite as a tarball with each release.
+
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+http://colm.net/
+
+
+
+From ragel at zevv.nl  Fri Apr 20 13:32:36 2018
+From: ragel at zevv.nl (Ico)
+Date: Fri, 20 Apr 2018 15:32:36 +0200
+Subject: [ragel-users] dot graphs with ASCII chars instead of numbers?
+Message-ID: <20180420133236.28788.36069@localhost.localdomain>
+
+In the Ragel user guide, all the Dot graphs show the ASCII characters on
+the state transitions, while my graphs generated by Ragels '-V' option
+only show their decimal values. The former is often much more readable
+then the latter - is there a way to get this behavior from Ragel?
+
+
+
+
+From daniel at lunix.se  Fri Apr 20 15:45:27 2018
+From: daniel at lunix.se (Daniel Beecham)
+Date: Fri, 20 Apr 2018 15:45:27 +0000
+Subject: [ragel-users] dot graphs with ASCII chars instead of numbers?
+In-Reply-To: <20180420133236.28788.36069@localhost.localdomain>
+References: <20180420133236.28788.36069@localhost.localdomain>
+Message-ID: <CAAVTe0ab-xoda6481bmYb9jpXH=5aK6fm2k-jFzTN21yXK629w@mail.gmail.com>
+
+I guess you are looking for the '-p' argument? :)
+
+Den fre 20 apr. 2018 15:32Ico <ragel at zevv.nl> skrev:
+
+> In the Ragel user guide, all the Dot graphs show the ASCII characters on
+> the state transitions, while my graphs generated by Ragels '-V' option
+> only show their decimal values. The former is often much more readable
+> then the latter - is there a way to get this behavior from Ragel?
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180420/885862b1/attachment.html>
+
+From ragel at zevv.nl  Fri Apr 20 16:05:41 2018
+From: ragel at zevv.nl (Ico)
+Date: Fri, 20 Apr 2018 18:05:41 +0200
+Subject: [ragel-users] dot graphs with ASCII chars instead of numbers?
+In-Reply-To: <CAAVTe0ab-xoda6481bmYb9jpXH=5aK6fm2k-jFzTN21yXK629w@mail.gmail.com>
+References: <20180420133236.28788.36069@localhost.localdomain>
+ <CAAVTe0ab-xoda6481bmYb9jpXH=5aK6fm2k-jFzTN21yXK629w@mail.gmail.com>
+Message-ID: <20180420160541.28788.8312@localhost.localdomain>
+
+Quoting Daniel Beecham (2018-04-20 17:45:27)
+> I guess you are looking for the '-p' argument? :)
+
+Indeed, and now I feel stupid :/ I read the user guide, but forgot to
+look in the man page.
+
+Thank you!
+
+--
+:wq
+^X^Cy^K^X^C^C^C^C
+
+
+From Mark.Olesen at esi-group.com  Mon Apr 23 06:29:36 2018
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Mon, 23 Apr 2018 08:29:36 +0200
+Subject: [ragel-users] simple parser for #include statements
+Message-ID: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+
+Background:
+In OpenFOAM (www.OpenFOAM.com) we have a flex-based dependency parser. 
+It simply goes through the file, finds all the #include "file..." 
+statements and in turn processes each of them. It has some internal 
+hashing and few other bits that make if faster than 'cpp -M'.
+However, this flex solution has it's own problems, one of which is that 
+its internal buffer switching means that we can quickly exceed 1024 open 
+file descriptors and there doesn't see to be a way to close them after 
+processing a file.
+
+I thus had a run at writing a ragel-based version that executes about 
+60% faster than the flex-based version and also does a better job of 
+closing file descriptors. I was pleased to have found an example to work 
+from (https://github.com/danmiley/ragel/blob/master/examples/cppscan.rl).
+
+Problem at hand:
+In a stripped down version, I have the following grammar snippet:
+
+%%{
+     machine wmkdep;
+
+     action  buffer  { tok = p; /* Local token start */ }
+     action  process { processFile(std::string(tok, (p - tok))); }
+
+     white   = [ \t\f\r];        # Horizontal whitespace
+     nl      = white* '\n';      # Newline
+     dnl     = [^\n]* '\n';      # Discard up to and including newline
+
+     comment := any* :>> '*/' @{ fgoto main; };
+
+     main := |*
+
+         space*; # Discard whitespace, empty lines
+
+         white* '#' white* 'include' white*
+             ('"' [^\"]+ >buffer %process '"') dnl;
+
+         '//' dnl;                # 1-line comment
+         '/*' { fgoto comment; }; # Multi-line comment
+
+         dnl;                            # Discard all other lines
+
+     *|;
+}%%
+
+However, the stripping of multi-line C-comments was failing and any 
+#include ... mentioned in a comment was also being seen.
+
+I figured that the example that I'd found with fgoto must be the right 
+way, but maybe it wasn't switching at the correct parse point so I 
+experimented with this instead:
+
+    comment := any* :>> '*/' %{ fgoto main; };
+
+But it was still parsing (not stripping) the c-comment.
+Finally, I did away with the fgoto and coded it straight up:
+
+
+
+%%{
+     machine wmkdep;
+
+     action  buffer  { tok = p; /* Local token start */ }
+     action  process { processFile(std::string(tok, (p - tok))); }
+
+     white   = [ \t\f\r];        # Horizontal whitespace
+     nl      = white* '\n';      # Newline (allow trailing whitespace)
+     dnl     = (any* -- '\n') '\n';  # Discard up to and including newline
+
+     dquot   = '"';              # double quote
+     dqarg   = (any+ -- dquot);  # double quoted argument
+
+     main := |*
+
+         space*;      # Discard whitespace, empty lines
+
+         white* '#' white* 'include' white*
+             (dquot dqarg >buffer %process dquot) dnl;
+
+         '//' dnl;               # 1-line comment
+         '/*' any* :>> '*/';     # Multi-line comment
+
+         dnl;                    # Discard all other lines
+
+     *|;
+}%%
+
+
+I'm fine with this solution. It strips the c-comments as I wanted, but 
+I'd like to understand why the first attempt failed.
+
+Additionally, I found the behaviour of 'dnl' construction (same name and 
+behaviour as m4 dnl) rather intriguing. Since the purpose is to delete 
+through to and including the newline, I'd expressed it like this:
+
+     dnl = [^\n]* '\n';
+
+However, I found that the following version
+
+     dnl = (any* -- '\n') '\n';
+
+produced a machine that was slightly tighter. I'd have thought that the 
+matching would be identical, but the first 'dnl' variant had an 
+additional intermediate stage in the machine. All machines were 
+generated with ragel 6.9 (since that's what opensuse leap 42.3 ships with).
+
+/mark
+
+
+From Mark.Olesen at esi-group.com  Mon Apr 23 21:52:10 2018
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Mon, 23 Apr 2018 23:52:10 +0200
+Subject: [ragel-users] ragel/colm now in spack
+Message-ID: <b446a3b0-5bc1-3cc5-149e-d02fa54b871e@esi-group.com>
+
+Ragel is now included as part of spack (https://spack.io/) - develop branch.
+
+No module support, but can specify as build requirement for other 
+things, or used standalone.
+
+/mark
+
+
+From thurston at colm.net  Wed Apr 25 13:45:02 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 25 Apr 2018 09:45:02 -0400
+Subject: [ragel-users] simple parser for #include statements
+In-Reply-To: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+References: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+Message-ID: <bc868e0677c4e477412f565a458c35ae@mail.colm.net>
+
+Hi Mark,
+
+So the thing to remember here is that a scanner will always try for the 
+longest match possible, and only in the case of matches of equal length 
+will it choose the pattern that appears ahead of the others. So in this 
+case the dnl at the end is taking precedence over the comment rules. It 
+doesn't interfere with the include matching rule because it also has a 
+dnl at the end.
+
+For the catch all you want to use just the any machine. It will go one 
+char at a time and this may seem less efficient, but ragel does its best 
+to optimize this.
+
+In regards to the slightly tighter machine that you mentioned, it would 
+be interesting to see before and after grammars in full to see what's 
+going on. On their own they produce the same machine, but in the context 
+of something larger there might be something preventing it, or it could 
+be a missed opportunity for optimization.
+
+-Adrian
+
+On 2018-04-23 02:29, Mark Olesen wrote:
+> Background:
+> In OpenFOAM (www.OpenFOAM.com) we have a flex-based dependency parser.
+> It simply goes through the file, finds all the #include "file..."
+> statements and in turn processes each of them. It has some internal
+> hashing and few other bits that make if faster than 'cpp -M'.
+> However, this flex solution has it's own problems, one of which is
+> that its internal buffer switching means that we can quickly exceed
+> 1024 open file descriptors and there doesn't see to be a way to close
+> them after processing a file.
+> 
+> I thus had a run at writing a ragel-based version that executes about
+> 60% faster than the flex-based version and also does a better job of
+> closing file descriptors. I was pleased to have found an example to
+> work from
+> (https://github.com/danmiley/ragel/blob/master/examples/cppscan.rl).
+> 
+> Problem at hand:
+> In a stripped down version, I have the following grammar snippet:
+> 
+> %%{
+>     machine wmkdep;
+> 
+>     action  buffer  { tok = p; /* Local token start */ }
+>     action  process { processFile(std::string(tok, (p - tok))); }
+> 
+>     white   = [ \t\f\r];        # Horizontal whitespace
+>     nl      = white* '\n';      # Newline
+>     dnl     = [^\n]* '\n';      # Discard up to and including newline
+> 
+>     comment := any* :>> '*/' @{ fgoto main; };
+> 
+>     main := |*
+> 
+>         space*; # Discard whitespace, empty lines
+> 
+>         white* '#' white* 'include' white*
+>             ('"' [^\"]+ >buffer %process '"') dnl;
+> 
+>         '//' dnl;                # 1-line comment
+>         '/*' { fgoto comment; }; # Multi-line comment
+> 
+>         dnl;                            # Discard all other lines
+> 
+>     *|;
+> }%%
+> 
+> However, the stripping of multi-line C-comments was failing and any
+> #include ... mentioned in a comment was also being seen.
+> 
+> I figured that the example that I'd found with fgoto must be the right
+> way, but maybe it wasn't switching at the correct parse point so I
+> experimented with this instead:
+> 
+>    comment := any* :>> '*/' %{ fgoto main; };
+> 
+> But it was still parsing (not stripping) the c-comment.
+> Finally, I did away with the fgoto and coded it straight up:
+> 
+> 
+> 
+> %%{
+>     machine wmkdep;
+> 
+>     action  buffer  { tok = p; /* Local token start */ }
+>     action  process { processFile(std::string(tok, (p - tok))); }
+> 
+>     white   = [ \t\f\r];        # Horizontal whitespace
+>     nl      = white* '\n';      # Newline (allow trailing whitespace)
+>     dnl     = (any* -- '\n') '\n';  # Discard up to and including 
+> newline
+> 
+>     dquot   = '"';              # double quote
+>     dqarg   = (any+ -- dquot);  # double quoted argument
+> 
+>     main := |*
+> 
+>         space*;      # Discard whitespace, empty lines
+> 
+>         white* '#' white* 'include' white*
+>             (dquot dqarg >buffer %process dquot) dnl;
+> 
+>         '//' dnl;               # 1-line comment
+>         '/*' any* :>> '*/';     # Multi-line comment
+> 
+>         dnl;                    # Discard all other lines
+> 
+>     *|;
+> }%%
+> 
+> 
+> I'm fine with this solution. It strips the c-comments as I wanted, but
+> I'd like to understand why the first attempt failed.
+> 
+> Additionally, I found the behaviour of 'dnl' construction (same name
+> and behaviour as m4 dnl) rather intriguing. Since the purpose is to
+> delete through to and including the newline, I'd expressed it like
+> this:
+> 
+>     dnl = [^\n]* '\n';
+> 
+> However, I found that the following version
+> 
+>     dnl = (any* -- '\n') '\n';
+> 
+> produced a machine that was slightly tighter. I'd have thought that
+> the matching would be identical, but the first 'dnl' variant had an
+> additional intermediate stage in the machine. All machines were
+> generated with ragel 6.9 (since that's what opensuse leap 42.3 ships
+> with).
+> 
+> /mark
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From thurston at colm.net  Wed Apr 25 13:45:27 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 25 Apr 2018 09:45:27 -0400
+Subject: [ragel-users] ragel/colm now in spack
+In-Reply-To: <b446a3b0-5bc1-3cc5-149e-d02fa54b871e@esi-group.com>
+References: <b446a3b0-5bc1-3cc5-149e-d02fa54b871e@esi-group.com>
+Message-ID: <f9631ece8faa7db3e9009b7eec958c67@mail.colm.net>
+
+Awesome, thanks!
+
+On 2018-04-23 17:52, Mark Olesen wrote:
+> Ragel is now included as part of spack (https://spack.io/) - develop 
+> branch.
+> 
+> No module support, but can specify as build requirement for other
+> things, or used standalone.
+> 
+> /mark
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From Mark.Olesen at esi-group.com  Wed Apr 25 15:37:07 2018
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Wed, 25 Apr 2018 17:37:07 +0200
+Subject: [ragel-users] simple parser for #include statements
+In-Reply-To: <bc868e0677c4e477412f565a458c35ae@mail.colm.net>
+References: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+ <bc868e0677c4e477412f565a458c35ae@mail.colm.net>
+Message-ID: <f446b945-bcad-5b52-58ea-7915e5eb6b81@esi-group.com>
+
+Hi Adrian,
+
+Your explanation starts to make some sense. Using 'any' machine instead 
+my 'dnl' machine should be a similar speed (the position of looping and 
+testing for '\n' has just shifted about a bit).
+
+However, if I rewrite it:
+
+%%{
+     main := |*
+     space*;
+
+     white* '#' white* 'include' white*
+     (dquot dqarg >buffer %process dquot) dnl;
+
+     '//' dnl;               # 1-line comment
+     '/*' any* :>> '*/';     # Multi-line comment
+
+     any                     # Discard
+     *|;
+}%%
+
+How do I ensure that the '#include' is properly anchored? This is what I 
+was attempting with the 'dnl' machine: an attempt to enforce line-based 
+processing, but combined with swallowing multi-line comments.
+
+As a regex, I'd specify my match like this
+
+    /^\s*#\s*include\s+"(.*?)".*$/
+
+For my ragel machine, should I be doing something different such as 
+having a begin-of-line state that I initialize into and reset every time 
+I cross a newline?
+With vague hand waving:
+
+%%{
+     main := |*
+
+     '#' white* 'include' white*
+     (dquot dqarg >buffer %process dquot) dnl;
+
+     '//' dnl;               # 1-line comment
+     '/*' any* :>> '*/';     # Multi-line comment
+
+     (space %isbol | any %notbol)  # Discard
+     *|;
+}%%
+
+Not that I really understand what I'd do next with this.
+
+Cheers,
+/mark
+
+
+On 04/25/18 15:45, Adrian Thurston wrote:
+> Hi Mark,
+> 
+> So the thing to remember here is that a scanner will always try for the 
+> longest match possible, and only in the case of matches of equal length 
+> will it choose the pattern that appears ahead of the others. So in this 
+> case the dnl at the end is taking precedence over the comment rules. It 
+> doesn't interfere with the include matching rule because it also has a 
+> dnl at the end.
+> 
+> For the catch all you want to use just the any machine. It will go one 
+> char at a time and this may seem less efficient, but ragel does its best 
+> to optimize this.
+> 
+> In regards to the slightly tighter machine that you mentioned, it would 
+> be interesting to see before and after grammars in full to see what's 
+> going on. On their own they produce the same machine, but in the context 
+> of something larger there might be something preventing it, or it could 
+> be a missed opportunity for optimization.
+> 
+> -Adrian
+
+
+From thurston at colm.net  Wed Apr 25 18:18:08 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 25 Apr 2018 14:18:08 -0400
+Subject: [ragel-users] simple parser for #include statements
+In-Reply-To: <f446b945-bcad-5b52-58ea-7915e5eb6b81@esi-group.com>
+References: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+ <bc868e0677c4e477412f565a458c35ae@mail.colm.net>
+ <f446b945-bcad-5b52-58ea-7915e5eb6b81@esi-group.com>
+Message-ID: <f1d6192022f5c8732a5dfb5f82a295d8@mail.colm.net>
+
+Oh I see. In that case you could use dnl as the default rule, but be 
+sure to add it to the end of pattern. That would guarantee achor on 
+beginning of line. A question then arises though, do you want to allow 
+comments ahead of include statements?
+
+On 2018-04-25 11:37, Mark Olesen wrote:
+> Hi Adrian,
+> 
+> Your explanation starts to make some sense. Using 'any' machine
+> instead my 'dnl' machine should be a similar speed (the position of
+> looping and testing for '\n' has just shifted about a bit).
+> 
+> However, if I rewrite it:
+> 
+> %%{
+>     main := |*
+>     space*;
+> 
+>     white* '#' white* 'include' white*
+>     (dquot dqarg >buffer %process dquot) dnl;
+> 
+>     '//' dnl;               # 1-line comment
+>     '/*' any* :>> '*/';     # Multi-line comment
+> 
+>     any                     # Discard
+>     *|;
+> }%%
+> 
+> How do I ensure that the '#include' is properly anchored? This is what
+> I was attempting with the 'dnl' machine: an attempt to enforce
+> line-based processing, but combined with swallowing multi-line
+> comments.
+> 
+> As a regex, I'd specify my match like this
+> 
+>    /^\s*#\s*include\s+"(.*?)".*$/
+> 
+> For my ragel machine, should I be doing something different such as
+> having a begin-of-line state that I initialize into and reset every
+> time I cross a newline?
+> With vague hand waving:
+> 
+> %%{
+>     main := |*
+> 
+>     '#' white* 'include' white*
+>     (dquot dqarg >buffer %process dquot) dnl;
+> 
+>     '//' dnl;               # 1-line comment
+>     '/*' any* :>> '*/';     # Multi-line comment
+> 
+>     (space %isbol | any %notbol)  # Discard
+>     *|;
+> }%%
+> 
+> Not that I really understand what I'd do next with this.
+> 
+> Cheers,
+> /mark
+> 
+> 
+> On 04/25/18 15:45, Adrian Thurston wrote:
+>> Hi Mark,
+>> 
+>> So the thing to remember here is that a scanner will always try for 
+>> the longest match possible, and only in the case of matches of equal 
+>> length will it choose the pattern that appears ahead of the others. So 
+>> in this case the dnl at the end is taking precedence over the comment 
+>> rules. It doesn't interfere with the include matching rule because it 
+>> also has a dnl at the end.
+>> 
+>> For the catch all you want to use just the any machine. It will go one 
+>> char at a time and this may seem less efficient, but ragel does its 
+>> best to optimize this.
+>> 
+>> In regards to the slightly tighter machine that you mentioned, it 
+>> would be interesting to see before and after grammars in full to see 
+>> what's going on. On their own they produce the same machine, but in 
+>> the context of something larger there might be something preventing 
+>> it, or it could be a missed opportunity for optimization.
+>> 
+>> -Adrian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From thurston at colm.net  Wed Apr 25 18:24:18 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 25 Apr 2018 14:24:18 -0400
+Subject: [ragel-users] simple parser for #include statements
+In-Reply-To: <f1d6192022f5c8732a5dfb5f82a295d8@mail.colm.net>
+References: <479729b8-6230-b04b-da22-c5046a499b79@esi-group.com>
+ <bc868e0677c4e477412f565a458c35ae@mail.colm.net>
+ <f446b945-bcad-5b52-58ea-7915e5eb6b81@esi-group.com>
+ <f1d6192022f5c8732a5dfb5f82a295d8@mail.colm.net>
+Message-ID: <306407a499bdf7b444cb2111b55abd7a@mail.colm.net>
+
+End of *every pattern.
+
+On 2018-04-25 14:18, Adrian Thurston wrote:
+> Oh I see. In that case you could use dnl as the default rule, but be
+> sure to add it to the end of pattern. That would guarantee achor on
+> beginning of line. A question then arises though, do you want to allow
+> comments ahead of include statements?
+> 
+> On 2018-04-25 11:37, Mark Olesen wrote:
+>> Hi Adrian,
+>> 
+>> Your explanation starts to make some sense. Using 'any' machine
+>> instead my 'dnl' machine should be a similar speed (the position of
+>> looping and testing for '\n' has just shifted about a bit).
+>> 
+>> However, if I rewrite it:
+>> 
+>> %%{
+>>     main := |*
+>>     space*;
+>> 
+>>     white* '#' white* 'include' white*
+>>     (dquot dqarg >buffer %process dquot) dnl;
+>> 
+>>     '//' dnl;               # 1-line comment
+>>     '/*' any* :>> '*/';     # Multi-line comment
+>> 
+>>     any                     # Discard
+>>     *|;
+>> }%%
+>> 
+>> How do I ensure that the '#include' is properly anchored? This is what
+>> I was attempting with the 'dnl' machine: an attempt to enforce
+>> line-based processing, but combined with swallowing multi-line
+>> comments.
+>> 
+>> As a regex, I'd specify my match like this
+>> 
+>>    /^\s*#\s*include\s+"(.*?)".*$/
+>> 
+>> For my ragel machine, should I be doing something different such as
+>> having a begin-of-line state that I initialize into and reset every
+>> time I cross a newline?
+>> With vague hand waving:
+>> 
+>> %%{
+>>     main := |*
+>> 
+>>     '#' white* 'include' white*
+>>     (dquot dqarg >buffer %process dquot) dnl;
+>> 
+>>     '//' dnl;               # 1-line comment
+>>     '/*' any* :>> '*/';     # Multi-line comment
+>> 
+>>     (space %isbol | any %notbol)  # Discard
+>>     *|;
+>> }%%
+>> 
+>> Not that I really understand what I'd do next with this.
+>> 
+>> Cheers,
+>> /mark
+>> 
+>> 
+>> On 04/25/18 15:45, Adrian Thurston wrote:
+>>> Hi Mark,
+>>> 
+>>> So the thing to remember here is that a scanner will always try for 
+>>> the longest match possible, and only in the case of matches of equal 
+>>> length will it choose the pattern that appears ahead of the others. 
+>>> So in this case the dnl at the end is taking precedence over the 
+>>> comment rules. It doesn't interfere with the include matching rule 
+>>> because it also has a dnl at the end.
+>>> 
+>>> For the catch all you want to use just the any machine. It will go 
+>>> one char at a time and this may seem less efficient, but ragel does 
+>>> its best to optimize this.
+>>> 
+>>> In regards to the slightly tighter machine that you mentioned, it 
+>>> would be interesting to see before and after grammars in full to see 
+>>> what's going on. On their own they produce the same machine, but in 
+>>> the context of something larger there might be something preventing 
+>>> it, or it could be a missed opportunity for optimization.
+>>> 
+>>> -Adrian
+>> 
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+

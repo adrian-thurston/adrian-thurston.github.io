@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Machine not running terminating actions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Machine%20not%20running%20terminating%20actions&In-Reply-To=%3Cd56373190701030031u54ce1b44mb213fbd002292bb0%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000092.html">
+   <LINK REL="Next"  HREF="000094.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Machine not running terminating actions</H1>
+    <B>Matt Mower</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Machine%20not%20running%20terminating%20actions&In-Reply-To=%3Cd56373190701030031u54ce1b44mb213fbd002292bb0%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Machine not running terminating actions">s... at mattmower.com
+       </A><BR>
+    <I>Wed Jan  3 08:31:19 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000092.html">[ragel-users] Machine not running terminating actions
+</A></li>
+        <LI>Next message: <A HREF="000094.html">[ragel-users] Re: Machine not running terminating actions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+On 03/01/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> When it comes to ordering actions on the same character, just remember
+</I>&gt;<i> that there is an outer-inner ordering. It goes outer start actions,
+</I>&gt;<i> inner start actions, inner rest actions, outer rest actions. &quot;rest&quot;
+</I>&gt;<i> meaning finishing, leaving, and all actions. It seems that what you have
+</I>&gt;<i> now is right.
+</I>&gt;<i>
+</I>
+Cool. I think I'd figured that out intuitively but not on a conscious level.
+
+&gt;<i> Leaving actions (%) only fire on character transitions. What is
+</I>&gt;<i> happening is that at the end of the input the machine is just exiting.
+</I>
+Ah.
+
+&gt;<i> There is no character to cause the action to get executed. If you embed
+</I>&gt;<i> an eof action (using %eof exit_diff) at the same places that you've
+</I>&gt;<i> specified the leaving actions (%exit_diff) and you write the eof switch
+</I>&gt;<i> (with %%write eof;) then they will fire.
+</I>&gt;<i>
+</I>
+Zed prompted me to look at write eof, but I misread the guide and
+didn't realise you had to embed specific EOF actions. I guess using
+Ruby so much has lead me to expect magic everywhere ;-)
+
+&gt;<i> You can try it out with something simple like the following. I find the
+</I>&gt;<i> smaller machines are easier to reason about and what you learn
+</I>&gt;<i> generalizes well.
+</I>
+Good point.
+
+&gt;<i>         sub = ( 's' [^\n]* '\n' ) %e1 %eof e1;
+</I>
+%eof, isn't that another action the same as %e1?  When I looked
+through the 5.16 guide about EOF actions it suggested I should use %/
+(maybe %eof is alternative syntax? I couldn't find it when I
+searched).
+
+Anyway I tried:
+
+hunk = hunkHeader &gt;enter_hunk hunkBody %exit_hunk %/exit_hunk;
+	
+	fileName = ( lineChar+ ) &gt;mark %copy_to_filespec;
+	
+	fileSpec = &quot;Index:&quot; nbsp+ fileName '\n'+;
+	
+	diffHeader = ( fileSpec separator oldFile newFile );
+	diffBody = hunk* %exit_diff %/exit_diff;
+
+and it worked first time out (since I already had the %% write eof, it
+just wasn't doing anything!)
+
+&gt;<i> ( ignoreCode | hunkEndChar @{ fhold; } );
+</I>&gt;<i>
+</I>
+I removed the lookahead as you suggested. I'll consume the \\ prefixed
+comment inside 'line' from now on.
+
+&gt;<i> In general, it's advisable to avoid fhold unless you're about to jump
+</I>&gt;<i> somewhere using fgoto or you're really sure of what you're doing. The
+</I>
+Yeah I think we can safely say I don't *quite* know what I'm doing
+yet. But I do feel like I'm getting, slowly, to grips with it. I think
+that part of my problem is that I'm not a visual thinker, I can't
+imagine the resulting graph as I'm constructing the machine. I
+probably need to be a bit less sloppy in my reasoning to compensate
+;-)
+
+So, this morning, I have:
+
+[Session started at 2007-01-03 08:24:20 +0000.]
+2007-01-03 08:24:20.716 Ragel2[1666] begin_diff
+2007-01-03 08:24:20.716 Ragel2[1666]     filespec:
+app/helpers/application_helper.rb
+2007-01-03 08:24:20.716 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.716 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.716 Ragel2[1666] end_diff
+2007-01-03 08:24:20.716 Ragel2[1666] begin_diff
+2007-01-03 08:24:20.716 Ragel2[1666]     filespec:
+app/views/layouts/application.rhtml
+2007-01-03 08:24:20.716 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.716 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.716 Ragel2[1666] end_diff
+2007-01-03 08:24:20.716 Ragel2[1666] begin_diff
+2007-01-03 08:24:20.716 Ragel2[1666]     filespec: db/schema.rb
+2007-01-03 08:24:20.716 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.716 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.716 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.716 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.717 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.717 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.717 Ragel2[1666]   begin_hunk
+2007-01-03 08:24:20.717 Ragel2[1666]   end_hunk
+2007-01-03 08:24:20.717 Ragel2[1666] end_diff
+2007-01-03 08:24:20.717 Ragel2[1666] Parser exit no errors
+
+Thank you Adrian &amp; Zed!
+
+Regards,
+
+Matt
+
+-- 
+Matt Mower :: <A HREF="http://matt.blogs.it/">http://matt.blogs.it/</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000092.html">[ragel-users] Machine not running terminating actions
+</A></li>
+	<LI>Next message: <A HREF="000094.html">[ragel-users] Re: Machine not running terminating actions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

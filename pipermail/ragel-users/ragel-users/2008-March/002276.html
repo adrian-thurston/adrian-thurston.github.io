@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: % Leaving Action Questions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3C47E0180A.8020308%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000512.html">
+   <LINK REL="Next"  HREF="000504.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: % Leaving Action Questions</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3C47E0180A.8020308%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: % Leaving Action Questions">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Tue Mar 18 19:29:14 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000512.html">% Leaving Action Questions
+</A></li>
+        <LI>Next message: <A HREF="000504.html">6.1 and further changes to the language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2276">[ date ]</a>
+              <a href="thread.html#2276">[ thread ]</a>
+              <a href="subject.html#2276">[ subject ]</a>
+              <a href="author.html#2276">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Francois, did you ever get this issue resolved? I can't see the
+problem just by looking at the grammar.
+
+-Adrian
+
+francois.beausoleil wrote:
+&gt;<i> Hello Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> On 25 fév, 17:01, &quot;Adrian Thurston&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for that.  I did finally manage to implement something that
+</I>&gt;<i> works for the vast majority of cases.  I can identify &quot;closes #123,
+</I>&gt;<i> fixes #321&quot; and other patterns.  My problem is now &quot;assigned to
+</I>&gt;<i> francois&quot;.  Here's my latest machine:
+</I>&gt;<i> 
+</I>&gt;<i>     %%{
+</I>&gt;<i>       machine commit_message_parser;
+</I>&gt;<i> 
+</I>&gt;<i>       action mark { mark = p }
+</I>&gt;<i>       action bugid { bugid = data[mark .. p] }
+</I>&gt;<i>       action name { name = data[mark .. p] }
+</I>&gt;<i> 
+</I>&gt;<i>       action close { action = :close }
+</I>&gt;<i>       action fix { action = :fix }
+</I>&gt;<i>       action reference { action = :reference }
+</I>&gt;<i>       action reopen { action = :reopen }
+</I>&gt;<i>       action reactivate { action = :reactivate }
+</I>&gt;<i>       action implement { action = :implement }
+</I>&gt;<i>       action assign { action = :assign }
+</I>&gt;<i>       action notify { listener.send(action, bugid.pack(&quot;C*&quot;)) }
+</I>&gt;<i>       action notify_assign { listener.send(action, name.pack(&quot;C*&quot;)) }
+</I>&gt;<i> 
+</I>&gt;<i>       bugid = (&quot;#&quot; ('1'..'9')&gt;mark ('0'..'9')**)@bugid %notify;
+</I>&gt;<i>       bugid_separator = (space* (punct | /and/i) space*);
+</I>&gt;<i>       bugids = (bugid (bugid_separator bugid)*);
+</I>&gt;<i> 
+</I>&gt;<i>       close = (/close/i /s/i? /:/?) %close;
+</I>&gt;<i>       fix = (/fix/i /es/i? /:/?) %fix;
+</I>&gt;<i>       reference = (/reference/i /s/i? /:/?) %reference;
+</I>&gt;<i>       reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+</I>&gt;<i>       reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+</I>&gt;<i>       implement = (/implement/i? /s/i? /:/?) %implement;
+</I>&gt;<i>       assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+</I>&gt;<i>       name = (alpha)+ &gt;mark %name;
+</I>&gt;<i>       assignto = (assign space+ name) %notify_assign;
+</I>&gt;<i> 
+</I>&gt;<i>       keywords = (close | fix | reference | reopen | reactivate |
+</I>&gt;<i> assignto);
+</I>&gt;<i>       text = (any - (keywords | bugids));
+</I>&gt;<i>       main := (text* (keywords space* bugids)*);
+</I>&gt;<i>     }%%
+</I>&gt;<i> 
+</I>&gt;<i> With this machine, Ragel doesn't recognize &quot;The parser assign
+</I>&gt;<i> francois.&quot; (meaning my notify_action isn't called).  But it does
+</I>&gt;<i> recognize &quot;The parser assign to francois.&quot;, but says the name is &quot;to
+</I>&gt;<i> &quot;.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+</I>&gt;<i> 
+</I>&gt;<i> Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+</I>&gt;<i> find an immediate application.  I don't really know where/how to start
+</I>&gt;<i> to write my scanner.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for any other help !
+</I>&gt;<i> François
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000512.html">% Leaving Action Questions
+</A></li>
+	<LI>Next message: <A HREF="000504.html">6.1 and further changes to the language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2276">[ date ]</a>
+              <a href="thread.html#2276">[ thread ]</a>
+              <a href="subject.html#2276">[ subject ]</a>
+              <a href="author.html#2276">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

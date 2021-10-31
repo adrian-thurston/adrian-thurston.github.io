@@ -1,0 +1,282 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] A problem with ragel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20problem%20with%20ragel&In-Reply-To=%3CCAPJ3TydB_tif5i2tp4n2cuLzQsc1a6QAGbGbKZGFewmkc%2B74AA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001506.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] A problem with ragel</H1>
+    <B>Pei Deng</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20problem%20with%20ragel&In-Reply-To=%3CCAPJ3TydB_tif5i2tp4n2cuLzQsc1a6QAGbGbKZGFewmkc%2B74AA%40mail.gmail.com%3E"
+       TITLE="[ragel-users] A problem with ragel">dpcmain at gmail.com
+       </A><BR>
+    <I>Wed Mar  7 20:03:12 UTC 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001506.html">[ragel-users] Potential Bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1505">[ date ]</a>
+              <a href="thread.html#1505">[ thread ]</a>
+              <a href="subject.html#1505">[ subject ]</a>
+              <a href="author.html#1505">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+When i want to use ragel to parser uri abnf from rfc3986, but meet some
+error.
+
+First, i get the abnf from that rfc, then convert it to ragel form. As
+bellow:
+#-----------------------------------------------------------------------------------------------------
+%%{
+machine URI;
+
+action ActionStartScheme { StartScheme(fpc); }
+action ActionEndScheme { EndScheme(fpc); }
+
+action ActionStartAuthority { StartAuthority(fpc); }
+action ActionEndAuthority { EndAuthority(fpc); }
+
+action ActionStartUser { StartUser(fpc); }
+action ActionEndUser { EndUser(fpc); }
+
+action ActionStartHost { StartHost(fpc); }
+action ActionEndHost { EndHost(fpc); }
+
+action ActionStartPort { StartPort(fpc); }
+action ActionEndPort { EndPort(fpc); }
+
+action ActionStartPath { StartPath(fpc); }
+action ActionEndPath { EndPath(fpc); }
+
+action ActionStartQuery { StartQuery(fpc); }
+action ActionEndQuery { EndQuery(fpc); }
+
+action ActionStartFragment { StartFragment(fpc); }
+action ActionEndFragment { EndFragment(fpc); }
+
+action All { printf(&quot;%c&quot;, fc); }
+
+#ALPHA = %x41-5A / %x61-7A
+ALPHA = 0x41..0x5A | 0x61..0x7A;
+
+#CR = %x0D
+CR = 0x0D;
+
+#DIGIT = %x30-39
+DIGIT = 0x30..0x39;
+
+#DQUOTE = %x22
+DQUOTE = 0x22;
+
+#HEXDIG = DIGIT / &quot;A&quot; / &quot;B&quot; / &quot;C&quot; / &quot;D&quot; / &quot;E&quot; / &quot;F&quot;
+HEXDIG = DIGIT | &quot;A&quot; | &quot;B&quot; | &quot;C&quot; | &quot;D&quot; | &quot;E&quot; | &quot;F&quot;;
+
+#LF = %x0A
+LF = 0x0A;
+
+#SP = %x20
+SP = 0x20;
+
+#unreserved = ALPHA / DIGIT / &quot;-&quot; / &quot;.&quot; / &quot;_&quot; / &quot;~&quot;
+unreserved = ALPHA | DIGIT | &quot;-&quot; | &quot;.&quot; | &quot;_&quot; | &quot;~&quot;;
+
+#dec-octet = ( DIGIT ) / ( %x31-39 DIGIT ) / ( &quot;1&quot; 2DIGIT ) / ( &quot;2&quot; %x30-34
+DIGIT ) / ( &quot;25&quot; %x30-35 )
+dec_octet = ( DIGIT ) | ( 0x31..0x39 DIGIT ) | ( &quot;1&quot; DIGIT{2} ) | ( &quot;2&quot;
+0x30..0x34 DIGIT ) | ( &quot;25&quot; 0x30..0x35 );
+
+#pct-encoded = &quot;%&quot; HEXDIG HEXDIG
+pct_encoded = &quot;%&quot; HEXDIG HEXDIG;
+
+#gen-delims = &quot;:&quot; / &quot;/&quot; / &quot;?&quot; / &quot;#&quot; / &quot;[&quot; / &quot;]&quot; / &quot;@&quot;
+gen_delims = &quot;:&quot; | &quot;/&quot; | &quot;?&quot; | &quot;#&quot; | &quot;[&quot; | &quot;]&quot; | &quot;@&quot;;
+
+#sub-delims = &quot;!&quot; / &quot;$&quot; / &quot;&amp;&quot; / &quot;'&quot; / &quot;(&quot; / &quot;)&quot; / &quot;*&quot; / &quot;+&quot; / &quot;,&quot; / &quot;;&quot; /
+&quot;=&quot;
+sub_delims = &quot;!&quot; | &quot;$&quot; | &quot;&amp;&quot; | &quot;'&quot; | &quot;(&quot; | &quot;)&quot; | &quot;*&quot; | &quot;+&quot; | &quot;,&quot; | &quot;;&quot; |
+&quot;=&quot;;
+
+#reserved = gen-delims / sub-delims
+reserved = gen_delims | sub_delims;
+
+#pchar = unreserved / pct-encoded / sub-delims / &quot;:&quot; / &quot;@&quot;
+pchar = unreserved | pct_encoded | sub_delims | &quot;:&quot; | &quot;@&quot;;
+
+#query = *( pchar / &quot;/&quot; / &quot;?&quot; )
+query = ( ( pchar | &quot;/&quot; | &quot;?&quot; )* );
+
+#fragment = *( pchar / &quot;/&quot; / &quot;?&quot; )
+fragment = ( pchar | &quot;/&quot; | &quot;?&quot; )*;
+
+#segment = *pchar
+segment = pchar*;
+
+#segment-nz = 1*pchar
+segment_nz = pchar+;
+
+#segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / &quot;@&quot; )
+segment_nz_nc = ( unreserved | pct_encoded | sub_delims | &quot;@&quot; )+;
+
+#path-empty = 0&lt;pchar&gt;
+path_empty = &quot;&quot;;
+
+#path-noscheme = segment-nz-nc *( &quot;/&quot; segment )
+path_noscheme = ( segment_nz_nc ( &quot;/&quot; segment )* ) $All;
+
+#path-rootless = segment-nz *( &quot;/&quot; segment )
+path_rootless = ( segment_nz ( &quot;/&quot; segment )* ) $All;
+
+#path-absolute = &quot;/&quot; [ segment-nz *( &quot;/&quot; segment ) ]
+path_absolute = ( &quot;/&quot; ( segment_nz ( &quot;/&quot; segment )* )? ) $All;
+
+#path-abempty = *( &quot;/&quot; segment )
+path_abempty = ( ( &quot;/&quot; segment )* ) $All;
+
+#path = path-abempty / path-absolute / path-noscheme / path-rootless /
+path-empty
+path = path_abempty | path_absolute | path_noscheme | path_rootless |
+path_empty;
+
+#reg-name = *( unreserved / pct-encoded / sub-delims )
+reg_name = ( unreserved | pct_encoded | sub_delims )*;
+
+#IPv4address = dec-octet &quot;.&quot; dec-octet &quot;.&quot; dec-octet &quot;.&quot; dec-octet
+IPv4address = dec_octet &quot;.&quot; dec_octet &quot;.&quot; dec_octet &quot;.&quot; dec_octet;
+
+#h16 = 1*4HEXDIG
+h16 = HEXDIG{1,4};
+
+#ls32 = ( h16 &quot;:&quot; h16 ) / IPv4address
+ls32 = ( h16 &quot;:&quot; h16 ) | IPv4address;
+
+#IPv6address = ( 6( h16 &quot;:&quot; ) ls32 ) / ( &quot;::&quot; 5( h16 &quot;:&quot; ) ls32 ) / ( [ h16
+] &quot;::&quot; 4( h16 &quot;:&quot; ) ls32 ) / ( [ *1( h16 &quot;:&quot; ) h16 ] &quot;::&quot; 3( h16 &quot;:&quot; ) ls32
+) / ( [ *2( h16 &quot;:&quot; ) h16 ] &quot;::&quot; 2( h16 &quot;:&quot; ) ls32 ) / ( [ *3( h16 &quot;:&quot; )
+h16 ] &quot;::&quot; h16 &quot;:&quot; ls32 ) / ( [ *4( h16 &quot;:&quot; ) h16 ] &quot;::&quot; ls32 ) / ( [ *5(
+h16 &quot;:&quot; ) h16 ] &quot;::&quot; h16 ) / ( [ *6( h16 &quot;:&quot; ) h16 ] &quot;::&quot; )
+IPv6address = ( ( h16 &quot;:&quot; ){6} ls32 ) | ( &quot;::&quot; ( h16 &quot;:&quot; ){5} ls32 ) | (
+h16? &quot;::&quot; ( h16 &quot;:&quot; ){4} ls32 ) | ( ( ( h16 &quot;:&quot; ){0,1} h16 )? &quot;::&quot; ( h16
+&quot;:&quot; ){3} ls32 ) | ( ( ( h16 &quot;:&quot; ){0,2} h16 )? &quot;::&quot; ( h16 &quot;:&quot; ){2} ls32 ) |
+( ( ( h16 &quot;:&quot; ){0,3} h16 )? &quot;::&quot; h16 &quot;:&quot; ls32 ) | ( ( ( h16 &quot;:&quot; ){0,4} h16
+)? &quot;::&quot; ls32 ) | ( ( ( h16 &quot;:&quot; ){0,5} h16 )? &quot;::&quot; h16 ) | ( ( ( h16 &quot;:&quot;
+){0,6} h16 )? &quot;::&quot; );
+
+#IPvFuture = &quot;v&quot; 1*HEXDIG &quot;.&quot; 1*( unreserved / sub-delims / &quot;:&quot; )
+IPvFuture = &quot;v&quot; HEXDIG+ &quot;.&quot; ( unreserved | sub_delims | &quot;:&quot; )+;
+
+#IP-literal = &quot;[&quot; ( IPv6address / IPvFuture  ) &quot;]&quot;
+IP_literal = &quot;[&quot; ( IPv6address | IPvFuture  ) &quot;]&quot;;
+
+#port = *DIGIT
+port = DIGIT*;
+
+#host = IP-literal / IPv4address / reg-name
+host = IP_literal | IPv4address | reg_name;
+
+#userinfo = *( unreserved / pct-encoded / sub-delims / &quot;:&quot; )
+userinfo = ( unreserved | pct_encoded | sub_delims | &quot;:&quot; )*;
+
+#authority = [ userinfo &quot;@&quot; ] host [ &quot;:&quot; port ]
+authority = ( userinfo &quot;@&quot; )? host ( &quot;:&quot; port )?;
+
+#scheme = ALPHA *( ALPHA / DIGIT / &quot;+&quot; / &quot;-&quot; / &quot;.&quot; )
+scheme = ALPHA ( ALPHA | DIGIT | &quot;+&quot; | &quot;-&quot; | &quot;.&quot; )*;
+
+#relative-part = ( &quot;//&quot; authority path-abempty ) / ( path-absolute ) / (
+path-noscheme ) / ( path-empty )
+relative_part = ( &quot;//&quot; authority path_abempty ) | ( path_absolute ) | (
+path_noscheme ) | ( path_empty );
+
+#relative-ref = relative-part [ &quot;?&quot; query ] [ &quot;#&quot; fragment ]
+relative_ref = relative_part ( &quot;?&quot; query )? ( &quot;#&quot; fragment )?;
+
+#hier-part = ( &quot;//&quot; authority path-abempty ) / ( path-absolute ) / (
+path-rootless ) / ( path-empty )
+hier_part = ( &quot;//&quot; authority path_abempty ) | ( path_absolute) | (
+path_rootless ) | ( path_empty );
+
+#absolute-URI = scheme &quot;:&quot; hier-part [ &quot;?&quot; query ]
+absolute_URI = scheme &quot;:&quot; hier_part ( &quot;?&quot; query )?;
+
+#URI = scheme &quot;:&quot; hier-part [ &quot;?&quot; query ] [ &quot;#&quot; fragment ]
+URI = scheme &quot;:&quot; hier_part ( &quot;?&quot; query )? ( &quot;#&quot; fragment )?;
+
+#URI-reference = URI / relative-ref
+URI_reference = URI | relative_ref;
+
+main := URI_reference | absolute_URI;
+}%%
+#-----------------------------------------------------------------------------------------------------
+
+I want to get the path from a uri, example as:
+&quot;<A HREF="http://www.complang.org/ragel/examples/clang.rl">http://www.complang.org/ragel/examples/clang.rl</A>&quot;
+should out put:
+&quot;/ragel/examples/clang.rl&quot;
+but i get:
+&quot;http//ragel/examples/clang.rl&quot;
+
+I have read the doc of ragel, but i don't know where i do wrong.
+I have work on this problem several days :-(, so please give me some help,
+thanks very much :-)
+
+ps.
+my all need is to get some part information from a uri.
+i have see XuLang's question in this maillist, but i want to implement a
+all rfc 3986 abnf, not only a common regex match.
+
+
+
+-- 
+
+*Regards,*
+*Deng Pei*
+*
+*
+*Software Engineering Institute*
+*Email: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">dpcmain at gmail.com</A>*
+*Address: East China Normal University, Shanghai, China 200062*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120308/5c3093cf/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20120308/5c3093cf/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001506.html">[ragel-users] Potential Bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1505">[ date ]</a>
+              <a href="thread.html#1505">[ thread ]</a>
+              <a href="subject.html#1505">[ subject ]</a>
+              <a href="author.html#1505">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Action code for simple tokenizer?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20code%20for%20simple%20tokenizer%3F&In-Reply-To=%3C4DF698BE.2030409%40abshere.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001356.html">
+   <LINK REL="Next"  HREF="001360.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Action code for simple tokenizer?</H1>
+    <B>Seamus Abshere</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20code%20for%20simple%20tokenizer%3F&In-Reply-To=%3C4DF698BE.2030409%40abshere.net%3E"
+       TITLE="[ragel-users] Action code for simple tokenizer?">seamus at abshere.net
+       </A><BR>
+    <I>Mon Jun 13 23:09:50 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001356.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+        <LI>Next message: <A HREF="001360.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1357">[ date ]</a>
+              <a href="thread.html#1357">[ thread ]</a>
+              <a href="subject.html#1357">[ subject ]</a>
+              <a href="author.html#1357">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear friends who have been using ragel for more than a year,
+
+I bet Kevin and I are facing a similar problem that you have all faced, 
+namely that as a software project matures, common ground between its 
+founding users and new users erodes. Fresh code examples keep interest 
+alive and prevent people from re-inventing the wheel. Please do speak up!
+
+How about an authoritative Ruby code example for Ragel Guide 6.7 section 
+4.2.4 (Longest-Match Kleene Star)?. It's &quot;useful when writing simple 
+tokenizers&quot;... that sounds like a great way to bridge the gap.
+
+Since all the code examples are in C, it's not clear what you would use 
+in Ruby instead of ts and te.
+
+Best,
+Seamus
+
+On 6/13/11 12:42 PM, Kevin T. Ryan wrote:
+&gt;<i> Hey -
+</I>&gt;<i>
+</I>&gt;<i> Just started using the library myself.  Easiest way to think about it
+</I>&gt;<i> (at least, it was for me) is that you are defining the machine in the
+</I>&gt;<i> section you noted below from the guide.  Until you initialize and
+</I>&gt;<i> execute it, it doesn't &quot;do anything&quot;.  Thus, in some part of your
+</I>&gt;<i> script you need:
+</I>&gt;<i>
+</I>&gt;<i> %% write data; # sets up all the static data needed by the tokenizer
+</I>&gt;<i>
+</I>&gt;<i> Then (somewhere else in all likelihood), you need to initialize and
+</I>&gt;<i> execute the machine.  So, for example:
+</I>&gt;<i>
+</I>&gt;<i> int main(int argc, char* argv[]) {
+</I>&gt;<i>      int cs; // you can use this to check the status of the machine
+</I>&gt;<i>      char* p = &quot;Your text to tokenize&quot;;
+</I>&gt;<i>      char* pe = p + strlen(p);
+</I>&gt;<i>
+</I>&gt;<i>      %% write init;
+</I>&gt;<i>      %% write exec; # this will execute the machine given the input
+</I>&gt;<i> provided by 'p'
+</I>&gt;<i>
+</I>&gt;<i>      if (cs ==&lt;machine_name&gt;_error)
+</I>&gt;<i>          fprintf(stderr, &quot;Error\n&quot;);
+</I>&gt;<i>      return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;&gt;<i> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+</I>&gt;<i>
+</I>&gt;<i> Maybe action 'A' is used to print a match when it  ends (the '%' in
+</I>&gt;<i> front of the A indicates that it will occur when leaving action).  For
+</I>&gt;<i> example:
+</I>&gt;<i>
+</I>&gt;<i> action A { print(&quot;Found alpha\n&quot;); }
+</I>&gt;<i> action B { print(&quot;Found int\n&quot;); }
+</I>&gt;<i>
+</I>&gt;<i> If you need to print out the total string, you might combine it with a
+</I>&gt;<i> 'mark' action.  Eg:
+</I>&gt;<i>
+</I>&gt;<i> action mark { mark = p; /* mark needs to be set up in 'main' function
+</I>&gt;<i> now as a char* */ }
+</I>&gt;<i> &lt;  as before&gt;
+</I>&gt;<i> lower ( lower | digit )*&gt;mark %A |
+</I>&gt;<i>
+</I>&gt;<i> And do the same for the integer portion of the machine.  You could
+</I>&gt;<i> then change your print function to do something like:
+</I>&gt;<i>
+</I>&gt;<i> printf(&quot;Found alpha: %.*s\n&quot;, p-mark, mark); // print out the alpha found
+</I>&gt;<i>
+</I>&gt;&gt;<i> PS. I think this would address a big question for
+</I>&gt;&gt;<i> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+</I>&gt;&gt;<i> implement a **simple** tokenizer?
+</I>&gt;<i>
+</I>&gt;<i> You may also want to look at machines that are 'special' for lexing
+</I>&gt;<i> (viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+</I>&gt;<i> hopefully I didn't screw anything up too much!
+</I>&gt;<i>
+</I>&gt;<i> PS - I'm actually trying to write up a tutorial which I'll share with
+</I>&gt;<i> the list for feedback once it's done.  I think I have a much better
+</I>&gt;<i> grasp of what's going on now, but I think writing it out would
+</I>&gt;<i> actually help my understanding too.
+</I>&gt;<i>
+</I>&gt;<i> Good luck,
+</I>&gt;<i>
+</I>&gt;<i> ktr
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001356.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+	<LI>Next message: <A HREF="001360.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1357">[ date ]</a>
+              <a href="thread.html#1357">[ thread ]</a>
+              <a href="subject.html#1357">[ subject ]</a>
+              <a href="author.html#1357">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

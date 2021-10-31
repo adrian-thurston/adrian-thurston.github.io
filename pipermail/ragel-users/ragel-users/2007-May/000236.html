@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] A bug in Ragel?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20bug%20in%20Ragel%3F&In-Reply-To=%3C463E3F91.5070105%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000235.html">
+   <LINK REL="Next"  HREF="000237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] A bug in Ragel?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20bug%20in%20Ragel%3F&In-Reply-To=%3C463E3F91.5070105%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] A bug in Ragel?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sun May  6 20:50:25 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000235.html">A bug in Ragel?
+</A></li>
+        <LI>Next message: <A HREF="000237.html">Newbie question: Scanners?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Dinesh,
+
+In the qualifier machine you've got '+-?'. This interpreted a range, not
+as a union of three characters.
+
+Cheers,
+ Adrian
+
+DinSoft wrote:
+&gt;<i> Hello everyone,
+</I>&gt;<i> 
+</I>&gt;<i> I don't understand Ragel's behaviour on one point.
+</I>&gt;<i> Currently, I am implementing a parser for SPF (RFC 4408).
+</I>&gt;<i> 
+</I>&gt;<i> Everything was fine and working well but this.
+</I>&gt;<i> 
+</I>&gt;<i> Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+</I>&gt;<i> available at <A HREF="http://www.ietf.org/rfc/rfc4408.txt">http://www.ietf.org/rfc/rfc4408.txt</A>):
+</I>&gt;<i> 
+</I>&gt;<i>                 qualifier = ([+-?~]) &gt;action_qualifier_1
+</I>&gt;<i> @action_qualifier_2;
+</I>&gt;<i> 
+</I>&gt;<i>                 all = (&quot;all&quot;i) &gt;action_all_1 @action_all_2;
+</I>&gt;<i>                 version = (&quot;v=spf1&quot;i) &gt;action_version_1
+</I>&gt;<i> @action_version_2;
+</I>&gt;<i> 
+</I>&gt;<i> 		name = (alpha ( alpha | digit | &quot;-&quot; | &quot;_&quot; | &quot;.&quot; )*) &gt;action_name_1
+</I>&gt;<i> @action_name_2;
+</I>&gt;<i> 
+</I>&gt;<i> 		redirect = (&quot;redirect&quot;i &quot;=&quot; domain_spec) &gt;action_redirect_1
+</I>&gt;<i> @action_redirect_2;
+</I>&gt;<i> 		unknown_modifier = (name &quot;=&quot; macro_string)
+</I>&gt;&gt;<i> action_unknown_modifier_1 @action_unknown_modifier_2;
+</I>&gt;<i> 		explanation = (&quot;exp&quot;i &quot;=&quot; domain_spec) &gt;action_explanation_1
+</I>&gt;<i> @action_explanation_2;
+</I>&gt;<i> 
+</I>&gt;<i>                 mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+</I>&gt;<i> | exists) &gt;action_mechanism_1 @action_mechanism_2;
+</I>&gt;<i> 		directive = ((qualifier)? mechanism) &gt;action_directive_1
+</I>&gt;<i> @action_directive_2;
+</I>&gt;<i> 
+</I>&gt;<i> 		terms_spaces = ((' '){1,}) &gt;action_terms_spaces_1
+</I>&gt;<i> @action_terms_spaces_2;
+</I>&gt;<i> 		terms_directive = (terms_spaces directive) &gt;action_terms_directive_1
+</I>&gt;<i> @action_terms_directive_2;
+</I>&gt;<i> 		terms_modifier = (terms_spaces modifier) &gt;action_terms_modifier_1
+</I>&gt;<i> @action_terms_modifier_2;
+</I>&gt;<i> 		terms = (( terms_directive | terms_modifier )*) &gt;action_terms_1
+</I>&gt;<i> @action_terms_2;					# May be empty
+</I>&gt;<i> 
+</I>&gt;<i> 		record_spaces = ((' ')*) &gt;action_record_spaces_1
+</I>&gt;<i> @action_record_spaces_2;						# May be empty
+</I>&gt;<i> 		record = (version terms record_spaces) &gt;action_record_1
+</I>&gt;<i> @action_record_2;
+</I>&gt;<i> 
+</I>&gt;<i> 		# Language's starting rule
+</I>&gt;<i> 		main := record;
+</I>&gt;<i> 
+</I>&gt;<i> With the following user-action for qualifier:
+</I>&gt;<i>  		# qualifier
+</I>&gt;<i> 		action action_qualifier_1 {
+</I>&gt;<i> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+</I>&gt;<i> 			element.start = fpc;
+</I>&gt;<i> 
+</I>&gt;<i> 			if (doubleLinkedListAddLast(&amp;qualifier, element)) {
+</I>&gt;<i> 				goto atoi_error;
+</I>&gt;<i> 			}
+</I>&gt;<i> 		}
+</I>&gt;<i> 
+</I>&gt;<i> 		action action_qualifier_2 {
+</I>&gt;<i> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+</I>&gt;<i> 			element.stop = fpc;
+</I>&gt;<i> 
+</I>&gt;<i> 			if (doubleLinkedListAddLast(&amp;qualifier, element)) {
+</I>&gt;<i> 				goto atoi_error;
+</I>&gt;<i> 			}
+</I>&gt;<i> 		}
+</I>&gt;<i> 
+</I>&gt;<i> (all rule do have the same kind of user actions).
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Now I find amazing that, on the input &quot;v=spf1 =all&quot; , I am getting the
+</I>&gt;<i> '=' as being considered as a qualifier !
+</I>&gt;<i> 
+</I>&gt;<i> Here is the dump of my doubleLinkedList for qualifier:
+</I>&gt;<i> Parsing: v=spf1 =all!
+</I>&gt;<i> qualifier list: 2 elements in the list!
+</I>&gt;<i>         Start: 134729663 (=)
+</I>&gt;<i>         Stop: 134729663 (=)
+</I>&gt;<i> 
+</I>&gt;<i> When I go back to the rule of qualifier, I see:
+</I>&gt;<i>  qualifier = ([+-?~]) &gt;action_qualifier_1 @action_qualifier_2;
+</I>&gt;<i> 
+</I>&gt;<i> So how is it possible that Ragel considers '=' as being a qualifier?
+</I>&gt;<i> 
+</I>&gt;<i> I was expecting a parse error (from the rule unknown_modifier ,
+</I>&gt;<i> because the rule &quot;name&quot; cannot be empty).
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for your help !
+</I>&gt;<i> 
+</I>&gt;<i> Regards,
+</I>&gt;<i>  Dinesh Bolkensteyn
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070506/cdf3393e/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070506/cdf3393e/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000235.html">A bug in Ragel?
+</A></li>
+	<LI>Next message: <A HREF="000237.html">Newbie question: Scanners?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

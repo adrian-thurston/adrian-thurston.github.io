@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> fcall legal in scanner?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20fcall%20legal%20in%20scanner%3F&In-Reply-To=%3C45450917.60101%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001798.html">
+   <LINK REL="Next"  HREF="001800.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>fcall legal in scanner?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20fcall%20legal%20in%20scanner%3F&In-Reply-To=%3C45450917.60101%40cs.queensu.ca%3E"
+       TITLE="fcall legal in scanner?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sun Oct 29 20:03:35 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001798.html">fcall legal in scanner?
+</A></li>
+        <LI>Next message: <A HREF="001800.html">fcall legal in scanner?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1799">[ date ]</a>
+              <a href="thread.html#1799">[ thread ]</a>
+              <a href="subject.html#1799">[ subject ]</a>
+              <a href="author.html#1799">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Indeed it will. 5.15 should be arriving soon.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+&gt;<i> Thanks, Adrian! Will this fix make it into 5.15?
+</I>&gt;<i> 
+</I>&gt;<i> On 10/29/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Hi Carlos,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I found the bug. The problem was with fret in scanner actions. The
+</I>&gt;&gt;<i> adjustment to p that is needed in some cases was not happening. The
+</I>&gt;&gt;<i> attached patch will fix the problem.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Cheers,
+</I>&gt;&gt;<i>   Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Carlos Antunes wrote:
+</I>&gt;&gt;&gt;<i> On 10/27/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;&gt;&gt;<i> It sounds like a bug. fcall is supposed to work in actions associated with
+</I>&gt;&gt;&gt;&gt;<i> entire patterns (the lex style actions) but they are illegal in the the
+</I>&gt;&gt;&gt;&gt;<i> transition/state based embeddings and Ragel is supposed to emit an error.
+</I>&gt;&gt;&gt;&gt;<i> Could you post or send me some code which exhibits the problem?
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Adrian,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Please, see test2.rl file attached. It's a messy file because it's
+</I>&gt;&gt;&gt;<i> where I do, testing.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Basically, I'm using a scanner (main) to match 'Organization',
+</I>&gt;&gt;&gt;<i> 'Authorization' and a general purpose header called extension_header.
+</I>&gt;&gt;&gt;<i> If there is a header like 'an-extension-header', the scanner should
+</I>&gt;&gt;&gt;<i> match on the extension_header rule.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Here's a string to match:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>             &quot;Authorization: Digest username=\&quot;Alice\&quot;,realm=\&quot;atlanta.com\&quot;\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;    , response=\&quot;7587245234b3434cc3412213e5f113a5432\&quot; , \r\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;    nonce=\&quot;84a4cc6f3082121f32b42a2187831a9e\&quot; \r\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;Organization: Boxes by\r\n Bob  \r\n      \n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;An-Extension-Header: 10 \n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;\r\n&quot;;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> The scanner performs well with the previous string. Let's try a new string:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>             &quot;An-Extension-Header: 10 \n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;Authorization: Digest username=\&quot;Alice\&quot;,realm=\&quot;atlanta.com\&quot;\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;    , response=\&quot;7587245234b3434cc3412213e5f113a5432\&quot; , \r\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;    nonce=\&quot;84a4cc6f3082121f32b42a2187831a9e\&quot; \r\n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;Organization: Boxes by\r\n Bob  \r\n      \n&quot;
+</I>&gt;&gt;&gt;<i>             &quot;\r\n&quot;;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> In this case, the scanner, once it matches the extension header, will
+</I>&gt;&gt;&gt;<i> continue to match 'Authorization' and 'Organization' as extension
+</I>&gt;&gt;&gt;<i> headers as well, which didn't happen before.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Note that, if instead of using fcall from the main scanner, I use
+</I>&gt;&gt;&gt;<i> fgoto (and them fgoto back to main instead of fret), both input
+</I>&gt;&gt;&gt;<i> strings produce the same, and correct, behavior.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Thanks!
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Carlos
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Index: ragel/xmlcodegen.cpp
+</I>&gt;&gt;<i> ===================================================================
+</I>&gt;&gt;<i> --- ragel/xmlcodegen.cpp        (revision 3695)
+</I>&gt;&gt;<i> +++ ragel/xmlcodegen.cpp        (working copy)
+</I>&gt;&gt;<i> @@ -246,6 +246,9 @@
+</I>&gt;&gt;<i>         case InlineItem::Break:
+</I>&gt;&gt;<i>                 out &lt;&lt; &quot;&lt;break&gt;&lt;/break&gt;&quot;;
+</I>&gt;&gt;<i>                 break;
+</I>&gt;&gt;<i> +       case InlineItem::Ret:
+</I>&gt;&gt;<i> +               out &lt;&lt; &quot;&lt;ret&gt;&lt;/ret&gt;&quot;;
+</I>&gt;&gt;<i> +               break;
+</I>&gt;&gt;<i>         default: break;
+</I>&gt;&gt;<i>         }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> @@ -360,12 +363,9 @@
+</I>&gt;&gt;<i>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+</I>&gt;&gt;<i>                 case InlineItem::Call: case InlineItem::CallExpr:
+</I>&gt;&gt;<i>                 case InlineItem::Next: case InlineItem::NextExpr:
+</I>&gt;&gt;<i> -               case InlineItem::Break:
+</I>&gt;&gt;<i> +               case InlineItem::Break: case InlineItem::Ret:
+</I>&gt;&gt;<i>                         writeWithContext( item, context );
+</I>&gt;&gt;<i>                         break;
+</I>&gt;&gt;<i> -               case InlineItem::Ret:
+</I>&gt;&gt;<i> -                       out &lt;&lt; &quot;&lt;ret&gt;&lt;/ret&gt;&quot;;
+</I>&gt;&gt;<i> -                       break;
+</I>&gt;&gt;<i>                 case InlineItem::PChar:
+</I>&gt;&gt;<i>                         out &lt;&lt; &quot;&lt;pchar&gt;&lt;/pchar&gt;&quot;;
+</I>&gt;&gt;<i>                         break;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001798.html">fcall legal in scanner?
+</A></li>
+	<LI>Next message: <A HREF="001800.html">fcall legal in scanner?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1799">[ date ]</a>
+              <a href="thread.html#1799">[ thread ]</a>
+              <a href="subject.html#1799">[ subject ]</a>
+              <a href="author.html#1799">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

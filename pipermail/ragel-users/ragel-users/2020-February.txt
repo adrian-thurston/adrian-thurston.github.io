@@ -1,0 +1,52 @@
+From ibc at aliax.net  Fri Feb 28 19:05:20 2020
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 29 Feb 2020 01:05:20 +0100
+Subject: [ragel-users] Intermediate match wrongly assumed as valid
+Message-ID: <CALiegfkRywaE-HWksB=Bg0jnf3SAFRq1b8Vovw6aWn2Fj1ZZbQ@mail.gmail.com>
+
+Hi,
+
+After many years using my Ragel based IPv6 parser, I've found a bug. I
+think I've also understood the problem and simplified the code as much
+as possible.
+
+Let's assume this simple grammar:
+
+--------------------
+foo = "12345" | "123";
+-------------------
+
+The parser.rl has a function that receives a char* data pointer and a
+size_t len. It includes the Ragel %% lines as usual. At the end of the
+function it checks:
+
+--------------------
+// Ensure that the parsing has consumed all the given length.
+if (len == p - data)
+  return true;
+else
+  return false;
+--------------------
+
+The problem is that, when the input is "1234", the parser returns true.
+
+I think I understand the problem:
+
+- The parser first matches "123" which is valid.
+- It continues and matches "1234".
+- At this time it has consumed 4 chars.
+- It exits now because there is no more chars in the input.
+- However it did match "123" so the Ragel action was executed.
+
+May I know how to avoid this problem and make the parser function
+return false in this case?
+
+Thanks a lot.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+

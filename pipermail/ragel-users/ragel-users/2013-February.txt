@@ -1,0 +1,262 @@
+From gdiethelm at dcv.cl  Tue Feb 19 15:14:02 2013
+From: gdiethelm at dcv.cl (gonzalo diethelm)
+Date: Tue, 19 Feb 2013 15:14:02 +0000
+Subject: [ragel-users] A generic eof action from a ragel scanner
+Message-ID: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+
+I am playing with a typical toy calculator written with ragel and lemon, in C. The scanner is defined like this:
+
+  main := |*
+    number => num_tok;
+    '('    => lparen_tok;
+    ')'    => rparen_tok;
+    '+'    => plus_tok;
+    '-'    => minus_tok;
+    '*'    => mul_tok;
+    '/'    => div_tok;
+    '^'    => pow_tok;
+    ws;
+  *|;
+
+Each of the *_tok actions calls the lemon-generated parser. For example:
+
+  action pow_tok    { CalcParser(parser, TOKEN_POW, 0); }
+  action num_tok    { CalcParser(parser, TOKEN_NUM, get_num(ts, te)); }
+
+The idea is to pass each argv[] character as a separate expression to compute. So this execution:
+
+./calc 2+3*4 7-5 "2   +    4"
+
+Should output three lines:
+14
+2
+6
+
+Since the lemon parser has to be informed about the EOF condition, what I am doing is manually informing the parser of this condition right when I have finished processing each one of the argv[] arguments:
+
+calc_exec(argv[i], strlen(argv[i]));
+...
+void calc_exec (const char* data, int len)
+{
+    const char* p = data;
+    const char* pe = data + len;  // Should this be len+1?
+    const char* eof = pe;
+
+    %% write exec;
+
+    /* Make sure we inform the parser we saw the whole input */
+    CalcParser(parser, 0, 0);
+}
+
+But what I would really like to do is to add a "generic EOF action" to the scanner, that issued this final call to the parser:
+
+  ??? %eof(CalcParser(parser, 0, 0);)
+
+I have not been able to found how to specify this "generic EOF action" to my ragel scanner. Is this even possible? Is it the right approach?
+
+Thanks for any help. And thanks for the great tool that ragel is.
+
+--
+Gonzalo Diethelm
+DCV Chile
+
+
+
+
+
+----------------------------------------- 
+Declaración de confidencialidad: Este Mensaje esta destinado para
+el uso de la o las personas o entidades a quien ha sido dirigido y
+puede contener información reservada y confidencial que no puede
+ser divulgada, difundida, ni aprovechada en forma alguna. El uso no
+autorizado de la información contenida en este correo podrá ser
+sancionado de conformidad con la ley chilena. 
+Si usted ha recibido este correo electrónico por error, le pedimos
+eliminarlo junto con los archivos adjuntos y avisar inmediatamente
+al remitente, respondiendo este mensaje. 
+
+"Before printing this e-mail think if is really necesary".
+Disclosure: This Message is to be used by the individual,
+individuals or entities that it is addressed to and may include
+private and confidential information that may not be disclosed,
+made public nor used in any way at all. Unauthorized use of the
+information in this electronic mail message may be subject to the
+penalties set forth by Chilean law. 
+If you have received this electronic mail message in error, we ask
+you to destroy the message and its attached file(s) and to
+immediately notify the sender by answering this message. 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130219/65caeb39/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sun Feb 24 11:23:16 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 24 Feb 2013 12:23:16 +0100
+Subject: [ragel-users] ragel 6.8 released
+In-Reply-To: <51199C41.4070000@complang.org>
+References: <51199C41.4070000@complang.org>
+Message-ID: <5B425CF7231840AEA9E39A16067A325D@localdomain>
+
+Hi,
+
+I have updated the native Windows binaries for Ragel 6.8. The binaries and 
+the (slightly) modified sources can be found here:
+
+http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2012.7z
+
+The project now uses Visual Studio 2012 such that you now need the latest 
+runtime libraries for Visual Studio 2012 in case Ragel doesn't want to 
+start.
+
+There are a few small changes to calm the Microsoft compiler and the path 
+hack introduced for vs. 6.7 is still in place. Let me know about any 
+problems as I did not yet have the time for intense testing.
+
+jg
+
+---
+Not sent from my iWuddaYaCallit. 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gdiethelm at dcv.cl  Tue Feb 19 15:14:02 2013
+From: gdiethelm at dcv.cl (gonzalo diethelm)
+Date: Tue, 19 Feb 2013 15:14:02 +0000
+Subject: [ragel-users] A generic eof action from a ragel scanner
+Message-ID: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+
+I am playing with a typical toy calculator written with ragel and lemon, in C. The scanner is defined like this:
+
+  main := |*
+    number => num_tok;
+    '('    => lparen_tok;
+    ')'    => rparen_tok;
+    '+'    => plus_tok;
+    '-'    => minus_tok;
+    '*'    => mul_tok;
+    '/'    => div_tok;
+    '^'    => pow_tok;
+    ws;
+  *|;
+
+Each of the *_tok actions calls the lemon-generated parser. For example:
+
+  action pow_tok    { CalcParser(parser, TOKEN_POW, 0); }
+  action num_tok    { CalcParser(parser, TOKEN_NUM, get_num(ts, te)); }
+
+The idea is to pass each argv[] character as a separate expression to compute. So this execution:
+
+./calc 2+3*4 7-5 "2   +    4"
+
+Should output three lines:
+14
+2
+6
+
+Since the lemon parser has to be informed about the EOF condition, what I am doing is manually informing the parser of this condition right when I have finished processing each one of the argv[] arguments:
+
+calc_exec(argv[i], strlen(argv[i]));
+...
+void calc_exec (const char* data, int len)
+{
+    const char* p = data;
+    const char* pe = data + len;  // Should this be len+1?
+    const char* eof = pe;
+
+    %% write exec;
+
+    /* Make sure we inform the parser we saw the whole input */
+    CalcParser(parser, 0, 0);
+}
+
+But what I would really like to do is to add a "generic EOF action" to the scanner, that issued this final call to the parser:
+
+  ??? %eof(CalcParser(parser, 0, 0);)
+
+I have not been able to found how to specify this "generic EOF action" to my ragel scanner. Is this even possible? Is it the right approach?
+
+Thanks for any help. And thanks for the great tool that ragel is.
+
+--
+Gonzalo Diethelm
+DCV Chile
+
+
+
+
+
+----------------------------------------- 
+Declaración de confidencialidad: Este Mensaje esta destinado para
+el uso de la o las personas o entidades a quien ha sido dirigido y
+puede contener información reservada y confidencial que no puede
+ser divulgada, difundida, ni aprovechada en forma alguna. El uso no
+autorizado de la información contenida en este correo podrá ser
+sancionado de conformidad con la ley chilena. 
+Si usted ha recibido este correo electrónico por error, le pedimos
+eliminarlo junto con los archivos adjuntos y avisar inmediatamente
+al remitente, respondiendo este mensaje. 
+
+"Before printing this e-mail think if is really necesary".
+Disclosure: This Message is to be used by the individual,
+individuals or entities that it is addressed to and may include
+private and confidential information that may not be disclosed,
+made public nor used in any way at all. Unauthorized use of the
+information in this electronic mail message may be subject to the
+penalties set forth by Chilean law. 
+If you have received this electronic mail message in error, we ask
+you to destroy the message and its attached file(s) and to
+immediately notify the sender by answering this message. 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130219/65caeb39/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sun Feb 24 11:23:16 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 24 Feb 2013 12:23:16 +0100
+Subject: [ragel-users] ragel 6.8 released
+In-Reply-To: <51199C41.4070000@complang.org>
+References: <51199C41.4070000@complang.org>
+Message-ID: <5B425CF7231840AEA9E39A16067A325D@localdomain>
+
+Hi,
+
+I have updated the native Windows binaries for Ragel 6.8. The binaries and 
+the (slightly) modified sources can be found here:
+
+http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2012.7z
+
+The project now uses Visual Studio 2012 such that you now need the latest 
+runtime libraries for Visual Studio 2012 in case Ragel doesn't want to 
+start.
+
+There are a few small changes to calm the Microsoft compiler and the path 
+hack introduced for vs. 6.7 is still in place. Let me know about any 
+problems as I did not yet have the time for intense testing.
+
+jg
+
+---
+Not sent from my iWuddaYaCallit. 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

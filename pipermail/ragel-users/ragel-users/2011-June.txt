@@ -1,0 +1,2620 @@
+From kevin.t.ryan at gmail.com  Sun Jun  5 19:02:09 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Sun, 5 Jun 2011 15:02:09 -0400
+Subject: [ragel-users] Actions with arguments?
+Message-ID: <BANLkTik=KmhfAUfWrBufcQ6y4OZsfRYe2A@mail.gmail.com>
+
+Hi Ragel List -
+
+I'm fairly new to Ragel, so I apologize if this is covered in the
+documentation or elsewhere.  I'm trying to create a lexer and as part
+of the process, anytime I run across a certain pattern, I fill a
+buffer and call the parser.  Eg:
+
+// buff is a char[MAX_EXPR_SIZE], space_left is an int.
+number {
+    strncpy(buff + (MAX_EXPR_SIZE - space_left), ts, te-ts);
+    space_left -= te-ts+1;
+    buff[te-ts] = '\0';
+    parse(NUMBER, buff);
+};
+
+I use almost that same exact set of code except for the last line
+(which might be "parse(STRING, buff);" or whatever).  Thus, I'm
+wondering if there is a way to either 1) call actions with arguments
+(e.g., action fill_buff (arg) { strncpy ... parse(arg, buff); }) or
+call to actions within a parser (e.g., number fill_buff_action, {
+parse(NUMBER ... })?  Or is there some other way I should be doing
+this (e.g., I thought maybe fcall might be the clue, but then I have
+to keep a stack, etc. which I'd rather not do).
+
+Thanks!
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kerzum at yandex.ru  Wed Jun  8 14:27:31 2011
+From: kerzum at yandex.ru (=?koi8-r?B?8KPU0g==?=)
+Date: Wed, 08 Jun 2011 18:27:31 +0400
+Subject: [ragel-users] Actions with arguments?
+Message-ID: <341381307543251@web86.yandex.ru>
+
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110608/1f69242c/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Jun  8 14:59:13 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 08 Jun 2011 16:59:13 +0200
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <341381307543251@web86.yandex.ru>
+References: <341381307543251@web86.yandex.ru>
+Message-ID: <4DEF8E41.7040205@complang.org>
+
+To add a remark, actions with arguments have been desired for quite some 
+time, though development is not high on the priority list, considering 
+the possibility for compilers to inline function calls.
+
+-Adrian
+
+On 06/08/11 16:27, Пётр wrote:
+> Hello
+> // buff is a char[MAX_EXPR_SIZE], space_left is an int.
+>  > number {
+>  > strncpy(buff + (MAX_EXPR_SIZE - space_left), ts, te-ts);
+>  > space_left -= te-ts+1;
+>  > buff[te-ts] = '\0';
+>  > parse(NUMBER, buff);
+>  >};
+>
+>  > I use almost that same exact set of code except for the last line
+>  > (which might be "parse(STRING, buff);" or whatever).
+> Just use functions.
+> instead of
+>  > action number {
+>  > ...
+>  > parse(NUMBER, buff);
+>  > }
+> and [0-9]+ %number
+> write this
+> void CallParser(int type) {
+> ...
+> parse(type, buff);
+> }
+> and invoke it like
+> [0-9]+ %{ CallParser(NUMBER); }
+> " (any :>> '"') %{ CallParser(STRING); }
+> --
+> Peter A. Kerzum
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> --===============09807
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From seamus at abshere.net  Wed Jun  8 16:17:32 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Wed, 08 Jun 2011 11:17:32 -0500
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+Message-ID: <4DEFA09C.1040708@abshere.net>
+
+hi,
+
+I've asked this on StackOverflow
+
+> http://stackoverflow.com/questions/6274424/for-very-basic-xml-tokenizing-do-i-really-need-ragels-full-scanner-functionalit
+
+In a nutshell, I don't think I need the lookback facility that Ragel's 
+|**| provides, but since I'm new to the game, I want to ask for opinions 
+before I go down that route.
+
+Thanks!
+Seamus
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Wed Jun  8 17:33:32 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 8 Jun 2011 10:33:32 -0700
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+In-Reply-To: <4DEFA09C.1040708@abshere.net>
+References: <4DEFA09C.1040708@abshere.net>
+Message-ID: <BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+
+I posted these links to your SO question:
+http://code.google.com/p/libgdx/source/browse/trunk/gdx/src/com/badlogic/gdx/utils/Xml.rl
+http://www.badlogicgames.com/wordpress/?p=1712
+
+-Nate
+
+
+On Wed, Jun 8, 2011 at 9:17 AM, Seamus Abshere <seamus at abshere.net> wrote:
+
+> hi,
+>
+> I've asked this on StackOverflow
+>
+>
+>> http://stackoverflow.com/questions/6274424/for-very-basic-xml-tokenizing-do-i-really-need-ragels-full-scanner-functionalit
+>>
+>
+> In a nutshell, I don't think I need the lookback facility that Ragel's |**|
+> provides, but since I'm new to the game, I want to ask for opinions before I
+> go down that route.
+>
+> Thanks!
+> Seamus
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110608/a65d2294/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From seamus at abshere.net  Wed Jun  8 18:35:40 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Wed, 08 Jun 2011 13:35:40 -0500
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+In-Reply-To: <BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+References: <4DEFA09C.1040708@abshere.net>
+	<BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+Message-ID: <4DEFC0FC.7040905@abshere.net>
+
+Nate,
+
+Thanks! You made me realize I was asking a simpler and more general 
+question. I updated 
+http://stackoverflow.com/questions/6274424/for-very-basic-tokenizing-do-i-really-need-ragels-full-scanner-functionality
+
+Everybody,
+
+I realized that asking about XML tokenizing was a red herring, because 
+what I'm doing is not specific to XML. It's like asking how to tokenize
+
+> The quick brown STARTANIMALfoxSTOPANIMAL jumps over the lazy STARTANIMALdogSTOPANIMAL and other stories
+
+into (note that we want the STARTANIMAL stuff)
+
+> token 1: STARTANIMALfoxSTOPANIMAL
+> token 2: STARTANIMALdogSTOPANIMAL
+
+Would you write the tokenizer using ()* instead of |**|?
+
+Best,
+Seamus
+
+On 6/8/11 12:33 PM, Nate wrote:
+> http://code.google.com/p/libgdx/source/browse/trunk/gdx/src/com/badlogic/gdx/utils/Xml.rl
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Fri Jun 10 00:31:09 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Thu, 9 Jun 2011 20:31:09 -0400
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <4DEF8E41.7040205@complang.org>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+Message-ID: <BANLkTintj=o8wS77qCAP5MPBL7FXn9qxiA@mail.gmail.com>
+
+> instead of
+>  > action number {
+>  > ...
+>  > parse(NUMBER, buff);
+>  > }
+> and [0-9]+ %number
+> write this
+> void CallParser(int type) {
+
+Got it - thx for the suggestion.  I guess I knew that, but didn't
+really want to put it into a function bc it would require passing a
+pointer to a pointer for the buffp (char**) and I originally thought a
+pointer to the space_left too (but instead I just made that the return
+value of the function).  All in all not a bad workaround.  Thanks
+again!
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From polushin at gmail.com  Fri Jun 10 21:06:29 2011
+From: polushin at gmail.com (Andrei Polushin)
+Date: Sat, 11 Jun 2011 04:06:29 +0700
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <4DEF8E41.7040205@complang.org>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+Message-ID: <BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+
+To add a second remark, actions with arguments could be somehow different.
+
+I thought they are expected to behave like 'functions' that push their
+arguments onto the fcall stack, so we can implement parsers in a way similar
+to the recursive-descent technique, switching between the state machines and
+a host language programming.
+
+Is it feasible? Does it make sense?
+
+-- 
+Andrei Polushin
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110611/df952182/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Jun 11 07:18:44 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 11 Jun 2011 09:18:44 +0200
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+	<BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+Message-ID: <4DF316D4.7040601@complang.org>
+
+We're probably talking about two different features. I'm thinking about 
+giving ragel some macro features (like C macros) so there doesn't have 
+to be repetition or function calls.
+
+Can you give an example of what you'd like to see?
+
+On 06/10/11 23:06, Andrei Polushin wrote:
+> To add a second remark, actions with arguments could be somehow different.
+>
+> I thought they are expected to behave like 'functions' that push their
+> arguments onto the fcall stack, so we can implement parsers in a way
+> similar to the recursive-descent technique, switching between the state
+> machines and a host language programming.
+>
+> Is it feasible? Does it make sense?
+>
+> --
+> Andrei Polushin
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 15:52:30 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 10:52:30 -0500
+Subject: [ragel-users] Ruby buffer code for streaming scanner
+Message-ID: <4DF6323E.3020400@abshere.net>
+
+hi,
+
+The Ragel Guide has an excellent set of guidelines for how to "take on 
+some buffer management functions" when using the longest-match operator 
+(for scanners):
+
+> \begin{itemize}
+> \setlength{\parskip}{0pt}
+> \item Read a block of input data.
+> \item Run the execute code.
+> \item If \verb|ts| is set, the execute code will expect the incomplete
+> token to be preserved ahead of the buffer on the next invocation of the execute
+> code.
+> \begin{itemize}
+> \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the
+> beginning of the input buffer.
+> \item Reset \verb|ts| to the beginning of the buffer.
+> \item Shift \verb|te| by the distance from the old value of \verb|ts|
+> to the new value. The \verb|te| variable may or may not be valid.  There is
+> no way to know if it holds a meaningful value because it is not kept at null
+> when it is not in use. It can be shifted regardless.
+> \end{itemize}
+> \item Read another block of data into the buffer, immediately following any
+> preserved data.
+> \item Run the scanner on the new data.
+> \end{itemize}
+
+I believe this is a correct implementation in Ruby: (see the #scan! 
+method for the buffering)
+
+> =begin
+> %%{
+>   machine foo_scanner;
+>
+>   foo_open = 'START_FOO';
+>   foo_close = 'STOP_FOO';
+>   foo = foo_open any* :>> foo_close;
+>
+>   main := |*
+>     foo => { emit data[ts...te].pack('c*') };
+>     any;
+>   *|;
+> }%%
+> =end
+>
+> class FooScanner
+>   # read stuff in 1 meg at a time
+>   CHUNK_SIZE = 1_048_576
+>
+>   attr_reader :target
+>
+>   def initialize(target)
+>     @target = target
+>     %% write data;
+>   end
+>
+>   def emit(foo_entity)
+>     puts "I found a foo entity!"
+>     puts foo_entity
+>   end
+>
+>   def scan!
+>     # Set pe so that ragel doesn't try to get it from data.length
+>     pe = -1
+>     eof = File.size(target)
+>
+>     %% write init;
+>
+>     prefix = []
+>     File.open(target) do |f|
+>       while chunk = f.read(CHUNK_SIZE)
+>         # \item Read a block of input data.
+>         data = prefix + chunk.unpack("c*")
+>
+>         # \item Run the execute code.
+>         p = 0
+>         pe = data.length
+>         %% write exec;
+>
+>         # \item If \verb|ts| is set, the execute code will expect the incomplete token to be preserved ahead of the buffer on the next invocation of the execute code.
+>         unless ts.nil?
+>           # \begin{itemize}
+>           # \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the beginning of the input buffer.
+>           prefix = data[ts..pe]
+>           # \item Shift \verb|te| by the distance from the old value of \verb|ts| to the new value. The \verb|te| variable may or may not be valid.  There is no way to know if it holds a meaningful value because it is not kept at null when it is not in use. It can be shifted regardless. [SWAPPED ORDER]
+>           if te
+>             te = te - ts
+>           end
+>           # \item Reset \verb|ts| to the beginning of the buffer. [SWAPPED ORDER]
+>           ts = 0
+>           # \end{itemize}
+>         else
+>           prefix = []
+>         end
+>         # \item Read another block of data into the buffer, immediately following any preserved data.
+>         # \item Run the scanner on the new data.
+>       end
+>     end
+>   end
+> end
+
+You can run it with
+
+> foo_scanner = FooScanner.new 'foo.txt'
+> foo_scanner.scan!
+
+If that is good code, then perhaps it could be added as another example 
+to the Ragel website?
+
+Thanks,
+Seamus
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 15:59:03 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 10:59:03 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+Message-ID: <4DF633C7.2000702@abshere.net>
+
+hi all,
+
+Does anybody have time to expand the "simple tokenizer" example from the 
+guide?
+
+> # Repeat tokens, but make sure to get the longest match.
+> main := (
+>     lower ( lower | digit )* %A |
+>     digit+ %B |
+>     ' '
+> )**;
+
+What might action A look like? How does it use p, pe, etc.? Ditto for B.
+
+Best,
+Seamus
+
+PS. I think this would address a big question for 
+ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert** 
+implement a **simple** tokenizer?
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Mon Jun 13 17:42:40 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Mon, 13 Jun 2011 13:42:40 -0400
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF633C7.2000702@abshere.net>
+References: <4DF633C7.2000702@abshere.net>
+Message-ID: <BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+
+Hey -
+
+Just started using the library myself.  Easiest way to think about it
+(at least, it was for me) is that you are defining the machine in the
+section you noted below from the guide.  Until you initialize and
+execute it, it doesn't "do anything".  Thus, in some part of your
+script you need:
+
+%% write data; # sets up all the static data needed by the tokenizer
+
+Then (somewhere else in all likelihood), you need to initialize and
+execute the machine.  So, for example:
+
+int main(int argc, char* argv[]) {
+    int cs; // you can use this to check the status of the machine
+    char* p = "Your text to tokenize";
+    char* pe = p + strlen(p);
+
+    %% write init;
+    %% write exec; # this will execute the machine given the input
+provided by 'p'
+
+    if (cs == <machine_name>_error)
+        fprintf(stderr, "Error\n");
+    return 0;
+}
+
+> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+
+Maybe action 'A' is used to print a match when it  ends (the '%' in
+front of the A indicates that it will occur when leaving action).  For
+example:
+
+action A { print("Found alpha\n"); }
+action B { print("Found int\n"); }
+
+If you need to print out the total string, you might combine it with a
+'mark' action.  Eg:
+
+action mark { mark = p; /* mark needs to be set up in 'main' function
+now as a char* */ }
+< as before>
+lower ( lower | digit )* >mark %A |
+
+And do the same for the integer portion of the machine.  You could
+then change your print function to do something like:
+
+printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+
+> PS. I think this would address a big question for
+> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+> implement a **simple** tokenizer?
+
+You may also want to look at machines that are 'special' for lexing
+(viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+hopefully I didn't screw anything up too much!
+
+PS - I'm actually trying to write up a tutorial which I'll share with
+the list for feedback once it's done.  I think I have a much better
+grasp of what's going on now, but I think writing it out would
+actually help my understanding too.
+
+Good luck,
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 23:09:50 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 18:09:50 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+References: <4DF633C7.2000702@abshere.net>
+	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+Message-ID: <4DF698BE.2030409@abshere.net>
+
+Dear friends who have been using ragel for more than a year,
+
+I bet Kevin and I are facing a similar problem that you have all faced, 
+namely that as a software project matures, common ground between its 
+founding users and new users erodes. Fresh code examples keep interest 
+alive and prevent people from re-inventing the wheel. Please do speak up!
+
+How about an authoritative Ruby code example for Ragel Guide 6.7 section 
+4.2.4 (Longest-Match Kleene Star)?. It's "useful when writing simple 
+tokenizers"... that sounds like a great way to bridge the gap.
+
+Since all the code examples are in C, it's not clear what you would use 
+in Ruby instead of ts and te.
+
+Best,
+Seamus
+
+On 6/13/11 12:42 PM, Kevin T. Ryan wrote:
+> Hey -
+>
+> Just started using the library myself.  Easiest way to think about it
+> (at least, it was for me) is that you are defining the machine in the
+> section you noted below from the guide.  Until you initialize and
+> execute it, it doesn't "do anything".  Thus, in some part of your
+> script you need:
+>
+> %% write data; # sets up all the static data needed by the tokenizer
+>
+> Then (somewhere else in all likelihood), you need to initialize and
+> execute the machine.  So, for example:
+>
+> int main(int argc, char* argv[]) {
+>      int cs; // you can use this to check the status of the machine
+>      char* p = "Your text to tokenize";
+>      char* pe = p + strlen(p);
+>
+>      %% write init;
+>      %% write exec; # this will execute the machine given the input
+> provided by 'p'
+>
+>      if (cs ==<machine_name>_error)
+>          fprintf(stderr, "Error\n");
+>      return 0;
+> }
+>
+>> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+>
+> Maybe action 'A' is used to print a match when it  ends (the '%' in
+> front of the A indicates that it will occur when leaving action).  For
+> example:
+>
+> action A { print("Found alpha\n"); }
+> action B { print("Found int\n"); }
+>
+> If you need to print out the total string, you might combine it with a
+> 'mark' action.  Eg:
+>
+> action mark { mark = p; /* mark needs to be set up in 'main' function
+> now as a char* */ }
+> <  as before>
+> lower ( lower | digit )*>mark %A |
+>
+> And do the same for the integer portion of the machine.  You could
+> then change your print function to do something like:
+>
+> printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+>
+>> PS. I think this would address a big question for
+>> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+>> implement a **simple** tokenizer?
+>
+> You may also want to look at machines that are 'special' for lexing
+> (viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+> hopefully I didn't screw anything up too much!
+>
+> PS - I'm actually trying to write up a tutorial which I'll share with
+> the list for feedback once it's done.  I think I have a much better
+> grasp of what's going on now, but I think writing it out would
+> actually help my understanding too.
+>
+> Good luck,
+>
+> ktr
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Tue Jun 14 17:02:05 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Tue, 14 Jun 2011 12:02:05 -0500
+Subject: [ragel-users] Trying to answer my own Ruby and Ragel questions
+Message-ID: <4DF7940D.4000007@abshere.net>
+
+hi all,
+
+Please do take a look at my ragel and ruby examples in
+
+> https://github.com/seamusabshere/ruby_ragel_examples
+> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+
+I wouldn't want to spread misinformation!
+
+Best,
+Seamus
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Wed Jun 15 11:30:37 2011
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 15 Jun 2011 07:30:37 -0400
+Subject: [ragel-users] Ragel mentioned in Dr. Dobbs
+Message-ID: <BANLkTi==69eDRcSP2vY7zBgDGan1-kB_bA@mail.gmail.com>
+
+FYI:
+
+Ragel got a mention in Dr. Dobbs (not sure you can call it a Magazine
+any more?):
+
+http://drdobbs.com/blogs/embedded-systems/229900157?cid=nl_ddjupdate_2011-06-14_html
+
+Article is more about C++ state machines, the author says the'll cover
+say more about Ragel in the futures.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 15 15:28:09 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 15 Jun 2011 08:28:09 -0700
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF698BE.2030409@abshere.net>
+References: <4DF633C7.2000702@abshere.net>	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+	<4DF698BE.2030409@abshere.net>
+Message-ID: <4DF8CF89.4060709@complang.org>
+
+In the ruby code generator one uses ts and te, except they are offsets 
+against 'data', instead of pointers. Aside from that, the assumptions 
+and use cases are all the same.
+
+I would like to use only C in the manual. Ragel supports a number of 
+languages, but it was originally designed for C and I would like the 
+manual to reflect that.
+
+On 11-06-13 04:09 PM, Seamus Abshere wrote:
+> Dear friends who have been using ragel for more than a year,
+>
+> I bet Kevin and I are facing a similar problem that you have all faced,
+> namely that as a software project matures, common ground between its
+> founding users and new users erodes. Fresh code examples keep interest
+> alive and prevent people from re-inventing the wheel. Please do speak up!
+>
+> How about an authoritative Ruby code example for Ragel Guide 6.7 section
+> 4.2.4 (Longest-Match Kleene Star)?. It's "useful when writing simple
+> tokenizers"... that sounds like a great way to bridge the gap.
+>
+> Since all the code examples are in C, it's not clear what you would use
+> in Ruby instead of ts and te.
+>
+> Best,
+> Seamus
+>
+> On 6/13/11 12:42 PM, Kevin T. Ryan wrote:
+>> Hey -
+>>
+>> Just started using the library myself. Easiest way to think about it
+>> (at least, it was for me) is that you are defining the machine in the
+>> section you noted below from the guide. Until you initialize and
+>> execute it, it doesn't "do anything". Thus, in some part of your
+>> script you need:
+>>
+>> %% write data; # sets up all the static data needed by the tokenizer
+>>
+>> Then (somewhere else in all likelihood), you need to initialize and
+>> execute the machine. So, for example:
+>>
+>> int main(int argc, char* argv[]) {
+>> int cs; // you can use this to check the status of the machine
+>> char* p = "Your text to tokenize";
+>> char* pe = p + strlen(p);
+>>
+>> %% write init;
+>> %% write exec; # this will execute the machine given the input
+>> provided by 'p'
+>>
+>> if (cs ==<machine_name>_error)
+>> fprintf(stderr, "Error\n");
+>> return 0;
+>> }
+>>
+>>> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+>>
+>> Maybe action 'A' is used to print a match when it ends (the '%' in
+>> front of the A indicates that it will occur when leaving action). For
+>> example:
+>>
+>> action A { print("Found alpha\n"); }
+>> action B { print("Found int\n"); }
+>>
+>> If you need to print out the total string, you might combine it with a
+>> 'mark' action. Eg:
+>>
+>> action mark { mark = p; /* mark needs to be set up in 'main' function
+>> now as a char* */ }
+>> < as before>
+>> lower ( lower | digit )*>mark %A |
+>>
+>> And do the same for the integer portion of the machine. You could
+>> then change your print function to do something like:
+>>
+>> printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+>>
+>>> PS. I think this would address a big question for
+>>> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+>>> implement a **simple** tokenizer?
+>>
+>> You may also want to look at machines that are 'special' for lexing
+>> (viz., machine := |* *|;). BTW, I'm very new to this myself - so
+>> hopefully I didn't screw anything up too much!
+>>
+>> PS - I'm actually trying to write up a tutorial which I'll share with
+>> the list for feedback once it's done. I think I have a much better
+>> grasp of what's going on now, but I think writing it out would
+>> actually help my understanding too.
+>>
+>> Good luck,
+>>
+>> ktr
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Sat Jun 18 15:05:50 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Sat, 18 Jun 2011 10:05:50 -0500
+Subject: [ragel-users] ragel for binary protocol parsing?
+Message-ID: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+
+I started looking at ragel as a tool for building a KMIP
+(http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=kmip)
+parser. However I'm seeing differing opinions on whether ragel is a
+good tool for this job. So what's the consensus is it or isn't it? Or
+maybe it depends on the protocol like if it doesn't use bit fields?
+
+Ted
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 19 00:07:30 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 18 Jun 2011 17:07:30 -0700
+Subject: [ragel-users] ragel for binary protocol parsing?
+In-Reply-To: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+References: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+Message-ID: <4DFD3DC2.7070603@complang.org>
+
+I use it to parse binary protocols (eg DNS, SSL). Usually the awkward 
+part is dealing with N items of things. You either need to use 
+conditionals, or some jumps and calls. It certainly wasn't designed for 
+that though. I had text-based parsing in mind. Initially I would advise 
+people to not use it for binary protocols, but since conditionals are 
+available I say it can be used for them.
+
+On 11-06-18 08:05 AM, Ted Toth wrote:
+> I started looking at ragel as a tool for building a KMIP
+> (http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=kmip)
+> parser. However I'm seeing differing opinions on whether ragel is a
+> good tool for this job. So what's the consensus is it or isn't it? Or
+> maybe it depends on the protocol like if it doesn't use bit fields?
+>
+> Ted
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Mon Jun 20 16:19:22 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Mon, 20 Jun 2011 11:19:22 -0500
+Subject: [ragel-users] C #define for numeric literals
+Message-ID: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+
+Maybe I don't understand but I tried using values that are defined in
+a header (.h) file but ragel complained :( I ended up adding the same
+values to my ragel file. I'd prefer to use the C header values instead
+of having to replicate them.
+
+Ted
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Tue Jun 21 15:46:54 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Tue, 21 Jun 2011 10:46:54 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF8CF89.4060709@complang.org>
+References: <4DF633C7.2000702@abshere.net>	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>	<4DF698BE.2030409@abshere.net>
+	<4DF8CF89.4060709@complang.org>
+Message-ID: <4E00BCEE.1070705@abshere.net>
+
+hi Adrian,
+
+Thanks for getting back to me. I updated my action and buffering code 
+for ruby:
+
+> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+> https://github.com/seamusabshere/ruby_ragel_examples
+> https://github.com/seamusabshere/ruby_ragel_examples/blob/master/test/test_ragel.rb
+
+Hopefully these examples will help people even if they don't live in the 
+Ragel Guide.
+
+Best,
+Seamus
+
+PS. For example, in Ruby, the buffering/reading loop of a scanner should 
+look like:
+
+>   CHUNK_SIZE = 1_000_000 # bytes
+>   def perform
+>     # So that ragel doesn't try to get it from data.length
+>     pe = :ignored
+>     eof = :ignored
+>     %% write init;
+>     # % (this fixes syntax highlighting)
+>     leftover = []
+>     File.open(path) do |f|
+>       while chunk = f.read(CHUNK_SIZE)
+>         data = leftover + chunk.unpack('c*')
+>         p ||= 0
+>         pe = data.length
+>         %% write exec;
+>         # % (this fixes syntax highlighting)
+>         if ts
+>           leftover = data[ts..pe]
+>           p = p - ts
+>           ts = 0
+>         else
+>           leftover = []
+>           p = 0
+>         end
+>       end
+>     end
+>   end
+
+On 6/15/11 10:28 AM, Adrian Thurston wrote:
+> In the ruby code generator one uses ts and te, except they are offsets
+> against 'data', instead of pointers. Aside from that, the assumptions
+> and use cases are all the same.
+>
+> I would like to use only C in the manual. Ragel supports a number of
+> languages, but it was originally designed for C and I would like the
+> manual to reflect that.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Thu Jun 23 01:31:49 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Wed, 22 Jun 2011 20:31:49 -0500
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+Message-ID: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+
+I did try to use 'import' on my C header but parser didn't work.
+#define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+ragel file does work.
+
+On Mon, Jun 20, 2011 at 11:19 AM, Ted Toth <txtoth at gmail.com> wrote:
+> Maybe I don't understand but I tried using values that are defined in
+> a header (.h) file but ragel complained :( I ended up adding the same
+> values to my ragel file. I'd prefer to use the C header values instead
+> of having to replicate them.
+>
+> Ted
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alan at alanz.com  Fri Jun 24 22:44:52 2011
+From: alan at alanz.com (Alan West)
+Date: Fri, 24 Jun 2011 23:44:52 +0100
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+	<BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+Message-ID: <B425A2FA-DB9F-4DFD-A764-10A813AFFF80@alanz.com>
+
+On 23 Jun 2011, at 02:31, Ted Toth <txtoth at gmail.com> wrote:
+
+> I did try to use 'import' on my C header but parser didn't work.
+> #define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+> ragel file does work.
+
+I believe you'd need to feed the Ragel file through your C preprocessor, to have the identifier names replaced with their values before feeding it to Ragel.
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 25 17:53:51 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 25 Jun 2011 10:53:51 -0700
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+	<BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+Message-ID: <4E0620AF.2030705@complang.org>
+
+The importer doesn't accept HEX, only decimal.
+
+http://www.complang.org/redmine/issues/301
+
+On 11-06-22 06:31 PM, Ted Toth wrote:
+> I did try to use 'import' on my C header but parser didn't work.
+> #define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+> ragel file does work.
+>
+> On Mon, Jun 20, 2011 at 11:19 AM, Ted Toth<txtoth at gmail.com>  wrote:
+>> Maybe I don't understand but I tried using values that are defined in
+>> a header (.h) file but ragel complained :( I ended up adding the same
+>> values to my ragel file. I'd prefer to use the C header values instead
+>> of having to replicate them.
+>>
+>> Ted
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From iain at thenicols.net  Sun Jun 26 13:22:58 2011
+From: iain at thenicols.net (Iain Nicol)
+Date: Sun, 26 Jun 2011 14:22:58 +0100
+Subject: [ragel-users] semantic conditions and alphtype
+Message-ID: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+
+At the moment, if you're on a 32-bit machine and have alphtype signed or
+unsigned int, you cannot use semantic conditions.  The longs Ragel
+store the characters in have no free space.
+
+IMHO this is unfortunate.  Suppose you want (basic) Unicode support.  It
+is tempting to use unsigned int as the alphtype, and feed Ragel Unicode
+code points (equivalently, UCS-4 encoded data). No more than 21 bits are
+needed to do this, but Ragel has no way of knowing that the alphabet
+doesn't cover the whole range of the unsigned int.
+
+I realise there's contrib/Unicode2Ragel which has support for UTF-8, but
+(again IMO) it's nice to deal with encoding completely separately from
+Ragel, and hence give Ragel the abstract code points.
+
+Would either of the following be reasonable?
+
+  * have some way to give Ragel a more specific alphabet range.  (Would
+    this be an extra parameter to alphtype, or would it replace the
+    existing parameters to alphtype?)
+
+  * allow Ragel to (conditionally?) use long longs internally.
+
+
+
+Regards,
+-- 
+Iain
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 26 17:54:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 26 Jun 2011 10:54:17 -0700
+Subject: [ragel-users] semantic conditions and alphtype
+In-Reply-To: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+References: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+Message-ID: <4E077249.6040709@complang.org>
+
+Fixing the condition implementation is the focus of 7.0. Conditions will 
+have a representation in the data structures of the transition list. We 
+won't rely rely on expansion to larger values in the alphabet space.
+
+On 11-06-26 06:22 AM, Iain Nicol wrote:
+> At the moment, if you're on a 32-bit machine and have alphtype signed or
+> unsigned int, you cannot use semantic conditions.  The longs Ragel
+> store the characters in have no free space.
+>
+> IMHO this is unfortunate.  Suppose you want (basic) Unicode support.  It
+> is tempting to use unsigned int as the alphtype, and feed Ragel Unicode
+> code points (equivalently, UCS-4 encoded data). No more than 21 bits are
+> needed to do this, but Ragel has no way of knowing that the alphabet
+> doesn't cover the whole range of the unsigned int.
+>
+> I realise there's contrib/Unicode2Ragel which has support for UTF-8, but
+> (again IMO) it's nice to deal with encoding completely separately from
+> Ragel, and hence give Ragel the abstract code points.
+>
+> Would either of the following be reasonable?
+>
+>    * have some way to give Ragel a more specific alphabet range.  (Would
+>      this be an extra parameter to alphtype, or would it replace the
+>      existing parameters to alphtype?)
+>
+>    * allow Ragel to (conditionally?) use long longs internally.
+>
+>
+>
+> Regards,
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From iain at thenicols.net  Sun Jun 26 19:55:06 2011
+From: iain at thenicols.net (Iain Nicol)
+Date: Sun, 26 Jun 2011 20:55:06 +0100
+Subject: [ragel-users] semantic conditions and alphtype
+In-Reply-To: <4E077249.6040709@complang.org>
+References: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+	<4E077249.6040709@complang.org>
+Message-ID: <BANLkTi=uK_kN8y4UQyre7XAbHfu5a9ZMSw@mail.gmail.com>
+
+Adrian Thurston wrote:
+> Fixing the condition implementation is the focus of 7.0. Conditions
+> will have a representation in the data structures of the transition
+> list. We won't rely rely on expansion to larger values in the alphabet
+> space.
+
+That's nice to know.  Thanks for the info... and for your general work
+on Ragel.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Tue Jun 28 19:17:46 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Tue, 28 Jun 2011 23:17:46 +0400
+Subject: [ragel-users] hidden reserved keywords?
+Message-ID: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+
+Hi, Adrian.
+
+%%{
+       text   = [a-z];
+        CRLF   = '\r' '\n';
+
+       from   = "From:"i text* CRLF;
+
+       main   := from;
+}%%
+
+produce following error message:
+parse2.rl:16:9: at token KW_From: parse error
+
+the same error was if i wrote:
+
+   to = "To:" text* CRLF;
+
+parse2.rl:16:9: at token KW_To: parse error
+
+and "Eof" :)))
+and ... posible for other keywords.
+
+Is this bug or undocumented restriction?
+Can you fix it?
+
+Thanks.
+
+Best regards,
+Denis Naumov.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110628/d3fd2cb7/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Jun 30 01:43:46 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 29 Jun 2011 18:43:46 -0700
+Subject: [ragel-users] hidden reserved keywords?
+In-Reply-To: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+References: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+Message-ID: <4E0BD4D2.3040107@complang.org>
+
+Those should be documented.
+
+http://www.complang.org/redmine/issues/302
+
+On 11-06-28 12:17 PM, Denis Naumov wrote:
+> Hi, Adrian.
+> %%{
+>         text   = [a-z];
+>         CRLF   = '\r' '\n';
+>         from   = "From:"i text* CRLF;
+>         main   := from;
+> }%%
+> produce following error message:
+> parse2.rl:16:9: at token KW_From: parse error
+> the same error was if i wrote:
+>     to = "To:" text* CRLF;
+> parse2.rl:16:9: at token KW_To: parse error
+> and "Eof" :)))
+> and ... posible for other keywords.
+> Is this bug or undocumented restriction?
+> Can you fix it?
+> Thanks.
+> Best regards,
+> Denis Naumov.
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> --===============0832764
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Sun Jun  5 19:02:09 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Sun, 5 Jun 2011 15:02:09 -0400
+Subject: [ragel-users] Actions with arguments?
+Message-ID: <BANLkTik=KmhfAUfWrBufcQ6y4OZsfRYe2A@mail.gmail.com>
+
+Hi Ragel List -
+
+I'm fairly new to Ragel, so I apologize if this is covered in the
+documentation or elsewhere.  I'm trying to create a lexer and as part
+of the process, anytime I run across a certain pattern, I fill a
+buffer and call the parser.  Eg:
+
+// buff is a char[MAX_EXPR_SIZE], space_left is an int.
+number {
+    strncpy(buff + (MAX_EXPR_SIZE - space_left), ts, te-ts);
+    space_left -= te-ts+1;
+    buff[te-ts] = '\0';
+    parse(NUMBER, buff);
+};
+
+I use almost that same exact set of code except for the last line
+(which might be "parse(STRING, buff);" or whatever).  Thus, I'm
+wondering if there is a way to either 1) call actions with arguments
+(e.g., action fill_buff (arg) { strncpy ... parse(arg, buff); }) or
+call to actions within a parser (e.g., number fill_buff_action, {
+parse(NUMBER ... })?  Or is there some other way I should be doing
+this (e.g., I thought maybe fcall might be the clue, but then I have
+to keep a stack, etc. which I'd rather not do).
+
+Thanks!
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kerzum at yandex.ru  Wed Jun  8 14:27:31 2011
+From: kerzum at yandex.ru (=?koi8-r?B?8KPU0g==?=)
+Date: Wed, 08 Jun 2011 18:27:31 +0400
+Subject: [ragel-users] Actions with arguments?
+Message-ID: <341381307543251@web86.yandex.ru>
+
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110608/1f69242c/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Jun  8 14:59:13 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 08 Jun 2011 16:59:13 +0200
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <341381307543251@web86.yandex.ru>
+References: <341381307543251@web86.yandex.ru>
+Message-ID: <4DEF8E41.7040205@complang.org>
+
+To add a remark, actions with arguments have been desired for quite some 
+time, though development is not high on the priority list, considering 
+the possibility for compilers to inline function calls.
+
+-Adrian
+
+On 06/08/11 16:27, Пётр wrote:
+> Hello
+> // buff is a char[MAX_EXPR_SIZE], space_left is an int.
+>  > number {
+>  > strncpy(buff + (MAX_EXPR_SIZE - space_left), ts, te-ts);
+>  > space_left -= te-ts+1;
+>  > buff[te-ts] = '\0';
+>  > parse(NUMBER, buff);
+>  >};
+>
+>  > I use almost that same exact set of code except for the last line
+>  > (which might be "parse(STRING, buff);" or whatever).
+> Just use functions.
+> instead of
+>  > action number {
+>  > ...
+>  > parse(NUMBER, buff);
+>  > }
+> and [0-9]+ %number
+> write this
+> void CallParser(int type) {
+> ...
+> parse(type, buff);
+> }
+> and invoke it like
+> [0-9]+ %{ CallParser(NUMBER); }
+> " (any :>> '"') %{ CallParser(STRING); }
+> --
+> Peter A. Kerzum
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> --===============09807
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From seamus at abshere.net  Wed Jun  8 16:17:32 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Wed, 08 Jun 2011 11:17:32 -0500
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+Message-ID: <4DEFA09C.1040708@abshere.net>
+
+hi,
+
+I've asked this on StackOverflow
+
+> http://stackoverflow.com/questions/6274424/for-very-basic-xml-tokenizing-do-i-really-need-ragels-full-scanner-functionalit
+
+In a nutshell, I don't think I need the lookback facility that Ragel's 
+|**| provides, but since I'm new to the game, I want to ask for opinions 
+before I go down that route.
+
+Thanks!
+Seamus
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Wed Jun  8 17:33:32 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 8 Jun 2011 10:33:32 -0700
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+In-Reply-To: <4DEFA09C.1040708@abshere.net>
+References: <4DEFA09C.1040708@abshere.net>
+Message-ID: <BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+
+I posted these links to your SO question:
+http://code.google.com/p/libgdx/source/browse/trunk/gdx/src/com/badlogic/gdx/utils/Xml.rl
+http://www.badlogicgames.com/wordpress/?p=1712
+
+-Nate
+
+
+On Wed, Jun 8, 2011 at 9:17 AM, Seamus Abshere <seamus at abshere.net> wrote:
+
+> hi,
+>
+> I've asked this on StackOverflow
+>
+>
+>> http://stackoverflow.com/questions/6274424/for-very-basic-xml-tokenizing-do-i-really-need-ragels-full-scanner-functionalit
+>>
+>
+> In a nutshell, I don't think I need the lookback facility that Ragel's |**|
+> provides, but since I'm new to the game, I want to ask for opinions before I
+> go down that route.
+>
+> Thanks!
+> Seamus
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110608/a65d2294/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From seamus at abshere.net  Wed Jun  8 18:35:40 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Wed, 08 Jun 2011 13:35:40 -0500
+Subject: [ragel-users] For very basic XML tokenizing,
+ do I really need Ragel's full scanner functionality?
+In-Reply-To: <BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+References: <4DEFA09C.1040708@abshere.net>
+	<BANLkTikP+VYknaTMzBEjS=z5L3C96nU24g@mail.gmail.com>
+Message-ID: <4DEFC0FC.7040905@abshere.net>
+
+Nate,
+
+Thanks! You made me realize I was asking a simpler and more general 
+question. I updated 
+http://stackoverflow.com/questions/6274424/for-very-basic-tokenizing-do-i-really-need-ragels-full-scanner-functionality
+
+Everybody,
+
+I realized that asking about XML tokenizing was a red herring, because 
+what I'm doing is not specific to XML. It's like asking how to tokenize
+
+> The quick brown STARTANIMALfoxSTOPANIMAL jumps over the lazy STARTANIMALdogSTOPANIMAL and other stories
+
+into (note that we want the STARTANIMAL stuff)
+
+> token 1: STARTANIMALfoxSTOPANIMAL
+> token 2: STARTANIMALdogSTOPANIMAL
+
+Would you write the tokenizer using ()* instead of |**|?
+
+Best,
+Seamus
+
+On 6/8/11 12:33 PM, Nate wrote:
+> http://code.google.com/p/libgdx/source/browse/trunk/gdx/src/com/badlogic/gdx/utils/Xml.rl
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Fri Jun 10 00:31:09 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Thu, 9 Jun 2011 20:31:09 -0400
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <4DEF8E41.7040205@complang.org>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+Message-ID: <BANLkTintj=o8wS77qCAP5MPBL7FXn9qxiA@mail.gmail.com>
+
+> instead of
+>  > action number {
+>  > ...
+>  > parse(NUMBER, buff);
+>  > }
+> and [0-9]+ %number
+> write this
+> void CallParser(int type) {
+
+Got it - thx for the suggestion.  I guess I knew that, but didn't
+really want to put it into a function bc it would require passing a
+pointer to a pointer for the buffp (char**) and I originally thought a
+pointer to the space_left too (but instead I just made that the return
+value of the function).  All in all not a bad workaround.  Thanks
+again!
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From polushin at gmail.com  Fri Jun 10 21:06:29 2011
+From: polushin at gmail.com (Andrei Polushin)
+Date: Sat, 11 Jun 2011 04:06:29 +0700
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <4DEF8E41.7040205@complang.org>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+Message-ID: <BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+
+To add a second remark, actions with arguments could be somehow different.
+
+I thought they are expected to behave like 'functions' that push their
+arguments onto the fcall stack, so we can implement parsers in a way similar
+to the recursive-descent technique, switching between the state machines and
+a host language programming.
+
+Is it feasible? Does it make sense?
+
+-- 
+Andrei Polushin
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110611/df952182/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Jun 11 07:18:44 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 11 Jun 2011 09:18:44 +0200
+Subject: [ragel-users] Actions with arguments?
+In-Reply-To: <BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+References: <341381307543251@web86.yandex.ru> <4DEF8E41.7040205@complang.org>
+	<BANLkTini5QU6E9NWN_3P5OB5yPwvt5J4kA@mail.gmail.com>
+Message-ID: <4DF316D4.7040601@complang.org>
+
+We're probably talking about two different features. I'm thinking about 
+giving ragel some macro features (like C macros) so there doesn't have 
+to be repetition or function calls.
+
+Can you give an example of what you'd like to see?
+
+On 06/10/11 23:06, Andrei Polushin wrote:
+> To add a second remark, actions with arguments could be somehow different.
+>
+> I thought they are expected to behave like 'functions' that push their
+> arguments onto the fcall stack, so we can implement parsers in a way
+> similar to the recursive-descent technique, switching between the state
+> machines and a host language programming.
+>
+> Is it feasible? Does it make sense?
+>
+> --
+> Andrei Polushin
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 15:52:30 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 10:52:30 -0500
+Subject: [ragel-users] Ruby buffer code for streaming scanner
+Message-ID: <4DF6323E.3020400@abshere.net>
+
+hi,
+
+The Ragel Guide has an excellent set of guidelines for how to "take on 
+some buffer management functions" when using the longest-match operator 
+(for scanners):
+
+> \begin{itemize}
+> \setlength{\parskip}{0pt}
+> \item Read a block of input data.
+> \item Run the execute code.
+> \item If \verb|ts| is set, the execute code will expect the incomplete
+> token to be preserved ahead of the buffer on the next invocation of the execute
+> code.
+> \begin{itemize}
+> \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the
+> beginning of the input buffer.
+> \item Reset \verb|ts| to the beginning of the buffer.
+> \item Shift \verb|te| by the distance from the old value of \verb|ts|
+> to the new value. The \verb|te| variable may or may not be valid.  There is
+> no way to know if it holds a meaningful value because it is not kept at null
+> when it is not in use. It can be shifted regardless.
+> \end{itemize}
+> \item Read another block of data into the buffer, immediately following any
+> preserved data.
+> \item Run the scanner on the new data.
+> \end{itemize}
+
+I believe this is a correct implementation in Ruby: (see the #scan! 
+method for the buffering)
+
+> =begin
+> %%{
+>   machine foo_scanner;
+>
+>   foo_open = 'START_FOO';
+>   foo_close = 'STOP_FOO';
+>   foo = foo_open any* :>> foo_close;
+>
+>   main := |*
+>     foo => { emit data[ts...te].pack('c*') };
+>     any;
+>   *|;
+> }%%
+> =end
+>
+> class FooScanner
+>   # read stuff in 1 meg at a time
+>   CHUNK_SIZE = 1_048_576
+>
+>   attr_reader :target
+>
+>   def initialize(target)
+>     @target = target
+>     %% write data;
+>   end
+>
+>   def emit(foo_entity)
+>     puts "I found a foo entity!"
+>     puts foo_entity
+>   end
+>
+>   def scan!
+>     # Set pe so that ragel doesn't try to get it from data.length
+>     pe = -1
+>     eof = File.size(target)
+>
+>     %% write init;
+>
+>     prefix = []
+>     File.open(target) do |f|
+>       while chunk = f.read(CHUNK_SIZE)
+>         # \item Read a block of input data.
+>         data = prefix + chunk.unpack("c*")
+>
+>         # \item Run the execute code.
+>         p = 0
+>         pe = data.length
+>         %% write exec;
+>
+>         # \item If \verb|ts| is set, the execute code will expect the incomplete token to be preserved ahead of the buffer on the next invocation of the execute code.
+>         unless ts.nil?
+>           # \begin{itemize}
+>           # \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the beginning of the input buffer.
+>           prefix = data[ts..pe]
+>           # \item Shift \verb|te| by the distance from the old value of \verb|ts| to the new value. The \verb|te| variable may or may not be valid.  There is no way to know if it holds a meaningful value because it is not kept at null when it is not in use. It can be shifted regardless. [SWAPPED ORDER]
+>           if te
+>             te = te - ts
+>           end
+>           # \item Reset \verb|ts| to the beginning of the buffer. [SWAPPED ORDER]
+>           ts = 0
+>           # \end{itemize}
+>         else
+>           prefix = []
+>         end
+>         # \item Read another block of data into the buffer, immediately following any preserved data.
+>         # \item Run the scanner on the new data.
+>       end
+>     end
+>   end
+> end
+
+You can run it with
+
+> foo_scanner = FooScanner.new 'foo.txt'
+> foo_scanner.scan!
+
+If that is good code, then perhaps it could be added as another example 
+to the Ragel website?
+
+Thanks,
+Seamus
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 15:59:03 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 10:59:03 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+Message-ID: <4DF633C7.2000702@abshere.net>
+
+hi all,
+
+Does anybody have time to expand the "simple tokenizer" example from the 
+guide?
+
+> # Repeat tokens, but make sure to get the longest match.
+> main := (
+>     lower ( lower | digit )* %A |
+>     digit+ %B |
+>     ' '
+> )**;
+
+What might action A look like? How does it use p, pe, etc.? Ditto for B.
+
+Best,
+Seamus
+
+PS. I think this would address a big question for 
+ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert** 
+implement a **simple** tokenizer?
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From kevin.t.ryan at gmail.com  Mon Jun 13 17:42:40 2011
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Mon, 13 Jun 2011 13:42:40 -0400
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF633C7.2000702@abshere.net>
+References: <4DF633C7.2000702@abshere.net>
+Message-ID: <BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+
+Hey -
+
+Just started using the library myself.  Easiest way to think about it
+(at least, it was for me) is that you are defining the machine in the
+section you noted below from the guide.  Until you initialize and
+execute it, it doesn't "do anything".  Thus, in some part of your
+script you need:
+
+%% write data; # sets up all the static data needed by the tokenizer
+
+Then (somewhere else in all likelihood), you need to initialize and
+execute the machine.  So, for example:
+
+int main(int argc, char* argv[]) {
+    int cs; // you can use this to check the status of the machine
+    char* p = "Your text to tokenize";
+    char* pe = p + strlen(p);
+
+    %% write init;
+    %% write exec; # this will execute the machine given the input
+provided by 'p'
+
+    if (cs == <machine_name>_error)
+        fprintf(stderr, "Error\n");
+    return 0;
+}
+
+> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+
+Maybe action 'A' is used to print a match when it  ends (the '%' in
+front of the A indicates that it will occur when leaving action).  For
+example:
+
+action A { print("Found alpha\n"); }
+action B { print("Found int\n"); }
+
+If you need to print out the total string, you might combine it with a
+'mark' action.  Eg:
+
+action mark { mark = p; /* mark needs to be set up in 'main' function
+now as a char* */ }
+< as before>
+lower ( lower | digit )* >mark %A |
+
+And do the same for the integer portion of the machine.  You could
+then change your print function to do something like:
+
+printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+
+> PS. I think this would address a big question for
+> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+> implement a **simple** tokenizer?
+
+You may also want to look at machines that are 'special' for lexing
+(viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+hopefully I didn't screw anything up too much!
+
+PS - I'm actually trying to write up a tutorial which I'll share with
+the list for feedback once it's done.  I think I have a much better
+grasp of what's going on now, but I think writing it out would
+actually help my understanding too.
+
+Good luck,
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Mon Jun 13 23:09:50 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Mon, 13 Jun 2011 18:09:50 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+References: <4DF633C7.2000702@abshere.net>
+	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+Message-ID: <4DF698BE.2030409@abshere.net>
+
+Dear friends who have been using ragel for more than a year,
+
+I bet Kevin and I are facing a similar problem that you have all faced, 
+namely that as a software project matures, common ground between its 
+founding users and new users erodes. Fresh code examples keep interest 
+alive and prevent people from re-inventing the wheel. Please do speak up!
+
+How about an authoritative Ruby code example for Ragel Guide 6.7 section 
+4.2.4 (Longest-Match Kleene Star)?. It's "useful when writing simple 
+tokenizers"... that sounds like a great way to bridge the gap.
+
+Since all the code examples are in C, it's not clear what you would use 
+in Ruby instead of ts and te.
+
+Best,
+Seamus
+
+On 6/13/11 12:42 PM, Kevin T. Ryan wrote:
+> Hey -
+>
+> Just started using the library myself.  Easiest way to think about it
+> (at least, it was for me) is that you are defining the machine in the
+> section you noted below from the guide.  Until you initialize and
+> execute it, it doesn't "do anything".  Thus, in some part of your
+> script you need:
+>
+> %% write data; # sets up all the static data needed by the tokenizer
+>
+> Then (somewhere else in all likelihood), you need to initialize and
+> execute the machine.  So, for example:
+>
+> int main(int argc, char* argv[]) {
+>      int cs; // you can use this to check the status of the machine
+>      char* p = "Your text to tokenize";
+>      char* pe = p + strlen(p);
+>
+>      %% write init;
+>      %% write exec; # this will execute the machine given the input
+> provided by 'p'
+>
+>      if (cs ==<machine_name>_error)
+>          fprintf(stderr, "Error\n");
+>      return 0;
+> }
+>
+>> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+>
+> Maybe action 'A' is used to print a match when it  ends (the '%' in
+> front of the A indicates that it will occur when leaving action).  For
+> example:
+>
+> action A { print("Found alpha\n"); }
+> action B { print("Found int\n"); }
+>
+> If you need to print out the total string, you might combine it with a
+> 'mark' action.  Eg:
+>
+> action mark { mark = p; /* mark needs to be set up in 'main' function
+> now as a char* */ }
+> <  as before>
+> lower ( lower | digit )*>mark %A |
+>
+> And do the same for the integer portion of the machine.  You could
+> then change your print function to do something like:
+>
+> printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+>
+>> PS. I think this would address a big question for
+>> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+>> implement a **simple** tokenizer?
+>
+> You may also want to look at machines that are 'special' for lexing
+> (viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+> hopefully I didn't screw anything up too much!
+>
+> PS - I'm actually trying to write up a tutorial which I'll share with
+> the list for feedback once it's done.  I think I have a much better
+> grasp of what's going on now, but I think writing it out would
+> actually help my understanding too.
+>
+> Good luck,
+>
+> ktr
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Tue Jun 14 17:02:05 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Tue, 14 Jun 2011 12:02:05 -0500
+Subject: [ragel-users] Trying to answer my own Ruby and Ragel questions
+Message-ID: <4DF7940D.4000007@abshere.net>
+
+hi all,
+
+Please do take a look at my ragel and ruby examples in
+
+> https://github.com/seamusabshere/ruby_ragel_examples
+> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+
+I wouldn't want to spread misinformation!
+
+Best,
+Seamus
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graceindustries at gmail.com  Wed Jun 15 11:30:37 2011
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 15 Jun 2011 07:30:37 -0400
+Subject: [ragel-users] Ragel mentioned in Dr. Dobbs
+Message-ID: <BANLkTi==69eDRcSP2vY7zBgDGan1-kB_bA@mail.gmail.com>
+
+FYI:
+
+Ragel got a mention in Dr. Dobbs (not sure you can call it a Magazine
+any more?):
+
+http://drdobbs.com/blogs/embedded-systems/229900157?cid=nl_ddjupdate_2011-06-14_html
+
+Article is more about C++ state machines, the author says the'll cover
+say more about Ragel in the futures.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 15 15:28:09 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 15 Jun 2011 08:28:09 -0700
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF698BE.2030409@abshere.net>
+References: <4DF633C7.2000702@abshere.net>	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>
+	<4DF698BE.2030409@abshere.net>
+Message-ID: <4DF8CF89.4060709@complang.org>
+
+In the ruby code generator one uses ts and te, except they are offsets 
+against 'data', instead of pointers. Aside from that, the assumptions 
+and use cases are all the same.
+
+I would like to use only C in the manual. Ragel supports a number of 
+languages, but it was originally designed for C and I would like the 
+manual to reflect that.
+
+On 11-06-13 04:09 PM, Seamus Abshere wrote:
+> Dear friends who have been using ragel for more than a year,
+>
+> I bet Kevin and I are facing a similar problem that you have all faced,
+> namely that as a software project matures, common ground between its
+> founding users and new users erodes. Fresh code examples keep interest
+> alive and prevent people from re-inventing the wheel. Please do speak up!
+>
+> How about an authoritative Ruby code example for Ragel Guide 6.7 section
+> 4.2.4 (Longest-Match Kleene Star)?. It's "useful when writing simple
+> tokenizers"... that sounds like a great way to bridge the gap.
+>
+> Since all the code examples are in C, it's not clear what you would use
+> in Ruby instead of ts and te.
+>
+> Best,
+> Seamus
+>
+> On 6/13/11 12:42 PM, Kevin T. Ryan wrote:
+>> Hey -
+>>
+>> Just started using the library myself. Easiest way to think about it
+>> (at least, it was for me) is that you are defining the machine in the
+>> section you noted below from the guide. Until you initialize and
+>> execute it, it doesn't "do anything". Thus, in some part of your
+>> script you need:
+>>
+>> %% write data; # sets up all the static data needed by the tokenizer
+>>
+>> Then (somewhere else in all likelihood), you need to initialize and
+>> execute the machine. So, for example:
+>>
+>> int main(int argc, char* argv[]) {
+>> int cs; // you can use this to check the status of the machine
+>> char* p = "Your text to tokenize";
+>> char* pe = p + strlen(p);
+>>
+>> %% write init;
+>> %% write exec; # this will execute the machine given the input
+>> provided by 'p'
+>>
+>> if (cs ==<machine_name>_error)
+>> fprintf(stderr, "Error\n");
+>> return 0;
+>> }
+>>
+>>> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+>>
+>> Maybe action 'A' is used to print a match when it ends (the '%' in
+>> front of the A indicates that it will occur when leaving action). For
+>> example:
+>>
+>> action A { print("Found alpha\n"); }
+>> action B { print("Found int\n"); }
+>>
+>> If you need to print out the total string, you might combine it with a
+>> 'mark' action. Eg:
+>>
+>> action mark { mark = p; /* mark needs to be set up in 'main' function
+>> now as a char* */ }
+>> < as before>
+>> lower ( lower | digit )*>mark %A |
+>>
+>> And do the same for the integer portion of the machine. You could
+>> then change your print function to do something like:
+>>
+>> printf("Found alpha: %.*s\n", p-mark, mark); // print out the alpha found
+>>
+>>> PS. I think this would address a big question for
+>>> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+>>> implement a **simple** tokenizer?
+>>
+>> You may also want to look at machines that are 'special' for lexing
+>> (viz., machine := |* *|;). BTW, I'm very new to this myself - so
+>> hopefully I didn't screw anything up too much!
+>>
+>> PS - I'm actually trying to write up a tutorial which I'll share with
+>> the list for feedback once it's done. I think I have a much better
+>> grasp of what's going on now, but I think writing it out would
+>> actually help my understanding too.
+>>
+>> Good luck,
+>>
+>> ktr
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Sat Jun 18 15:05:50 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Sat, 18 Jun 2011 10:05:50 -0500
+Subject: [ragel-users] ragel for binary protocol parsing?
+Message-ID: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+
+I started looking at ragel as a tool for building a KMIP
+(http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=kmip)
+parser. However I'm seeing differing opinions on whether ragel is a
+good tool for this job. So what's the consensus is it or isn't it? Or
+maybe it depends on the protocol like if it doesn't use bit fields?
+
+Ted
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 19 00:07:30 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 18 Jun 2011 17:07:30 -0700
+Subject: [ragel-users] ragel for binary protocol parsing?
+In-Reply-To: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+References: <BANLkTimyOB6iBbM4CBVxB0wC90VEyFnt_g@mail.gmail.com>
+Message-ID: <4DFD3DC2.7070603@complang.org>
+
+I use it to parse binary protocols (eg DNS, SSL). Usually the awkward 
+part is dealing with N items of things. You either need to use 
+conditionals, or some jumps and calls. It certainly wasn't designed for 
+that though. I had text-based parsing in mind. Initially I would advise 
+people to not use it for binary protocols, but since conditionals are 
+available I say it can be used for them.
+
+On 11-06-18 08:05 AM, Ted Toth wrote:
+> I started looking at ragel as a tool for building a KMIP
+> (http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=kmip)
+> parser. However I'm seeing differing opinions on whether ragel is a
+> good tool for this job. So what's the consensus is it or isn't it? Or
+> maybe it depends on the protocol like if it doesn't use bit fields?
+>
+> Ted
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Mon Jun 20 16:19:22 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Mon, 20 Jun 2011 11:19:22 -0500
+Subject: [ragel-users] C #define for numeric literals
+Message-ID: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+
+Maybe I don't understand but I tried using values that are defined in
+a header (.h) file but ragel complained :( I ended up adding the same
+values to my ragel file. I'd prefer to use the C header values instead
+of having to replicate them.
+
+Ted
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From seamus at abshere.net  Tue Jun 21 15:46:54 2011
+From: seamus at abshere.net (Seamus Abshere)
+Date: Tue, 21 Jun 2011 10:46:54 -0500
+Subject: [ragel-users] Action code for simple tokenizer?
+In-Reply-To: <4DF8CF89.4060709@complang.org>
+References: <4DF633C7.2000702@abshere.net>	<BANLkTinGWg+fbNYjP9Tvx0DLjHAXN_Xqkw@mail.gmail.com>	<4DF698BE.2030409@abshere.net>
+	<4DF8CF89.4060709@complang.org>
+Message-ID: <4E00BCEE.1070705@abshere.net>
+
+hi Adrian,
+
+Thanks for getting back to me. I updated my action and buffering code 
+for ruby:
+
+> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+> https://github.com/seamusabshere/ruby_ragel_examples
+> https://github.com/seamusabshere/ruby_ragel_examples/blob/master/test/test_ragel.rb
+
+Hopefully these examples will help people even if they don't live in the 
+Ragel Guide.
+
+Best,
+Seamus
+
+PS. For example, in Ruby, the buffering/reading loop of a scanner should 
+look like:
+
+>   CHUNK_SIZE = 1_000_000 # bytes
+>   def perform
+>     # So that ragel doesn't try to get it from data.length
+>     pe = :ignored
+>     eof = :ignored
+>     %% write init;
+>     # % (this fixes syntax highlighting)
+>     leftover = []
+>     File.open(path) do |f|
+>       while chunk = f.read(CHUNK_SIZE)
+>         data = leftover + chunk.unpack('c*')
+>         p ||= 0
+>         pe = data.length
+>         %% write exec;
+>         # % (this fixes syntax highlighting)
+>         if ts
+>           leftover = data[ts..pe]
+>           p = p - ts
+>           ts = 0
+>         else
+>           leftover = []
+>           p = 0
+>         end
+>       end
+>     end
+>   end
+
+On 6/15/11 10:28 AM, Adrian Thurston wrote:
+> In the ruby code generator one uses ts and te, except they are offsets
+> against 'data', instead of pointers. Aside from that, the assumptions
+> and use cases are all the same.
+>
+> I would like to use only C in the manual. Ragel supports a number of
+> languages, but it was originally designed for C and I would like the
+> manual to reflect that.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From txtoth at gmail.com  Thu Jun 23 01:31:49 2011
+From: txtoth at gmail.com (Ted Toth)
+Date: Wed, 22 Jun 2011 20:31:49 -0500
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+Message-ID: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+
+I did try to use 'import' on my C header but parser didn't work.
+#define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+ragel file does work.
+
+On Mon, Jun 20, 2011 at 11:19 AM, Ted Toth <txtoth at gmail.com> wrote:
+> Maybe I don't understand but I tried using values that are defined in
+> a header (.h) file but ragel complained :( I ended up adding the same
+> values to my ragel file. I'd prefer to use the C header values instead
+> of having to replicate them.
+>
+> Ted
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alan at alanz.com  Fri Jun 24 22:44:52 2011
+From: alan at alanz.com (Alan West)
+Date: Fri, 24 Jun 2011 23:44:52 +0100
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+	<BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+Message-ID: <B425A2FA-DB9F-4DFD-A764-10A813AFFF80@alanz.com>
+
+On 23 Jun 2011, at 02:31, Ted Toth <txtoth at gmail.com> wrote:
+
+> I did try to use 'import' on my C header but parser didn't work.
+> #define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+> ragel file does work.
+
+I believe you'd need to feed the Ragel file through your C preprocessor, to have the identifier names replaced with their values before feeding it to Ragel.
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 25 17:53:51 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 25 Jun 2011 10:53:51 -0700
+Subject: [ragel-users] C #define for numeric literals
+In-Reply-To: <BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+References: <BANLkTikSCdUbNNDX1TxKHsExK9FcA54Mfg@mail.gmail.com>
+	<BANLkTinJn_N7vGPxHZrSjDbr+ooCsCTo-A@mail.gmail.com>
+Message-ID: <4E0620AF.2030705@complang.org>
+
+The importer doesn't accept HEX, only decimal.
+
+http://www.complang.org/redmine/issues/301
+
+On 11-06-22 06:31 PM, Ted Toth wrote:
+> I did try to use 'import' on my C header but parser didn't work.
+> #define FOO 0x42 in the header file didn't work but FOO = 0x42; in my
+> ragel file does work.
+>
+> On Mon, Jun 20, 2011 at 11:19 AM, Ted Toth<txtoth at gmail.com>  wrote:
+>> Maybe I don't understand but I tried using values that are defined in
+>> a header (.h) file but ragel complained :( I ended up adding the same
+>> values to my ragel file. I'd prefer to use the C header values instead
+>> of having to replicate them.
+>>
+>> Ted
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From iain at thenicols.net  Sun Jun 26 13:22:58 2011
+From: iain at thenicols.net (Iain Nicol)
+Date: Sun, 26 Jun 2011 14:22:58 +0100
+Subject: [ragel-users] semantic conditions and alphtype
+Message-ID: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+
+At the moment, if you're on a 32-bit machine and have alphtype signed or
+unsigned int, you cannot use semantic conditions.  The longs Ragel
+store the characters in have no free space.
+
+IMHO this is unfortunate.  Suppose you want (basic) Unicode support.  It
+is tempting to use unsigned int as the alphtype, and feed Ragel Unicode
+code points (equivalently, UCS-4 encoded data). No more than 21 bits are
+needed to do this, but Ragel has no way of knowing that the alphabet
+doesn't cover the whole range of the unsigned int.
+
+I realise there's contrib/Unicode2Ragel which has support for UTF-8, but
+(again IMO) it's nice to deal with encoding completely separately from
+Ragel, and hence give Ragel the abstract code points.
+
+Would either of the following be reasonable?
+
+  * have some way to give Ragel a more specific alphabet range.  (Would
+    this be an extra parameter to alphtype, or would it replace the
+    existing parameters to alphtype?)
+
+  * allow Ragel to (conditionally?) use long longs internally.
+
+
+
+Regards,
+-- 
+Iain
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 26 17:54:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 26 Jun 2011 10:54:17 -0700
+Subject: [ragel-users] semantic conditions and alphtype
+In-Reply-To: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+References: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+Message-ID: <4E077249.6040709@complang.org>
+
+Fixing the condition implementation is the focus of 7.0. Conditions will 
+have a representation in the data structures of the transition list. We 
+won't rely rely on expansion to larger values in the alphabet space.
+
+On 11-06-26 06:22 AM, Iain Nicol wrote:
+> At the moment, if you're on a 32-bit machine and have alphtype signed or
+> unsigned int, you cannot use semantic conditions.  The longs Ragel
+> store the characters in have no free space.
+>
+> IMHO this is unfortunate.  Suppose you want (basic) Unicode support.  It
+> is tempting to use unsigned int as the alphtype, and feed Ragel Unicode
+> code points (equivalently, UCS-4 encoded data). No more than 21 bits are
+> needed to do this, but Ragel has no way of knowing that the alphabet
+> doesn't cover the whole range of the unsigned int.
+>
+> I realise there's contrib/Unicode2Ragel which has support for UTF-8, but
+> (again IMO) it's nice to deal with encoding completely separately from
+> Ragel, and hence give Ragel the abstract code points.
+>
+> Would either of the following be reasonable?
+>
+>    * have some way to give Ragel a more specific alphabet range.  (Would
+>      this be an extra parameter to alphtype, or would it replace the
+>      existing parameters to alphtype?)
+>
+>    * allow Ragel to (conditionally?) use long longs internally.
+>
+>
+>
+> Regards,
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From iain at thenicols.net  Sun Jun 26 19:55:06 2011
+From: iain at thenicols.net (Iain Nicol)
+Date: Sun, 26 Jun 2011 20:55:06 +0100
+Subject: [ragel-users] semantic conditions and alphtype
+In-Reply-To: <4E077249.6040709@complang.org>
+References: <BANLkTi=jhoWBnm5QTCZkRvC4V-jTw74XSg@mail.gmail.com>
+	<4E077249.6040709@complang.org>
+Message-ID: <BANLkTi=uK_kN8y4UQyre7XAbHfu5a9ZMSw@mail.gmail.com>
+
+Adrian Thurston wrote:
+> Fixing the condition implementation is the focus of 7.0. Conditions
+> will have a representation in the data structures of the transition
+> list. We won't rely rely on expansion to larger values in the alphabet
+> space.
+
+That's nice to know.  Thanks for the info... and for your general work
+on Ragel.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Tue Jun 28 19:17:46 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Tue, 28 Jun 2011 23:17:46 +0400
+Subject: [ragel-users] hidden reserved keywords?
+Message-ID: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+
+Hi, Adrian.
+
+%%{
+       text   = [a-z];
+        CRLF   = '\r' '\n';
+
+       from   = "From:"i text* CRLF;
+
+       main   := from;
+}%%
+
+produce following error message:
+parse2.rl:16:9: at token KW_From: parse error
+
+the same error was if i wrote:
+
+   to = "To:" text* CRLF;
+
+parse2.rl:16:9: at token KW_To: parse error
+
+and "Eof" :)))
+and ... posible for other keywords.
+
+Is this bug or undocumented restriction?
+Can you fix it?
+
+Thanks.
+
+Best regards,
+Denis Naumov.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110628/d3fd2cb7/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Jun 30 01:43:46 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 29 Jun 2011 18:43:46 -0700
+Subject: [ragel-users] hidden reserved keywords?
+In-Reply-To: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+References: <BANLkTi=21aQdSwU3hJDZ8yZGf9_QTtyVsQ@mail.gmail.com>
+Message-ID: <4E0BD4D2.3040107@complang.org>
+
+Those should be documented.
+
+http://www.complang.org/redmine/issues/302
+
+On 11-06-28 12:17 PM, Denis Naumov wrote:
+> Hi, Adrian.
+> %%{
+>         text   = [a-z];
+>         CRLF   = '\r' '\n';
+>         from   = "From:"i text* CRLF;
+>         main   := from;
+> }%%
+> produce following error message:
+> parse2.rl:16:9: at token KW_From: parse error
+> the same error was if i wrote:
+>     to = "To:" text* CRLF;
+> parse2.rl:16:9: at token KW_To: parse error
+> and "Eof" :)))
+> and ... posible for other keywords.
+> Is this bug or undocumented restriction?
+> Can you fix it?
+> Thanks.
+> Best regards,
+> Denis Naumov.
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> --===============0832764
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

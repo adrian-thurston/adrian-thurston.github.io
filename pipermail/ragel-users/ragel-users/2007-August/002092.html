@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> is this possible?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20is%20this%20possible%3F&In-Reply-To=%3C1188538737.622821.28890%40m37g2000prh.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002091.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>is this possible?</H1>
+    <B>iceman</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20is%20this%20possible%3F&In-Reply-To=%3C1188538737.622821.28890%40m37g2000prh.googlegroups.com%3E"
+       TITLE="is this possible?">jegan... at yahoo.com
+       </A><BR>
+    <I>Fri Aug 31 05:38:57 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002091.html">is this possible?
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2092">[ date ]</a>
+              <a href="thread.html#2092">[ thread ]</a>
+              <a href="subject.html#2092">[ subject ]</a>
+              <a href="author.html#2092">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>sorry about the vague description..
+
+basically i am working with click modular routers.i am trying to
+separate the data plane and the control plane..
+
+i will try to represent the control plane with a state machine..the
+the packets[like those of sk_buffer]will have to be to parsed and and
+the the control action[like binding update and router solicitation
+etc]should be converted to tokens and fed into the state machine...in
+the state machine depening upon the state an action should take place
+with state transition..
+
+what i am worried about is that will it be possible for me to use the
+parser associated with  that of ragel to parse the incoming packet[bit
+patterns] at real time?
+
+On Aug 31, 6:58 am, Steve Horne &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">stephenhorne... at aol.com</A>&gt; wrote:
+&gt;<i> That's a very vague requirement!
+</I>&gt;<i>
+</I>&gt;<i> Let's see...
+</I>&gt;<i>
+</I>&gt;<i> &gt; i would like to parse packets[bit patterns] and get out token which
+</I>&gt;<i> &gt; represent the function..
+</I>&gt;<i>
+</I>&gt;<i> Ragel generates a state machine, which it uses to extract tokens from
+</I>&gt;<i> input. In principle, the state machine takes as input a stream of
+</I>&gt;<i> characters, though in practice those 'characters' can be anything you
+</I>&gt;<i> can represent using integers (the precise type can be specified to get
+</I>&gt;<i> more bits per character).
+</I>&gt;<i>
+</I>&gt;<i> It isn't clear from your description whether the state machine you are
+</I>&gt;<i> talking about would be the one Ragel generates for you, or some other
+</I>&gt;<i> one, but either case is fine. You basically supply your own 'template'
+</I>&gt;<i> code for the Ragel state machine, so you can get your input character
+</I>&gt;<i> stream any way you want and use your output tokens in any way you
+</I>&gt;<i> want.
+</I>&gt;<i>
+</I>&gt;<i> You could even use the output from one Ragel machine as the input for
+</I>&gt;<i> another one.
+</I>&gt;<i>
+</I>&gt;<i> The only doubt I have is your mention of 'bit patterns'. As you can
+</I>&gt;<i> handle input any way you want, there is in principle no difficulty,
+</I>&gt;<i> but to the best of my knowledge you cannot use the current state to
+</I>&gt;<i> determine how to decode the next input. You could not take variable-
+</I>&gt;<i> bit-width characters from the input, for instance.
+</I>&gt;<i>
+</I>&gt;<i> You certainly can handle something like UTF-8 decoding, though - you
+</I>&gt;<i> just have a machine that takes 8-bit 'characters' as input and outputs
+</I>&gt;<i> unicode codepoints as its result (possibly sending them to another
+</I>&gt;<i> Ragel machine that tokenises the unicode character sequence).
+</I>&gt;<i> Actually, there's no reason why you can't convert UTF-8 to unicode
+</I>&gt;<i> codepoints in a single Ragel machine, but it's probably easier to
+</I>&gt;<i> cascade two machines to do the job.
+</I>&gt;<i>
+</I>&gt;<i> Equally, you could process a Huffman-encoded input if you really want
+</I>&gt;<i> to. You couldn't handle the input in multi-bit chunks, but you could
+</I>&gt;<i> handle it one bit at a time. The only condition is that the particular
+</I>&gt;<i> encoding would have to be fixed. This would work because Huffman
+</I>&gt;<i> encoding is a variable-width encoding, designed in such a way that you
+</I>&gt;<i> can find the end of each character using a finite state machine.
+</I>&gt;<i>
+</I>&gt;<i> The Ragel manual is very good, by the way. Just read the section on
+</I>&gt;<i> the 'interface to the host program' and I think all your questions
+</I>&gt;<i> will be answered.
+</I>&gt;<i>
+</I>&gt;<i> However, just on the off chance, I'll also recommend that you take a
+</I>&gt;<i> look at the SMC project...
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="http://smc.sourceforge.net/">http://smc.sourceforge.net/</A>
+</I>&gt;<i>
+</I>&gt;<i> I've not actually used it myself, whereas I use Ragel a lot, but
+</I>&gt;<i> depending on your state machine requirements it could be more
+</I>&gt;<i> appropriate.
+</I>&gt;<i>
+</I>&gt;<i> Ragel has a far more powerful model for specifying finite state
+</I>&gt;<i> machines in that it supports regular grammar handling features (like
+</I>&gt;<i> regular expressions, but better) as well as explicit specification of
+</I>&gt;<i> transitions, and the two forms can be mixed as needed. It also allows
+</I>&gt;<i> backtracking scanners (like flex - the scanner generator, not the
+</I>&gt;<i> Adobe web framework thing).
+</I>&gt;<i>
+</I>&gt;<i> Where SMC appears to win out is if you already have a pure state-
+</I>&gt;<i> transition model (e.g. based on a UML state diagram) and you want to
+</I>&gt;<i> ha
+</I>ndle events that are like class methods, with parameters.
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002091.html">is this possible?
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2092">[ date ]</a>
+              <a href="thread.html#2092">[ thread ]</a>
+              <a href="subject.html#2092">[ subject ]</a>
+              <a href="author.html#2092">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

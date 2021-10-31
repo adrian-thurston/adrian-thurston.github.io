@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Mandelbug causing segfault
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Mandelbug%20causing%20segfault&In-Reply-To=%3CAANLkTi%3DhzxgDJnL-AUBk2R8zW7spjcwNfYVzBZT9G-QU%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001217.html">
+   <LINK REL="Next"  HREF="001206.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Mandelbug causing segfault</H1>
+    <B>Mark Tsuchida</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Mandelbug%20causing%20segfault&In-Reply-To=%3CAANLkTi%3DhzxgDJnL-AUBk2R8zW7spjcwNfYVzBZT9G-QU%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Mandelbug causing segfault">marktsuchida at gmail.com
+       </A><BR>
+    <I>Wed Dec 15 04:33:55 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001217.html">[ragel-users] Doubt about actions prioritity
+</A></li>
+        <LI>Next message: <A HREF="001206.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1205">[ date ]</a>
+              <a href="thread.html#1205">[ thread ]</a>
+              <a href="subject.html#1205">[ subject ]</a>
+              <a href="author.html#1205">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear Adrian,
+
+Thank you for sharing this great tool.
+
+I am getting a segfault when running Ragel on my input file.
+
+Below is the simplest input file I've been able to create that
+triggers the segfault (sorry it's still rather complex).
+Whether or not Ragel crashes seems to be (depending on other parts of
+the input file) sometimes sensitive to the names given to actions (or
+at least the length of those names), among other things. Any given
+input file always gives the same result (segfault or no crash),
+though.
+
+Giving Ragel the -n or -m option appears to prevent the crash, at
+least with the input shown below.
+
+Both version 6.6 and the svn head (r1683) experience the same issue.
+I'm on Mac OS X 10.6 and Regal was compiled with g++ 4.2.1 (Xcode
+3.2.5) (arch is x86_64 (LP64)).
+
+Please let me know if there is anything else I can provide to help
+track this down.
+
+Thanks,
+Mark
+
+
+$ cat test.rl
+%%{
+machine test;
+
+action action1 {}
+action action2 {}
+
+nl = (&quot;\r\n&quot; | [\n\r]);
+kw = &quot;aaaaa&quot;;
+ident = &quot;bbbbb&quot; @action1;
+normal = (kw | ident);
+
+first = ([^\n\r] @action1)* . nl;
+
+cont = (
+    (&quot; &quot; @action1 when action1)* .
+    (((([^\n\r] @action1)*) . nl @action1) when action1)
+);
+
+special = first (cont when action2)** ;
+
+main := (normal when action1) | (special when action1);
+
+}%%
+$ ragel test.rl
+Segmentation fault
+$ ragel -V test.rl
+Segmentation fault
+$ ragel -T0 test.rl
+Segmentation fault
+$ ragel -T1 test.rl
+Segmentation fault
+$ ragel -F0 test.rl
+Segmentation fault
+$ ragel -F1 test.rl
+Segmentation fault
+$ ragel -d test.rl
+Segmentation fault
+$ ragel -e test.rl
+Segmentation fault
+$ ragel -n test.rl  # succeeds
+$ ragel -m test.rl  # succeeds
+$
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001217.html">[ragel-users] Doubt about actions prioritity
+</A></li>
+	<LI>Next message: <A HREF="001206.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1205">[ date ]</a>
+              <a href="thread.html#1205">[ thread ]</a>
+              <a href="subject.html#1205">[ subject ]</a>
+              <a href="author.html#1205">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

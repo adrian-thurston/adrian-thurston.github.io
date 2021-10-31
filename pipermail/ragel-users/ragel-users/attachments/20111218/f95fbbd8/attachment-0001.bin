@@ -1,0 +1,174 @@
+diff -r 29621c0fffdc configure.in
+--- a/configure.in	Sun Sep 11 18:40:09 2011 +0000
++++ b/configure.in	Sun Dec 18 16:21:53 2011 +0100
+@@ -109,6 +109,14 @@
+ 	exit 1
+ fi
+ 
++AC_CHECK_PROG(COLM, colm, colm)
++if test -z "$COLM"; then
++	echo
++	echo "error: colm is required to build the manual (maybe use --disable-manual)"
++	echo
++	exit 1
++fi
++
+ fi
+ 
+ dnl Check for the D compiler
+diff -r 29621c0fffdc doc/Makefile.am
+--- a/doc/Makefile.am	Sun Sep 11 18:40:09 2011 +0000
++++ b/doc/Makefile.am	Sun Dec 18 16:21:53 2011 +0100
+@@ -28,7 +28,7 @@
+ 	exnegate.fig explus.fig finguard.fig opconcat.fig bmor.fig conds1.fig \
+ 	exallact.fig exoption.fig exstact.fig leftguard.fig opor.fig \
+ 	bmrange.fig conds2.fig exconcat.fig exor.fig exstar.fig lines1.fig \
+-	opstar.fig
++	opstar.fig generate.lm ragel-guide.txt
+ 
+ if BUILD_MANUAL
+ 
+@@ -47,14 +47,14 @@
+ 	echo '|def|pubdate{$(PUBDATE)}' | tr '|' '\\' >> version.tex
+ 
+ ragel-guide.tex: generate.bin ragel-guide.txt
+-	./generate.bin < ragel-guide.txt > ragel-guide.tex
+-	
++	./generate.bin < $(srcdir)/ragel-guide.txt > ragel-guide.tex
++
+ generate.bin: generate.lm
+-	colm generate.lm
++	colm -o generate.c $<
+ 
+ ragel-guide.pdf: version.tex
+ 
+-ragel-guide.pdf: bmconcat.pdf bmregex.pdf dropdown.pdf exdoneact.pdf \
++RAGEL_GUIDE_PDFS = bmconcat.pdf bmregex.pdf dropdown.pdf exdoneact.pdf \
+ 	exoutact1.pdf exstrongsubtr.pdf lines2.pdf smallscanner.pdf bmnull.pdf \
+ 	comments1.pdf entryguard.pdf exinter.pdf exoutact2.pdf exsubtr.pdf \
+ 	lmkleene.pdf stembed.pdf bmnum.pdf comments2.pdf exaction.pdf \
+@@ -63,4 +63,10 @@
+ 	bmrange.pdf conds2.pdf exconcat.pdf exor.pdf exstar.pdf lines1.pdf \
+ 	opstar.pdf
+ 
++ragel-guide.pdf: $(RAGEL_GUIDE_PDFS)
++
++CLEANFILES = version.tex ragel-guide.tex generate.bin generate.c \
++	ragel-guide.pdf ragel-guide.aux ragel-guide.log ragel-guide.out \
++	ragel-guide.toc $(RAGEL_GUIDE_PDFS)
++
+ endif
+diff -r 29621c0fffdc examples/Makefile.am
+--- a/examples/Makefile.am	Sun Sep 11 18:40:09 2011 +0000
++++ b/examples/Makefile.am	Sun Dec 18 16:21:53 2011 +0100
+@@ -18,7 +18,7 @@
+ #   along with Ragel; if not, write to the Free Software
+ #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ 
+-RAGEL = ../ragel/ragel
++RAGEL = $(top_builddir)/ragel/ragel
+ FLEX = flex
+ RE2C = re2c
+ 
+@@ -30,54 +30,38 @@
+ 	gotocallret.rl pullscan.rl concurrent.rl rlscan.rl statechart.rl \
+ 	params.rl clang.rl cppscan.rl format.rl awkemu.rl mailbox.rl atoi.rl
+ 
+-gotocallret_SOURCES = gotocallret.cpp
+-pullscan_SOURCES = pullscan.c
+-concurrent_SOURCES = concurrent.cpp
+-rlscan_SOURCES = rlscan.cpp
+-statechart_SOURCES = statechart.cpp 
+-params_SOURCES = params.c
+-clang_SOURCES = clang.c 
+-cppscan_SOURCES = cppscan.cpp 
+-format_SOURCES = format.c
+-awkemu_SOURCES = awkemu.c
+-mailbox_SOURCES = mailbox.cpp
+-atoi_SOURCES = atoi.cpp
++nodist_gotocallret_SOURCES = gotocallret.cpp
++nodist_pullscan_SOURCES = pullscan.c
++nodist_concurrent_SOURCES = concurrent.cpp
++nodist_rlscan_SOURCES = rlscan.cpp
++nodist_statechart_SOURCES = statechart.cpp
++nodist_params_SOURCES = params.c
++nodist_clang_SOURCES = clang.c
++nodist_cppscan_SOURCES = cppscan.cpp
++nodist_format_SOURCES = format.c
++nodist_awkemu_SOURCES = awkemu.c
++nodist_mailbox_SOURCES = mailbox.cpp
++nodist_atoi_SOURCES = atoi.cpp
+ 
+-gotocallret.cpp: gotocallret.rl
+-	$(RAGEL) -G2 -o gotocallret.cpp gotocallret.rl 
++%.c: %.rl
++	$(RAGEL) -G2 -o $@ $<
+ 
+-pullscan.c: pullscan.rl $(RAGEL) 
+-	$(RAGEL) -G2 -o $@ pullscan.rl
++%.cpp: %.rl
++	$(RAGEL) -G2 -o $@ $<
+ 
+-concurrent.cpp: concurrent.rl $(RAGEL)
+-	$(RAGEL) -G2 -o concurrent.cpp concurrent.rl
+-
+-rlscan.cpp: rlscan.rl 
+-	$(RAGEL) -G2 -o rlscan.cpp rlscan.rl
+-
+-statechart.cpp: statechart.rl 
+-	$(RAGEL) -G2 -o statechart.cpp statechart.rl
+-
+-params.c: params.rl
+-	$(RAGEL) -G2 -o params.c params.rl
+-
+-clang.c: clang.rl 
+-	$(RAGEL) -G2 -o clang.c clang.rl
+-
+-cppscan.cpp: cppscan.rl 
+-	$(RAGEL) -G2 -o $@ cppscan.rl
+-
+-format.c: format.rl
+-	$(RAGEL) -G2 -o format.c format.rl
+-
+-awkemu.c: awkemu.rl
+-	$(RAGEL) -G2 -o awkemu.c awkemu.rl
+-
+-mailbox.cpp: mailbox.rl
+-	$(RAGEL) -G2 -o mailbox.cpp mailbox.rl
+-
+-atoi.cpp: atoi.rl
+-	$(RAGEL) -G2 -o atoi.cpp atoi.rl
++CLEANFILES = \
++	$(gotocallret_SOURCES) \
++	$(pullscan_SOURCES) \
++	$(concurrent_SOURCES) \
++	$(rlscan_SOURCES) \
++	$(statechart_SOURCES) \
++	$(params_SOURCES) \
++	$(clang_SOURCES) \
++	$(cppscan_SOURCES) \
++	$(format_SOURCES) \
++	$(awkemu_SOURCES) \
++	$(mailbox_SOURCES) \
++	$(atoi_SOURCES)
+ 
+ ###
+ 
+diff -r 29621c0fffdc ragel/Makefile.am
+--- a/ragel/Makefile.am	Sun Sep 11 18:40:09 2011 +0000
++++ b/ragel/Makefile.am	Sun Dec 18 16:21:53 2011 +0100
+@@ -30,12 +30,13 @@
+ version.h: Makefile
+ 	echo '#define VERSION "$(PACKAGE_VERSION)"' > version.h
+ 	echo '#define PUBDATE "$(PUBDATE)"' >> version.h
++CLEANFILES = version.h
+ 
+ EXTRA_DIST = rlscan.rl rlparse.kh rlparse.kl
+ 
+ if BUILD_PARSERS
+ 
+-CLEANFILES = \
++CLEANFILES += \
+ 	rlscan.cc rlparse.h rlparse.cc
+ 
+ rlparse.h: rlparse.kh

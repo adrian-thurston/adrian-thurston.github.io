@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] C++11, new narrowing rules and unsigned char on ARM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20C%2B%2B11%2C%0A%20new%20narrowing%20rules%20and%20unsigned%20char%20on%20ARM&In-Reply-To=%3C52922A87.7040505%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003395.html">
+   <LINK REL="Next"  HREF="003406.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] C++11, new narrowing rules and unsigned char on ARM</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20C%2B%2B11%2C%0A%20new%20narrowing%20rules%20and%20unsigned%20char%20on%20ARM&In-Reply-To=%3C52922A87.7040505%40complang.org%3E"
+       TITLE="[ragel-users] C++11, new narrowing rules and unsigned char on ARM">thurston at complang.org
+       </A><BR>
+    <I>Sun Nov 24 16:34:15 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003395.html">[ragel-users] Some clarifications needed
+</A></li>
+        <LI>Next message: <A HREF="003406.html">[ragel-users] C++11,	new narrowing rules and unsigned char on ARM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3396">[ date ]</a>
+              <a href="thread.html#3396">[ thread ]</a>
+              <a href="subject.html#3396">[ subject ]</a>
+              <a href="author.html#3396">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jan,
+
+Apparently, on Android ARM char is unsigned. Ragel assumes it is signed 
+on all architectures. What's needed is a configure check and the 
+appropriate information to make it into the descriptors in common.cc.
+
+A few others have encountered this bug lately.
+
+I'm currently pretty busy with Ragel 7, as soon as that's done I'm going 
+to sweep for the various bugs that have been reported.
+
+Regards,
+  Adrian
+
+On 13-09-18 10:05 AM, Jan Kundrát wrote:
+&gt;<i> Hi Adrian,
+</I>&gt;<i> I'm using Ragel for parsing of e-mail headers as per RFC5322. When
+</I>&gt;<i> porting this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed
+</I>&gt;<i> that it fails to build after I enable C++11 features using clang 3.3.
+</I>&gt;<i> Here is the error message:
+</I>&gt;<i>
+</I>&gt;<i> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+</I>&gt;<i> error: constant expression evaluates to -128 which cannot be narrowed to
+</I>&gt;<i> type 'char' [-Wc++11-narrowing]
+</I>&gt;<i> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+</I>&gt;<i> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+</I>&gt;<i> note: override this message by inserting an explicit cast
+</I>&gt;<i> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+</I>&gt;<i> static_cast&lt;char&gt;( )
+</I>&gt;<i>
+</I>&gt;<i> So the problem is that the signedness rules for the host (machine
+</I>&gt;<i> running ragel producing the .cpp file with parser) and target (the
+</I>&gt;<i> target platform of the C++ compiler which is producing Ragel's output)
+</I>&gt;<i> do not match. That's a big problem, and it isn't limited just to chars,
+</I>&gt;<i> actually -- because Ragel's code uses platform's native types instead of
+</I>&gt;<i> the portable ones, there's no guarantee that ragel's int can fit the
+</I>&gt;<i> data of the target's size, etc. I've solved this by patching ragel to
+</I>&gt;<i> use C's int&lt;num&gt;_t types, please see the commit at [1]. That patch fixes
+</I>&gt;<i> my problem.
+</I>&gt;<i>
+</I>&gt;<i> In addition, before I realized that I'm actually looking for the ragel-6
+</I>&gt;<i> branch, I spent some time playing with master before I finding out that
+</I>&gt;<i> it's some kind of a rewrite. The same bug applies there as well. Before
+</I>&gt;<i> I was able to get the master branch to build on my system, I had to make
+</I>&gt;<i> the following changes:
+</I>&gt;<i>
+</I>&gt;<i> * Fixing a build failure due to a bug in colm's headers [2]. I see
+</I>&gt;<i> you're upstream for that project, too, perhaps you can fix it in there
+</I>&gt;<i> as well.
+</I>&gt;<i>
+</I>&gt;<i> * Making sure that version.h is generated [3].
+</I>&gt;<i>
+</I>&gt;<i> After that, I simply added a rule to always treat chars as signed [4].
+</I>&gt;<i> That's arguably a wrong change; the code shall probably do the same
+</I>&gt;<i> thing as [1]. I don't have time for this now.
+</I>&gt;<i>
+</I>&gt;<i> And finally, when I tried the patched master, I found out that my ragel
+</I>&gt;<i> parser won't compile anymore -- please see the file at [5]. The error
+</I>&gt;<i> message I get is that it cannot find the &quot;CRLF&quot; symbol which is defined
+</I>&gt;<i> in the included .rl file [6]. That looks like a regression in the rewrite.
+</I>&gt;<i>
+</I>&gt;<i> Thanks for a cool software -- I hope these patches are OK and that
+</I>&gt;<i> you'll merge them.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Jan
+</I>&gt;<i>
+</I>&gt;<i> [1]
+</I>&gt;<i> <A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132">http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132</A>
+</I>&gt;<i>
+</I>&gt;<i> [2]
+</I>&gt;<i> <A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c">http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c</A>
+</I>&gt;<i>
+</I>&gt;<i> [3]
+</I>&gt;<i> <A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7">http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7</A>
+</I>&gt;<i>
+</I>&gt;<i> [4]
+</I>&gt;<i> <A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19">http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19</A>
+</I>&gt;<i>
+</I>&gt;<i> [5]
+</I>&gt;<i> <A HREF="http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=efb0307c829d1c0c7939a556dd40427779221651&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/Rfc5322HeaderParser.cpp">http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=efb0307c829d1c0c7939a556dd40427779221651&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/Rfc5322HeaderParser.cpp</A>
+</I>&gt;<i>
+</I>&gt;<i> [6]
+</I>&gt;<i> <A HREF="http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=65e67a87c727714783bd793b43824795d0e94ef6&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/rfc5322.rl">http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=65e67a87c727714783bd793b43824795d0e94ef6&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/rfc5322.rl</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003395.html">[ragel-users] Some clarifications needed
+</A></li>
+	<LI>Next message: <A HREF="003406.html">[ragel-users] C++11,	new narrowing rules and unsigned char on ARM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3396">[ date ]</a>
+              <a href="thread.html#3396">[ thread ]</a>
+              <a href="subject.html#3396">[ subject ]</a>
+              <a href="author.html#3396">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

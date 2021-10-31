@@ -1,0 +1,277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/3] Use CXXFLAGS for compiling rather than CFLAGS.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%202/3%5D%20Use%20CXXFLAGS%20for%20compiling%20rather%20than%20CFLAGS.&In-Reply-To=%3C20081001111256.10537.14923.stgit%40yamato%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002510.html">
+   <LINK REL="Next"  HREF="002511.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/3] Use CXXFLAGS for compiling rather than CFLAGS.</H1>
+    <B>Diego 'Flameeyes' Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%202/3%5D%20Use%20CXXFLAGS%20for%20compiling%20rather%20than%20CFLAGS.&In-Reply-To=%3C20081001111256.10537.14923.stgit%40yamato%3E"
+       TITLE="[PATCH 2/3] Use CXXFLAGS for compiling rather than CFLAGS.">flamee... at gmail.com
+       </A><BR>
+    <I>Wed Oct  1 11:12:56 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002510.html">[ragel-users] [PATCH 1/3] Don't use install -s to strip files during install.
+</A></li>
+        <LI>Next message: <A HREF="002511.html">[ragel-users] [PATCH 2/3] Use CXXFLAGS for compiling rather than CFLAGS.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2507">[ date ]</a>
+              <a href="thread.html#2507">[ thread ]</a>
+              <a href="subject.html#2507">[ subject ]</a>
+              <a href="author.html#2507">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Most buildsystem divide flags on a per-language basis, since all
+compilers support some flags only for one particular language.
+
+The CFLAGS variable is reserved for C compiler flags, while C++
+compiler flags are usually passed through CXXFLAGS variables; autoconf
+supports this, and will help the user to use those.
+---
+
+ common/Makefile.in       |    4 ++--
+ examples/Makefile        |    3 +--
+ ragel/Makefile.in        |    4 ++--
+ redfsm/Makefile.in       |    4 ++--
+ rlgen-cd/Makefile.in     |    4 ++--
+ rlgen-csharp/Makefile.in |    4 ++--
+ rlgen-dot/Makefile.in    |    4 ++--
+ rlgen-java/Makefile.in   |    4 ++--
+ rlgen-ruby/Makefile.in   |    4 ++--
+ 9 files changed, 17 insertions(+), 18 deletions(-)
+
+diff --git a/common/Makefile.in b/common/Makefile.in
+index 54ed940..112e59c 100644
+--- a/common/Makefile.in
++++ b/common/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = common.cpp
+@@ -58,7 +58,7 @@ version.h: ../version.mk
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile config.h
+diff --git a/examples/Makefile b/examples/Makefile
+index a392aa8..b9fcc21 100644
+--- a/examples/Makefile
++++ b/examples/Makefile
+@@ -21,7 +21,6 @@
+ RAGEL = ../ragel/ragel
+ FLEX = flex
+ RE2C = re2c
+-CFLAGS = -Wall -g -O3
+ 
+ TARGS = \
+ 	atoi awkemu clang concurrent cppscan format gotocallret mailbox params \
+@@ -38,7 +37,7 @@ distclean clean:
+ 	gcc $(CFLAGS) -Wall -g -c -O3 -o $@ $&lt;
+ 
+ %.o: %.cpp
+-	g++ $(CFLAGS) -Wall -g -c -O3 -o $@ $&lt;
++	g++ $(CXXFLAGS) -Wall -g -c -O3 -o $@ $&lt;
+ 
+ #########################################
+ 
+diff --git a/ragel/Makefile.in b/ragel/Makefile.in
+index daa42e7..3a23267 100644
+--- a/ragel/Makefile.in
++++ b/ragel/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../aapl -I../redfsm
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = \
+@@ -82,7 +82,7 @@ endif
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile 
+diff --git a/redfsm/Makefile.in b/redfsm/Makefile.in
+index fc28171..a4c6737 100644
+--- a/redfsm/Makefile.in
++++ b/redfsm/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = redfsm.cpp gendata.cpp xmltags.cpp xmlscan.cpp xmlparse.cpp
+@@ -69,7 +69,7 @@ endif
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+diff --git a/rlgen-cd/Makefile.in b/rlgen-cd/Makefile.in
+index 6d4a293..49031e3 100644
+--- a/rlgen-cd/Makefile.in
++++ b/rlgen-cd/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../redfsm -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = main.cpp fsmcodegen.cpp \
+@@ -57,7 +57,7 @@ rlgen-cd.a: $(LIBS) $(OBJS)
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+diff --git a/rlgen-csharp/Makefile.in b/rlgen-csharp/Makefile.in
+index 24d992b..fa57e49 100644
+--- a/rlgen-csharp/Makefile.in
++++ b/rlgen-csharp/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../redfsm -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = main.cpp fsmcodegen.cpp \
+@@ -57,7 +57,7 @@ rlgen-csharp.a: $(LIBS) $(OBJS)
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+diff --git a/rlgen-dot/Makefile.in b/rlgen-dot/Makefile.in
+index 7cd4ee6..8decf2b 100644
+--- a/rlgen-dot/Makefile.in
++++ b/rlgen-dot/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../redfsm -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = main.cpp gvdotgen.cpp 
+@@ -53,7 +53,7 @@ rlgen-dot.a: $(LIBS) $(OBJS)
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+diff --git a/rlgen-java/Makefile.in b/rlgen-java/Makefile.in
+index e242a64..2fe5cd7 100644
+--- a/rlgen-java/Makefile.in
++++ b/rlgen-java/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../redfsm -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = main.cpp javacodegen.cpp
+@@ -54,7 +54,7 @@ rlgen-java.a: $(LIBS) $(OBJS)
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+diff --git a/rlgen-ruby/Makefile.in b/rlgen-ruby/Makefile.in
+index c9bd4f1..a0a2d52 100644
+--- a/rlgen-ruby/Makefile.in
++++ b/rlgen-ruby/Makefile.in
+@@ -21,7 +21,7 @@
+ INCS += -I../common -I../redfsm -I../aapl
+ DEFS +=
+ 
+-CFLAGS += -g -Wall
++CXXFLAGS += -g -Wall
+ LDFLAGS +=
+ 
+ CC_SRCS = main.cpp ruby-codegen.cpp ruby-tabcodegen.cpp ruby-ftabcodegen.cpp \
+@@ -55,7 +55,7 @@ rlgen-ruby.a: $(LIBS) $(OBJS)
+ 
+ %.o: %.cpp
+ 	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
++	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+ 
+ distclean: clean
+ 	rm -f Makefile
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002510.html">[ragel-users] [PATCH 1/3] Don't use install -s to strip files during install.
+</A></li>
+	<LI>Next message: <A HREF="002511.html">[ragel-users] [PATCH 2/3] Use CXXFLAGS for compiling rather than CFLAGS.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2507">[ date ]</a>
+              <a href="thread.html#2507">[ thread ]</a>
+              <a href="subject.html#2507">[ subject ]</a>
+              <a href="author.html#2507">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

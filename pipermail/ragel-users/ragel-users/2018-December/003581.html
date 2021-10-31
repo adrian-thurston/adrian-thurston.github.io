@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] &quot;declared but not used&quot; errors with v7 Go backend
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%22declared%20but%20not%20used%22%20errors%20with%20v7%20Go%20backend&In-Reply-To=%3CCANjWZxNxc_QRj%3DyeoWOJfwHGUcQCa6-k77UutpqiRf0rWid6HQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003580.html">
+   <LINK REL="Next"  HREF="003582.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] &quot;declared but not used&quot; errors with v7 Go backend</H1>
+    <B>Damian Gryski</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%22declared%20but%20not%20used%22%20errors%20with%20v7%20Go%20backend&In-Reply-To=%3CCANjWZxNxc_QRj%3DyeoWOJfwHGUcQCa6-k77UutpqiRf0rWid6HQ%40mail.gmail.com%3E"
+       TITLE="[ragel-users] &quot;declared but not used&quot; errors with v7 Go backend">dgryski at gmail.com
+       </A><BR>
+    <I>Wed Dec  5 12:45:30 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003580.html">[ragel-users] &quot;declared but not used&quot; errors with v7 Go backend
+</A></li>
+        <LI>Next message: <A HREF="003582.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3581">[ date ]</a>
+              <a href="thread.html#3581">[ thread ]</a>
+              <a href="subject.html#3581">[ subject ]</a>
+              <a href="author.html#3581">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>While you're poking at the Go code generation, some small tweaks:
+
+1) The type of the static arrays will be inferred from the type on the
+right-hand side of the equals sign; it doesn't need to be explicit in the
+variable declaration.
+
+2) Go doesn't fall-through case statements by default; the `break` lines
+are not necessary.
+
+diff --git a/src/host-go/rlhc-go.lm b/src/host-go/rlhc-go.lm
+index 7ca37b88..41fc2560 100644
+--- a/src/host-go/rlhc-go.lm
++++ b/src/host-go/rlhc-go.lm
+@@ -288,7 +288,7 @@ namespace go_gen
+                        [embedded_host(EH)]
+                }
+                case [A: static_array] {
+-                       &quot;var [A.ident] \[\] [type(A.type)] = \[\] &quot;
++                       &quot;var [A.ident] = \[\] &quot;
+                                &quot;[type(A.type)] { [num_list(A.num_list)] }
+                        &quot;var _ = [A.ident]
+                }
+@@ -379,13 +379,11 @@ namespace go_gen
+                {
+                        &quot;case [expr( CB.expr )]:
+                        &quot;[stmt_list( CB._repeat_stmt )]
+-                       &quot;break;
+                }
+                case [DB: default_block]
+                {
+                        &quot;default:
+                        &quot;[stmt_list( DB._repeat_stmt )]
+-                       &quot;break;
+                }
+                case [CL: case_label]
+                {
+
+
+
+On Wed, Dec 5, 2018 at 9:11 AM Damian Gryski &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">dgryski at gmail.com</A>&gt; wrote:
+
+&gt;<i> You can prefix the underscore assignments with var also.  That will work
+</I>&gt;<i> both at the function and global scopes.
+</I>&gt;<i>
+</I>&gt;<i> var _scanner_trans_cond_spaces [] int8  = [] int8  { ... }
+</I>&gt;<i> var _ =  _scanner_trans_cond_space
+</I>&gt;<i>
+</I>&gt;<i> On Wed, Dec 5, 2018 at 6:31 AM Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurston at colm.net</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Hi Damian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I just altered the codegen so that unused arrays are not generated. This
+</I>&gt;&gt;<i> eliminates the need to assign to _ for the static arrays. The need is still
+</I>&gt;&gt;<i> there for static variables, for example:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>     _ = scanner_first_final
+</I>&gt;&gt;<i>     _ = scanner_error
+</I>&gt;&gt;<i>     _ = scanner_en_main
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I've noticed though that the _ assignment trick isn't valid for arrays
+</I>&gt;&gt;<i> that are not in a function scope, which means we can't use it right after
+</I>&gt;&gt;<i> declaration. It could go into the write exec block or the write init block
+</I>&gt;&gt;<i> though. To do that I'll have to create a dedicated reference statement for
+</I>&gt;&gt;<i> the intermediate language since the go code generator does not understand
+</I>&gt;&gt;<i> the state machine. It's just a language translation. The reference
+</I>&gt;&gt;<i> statement can have no effect in other languages.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For the time being I'll need to revert the _ assignment since it breaks
+</I>&gt;&gt;<i> ragel programs where the data is not function scoped.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On 2018-11-01 09:12, Damian Gryski wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> This is with ragel 7.0.0.11 and colm 0.13.0.6.  I was unable to get ragel
+</I>&gt;&gt;<i> to build from git.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> With the example grammar at github.com/dgryski/ragel-examples/regexp1, I
+</I>&gt;&gt;<i> get the following error:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> $ ragel-go sshd.rl
+</I>&gt;&gt;<i> $ go build
+</I>&gt;&gt;<i> # github.com/dgryski/ragel-examples/regexp1
+</I>&gt;&gt;<i> ./sshd.go:11:6: _scanner_trans_cond_spaces declared and not used
+</I>&gt;&gt;<i> ./sshd.go:12:6: _scanner_trans_offsets declared and not used
+</I>&gt;&gt;<i> ./sshd.go:13:6: _scanner_trans_lengths declared and not used
+</I>&gt;&gt;<i> ./sshd.go:14:6: _scanner_cond_keys declared and not used
+</I>&gt;&gt;<i> ./sshd.go:17:6: _scanner_eof_cond_spaces declared and not used
+</I>&gt;&gt;<i> ./sshd.go:18:6: _scanner_eof_cond_key_offs declared and not used
+</I>&gt;&gt;<i> ./sshd.go:19:6: _scanner_eof_cond_key_lens declared and not used
+</I>&gt;&gt;<i> ./sshd.go:20:6: _scanner_eof_cond_keys declared and not used
+</I>&gt;&gt;<i> ./sshd.go:21:6: _scanner_nfa_targs declared and not used
+</I>&gt;&gt;<i> ./sshd.go:22:6: _scanner_nfa_offsets declared and not used
+</I>&gt;&gt;<i> ./sshd.go:22:6: too many errors
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The usual solution to this in autogenerated code is to assign them to
+</I>&gt;&gt;<i> `_`, the underscore &quot;blank variable&quot;.  This satisfies the compiler and the
+</I>&gt;&gt;<i> entire array will be eliminated as a dead-store if it ends up not being
+</I>&gt;&gt;<i> used.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thus, each declaration for variables which may or may not be used will
+</I>&gt;&gt;<i> look like:
+</I>&gt;&gt;<i> var _scanner_trans_cond_spaces [] int8  = [] int8  { ... }
+</I>&gt;&gt;<i> _ = _scanner_trans_cond_space
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Note also the first `[] int8` is redundant -- the compiler will infer the
+</I>&gt;&gt;<i> type from the type of the array on the right hand side of the `=`.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Fixing these issues in the Go template in the src/host-go directory and
+</I>&gt;&gt;<i> rebuilding fixed these errors (although I had to copy files from the git
+</I>&gt;&gt;<i> checkout for the template changes to recompile successfully).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Damian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">listragel-users at colm.nethttp</A>://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20181205/ddc55816/attachment.html">http://www.colm.net/pipermail/ragel-users/attachments/20181205/ddc55816/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003580.html">[ragel-users] &quot;declared but not used&quot; errors with v7 Go backend
+</A></li>
+	<LI>Next message: <A HREF="003582.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3581">[ date ]</a>
+              <a href="thread.html#3581">[ thread ]</a>
+              <a href="subject.html#3581">[ subject ]</a>
+              <a href="author.html#3581">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

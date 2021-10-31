@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Small help with RTSP + SDP parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Small%20help%20with%20RTSP%20%2B%20SDP%20parser&In-Reply-To=%3C6156dd8b0810221952h12f13d2axae88954f3e76a98b%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002536.html">
+   <LINK REL="Next"  HREF="002540.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Small help with RTSP + SDP parser</H1>
+    <B>Horacio Sanson</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Small%20help%20with%20RTSP%20%2B%20SDP%20parser&In-Reply-To=%3C6156dd8b0810221952h12f13d2axae88954f3e76a98b%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Small help with RTSP + SDP parser">hsanson at gmail.com
+       </A><BR>
+    <I>Thu Oct 23 02:52:59 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002536.html">[ragel-users] interleaving two machines
+</A></li>
+        <LI>Next message: <A HREF="002540.html">[ragel-users] Small help with RTSP + SDP parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2538">[ date ]</a>
+              <a href="thread.html#2538">[ thread ]</a>
+              <a href="subject.html#2538">[ subject ]</a>
+              <a href="author.html#2538">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Here is part of my parser that deals with RTSP response body part. As
+you can see the message_body is delimited by CRLF that is a simle
+(&quot;\n&quot;? &quot;\r&quot;) expression.
+My problem is when the response has a SDP message as part of the
+response body. This is because SDP fields are also delimited with CRLF
+(see example at the end). In this case the body_read action is called
+for each SDP field instead of only once at the end of the body. In
+consequence I get several calls to memcpy when in fact I only expect
+one at the end of the message body (i.e. 27 times in the example
+below).
+
+The end result is still correct, the SDP is completely copied inside
+the msg-&gt;body buffer, but calling memcpy per SDP field is undesired
+for performance reasons. What rule/tip/trick/hack can I use to make
+the body_read action be executed only once at the end of the RTSP
+message body??
+
+thanks
+Horacio
+
+################################################################################
+#        Ragel rules
+################################################################################
+
+action body_test  { body_offset++ &lt; msg-&gt;body_len }
+action body_start { body_start = fpc; body_offset = 0 }
+action body_end   {body_end = fpc;}
+action body_read {
+    tmpbuf_len = body_end - body_start;
+    memcpy(msg-&gt;body, body_start, tmpbuf_len);
+}
+
+message_body = any+ &gt;body_start @body_end when body_test %body_read;
+
+Response = (                            # Section 7
+     Status_Line
+     (
+         general_header                 # Section 5
+         | response_header              # Section 6.2
+         | entity_header                # Section 8.1
+         | CSeq                        # Section 12.17
+         | Session                       # Section 12.37
+         | Transport                     # Section 12.39
+         | darwin_header                 # Darwin SS proprietary
+     )*
+     CRLF
+     message_body?                       # Section 4.3
+     CRLF %{ msg-&gt;finished = 1; SUJMSG(&quot;RTSP Finish\n&quot;); }
+ );
+
+main := (Request | Response);
+
+
+################################################################################
+# Example RTSP response:
+################################################################################
+RTSP/1.0 200 OK
+Server: DSS/5.5.5 (Build/489.16; Platform/Linux; Release/Darwin;
+state/beta; )
+Cseq: 411
+Last-Modified: Thu, 16 Oct 2008 00:21:52 GMT
+Cache-Control: must-revalidate
+Content-length: 741
+Date: Thu, 23 Oct 2008 02:30:28 GMT
+Expires: Thu, 23 Oct 2008 02:30:28 GMT
+Content-Type: application/sdp
+x-Accept-Retransmit: our-retransmit
+x-Accept-Dynamic-Rate: 1
+Content-Base: <A HREF="rtsp://www.fake.com:554/BBB.mp4/">rtsp://www.fake.com:554/BBB.mp4/</A>
+
+v=0
+o=StreamingServer 3433717827 1224116512000 IN IP4 218.45.218.150
+s=/BBB.mp4
+u=<A HREF="http:///">http:///</A>
+e=admin@
+c=IN IP4 0.0.0.0
+b=AS:500
+t=0 0
+a=control:*
+a=x-copyright: MP4/3GP File hinted with GPAC 0.4.4 (C)2000-2005 -
+<A HREF="http://gpac.sourceforge.net">http://gpac.sourceforge.net</A>
+a=range:npt=0- 596.45800
+m=video 0 RTP/AVP 96
+b=AS:400
+a=rtpmap:96 H264/90000
+a=control:trackID=65536
+a=fmtp:96 profile-level-id=42C01E; packetization-mode=1;
+sprop-parameter-sets=Z0LAHppzgUBf8sIAAAMAAgAAAwBhHixc8A==,aM4yyA==
+a=framesize:96 640-360
+m=audio 0 RTP/AVP 97
+b=AS:100
+a=rtpmap:97 mpeg4-generic/48000/2
+a=control:trackID=65537
+a=fmtp:97 profile-level-id=41; config=1190; streamType=5;
+mode=AAC-hbr; objectType=64; sizeLength=13; indexLength=3;
+indexDeltaLength=3
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002536.html">[ragel-users] interleaving two machines
+</A></li>
+	<LI>Next message: <A HREF="002540.html">[ragel-users] Small help with RTSP + SDP parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2538">[ date ]</a>
+              <a href="thread.html#2538">[ thread ]</a>
+              <a href="subject.html#2538">[ subject ]</a>
+              <a href="author.html#2538">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

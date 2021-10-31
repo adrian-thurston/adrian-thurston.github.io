@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] signed/unsigned portability issue
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20signed/unsigned%20portability%20issue&In-Reply-To=%3C20131102145550.GB3882%40xform.complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001620.html">
+   <LINK REL="Next"  HREF="001622.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] signed/unsigned portability issue</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20signed/unsigned%20portability%20issue&In-Reply-To=%3C20131102145550.GB3882%40xform.complang.org%3E"
+       TITLE="[ragel-users] signed/unsigned portability issue">thurston at complang.org
+       </A><BR>
+    <I>Sat Nov  2 14:55:50 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001620.html">[ragel-users] signed/unsigned portability issue
+</A></li>
+        <LI>Next message: <A HREF="001622.html">[ragel-users] Bug in Go language when using %%{ write first_final;	}%%
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1621">[ date ]</a>
+              <a href="thread.html#1621">[ thread ]</a>
+              <a href="subject.html#1621">[ subject ]</a>
+              <a href="author.html#1621">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>We need ragel's internal data structures to match the signedness of the input
+array, and sometimes you just need a signed type because you're parsing a
+stream of integers.
+
+Perhaps what might be better is defaulting the C alphtype to unsigned char, if
+that's the more common case.
+
+-Adrian
+
+On Thu, Oct 24, 2013 at 12:53:12PM -0700, William Ahern wrote:
+&gt;<i> On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+</I>&gt;<i> &gt; Hello folks,
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS
+</I>&gt;<i> &gt; TXT record data. Some time ago, we expanded the allowed inputs for this
+</I>&gt;<i> &gt; parser to the full 8 bit 'extended ASCII' range (which Ragel calls
+</I>&gt;<i> &gt; 'extend').
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; This works well on most platforms - but it failed for us on Debian/s390x.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; After a lot of digging I found that char is unsigned on s390x, while it is
+</I>&gt;<i> &gt; signed on amd64, i386 and many other platforms.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I have added 'alphtype unsigned char' to our Ragel file. This makes the
+</I>&gt;<i> &gt; parser work reliably on both amd64 and s390x (and, hopefully, many other
+</I>&gt;<i> &gt; platforms).
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; However, I feel something is wrong. It seems that on s390x, Ragel is
+</I>&gt;<i> &gt; mostly confused about the type of char. It generates a parser that treats
+</I>&gt;<i> &gt; extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This
+</I>&gt;<i> &gt; discrepancy feels like a Ragel issue to me.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; A much longer version of this story is at
+</I>&gt;<i> &gt; <A HREF="https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d">https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d</A>
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; My question: is this a Ragel bug? Regardless of yes/no, is what I did
+</I>&gt;<i> &gt; (alphtype unsigned char) the best workaround?
+</I>&gt;<i> 
+</I>&gt;<i> IMHO it would probably be better for Ragel to use unsigned char arithmetic
+</I>&gt;<i> for both char and unsigned char. Off the top of my head it even seems like
+</I>&gt;<i> Ragel should treat all input as unsigned.
+</I>&gt;<i> 
+</I>&gt;<i> FWIW, I always use unsigned arithmetic, for Ragel and most everything else.
+</I>&gt;<i> Signed arithmetic is for mathematical formulas, not bit twiddling and string
+</I>&gt;<i> processing. At the very least, it quickly leads to undefined behavior,
+</I>&gt;<i> whereas signed-&gt;unsigned conversions in C are always well defined.
+</I>&gt;<i> 
+</I>&gt;<i> Does anybody on the list actually use or depend on signed behavior in their
+</I>&gt;<i> machines?
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001620.html">[ragel-users] signed/unsigned portability issue
+</A></li>
+	<LI>Next message: <A HREF="001622.html">[ragel-users] Bug in Go language when using %%{ write first_final;	}%%
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1621">[ date ]</a>
+              <a href="thread.html#1621">[ thread ]</a>
+              <a href="subject.html#1621">[ subject ]</a>
+              <a href="author.html#1621">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

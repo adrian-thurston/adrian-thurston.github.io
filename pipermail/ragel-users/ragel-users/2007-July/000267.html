@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3C468C84C1.10900%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000266.html">
+   <LINK REL="Next"  HREF="000268.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3C468C84C1.10900%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Inline scanner">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Jul  5 05:42:25 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000266.html">[ragel-users] Re: Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="000268.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#267">[ date ]</a>
+              <a href="thread.html#267">[ thread ]</a>
+              <a href="subject.html#267">[ subject ]</a>
+              <a href="author.html#267">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Carlos,
+
+I'm not yet convinced that a new feature is necessary to solve this
+problem. It seems to me that it's more a matter of coding technique. But
+of course I could be wrong ... I just need to know how an inline scanner
+is different and better than the code I sent.
+
+One difference I can think of (you described this previously) is that
+the inline scanner is entered immediately upon moving to the start state
+ (as opposed to the first character out of the start state).
+Unfortunately this is not compatible with the current run-time model, in
+which actions take place only on transitions over characters. Anything
+that involves changing the run-time model I have to consider very carefully.
+
+-Adrian
+
+Carlos Antunes wrote:
+&gt;<i> Hi Adrian!
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for the idea and code!
+</I>&gt;<i> 
+</I>&gt;<i> I was now able to reduce ragel's memory usage to 330Mbytes with 24212
+</I>&gt;<i> states. Compilation time is now roughly 2m45s. I'm still adding stuff
+</I>&gt;<i> so I don't know how things will progress.
+</I>&gt;<i> 
+</I>&gt;<i> In any case, is there any particular reason you resist the
+</I>&gt;<i> implementation of a &quot;longest match with backtracking&quot; feature? I am
+</I>&gt;<i> asking because this feature, as you know, is the default in pretty
+</I>&gt;<i> much any regex lib/app out there. I still think it would be useful in
+</I>&gt;<i> ragel, without the need to match and call &quot;external&quot; scanners (which
+</I>&gt;<i> tends to break the continuity of the grammar.)
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos
+</I>&gt;<i> 
+</I>&gt;<i> On 7/4/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Hey Carlos, I think this does what you want. It moves the processing of
+</I>&gt;&gt;<i> whitespace out of the main machine and should reduce the number of states.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> When a whitespace character is seen there is a call to a scanner which
+</I>&gt;&gt;<i> consumes whitespace. When the whitespace scanner sees non-whitespace it
+</I>&gt;&gt;<i> holds it and returns. When it sees the end-of-header pattern ('\n' with
+</I>&gt;&gt;<i> no continuation) it holds the '\n' and returns. This held '\n' is then
+</I>&gt;&gt;<i> read by the end of header string and the header terminates.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Cheers,
+</I>&gt;&gt;<i>  Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #include &lt;iostream&gt;
+</I>&gt;&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> using namespace std;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %%{
+</I>&gt;&gt;<i>         machine sipws;
+</I>&gt;&gt;<i>         write data;
+</I>&gt;&gt;<i> }%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> void sipws( char *str )
+</I>&gt;&gt;<i> {
+</I>&gt;&gt;<i>         char *p = str, *pe = str + strlen(str) + 1;
+</I>&gt;&gt;<i>         int cs;
+</I>&gt;&gt;<i>         int stack[1];
+</I>&gt;&gt;<i>         int top, act;
+</I>&gt;&gt;<i>         char *tokstart, *tokend;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>         %%{
+</I>&gt;&gt;<i>                 ws_scan := |*
+</I>&gt;&gt;<i>                         # Consume spaces.
+</I>&gt;&gt;<i>                         [ \t]+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                         # Consume line continuations
+</I>&gt;&gt;<i>                         '\r'? '\n' [ \t]+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                         # An end of header. Holds the \n so the end pattern can match.
+</I>&gt;&gt;<i>                         '\r'? '\n' =&gt; {
+</I>&gt;&gt;<i>                                 cerr &lt;&lt; &quot;returning from ws (done) &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;&gt;<i>                                 fhold; fret;
+</I>&gt;&gt;<i>                         };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                         # Any other character, hold it and return. */
+</I>&gt;&gt;<i>                         any =&gt; {
+</I>&gt;&gt;<i>                                 cerr &lt;&lt; &quot;returning from ws (cont)&quot; &lt;&lt; endl;
+</I>&gt;&gt;<i>                                 fhold; fret;
+</I>&gt;&gt;<i>                         };
+</I>&gt;&gt;<i>                 *|;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 # A word is any non-whitespace.
+</I>&gt;&gt;<i>                 word = [^ \t\r\n]+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 # Whitespace machine: holds the character and jumps to the whitespace
+</I>&gt;&gt;<i>                 # scanner for processing.
+</I>&gt;&gt;<i>                 ws = [ \t\r\n] @{
+</I>&gt;&gt;<i>                         cerr &lt;&lt; &quot;going to whitespace &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;&gt;<i>                         fhold; fcall ws_scan;
+</I>&gt;&gt;<i>                 };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 # A newline immediately after coming back from the whitespace scanner
+</I>&gt;&gt;<i>                 # signifies the end of a header.
+</I>&gt;&gt;<i>                 ws_end = ws '\n';
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 header = [a-z]+ ':' ws? word (ws word)* ws_end;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 main := header+ 0;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 # Initialize and execute.
+</I>&gt;&gt;<i>                 write init;
+</I>&gt;&gt;<i>                 write exec;
+</I>&gt;&gt;<i>         }%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>         if ( cs &lt; sipws_first_final )
+</I>&gt;&gt;<i>                 cerr &lt;&lt; &quot;sipws: there was an error at position &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;&gt;<i> };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #define BUFSIZE 1024
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> int main()
+</I>&gt;&gt;<i> {
+</I>&gt;&gt;<i>         sipws(
+</I>&gt;&gt;<i>                 &quot;hr: asdf ljfa ljd\n&quot;
+</I>&gt;&gt;<i>                 &quot;       cont\n&quot;
+</I>&gt;&gt;<i>                 &quot;new:asiei\n&quot;
+</I>&gt;&gt;<i>         );
+</I>&gt;&gt;<i>         return 0;
+</I>&gt;&gt;<i> }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070705/91692b60/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070705/91692b60/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000266.html">[ragel-users] Re: Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="000268.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#267">[ date ]</a>
+              <a href="thread.html#267">[ thread ]</a>
+              <a href="subject.html#267">[ subject ]</a>
+              <a href="author.html#267">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

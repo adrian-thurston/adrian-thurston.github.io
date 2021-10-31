@@ -1,0 +1,1510 @@
+From celephicus at gmail.com  Tue Apr  9 23:30:34 2013
+From: celephicus at gmail.com (Tom Harris)
+Date: Wed, 10 Apr 2013 09:30:34 +1000
+Subject: [ragel-users] Ignoring whitespace
+Message-ID: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+
+Greetings,
+
+I am trying out a recursive parser using fret & fcall for the first time,
+so far it is all working!
+
+What I am having trouble with is so simple, I just want to ignore
+whitespace, so whitespace may serve to seperate symbols. Is there an easy
+way to do this, other than just adding space* all over the grammar?
+
+-- 
+
+Tom Harris <celephicus at gmail.com>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130410/40f6f672/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From amart at mail.ru  Wed Apr 10 05:58:08 2013
+From: amart at mail.ru (=?windows-1251?B?wOvl6vHg7eTwIMzg8PL77e7i?=)
+Date: Wed, 10 Apr 2013 09:58:08 +0400
+Subject: [ragel-users] Ragel falls to infinite loop then actions are
+	specified, and more questions about Ragel and ABNFGEN
+Message-ID: <92800614.20130410095808@mail.ru>
+
+Hello Ragel-users,
+
+
+ I try to create XML parser using abnfgen tool (http://www.2p.cz/en/abnf_gen/),
+which I was found in the "Links" section on Ragel page (http://www.complang.org/ragel/).
+
+ 1) The main problem is that the Ragel falls to infinite loop, eats all available memory 
+and cause the system message:
+
+    "This application has requested the runtime to terminate it in unusual way.
+    Please contact the application support team for more information."
+
+when I try to add entering, leavint and "all transitions" actions to some machine.
+
+This machine defines the Xml comment.
+In ABNFGEN source I wrote:
+
+    ANYCHAREXCEPTMINUS = %x01-2C / %x2C-FF
+    XmlCommentText = *( (ANYCHAREXCEPTMINUS) / ("-" ANYCHAREXCEPTMINUS) )  ; - "-->"
+    XmlComment  = "<!--" XmlCommentText "-->"
+
+which produces next Ragel code:
+
+    ANYCHAREXCEPTMINUS = 0x01..0x2c | 0x2c..0xff;
+    XmlCommentText = ( ANYCHAREXCEPTMINUS | ( "-" ANYCHAREXCEPTMINUS ) )*;
+    XmlComment = "<!--" XmlCommentText "-->";
+
+The problem occurs when I try to add entering, leaving and "all transitions" 
+actions to XmlCommentText (or XmlComment) machine/statement:
+
+    XmlCommentText = ( ( ANYCHAREXCEPTMINUS | ( "-" ANYCHAREXCEPTMINUS ) )* )   >pfs_sax_parser_e_XmlCommentText    %pfs_sax_parser_l_XmlCommentText    $pfs_sax_parser_t_XmlCommentText;
+    XmlComment = "<!--" XmlCommentText "-->";
+
+In this case the Ragel fails. What I need to do here?
+
+ 2) Next question is about CData section, whis described in XML definition as:
+
+    [18]    CDSect     ::=       CDStart CData CDEnd
+    [19]    CDStart    ::=      '<![CDATA['
+    [20]    CData      ::=      (Char* - (Char* ']]>' Char*))
+    [21]    CDEnd      ::=      ']]>'
+
+I can't understand, how to write BNF to ABNFGEN tool, or rule for Ragel both.
+
+ 3) The XML Element definition contains itself, and if I wrote exact
+
+    XmlElement = XmlEmptyTag | ( XmlStartTag ( XmlCharData? ( ( XmlElement | XmlCommentOrPiOrCDataOrRef ) XmlCharData? )? ) XmlEndTag );
+
+I got the message: graph lookup for 'XmlElement' failed.
+I think I need to call submachine XmlElement, but I can't understand 
+how and where I must do it, and where I need to return from submachine
+
+ 4) I was find that the Ragel generates invalid code, which can't be compiled with MSVC (but GCC can):
+
+    ...
+    if ( p == eof )
+    {
+    if ( _abnf_reader_eof_trans[cs] > 0 ) {
+        _trans = _abnf_reader_eof_trans[cs] - 1;
+        goto _eof_trans;
+    }
+    const char *__acts = _abnf_reader_actions + _abnf_reader_eof_actions[cs]; /* !!! */
+    unsigned int __nacts = (unsigned int) *__acts++;
+    while ( __nacts-- > 0 ) {
+        switch ( *__acts++ ) {
+    case 5:
+    ...
+
+MSVC fails on line marked with "!!!" with message 
+
+    error C2143: syntax error : missing ';' before 'const'
+
+I think occurs because variable __acts defined not at the block start, but after if statement.
+How this problem can be solved?
+
+
+  
+
+________________________________________________
+С уважением, Мартынов Александр (Marty)
+
+mailto: amart at mail.ru
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 10 07:20:07 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 10 Apr 2013 09:20:07 +0200
+Subject: [ragel-users] Ignoring whitespace
+In-Reply-To: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+References: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+Message-ID: <516512A7.2000901@jgoettgens.de>
+
+Essentially, yes.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From silverdirk-rgl at silverdirk.com  Fri Apr 12 13:55:24 2013
+From: silverdirk-rgl at silverdirk.com (Michael Conrad)
+Date: Fri, 12 Apr 2013 09:55:24 -0400
+Subject: [ragel-users] Ignoring whitespace
+In-Reply-To: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+References: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+Message-ID: <5168124C.8080607@silverdirk.com>
+
+On 04/09/2013 07:30 PM, Tom Harris wrote:
+> What I am having trouble with is so simple, I just want to ignore 
+> whitespace, so whitespace may serve to seperate symbols. Is there an 
+> easy way to do this, other than just adding space* all over the grammar?
+>
+
+You can always pre-process your buffer, converting all runs of 
+whitespace to a single space character.  That will make the required 
+machine smaller.  Written in C, it might even be a speed improvement.
+
+-Mike
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From younisashah at live.in  Wed Apr 17 14:54:58 2013
+From: younisashah at live.in (Younis Shah)
+Date: Wed, 17 Apr 2013 20:24:58 +0530
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+	Windows 7
+Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+
+I am planning to use Ragel State Machine Compiler for my project. For that i need to install Ragel on my machine. I am running Windows 7. I have Cygwin installed but i have no idea how to use it for compiling Ragel. Please help! 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130417/c568280b/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 17 15:04:23 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 17 Apr 2013 17:04:23 +0200
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+ Windows 7
+In-Reply-To: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+References: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+Message-ID: <516EB9F7.6020705@jgoettgens.de>
+
+Younis!
+
+(1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+(2) Go to the root dir of Ragel (cd ragel-6.8)
+(3) Evaluate the build environment (./configure)
+(4) Build the package (make)
+(5) Install it (make install)
+(6) Read the docs
+
+On http://www.complang.org/ragel/ there is also a link for a prebuild 
+Windows version.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From younisashah at live.in  Wed Apr 17 16:22:02 2013
+From: younisashah at live.in (Younis Shah)
+Date: Wed, 17 Apr 2013 21:52:02 +0530
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+Message-ID: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+
+Jg,
+
+I am done with all the steps.
+How to use it now? I mean if I have .rl file in a directory how to run it through ragel?
+
+Help much appreciated!
+
+Cheers!
+
+-Y.S.
+Rubyist, node.js & Java Programmer.
+
+Sent from my Windows Phone
+________________________________
+From: ragel-users-request at complang.org
+Sent: 17/04/2013 21:30
+To: ragel-users at complang.org
+Subject: ragel-users Digest, Vol 55, Issue 3
+
+Send ragel-users mailing list submissions to
+        ragel-users at complang.org
+
+To subscribe or unsubscribe via the World Wide Web, visit
+        http://www.complang.org/mailman/listinfo/ragel-users
+or, via email, send a message with subject or body 'help' to
+        ragel-users-request at complang.org
+
+You can reach the person managing the list at
+        ragel-users-owner at complang.org
+
+When replying, please edit your Subject line so it is more specific
+than "Re: Contents of ragel-users digest..."
+
+
+Today's Topics:
+
+   1. how to install Ragel State Machine Compiler on    Windows 7
+      (Younis Shah)
+   2. Re: how to install Ragel State Machine Compiler on Windows 7 (RU)
+
+
+----------------------------------------------------------------------
+
+Message: 1
+Date: Wed, 17 Apr 2013 20:24:58 +0530
+From: Younis Shah <younisashah at live.in>
+To: "ragel-users at complang.org" <ragel-users at complang.org>
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+        Windows 7
+Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0 at phx.gbl>
+Content-Type: text/plain; charset="iso-8859-1"
+
+I am planning to use Ragel State Machine Compiler for my project. For that i need to install Ragel on my machine. I am running Windows 7. I have Cygwin installed but i have no idea how to use it for compiling Ragel. Please help!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.complang.org/pipermail/ragel-users/attachments/20130417/c568280b/attachment-0001.html>
+
+------------------------------
+
+Message: 2
+Date: Wed, 17 Apr 2013 17:04:23 +0200
+From: RU <ragel-user at jgoettgens.de>
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] how to install Ragel State Machine Compiler
+        on Windows 7
+Message-ID: <516EB9F7.6020705 at jgoettgens.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+
+Younis!
+
+(1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+(2) Go to the root dir of Ragel (cd ragel-6.8)
+(3) Evaluate the build environment (./configure)
+(4) Build the package (make)
+(5) Install it (make install)
+(6) Read the docs
+
+On http://www.complang.org/ragel/ there is also a link for a prebuild
+Windows version.
+
+jg
+
+
+
+------------------------------
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+End of ragel-users Digest, Vol 55, Issue 3
+******************************************
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130417/0877704e/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 17 17:07:05 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 17 Apr 2013 19:07:05 +0200
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+In-Reply-To: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+References: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+Message-ID: <516ED6B9.90908@jgoettgens.de>
+
+Try "ragel --help" in ca console window.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ellis.breen at gmail.com  Wed Apr 17 17:19:04 2013
+From: ellis.breen at gmail.com (Ellis Breen)
+Date: Wed, 17 Apr 2013 18:19:04 +0100
+Subject: [ragel-users] Expressing PCREs in Ragel
+In-Reply-To: <514FB7F9.1090907@complang.org>
+References: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+	<514FB7F9.1090907@complang.org>
+Message-ID: <CAOnX+dSqChSiOja0VkzB7J4i=J7j-dB7xPWy_-==RdSghCHvYQ@mail.gmail.com>
+
+I just wanted to say thanks for answering my query. In the end I wrote a
+preprocessor, but went with the brics.automaton Java package instead.
+Didn't get round to implementing zero-width assertions, etc, though, but I
+was at least able to determine whether two regexes (regices?) intersected,
+if not whether they interfere with one another. There doesn't seem to be
+much in terms of OSS packages working in this domain otuside of some Python
+( http://qntm.org/greenery ) , Perl (
+http://search.cpan.org/~estrabd/FLAT-0.9.1/ )and Haskell (
+https://code.google.com/p/xhaskell-library/) libraries. Perhaps a full
+blown regex parser could be implemented in Ragel itself, reifying its
+compile-time DFA-generation abilities? I couldn't see a way of extending
+Ragel's syntax itself (short of digging deep into the code). Great library,
+anyway, and perhaps this post will be of use to others following this
+trail. Or perhaps they will heroically dive in and extend Ragel. In my
+case, I used the quick and dirty solution of preprocessing and off-the-peg
+Java DFA library, which was relatively satisfactory, although I think still
+need to dive into the automaton code to cover extended regex syntax.
+
+
+On 25 March 2013 02:35, Adrian Thurston <thurston at complang.org> wrote:
+
+> Not that I'm aware of.
+>
+> You'll need some parse/transform pass for PCRE to ragel. I'm no expert on
+> PCRE syntax, so I can't really comment on how difficult it will be.
+>
+> I can say PCRE and ragel use different implementation techniques though,
+> so you may run into some road blocks on those grounds. Ragel is pure DFA,
+> while PCRE uses some mix of DFA and an interpretor that backtracks.
+>
+> -Adrian
+>
+>
+> On 13-03-19 08:20 AM, Ellis Breen wrote:
+>
+>> Hi all,
+>>
+>> Is there a semantic element, preprocessor or component that will allow
+>> me to express standard PCREs in Ragel?
+>>
+>> I'm not trying to implement a regex engine, but to find the intersection
+>> of two PCRE search patterns. I believe I've managed to do this by
+>> manually rewriting PCREs into Ragel format, but I'd like to automate the
+>> process, as I have a large number of PCREs to compare.
+>>
+>> Any hints on how I can do this with Ragel, or an alternative?
+>>
+>> This appears to be about the closest I've found to what I need.
+>>
+>> Many thanks,
+>>
+>> Ellis
+>>
+>>
+>> ______________________________**_________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>>
+>>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130417/425ed4ac/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mmaglana at gmail.com  Wed Apr 17 22:03:58 2013
+From: mmaglana at gmail.com (Mark Maglana)
+Date: Wed, 17 Apr 2013 15:03:58 -0700
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+In-Reply-To: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+References: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+Message-ID: <CAPP+VTuPAwFkheF0zJOiSczJ6v-b2S9_tNzV3P=r+J1-hhgpWQ@mail.gmail.com>
+
+e.g. ragel -R src/rdsl/lexer.rl -o lib/manamana/rdsl/lexer.rb
+
+
+On Wed, Apr 17, 2013 at 9:22 AM, Younis Shah <younisashah at live.in> wrote:
+
+>  Jg,
+>
+> I am done with all the steps.
+> How to use it now? I mean if I have .rl file in a directory how to run it
+> through ragel?
+>
+> Help much appreciated!
+>
+> Cheers!
+>
+> -Y.S.
+> Rubyist, node.js & Java Programmer.
+>
+> Sent from my Windows Phone
+>  ------------------------------
+> From: ragel-users-request at complang.org
+> Sent: 17/04/2013 21:30
+> To: ragel-users at complang.org
+> Subject: ragel-users Digest, Vol 55, Issue 3
+>
+>  Send ragel-users mailing list submissions to
+>         ragel-users at complang.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+>         http://www.complang.org/mailman/listinfo/ragel-users
+> or, via email, send a message with subject or body 'help' to
+>         ragel-users-request at complang.org
+>
+> You can reach the person managing the list at
+>         ragel-users-owner at complang.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of ragel-users digest..."
+>
+>
+> Today's Topics:
+>
+>    1. how to install Ragel State Machine Compiler on    Windows 7
+>       (Younis Shah)
+>    2. Re: how to install Ragel State Machine Compiler on Windows 7 (RU)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Wed, 17 Apr 2013 20:24:58 +0530
+> From: Younis Shah <younisashah at live.in>
+> To: "ragel-users at complang.org" <ragel-users at complang.org>
+> Subject: [ragel-users] how to install Ragel State Machine Compiler on
+>         Windows 7
+> Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0 at phx.gbl>
+> Content-Type: text/plain; charset="iso-8859-1"
+>
+> I am planning to use Ragel State Machine Compiler for my project. For that
+> i need to install Ragel on my machine. I am running Windows 7. I have
+> Cygwin installed but i have no idea how to use it for compiling Ragel.
+> Please help!
+> -------------- next part --------------
+> An HTML attachment was scrubbed...
+> URL: <
+> http://www.complang.org/pipermail/ragel-users/attachments/20130417/c568280b/attachment-0001.html
+> >
+>
+> ------------------------------
+>
+> Message: 2
+> Date: Wed, 17 Apr 2013 17:04:23 +0200
+> From: RU <ragel-user at jgoettgens.de>
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] how to install Ragel State Machine Compiler
+>         on Windows 7
+> Message-ID: <516EB9F7.6020705 at jgoettgens.de>
+> Content-Type: text/plain; charset=UTF-8; format=flowed
+>
+> Younis!
+>
+> (1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+> (2) Go to the root dir of Ragel (cd ragel-6.8)
+> (3) Evaluate the build environment (./configure)
+> (4) Build the package (make)
+> (5) Install it (make install)
+> (6) Read the docs
+>
+> On http://www.complang.org/ragel/ there is also a link for a prebuild
+> Windows version.
+>
+> jg
+>
+>
+>
+> ------------------------------
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> End of ragel-users Digest, Vol 55, Issue 3
+> ******************************************
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130417/cae6e9ae/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From programmist.setevik at gmail.com  Sun Apr 21 11:06:48 2013
+From: programmist.setevik at gmail.com (Programmist Setevik)
+Date: Sun, 21 Apr 2013 07:06:48 -0400
+Subject: [ragel-users] Basic question on use of grouping in Ragel
+Message-ID: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+
+Reading through Ragel guide, I see examples like this one:
+
+# Match a word followed by a newline. Execute A when
+# finishing the word.
+main :=* (* lower+ %A *)* . '\n';
+
+Question I have is: why is grouping used here ? Could this be written
+simply as
+
+main :=* * lower+ %A  . '\n';
+
+And if not, what would be the difference ?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130421/57939613/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From messias at gmail.com  Sat Apr 27 21:38:55 2013
+From: messias at gmail.com (Folke B.)
+Date: Sat, 27 Apr 2013 23:38:55 +0200
+Subject: [ragel-users] Go line directives
+Message-ID: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+
+Hi
+
+I was wondering if Ragel could emit line directives in a format that is
+understood by the Go compiler. The format is "\n//line
+path/to/file.rl:123\n". (Note that it has to start at column 1.)
+
+Thanks,
+Folke
+
+PS: Ragel is awesome!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130427/2dd8195b/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Sun Apr 28 08:00:29 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Sun, 28 Apr 2013 12:00:29 +0400
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+Message-ID: <CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+
+It's interesting undocumented feature. I played with go examples and I got
+very discouraging behaviour.
+
+Example 1.
+
+atoi.go:
+...
+//line atoi.rl:34
+ neg = ttrue // I change 'true' to 'ttrue' to make error message
+    case 1:
+//line atoi.rl:35
+
+val = val * 10 + (int(data[p]) - '0')
+...
+
+I run `go run atoi.go` and I got following message:
+
+# command-line-arguments
+atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]:
+undefined: ttrue
+
+It's looking fine.
+
+Example 2.
+
+atoi.go:
+...
+//line atoi.rl:34
+
+ neg = ttrue // I change 'true' to 'ttrue' to make error message
+    case 1:
+//line atoi.rl:35
+
+val = val * 10 + (int(data[p]) - '0')
+...
+
+I just add empty line after '//line atoi.rl:34' directive.
+I got following message:
+
+# command-line-arguments
+atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]:
+undefined: ttrue
+
+It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+
+Ragel generates a lot of empty lines when embedding an action code. So we
+can't rely on '//line' directive to locate errors in .rl files.
+
+
+
+On Sun, Apr 28, 2013 at 1:38 AM, Folke B. <messias at gmail.com> wrote:
+
+> Hi
+>
+> I was wondering if Ragel could emit line directives in a format that is
+> understood by the Go compiler. The format is "\n//line
+> path/to/file.rl:123\n". (Note that it has to start at column 1.)
+>
+> Thanks,
+> Folke
+>
+> PS: Ragel is awesome!
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130428/c7e12e82/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From dan.kortschak at adelaide.edu.au  Sun Apr 28 21:32:16 2013
+From: dan.kortschak at adelaide.edu.au (Dan Kortschak)
+Date: Sun, 28 Apr 2013 21:32:16 +0000
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>,
+	<CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+Message-ID: <69F08538-562C-4352-BC0C-527E9CD82BF9@adelaide.edu.au>
+
+This would a useful addition to the process though, so it is probably worth filing an issue with the Go project.
+
+On 28/04/2013, at 5:30 PM, "Anton Ageev" <antage at gmail.com> wrote:
+
+> It's interesting undocumented feature. I played with go examples and I got very discouraging behaviour.
+> 
+> Example 1.
+> 
+> atoi.go:
+> ...
+> //line atoi.rl:34
+>  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>     case 1:
+> //line atoi.rl:35
+> 
+> val = val * 10 + (int(data[p]) - '0')
+> ...
+> 
+> I run `go run atoi.go` and I got following message:
+> 
+> # command-line-arguments
+> atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]: undefined: ttrue
+> 
+> It's looking fine.
+> 
+> Example 2.
+> 
+> atoi.go:
+> ...
+> //line atoi.rl:34
+> 
+>  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>     case 1:
+> //line atoi.rl:35
+> 
+> val = val * 10 + (int(data[p]) - '0')
+> ...
+> 
+> I just add empty line after '//line atoi.rl:34' directive.
+> I got following message:
+> 
+> # command-line-arguments
+> atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]: undefined: ttrue
+> 
+> It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+> 
+> Ragel generates a lot of empty lines when embedding an action code. So we can't rely on '//line' directive to locate errors in .rl files.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From celephicus at gmail.com  Tue Apr  9 23:30:34 2013
+From: celephicus at gmail.com (Tom Harris)
+Date: Wed, 10 Apr 2013 09:30:34 +1000
+Subject: [ragel-users] Ignoring whitespace
+Message-ID: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+
+Greetings,
+
+I am trying out a recursive parser using fret & fcall for the first time,
+so far it is all working!
+
+What I am having trouble with is so simple, I just want to ignore
+whitespace, so whitespace may serve to seperate symbols. Is there an easy
+way to do this, other than just adding space* all over the grammar?
+
+-- 
+
+Tom Harris <celephicus at gmail.com>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130410/40f6f672/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From amart at mail.ru  Wed Apr 10 05:58:08 2013
+From: amart at mail.ru (=?windows-1251?B?wOvl6vHg7eTwIMzg8PL77e7i?=)
+Date: Wed, 10 Apr 2013 09:58:08 +0400
+Subject: [ragel-users] Ragel falls to infinite loop then actions are
+	specified, and more questions about Ragel and ABNFGEN
+Message-ID: <92800614.20130410095808@mail.ru>
+
+Hello Ragel-users,
+
+
+ I try to create XML parser using abnfgen tool (http://www.2p.cz/en/abnf_gen/),
+which I was found in the "Links" section on Ragel page (http://www.complang.org/ragel/).
+
+ 1) The main problem is that the Ragel falls to infinite loop, eats all available memory 
+and cause the system message:
+
+    "This application has requested the runtime to terminate it in unusual way.
+    Please contact the application support team for more information."
+
+when I try to add entering, leavint and "all transitions" actions to some machine.
+
+This machine defines the Xml comment.
+In ABNFGEN source I wrote:
+
+    ANYCHAREXCEPTMINUS = %x01-2C / %x2C-FF
+    XmlCommentText = *( (ANYCHAREXCEPTMINUS) / ("-" ANYCHAREXCEPTMINUS) )  ; - "-->"
+    XmlComment  = "<!--" XmlCommentText "-->"
+
+which produces next Ragel code:
+
+    ANYCHAREXCEPTMINUS = 0x01..0x2c | 0x2c..0xff;
+    XmlCommentText = ( ANYCHAREXCEPTMINUS | ( "-" ANYCHAREXCEPTMINUS ) )*;
+    XmlComment = "<!--" XmlCommentText "-->";
+
+The problem occurs when I try to add entering, leaving and "all transitions" 
+actions to XmlCommentText (or XmlComment) machine/statement:
+
+    XmlCommentText = ( ( ANYCHAREXCEPTMINUS | ( "-" ANYCHAREXCEPTMINUS ) )* )   >pfs_sax_parser_e_XmlCommentText    %pfs_sax_parser_l_XmlCommentText    $pfs_sax_parser_t_XmlCommentText;
+    XmlComment = "<!--" XmlCommentText "-->";
+
+In this case the Ragel fails. What I need to do here?
+
+ 2) Next question is about CData section, whis described in XML definition as:
+
+    [18]    CDSect     ::=       CDStart CData CDEnd
+    [19]    CDStart    ::=      '<![CDATA['
+    [20]    CData      ::=      (Char* - (Char* ']]>' Char*))
+    [21]    CDEnd      ::=      ']]>'
+
+I can't understand, how to write BNF to ABNFGEN tool, or rule for Ragel both.
+
+ 3) The XML Element definition contains itself, and if I wrote exact
+
+    XmlElement = XmlEmptyTag | ( XmlStartTag ( XmlCharData? ( ( XmlElement | XmlCommentOrPiOrCDataOrRef ) XmlCharData? )? ) XmlEndTag );
+
+I got the message: graph lookup for 'XmlElement' failed.
+I think I need to call submachine XmlElement, but I can't understand 
+how and where I must do it, and where I need to return from submachine
+
+ 4) I was find that the Ragel generates invalid code, which can't be compiled with MSVC (but GCC can):
+
+    ...
+    if ( p == eof )
+    {
+    if ( _abnf_reader_eof_trans[cs] > 0 ) {
+        _trans = _abnf_reader_eof_trans[cs] - 1;
+        goto _eof_trans;
+    }
+    const char *__acts = _abnf_reader_actions + _abnf_reader_eof_actions[cs]; /* !!! */
+    unsigned int __nacts = (unsigned int) *__acts++;
+    while ( __nacts-- > 0 ) {
+        switch ( *__acts++ ) {
+    case 5:
+    ...
+
+MSVC fails on line marked with "!!!" with message 
+
+    error C2143: syntax error : missing ';' before 'const'
+
+I think occurs because variable __acts defined not at the block start, but after if statement.
+How this problem can be solved?
+
+
+  
+
+________________________________________________
+С уважением, Мартынов Александр (Marty)
+
+mailto: amart at mail.ru
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 10 07:20:07 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 10 Apr 2013 09:20:07 +0200
+Subject: [ragel-users] Ignoring whitespace
+In-Reply-To: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+References: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+Message-ID: <516512A7.2000901@jgoettgens.de>
+
+Essentially, yes.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From silverdirk-rgl at silverdirk.com  Fri Apr 12 13:55:24 2013
+From: silverdirk-rgl at silverdirk.com (Michael Conrad)
+Date: Fri, 12 Apr 2013 09:55:24 -0400
+Subject: [ragel-users] Ignoring whitespace
+In-Reply-To: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+References: <CAHjG12TpKGeH3L_V2Ym7g=J4v80x+Nwe76Dsxw9r2-OHMsge5w@mail.gmail.com>
+Message-ID: <5168124C.8080607@silverdirk.com>
+
+On 04/09/2013 07:30 PM, Tom Harris wrote:
+> What I am having trouble with is so simple, I just want to ignore 
+> whitespace, so whitespace may serve to seperate symbols. Is there an 
+> easy way to do this, other than just adding space* all over the grammar?
+>
+
+You can always pre-process your buffer, converting all runs of 
+whitespace to a single space character.  That will make the required 
+machine smaller.  Written in C, it might even be a speed improvement.
+
+-Mike
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From younisashah at live.in  Wed Apr 17 14:54:58 2013
+From: younisashah at live.in (Younis Shah)
+Date: Wed, 17 Apr 2013 20:24:58 +0530
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+	Windows 7
+Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+
+I am planning to use Ragel State Machine Compiler for my project. For that i need to install Ragel on my machine. I am running Windows 7. I have Cygwin installed but i have no idea how to use it for compiling Ragel. Please help! 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130417/c568280b/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 17 15:04:23 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 17 Apr 2013 17:04:23 +0200
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+ Windows 7
+In-Reply-To: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+References: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0@phx.gbl>
+Message-ID: <516EB9F7.6020705@jgoettgens.de>
+
+Younis!
+
+(1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+(2) Go to the root dir of Ragel (cd ragel-6.8)
+(3) Evaluate the build environment (./configure)
+(4) Build the package (make)
+(5) Install it (make install)
+(6) Read the docs
+
+On http://www.complang.org/ragel/ there is also a link for a prebuild 
+Windows version.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From younisashah at live.in  Wed Apr 17 16:22:02 2013
+From: younisashah at live.in (Younis Shah)
+Date: Wed, 17 Apr 2013 21:52:02 +0530
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+Message-ID: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+
+Jg,
+
+I am done with all the steps.
+How to use it now? I mean if I have .rl file in a directory how to run it through ragel?
+
+Help much appreciated!
+
+Cheers!
+
+-Y.S.
+Rubyist, node.js & Java Programmer.
+
+Sent from my Windows Phone
+________________________________
+From: ragel-users-request at complang.org
+Sent: 17/04/2013 21:30
+To: ragel-users at complang.org
+Subject: ragel-users Digest, Vol 55, Issue 3
+
+Send ragel-users mailing list submissions to
+        ragel-users at complang.org
+
+To subscribe or unsubscribe via the World Wide Web, visit
+        http://www.complang.org/mailman/listinfo/ragel-users
+or, via email, send a message with subject or body 'help' to
+        ragel-users-request at complang.org
+
+You can reach the person managing the list at
+        ragel-users-owner at complang.org
+
+When replying, please edit your Subject line so it is more specific
+than "Re: Contents of ragel-users digest..."
+
+
+Today's Topics:
+
+   1. how to install Ragel State Machine Compiler on    Windows 7
+      (Younis Shah)
+   2. Re: how to install Ragel State Machine Compiler on Windows 7 (RU)
+
+
+----------------------------------------------------------------------
+
+Message: 1
+Date: Wed, 17 Apr 2013 20:24:58 +0530
+From: Younis Shah <younisashah at live.in>
+To: "ragel-users at complang.org" <ragel-users at complang.org>
+Subject: [ragel-users] how to install Ragel State Machine Compiler on
+        Windows 7
+Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0 at phx.gbl>
+Content-Type: text/plain; charset="iso-8859-1"
+
+I am planning to use Ragel State Machine Compiler for my project. For that i need to install Ragel on my machine. I am running Windows 7. I have Cygwin installed but i have no idea how to use it for compiling Ragel. Please help!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.complang.org/pipermail/ragel-users/attachments/20130417/c568280b/attachment-0001.html>
+
+------------------------------
+
+Message: 2
+Date: Wed, 17 Apr 2013 17:04:23 +0200
+From: RU <ragel-user at jgoettgens.de>
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] how to install Ragel State Machine Compiler
+        on Windows 7
+Message-ID: <516EB9F7.6020705 at jgoettgens.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+
+Younis!
+
+(1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+(2) Go to the root dir of Ragel (cd ragel-6.8)
+(3) Evaluate the build environment (./configure)
+(4) Build the package (make)
+(5) Install it (make install)
+(6) Read the docs
+
+On http://www.complang.org/ragel/ there is also a link for a prebuild
+Windows version.
+
+jg
+
+
+
+------------------------------
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+End of ragel-users Digest, Vol 55, Issue 3
+******************************************
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130417/0877704e/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Wed Apr 17 17:07:05 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Wed, 17 Apr 2013 19:07:05 +0200
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+In-Reply-To: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+References: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+Message-ID: <516ED6B9.90908@jgoettgens.de>
+
+Try "ragel --help" in ca console window.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ellis.breen at gmail.com  Wed Apr 17 17:19:04 2013
+From: ellis.breen at gmail.com (Ellis Breen)
+Date: Wed, 17 Apr 2013 18:19:04 +0100
+Subject: [ragel-users] Expressing PCREs in Ragel
+In-Reply-To: <514FB7F9.1090907@complang.org>
+References: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+	<514FB7F9.1090907@complang.org>
+Message-ID: <CAOnX+dSqChSiOja0VkzB7J4i=J7j-dB7xPWy_-==RdSghCHvYQ@mail.gmail.com>
+
+I just wanted to say thanks for answering my query. In the end I wrote a
+preprocessor, but went with the brics.automaton Java package instead.
+Didn't get round to implementing zero-width assertions, etc, though, but I
+was at least able to determine whether two regexes (regices?) intersected,
+if not whether they interfere with one another. There doesn't seem to be
+much in terms of OSS packages working in this domain otuside of some Python
+( http://qntm.org/greenery ) , Perl (
+http://search.cpan.org/~estrabd/FLAT-0.9.1/ )and Haskell (
+https://code.google.com/p/xhaskell-library/) libraries. Perhaps a full
+blown regex parser could be implemented in Ragel itself, reifying its
+compile-time DFA-generation abilities? I couldn't see a way of extending
+Ragel's syntax itself (short of digging deep into the code). Great library,
+anyway, and perhaps this post will be of use to others following this
+trail. Or perhaps they will heroically dive in and extend Ragel. In my
+case, I used the quick and dirty solution of preprocessing and off-the-peg
+Java DFA library, which was relatively satisfactory, although I think still
+need to dive into the automaton code to cover extended regex syntax.
+
+
+On 25 March 2013 02:35, Adrian Thurston <thurston at complang.org> wrote:
+
+> Not that I'm aware of.
+>
+> You'll need some parse/transform pass for PCRE to ragel. I'm no expert on
+> PCRE syntax, so I can't really comment on how difficult it will be.
+>
+> I can say PCRE and ragel use different implementation techniques though,
+> so you may run into some road blocks on those grounds. Ragel is pure DFA,
+> while PCRE uses some mix of DFA and an interpretor that backtracks.
+>
+> -Adrian
+>
+>
+> On 13-03-19 08:20 AM, Ellis Breen wrote:
+>
+>> Hi all,
+>>
+>> Is there a semantic element, preprocessor or component that will allow
+>> me to express standard PCREs in Ragel?
+>>
+>> I'm not trying to implement a regex engine, but to find the intersection
+>> of two PCRE search patterns. I believe I've managed to do this by
+>> manually rewriting PCREs into Ragel format, but I'd like to automate the
+>> process, as I have a large number of PCREs to compare.
+>>
+>> Any hints on how I can do this with Ragel, or an alternative?
+>>
+>> This appears to be about the closest I've found to what I need.
+>>
+>> Many thanks,
+>>
+>> Ellis
+>>
+>>
+>> ______________________________**_________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>>
+>>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130417/425ed4ac/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mmaglana at gmail.com  Wed Apr 17 22:03:58 2013
+From: mmaglana at gmail.com (Mark Maglana)
+Date: Wed, 17 Apr 2013 15:03:58 -0700
+Subject: [ragel-users] ragel-users Digest, Vol 55, Issue 3
+In-Reply-To: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+References: <DUB402-EAS36739ADEC884724C1604215A1CE0@phx.gbl>
+Message-ID: <CAPP+VTuPAwFkheF0zJOiSczJ6v-b2S9_tNzV3P=r+J1-hhgpWQ@mail.gmail.com>
+
+e.g. ragel -R src/rdsl/lexer.rl -o lib/manamana/rdsl/lexer.rb
+
+
+On Wed, Apr 17, 2013 at 9:22 AM, Younis Shah <younisashah at live.in> wrote:
+
+>  Jg,
+>
+> I am done with all the steps.
+> How to use it now? I mean if I have .rl file in a directory how to run it
+> through ragel?
+>
+> Help much appreciated!
+>
+> Cheers!
+>
+> -Y.S.
+> Rubyist, node.js & Java Programmer.
+>
+> Sent from my Windows Phone
+>  ------------------------------
+> From: ragel-users-request at complang.org
+> Sent: 17/04/2013 21:30
+> To: ragel-users at complang.org
+> Subject: ragel-users Digest, Vol 55, Issue 3
+>
+>  Send ragel-users mailing list submissions to
+>         ragel-users at complang.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+>         http://www.complang.org/mailman/listinfo/ragel-users
+> or, via email, send a message with subject or body 'help' to
+>         ragel-users-request at complang.org
+>
+> You can reach the person managing the list at
+>         ragel-users-owner at complang.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of ragel-users digest..."
+>
+>
+> Today's Topics:
+>
+>    1. how to install Ragel State Machine Compiler on    Windows 7
+>       (Younis Shah)
+>    2. Re: how to install Ragel State Machine Compiler on Windows 7 (RU)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Wed, 17 Apr 2013 20:24:58 +0530
+> From: Younis Shah <younisashah at live.in>
+> To: "ragel-users at complang.org" <ragel-users at complang.org>
+> Subject: [ragel-users] how to install Ragel State Machine Compiler on
+>         Windows 7
+> Message-ID: <BAY163-W12AA75B1BC1CCBAE3B881BA1CE0 at phx.gbl>
+> Content-Type: text/plain; charset="iso-8859-1"
+>
+> I am planning to use Ragel State Machine Compiler for my project. For that
+> i need to install Ragel on my machine. I am running Windows 7. I have
+> Cygwin installed but i have no idea how to use it for compiling Ragel.
+> Please help!
+> -------------- next part --------------
+> An HTML attachment was scrubbed...
+> URL: <
+> http://www.complang.org/pipermail/ragel-users/attachments/20130417/c568280b/attachment-0001.html
+> >
+>
+> ------------------------------
+>
+> Message: 2
+> Date: Wed, 17 Apr 2013 17:04:23 +0200
+> From: RU <ragel-user at jgoettgens.de>
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] how to install Ragel State Machine Compiler
+>         on Windows 7
+> Message-ID: <516EB9F7.6020705 at jgoettgens.de>
+> Content-Type: text/plain; charset=UTF-8; format=flowed
+>
+> Younis!
+>
+> (1) Unpack the sources (tar -xzf ragel-6.8.tar.gz)
+> (2) Go to the root dir of Ragel (cd ragel-6.8)
+> (3) Evaluate the build environment (./configure)
+> (4) Build the package (make)
+> (5) Install it (make install)
+> (6) Read the docs
+>
+> On http://www.complang.org/ragel/ there is also a link for a prebuild
+> Windows version.
+>
+> jg
+>
+>
+>
+> ------------------------------
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> End of ragel-users Digest, Vol 55, Issue 3
+> ******************************************
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130417/cae6e9ae/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From programmist.setevik at gmail.com  Sun Apr 21 11:06:48 2013
+From: programmist.setevik at gmail.com (Programmist Setevik)
+Date: Sun, 21 Apr 2013 07:06:48 -0400
+Subject: [ragel-users] Basic question on use of grouping in Ragel
+Message-ID: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+
+Reading through Ragel guide, I see examples like this one:
+
+# Match a word followed by a newline. Execute A when
+# finishing the word.
+main :=* (* lower+ %A *)* . '\n';
+
+Question I have is: why is grouping used here ? Could this be written
+simply as
+
+main :=* * lower+ %A  . '\n';
+
+And if not, what would be the difference ?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130421/57939613/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From messias at gmail.com  Sat Apr 27 21:38:55 2013
+From: messias at gmail.com (Folke B.)
+Date: Sat, 27 Apr 2013 23:38:55 +0200
+Subject: [ragel-users] Go line directives
+Message-ID: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+
+Hi
+
+I was wondering if Ragel could emit line directives in a format that is
+understood by the Go compiler. The format is "\n//line
+path/to/file.rl:123\n". (Note that it has to start at column 1.)
+
+Thanks,
+Folke
+
+PS: Ragel is awesome!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130427/2dd8195b/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Sun Apr 28 08:00:29 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Sun, 28 Apr 2013 12:00:29 +0400
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+Message-ID: <CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+
+It's interesting undocumented feature. I played with go examples and I got
+very discouraging behaviour.
+
+Example 1.
+
+atoi.go:
+...
+//line atoi.rl:34
+ neg = ttrue // I change 'true' to 'ttrue' to make error message
+    case 1:
+//line atoi.rl:35
+
+val = val * 10 + (int(data[p]) - '0')
+...
+
+I run `go run atoi.go` and I got following message:
+
+# command-line-arguments
+atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]:
+undefined: ttrue
+
+It's looking fine.
+
+Example 2.
+
+atoi.go:
+...
+//line atoi.rl:34
+
+ neg = ttrue // I change 'true' to 'ttrue' to make error message
+    case 1:
+//line atoi.rl:35
+
+val = val * 10 + (int(data[p]) - '0')
+...
+
+I just add empty line after '//line atoi.rl:34' directive.
+I got following message:
+
+# command-line-arguments
+atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]:
+undefined: ttrue
+
+It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+
+Ragel generates a lot of empty lines when embedding an action code. So we
+can't rely on '//line' directive to locate errors in .rl files.
+
+
+
+On Sun, Apr 28, 2013 at 1:38 AM, Folke B. <messias at gmail.com> wrote:
+
+> Hi
+>
+> I was wondering if Ragel could emit line directives in a format that is
+> understood by the Go compiler. The format is "\n//line
+> path/to/file.rl:123\n". (Note that it has to start at column 1.)
+>
+> Thanks,
+> Folke
+>
+> PS: Ragel is awesome!
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130428/c7e12e82/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From dan.kortschak at adelaide.edu.au  Sun Apr 28 21:32:16 2013
+From: dan.kortschak at adelaide.edu.au (Dan Kortschak)
+Date: Sun, 28 Apr 2013 21:32:16 +0000
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>,
+	<CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+Message-ID: <69F08538-562C-4352-BC0C-527E9CD82BF9@adelaide.edu.au>
+
+This would a useful addition to the process though, so it is probably worth filing an issue with the Go project.
+
+On 28/04/2013, at 5:30 PM, "Anton Ageev" <antage at gmail.com> wrote:
+
+> It's interesting undocumented feature. I played with go examples and I got very discouraging behaviour.
+> 
+> Example 1.
+> 
+> atoi.go:
+> ...
+> //line atoi.rl:34
+>  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>     case 1:
+> //line atoi.rl:35
+> 
+> val = val * 10 + (int(data[p]) - '0')
+> ...
+> 
+> I run `go run atoi.go` and I got following message:
+> 
+> # command-line-arguments
+> atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]: undefined: ttrue
+> 
+> It's looking fine.
+> 
+> Example 2.
+> 
+> atoi.go:
+> ...
+> //line atoi.rl:34
+> 
+>  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>     case 1:
+> //line atoi.rl:35
+> 
+> val = val * 10 + (int(data[p]) - '0')
+> ...
+> 
+> I just add empty line after '//line atoi.rl:34' directive.
+> I got following message:
+> 
+> # command-line-arguments
+> atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]: undefined: ttrue
+> 
+> It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+> 
+> Ragel generates a lot of empty lines when embedding an action code. So we can't rely on '//line' directive to locate errors in .rl files.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

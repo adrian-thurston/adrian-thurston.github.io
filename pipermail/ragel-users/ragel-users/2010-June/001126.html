@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] EOF and token termination
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3CAANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001125.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] EOF and token termination</H1>
+    <B>Brian Maher</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3CAANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql%40mail.gmail.com%3E"
+       TITLE="[ragel-users] EOF and token termination">brimworks at gmail.com
+       </A><BR>
+    <I>Tue Jun 29 13:52:07 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001125.html">[ragel-users] EOF and token termination
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1126">[ date ]</a>
+              <a href="thread.html#1126">[ thread ]</a>
+              <a href="subject.html#1126">[ subject ]</a>
+              <a href="author.html#1126">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Jun 28, 2010 at 10:21 AM, Adrian Thurston wrote:
+&gt;<i> Just to be certain, you'd like a token at the end of the input to match even
+</I>&gt;<i> if it is not in a final state?
+</I>
+Yes.  Or to put it another way: I want to make eof be a valid final
+state kind of like what the $ in perl compatible regular expressions
+mean.
+
+&gt;<i> If that's the case, I'm sorry I don't have an elegant solution for you. A
+</I>&gt;<i> state is either final or not, and what you need is to make all states final
+</I>&gt;<i> when at the end of the input.
+</I>
+Is there a way to say &quot;make this state final when at the end of the
+input&quot;?  `fgoto final;` was my attempt at doing this, but it didn't
+work ;-).
+
+Thanks for your help!
+
+Cheers,
+-Brian
+
+&gt;<i> On 10-06-27 06:46 AM, Brian Maher wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hello Ragel Users,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> First, I just want to say that Ragel is an awesome tool, thank you
+</I>&gt;&gt;<i> Adrian for sharing this tool with the open source community!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Recently I've been trying to write a grammar for which individual
+</I>&gt;&gt;<i> tokens may be pre-maturely terminated by EOF.  I came up with the
+</I>&gt;&gt;<i> following rather hacky solution below (emit the same action as though
+</I>&gt;&gt;<i> the token was &quot;recognized&quot;, then fbreak so that only one token is
+</I>&gt;&gt;<i> guaranteed to be &quot;seen&quot;).  The things that I don't like with this
+</I>&gt;&gt;<i> solution are that:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   * I'm not keen on having to redundantly call the token's action in
+</I>&gt;&gt;<i> two places since a maintainer later on may forget to update one of the
+</I>&gt;&gt;<i> places where $eof(token_action) is done.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   * te is not updated (although this isn't a big deal since I can just
+</I>&gt;&gt;<i> use p instead of relying on te, and if I really wanted to make a fuss
+</I>&gt;&gt;<i> about this I could always add $eof{te=p;}).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+</I>&gt;&gt;<i> the &quot;final&quot; label is only defined within the context of state charts
+</I>&gt;&gt;<i> and can't be used as a &quot;normal label&quot;.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --------------example.rl
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #include&lt;stdio.h&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %% machine t;
+</I>&gt;&gt;<i> %% write data;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #define INPUT &quot;abcd&quot;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> int main() {
+</I>&gt;&gt;<i>    char *ts, *te;
+</I>&gt;&gt;<i>    int   cs, act, i;
+</I>&gt;&gt;<i>    char *input = INPUT;
+</I>&gt;&gt;<i>    char *p     = input;
+</I>&gt;&gt;<i>    char *pe    = input + (sizeof(INPUT) - 1);
+</I>&gt;&gt;<i>    char *eof   = pe;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>    fprintf(stderr, &quot;Input[&quot;);
+</I>&gt;&gt;<i>    fwrite(p, 1, pe-p, stderr);
+</I>&gt;&gt;<i>    fprintf(stderr, &quot;]\n&quot;);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>    %%{
+</I>&gt;&gt;<i>        write init;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>        action text {
+</I>&gt;&gt;<i>            fprintf(stderr, &quot;Text [%c]\n&quot;, *p);
+</I>&gt;&gt;<i>        }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>        action token {
+</I>&gt;&gt;<i>            fprintf(stderr, &quot;Token[&quot;);
+</I>&gt;&gt;<i>            fwrite(ts, 1, p-ts, stderr);
+</I>&gt;&gt;<i>            fprintf(stderr, &quot;]\n&quot;);
+</I>&gt;&gt;<i>        }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>        Token = &quot;abc&quot; &quot;def&quot; $eof(token) $eof{fbreak;};
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>         main := |*
+</I>&gt;&gt;<i>            Token =&gt;  token;
+</I>&gt;&gt;<i>            any   =&gt;  text;
+</I>&gt;&gt;<i>        *|;
+</I>&gt;&gt;<i>        write exec;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>    }%%
+</I>&gt;&gt;<i>    fprintf(stderr, &quot;end\n&quot;);
+</I>&gt;&gt;<i>    return 0;
+</I>&gt;&gt;<i> }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --------------/example.rl
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks!
+</I>&gt;&gt;<i> -Brian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+
+
+--
+Brian Maher &gt;&gt; Glory to God &lt;&lt;
+
+
+
+-- 
+Brian Maher &gt;&gt; Glory to God &lt;&lt;
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001125.html">[ragel-users] EOF and token termination
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1126">[ date ]</a>
+              <a href="thread.html#1126">[ thread ]</a>
+              <a href="subject.html#1126">[ subject ]</a>
+              <a href="author.html#1126">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

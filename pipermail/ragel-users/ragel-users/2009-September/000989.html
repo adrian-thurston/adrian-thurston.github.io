@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel for JSON
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20for%20JSON&In-Reply-To=%3Cec8ab8c50909041605l55047ab2m1480aef59ec649ca%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000988.html">
+   <LINK REL="Next"  HREF="000991.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel for JSON</H1>
+    <B>Younès HAFRI</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20for%20JSON&In-Reply-To=%3Cec8ab8c50909041605l55047ab2m1480aef59ec649ca%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Ragel for JSON">voidptrptr at gmail.com
+       </A><BR>
+    <I>Fri Sep  4 23:05:17 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000988.html">[ragel-users] Newbie problem with reading unsigned numbers
+</A></li>
+        <LI>Next message: <A HREF="000991.html">[ragel-users] Ragel for JSON
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#989">[ date ]</a>
+              <a href="thread.html#989">[ thread ]</a>
+              <a href="subject.html#989">[ subject ]</a>
+              <a href="author.html#989">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi List,
+I started this week a small project to learn how to use &quot;Ragel&quot; on something
+useful.
+
+The idea is to parse JSON (www.json.org) data-interchange format. I've
+posted my solution below with the corresponding graphviz FSM.
+Lexing is OK and I can parse eveything correctly (except JSON comments ... I
+don't care about them).
+
+My question is for Ragel GURUS : is there a better way to do it ? Could I
+parse JSON faster than that ?
+
+Any hint, tricks to improve speed will be very welcome ;)
+
+N.B: the beauty of JSON is that you need exactly one character lookahead to
+parse everything.
+But I don't know if my Ragel code is doing a good job on that.
+
+Thanks in advance
+Ferret
+
+======================================================
+   myspace        = [ \n\r\t];
+    endspace       = any - myspace;
+    end            = [\]},\[{}\&quot;:tfn] | myspace;
+
+    exp            = ([eE] &gt;number_float . [+\-]? . digit+) $append . (end
+&gt;<i>number_break)?;
+</I>    float          = ('.' &gt;number_float  . digit+) $append . (exp | end
+&gt;<i>number_break)?;
+</I>
+    number         = (('-' &gt;number_signed)? $append) . (('0' | ([1-9] .
+digit*)) &gt;number_unsigned $append . (float | exp | end &gt;number_break)?);
+
+    unicode        = ((0 .. 0xd777) | (0xe000 .. 0x10ffff));
+    string         = '&quot;' . (
+                   start: (
+                           (unicode - [\&quot;\\]) $append -&gt; start |
+                           '&quot;' (any &gt;string_break)? -&gt; final |
+                           '\\' &gt;append -&gt; unquote
+                           ),
+                   unquote: ([\&quot;\\/bfnrt] &gt;append -&gt; start |
+                             'u' $append . (xdigit{4} $append) -&gt; start
+                             ),
+                   final: empty
+                   );
+
+     blank        = myspace+ (endspace &gt;break)?;
+     true         = 'true'   (any &gt;true_break)?;
+     false        = 'false'  (any &gt;false_break)?;
+     nil          = 'null'   (any &gt;null_break)?;
+     object_start = '{'      (any &gt;left_brace_break)?;
+     object_end   = '}'      (any &gt;right_brace_break)?;
+     array_start  = '['      (any &gt;left_bracket_break)?;
+     array_end    = ']'      (any &gt;right_bracket_break)?;
+     comma        = ','      (any &gt;comma_break)?;
+     colon        = ':'      (any &gt;colon_break )?;
+     eoi          = 0 &gt;eoi_break;
+
+     main := (
+              object_start |
+              object_end   |
+              array_start  |
+              array_end    |
+              colon        |
+              comma        |
+              string       |
+              number       |
+              true         |
+              false        |
+              nil          |
+              blank        |
+              eoi
+              ) &gt;clear;
+}%%
+
+======================================================
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: json_ragel_fsm.png.gz
+Type: application/x-gzip
+Size: 501981 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.bin">http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.bin</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000988.html">[ragel-users] Newbie problem with reading unsigned numbers
+</A></li>
+	<LI>Next message: <A HREF="000991.html">[ragel-users] Ragel for JSON
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#989">[ date ]</a>
+              <a href="thread.html#989">[ thread ]</a>
+              <a href="subject.html#989">[ subject ]</a>
+              <a href="author.html#989">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

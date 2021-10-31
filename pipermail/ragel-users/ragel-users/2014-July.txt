@@ -1,0 +1,476 @@
+From ibc at aliax.net  Tue Jul  1 10:21:50 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:21:50 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <53AF4505.6010507@complang.org>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<53AF4505.6010507@complang.org>
+Message-ID: <CALiegfnmV6yy0K8re0bmBW6bLbBLo5vEaq870MkoM9_z1fZoSA@mail.gmail.com>
+
+2014-06-29 0:43 GMT+02:00 Adrian Thurston <thurston at complang.org>:
+> Using conditionals is one way. I'm not sure I fully understand your use
+> case, but I think you can also make use of the ability to enter into any
+> named instantiation. All machine instances are defined in the data section
+> as constant values. It's just a matter of setting the current state to the
+> appropriate value.
+
+Hi, do you mean setting cs to point to an specific machine "fragment"?
+May you please provide a little example?
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Tue Jul  1 10:22:30 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:22:30 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <1506269.QQUhfCaTAP@thorn>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+Message-ID: <CALiegfmtkByfro2He3i85qsgMK4TfovfsEFGRkTKQSZeyYXWuQ@mail.gmail.com>
+
+2014-06-30 4:19 GMT+02:00 Tim Goddard <tim at goddard.net.nz>:
+> Sounds like you have a common language, but want two separate sets of actions.
+>
+> You can include a file within a ragel machine - I'd write the grammar in one
+> file, then declare the "main" object and actions within two separate parsers.
+
+Good point!
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Tue Jul  1 10:23:49 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:23:49 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <20140630024934.GA26472@wilbur.25thandClement.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+	<20140630024934.GA26472@wilbur.25thandClement.com>
+Message-ID: <CALiegfkYWWSDSBxzWArZ9Q8KKeLbVVsw14n+dZ3gd-q0bWC-tg@mail.gmail.com>
+
+Great! thanks a lot.
+
+2014-06-30 4:49 GMT+02:00 William Ahern <william at 25thandclement.com>:
+> 2014-04-10 22:08 GMT+02:00 I?aki Baz Castillo <ibc at aliax.net>:
+>> Hi,
+>>
+>> I'm building a parser for a protocol message similar to HTTP (let's
+>> say: a main header and N key: value separated by CRLF until a final
+>> double CRLF). My concern is:
+>>
+>> - I parse the messages in a "Dispatcher" module that just needs to
+>> parse a few fields in each message.
+>> - Then the Dispatcher passes the message to a Worker thread via UNIX
+>> Socket. - And the Worker must parse it again, but in this case I need all
+>> the fields parsed.
+>>
+>> Note that during the Worker's parsing, a C++ complex object is build
+>> with all the parsed fields mapped into member variables, so I don't
+>> want to play with those complex objects in the Dispatcher module.
+>>
+>> How could I reuse the same Ragel machine for both cases?
+> <snip>
+>
+> Here's an example from my own code. For various reasons (expediency,
+> simplicity) I used different machines to parse individual headers. But they
+> all use the same library of tokenization sub-machines.
+>
+> The first machine is the basic library. You could put this in a separate
+> file, but mine is in the same file as everything else HTTP/RTSP-related. The
+> second and third machines are parser examples. Note that most of the context
+> is missing, so you won't be able to copy+paste this. For example, I have a
+> basic tokenizer written in pure C (which follows DJB's algorithm for
+> structured MIME header parsing) which emits tagged characters as short
+> integers (e.g. an escaped or quoted character will have a high bit set).
+> This made it easier for me to handle things like quoted strings and
+> parenthetical comments. Although, I wrote this years ago and today I might
+> find it easier to handle those problems with Ragel's fcall and fgoto
+> statments. But the truly beautiful thing about Ragel is how it allows you to
+> mix-and-match approaches. So there's really no wrong way. And I would
+> counsel a novice to avoid attempts at Ragel-purity--i.e. trying to do
+> everything in Ragel, such as handle recursive structures directly in Ragel.
+> You can do it (and I do it in some other stuff, like my Flash FLV, Microsoft
+> ASF, and SMTP parsers), but it's not something worth struggling over.
+>
+> %%{
+>         machine tokenizer;
+>
+>         crlf = [\r\n];
+>         lwsp = [ \t];
+>
+>         qdigit  = (0x0130 - 0x0139);
+>         qxdigit = (0x0141 - 0x0146) | (0x0161 - 0x0166) | qdigit;
+>
+>         digits  = digit | qdigit;
+>         xdigits = xdigit | qxdigit;
+>
+>         qalpha = (0x0141 - 0x015a) | (0x0161 | 0x017a);
+>
+>         action num_begin { num = 0; }
+>         action num_write { num *= 10; num += (0xff & fc) - '0'; }
+>
+>         action hex_begin { num = 0; }
+>         action hex_write { num <<= 4; num += ((0xff & fc) > '9')? (10 + (tolower((0xff & fc)) - 'a')) : (0xff & fc) - '0'; }
+>
+>         action str_begin {
+>                 str = 0;
+>                 if ((error = obs_new(obs, 0)))
+>                         goto error;
+>         }
+>
+>         action str_write {
+>                 if ((error = obs_putc(obs, 0xff & fc)))
+>                         goto error;
+>         }
+>
+>         action str_end { str = obs_top(obs); }
+> }%%
+>
+>
+> %%{
+>         machine x_sessioncookie_parser;
+>         alphtype short;
+>
+>         include tokenizer;
+>
+>         action oops {
+>                 rtsp_badparse("x-sessioncookie", src, len, p);
+>                 error = EINVAL;
+>                 goto error;
+>         }
+>
+>         token = (alnum | "+" | "/")+ >str_begin $str_write %str_end %{ hdr->token = str; };
+>
+>         main := (token lwsp*) $!oops;
+>
+>         write data;
+> }%%
+>
+>
+> %%{
+>         machine content_type_parser;
+>         alphtype short;
+>
+>         getkey (0xff & (*fpc)); # Mask high-order bits.
+>
+>         include tokenizer;
+>
+>         action oops {
+>                 rtsp_badparse("Content-Type", src, len, p);
+>                 error = EINVAL;
+>                 goto error;
+>         }
+>
+>         equal = lwsp** "=" lwsp**;
+>
+>         reg_name = (alnum | [!#$&.+\-\^_]){1,127}; # RFC 4288 4.2
+>
+>         charset = "charset" equal reg_name >str_begin $str_write %str_end %{ hdr->charset = str; };
+>         boundary = "boundary" equal reg_name >str_begin $str_write %str_end %{ hdr->boundary = str; };
+>
+>         attrib = (charset | boundary)? <: ^";"**;
+>
+>         type = reg_name >str_begin $str_write %str_end %{ hdr->type = str; };
+>         subtype = reg_name >str_begin $str_write %str_end %{ hdr->subtype = str; };
+>
+>         main := (type "/" subtype lwsp** (";" lwsp** attrib)*) $!oops;
+>
+>         write data;
+> }%%
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Jul 13 17:08:56 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 13 Jul 2014 13:08:56 -0400
+Subject: [ragel-users] closing down the mailing list
+Message-ID: <20140713170855.GA25358@xform.complang.org>
+
+Hi Everyone,
+
+I'm closing down the ragel mailing list. I would recommend asking questions at Stack Overflow.
+
+Thank you for your support!
+
+Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Tue Jul  1 10:21:50 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:21:50 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <53AF4505.6010507@complang.org>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<53AF4505.6010507@complang.org>
+Message-ID: <CALiegfnmV6yy0K8re0bmBW6bLbBLo5vEaq870MkoM9_z1fZoSA@mail.gmail.com>
+
+2014-06-29 0:43 GMT+02:00 Adrian Thurston <thurston at complang.org>:
+> Using conditionals is one way. I'm not sure I fully understand your use
+> case, but I think you can also make use of the ability to enter into any
+> named instantiation. All machine instances are defined in the data section
+> as constant values. It's just a matter of setting the current state to the
+> appropriate value.
+
+Hi, do you mean setting cs to point to an specific machine "fragment"?
+May you please provide a little example?
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Tue Jul  1 10:22:30 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:22:30 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <1506269.QQUhfCaTAP@thorn>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+Message-ID: <CALiegfmtkByfro2He3i85qsgMK4TfovfsEFGRkTKQSZeyYXWuQ@mail.gmail.com>
+
+2014-06-30 4:19 GMT+02:00 Tim Goddard <tim at goddard.net.nz>:
+> Sounds like you have a common language, but want two separate sets of actions.
+>
+> You can include a file within a ragel machine - I'd write the grammar in one
+> file, then declare the "main" object and actions within two separate parsers.
+
+Good point!
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Tue Jul  1 10:23:49 2014
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 1 Jul 2014 12:23:49 +0200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <20140630024934.GA26472@wilbur.25thandClement.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+	<20140630024934.GA26472@wilbur.25thandClement.com>
+Message-ID: <CALiegfkYWWSDSBxzWArZ9Q8KKeLbVVsw14n+dZ3gd-q0bWC-tg@mail.gmail.com>
+
+Great! thanks a lot.
+
+2014-06-30 4:49 GMT+02:00 William Ahern <william at 25thandclement.com>:
+> 2014-04-10 22:08 GMT+02:00 I?aki Baz Castillo <ibc at aliax.net>:
+>> Hi,
+>>
+>> I'm building a parser for a protocol message similar to HTTP (let's
+>> say: a main header and N key: value separated by CRLF until a final
+>> double CRLF). My concern is:
+>>
+>> - I parse the messages in a "Dispatcher" module that just needs to
+>> parse a few fields in each message.
+>> - Then the Dispatcher passes the message to a Worker thread via UNIX
+>> Socket. - And the Worker must parse it again, but in this case I need all
+>> the fields parsed.
+>>
+>> Note that during the Worker's parsing, a C++ complex object is build
+>> with all the parsed fields mapped into member variables, so I don't
+>> want to play with those complex objects in the Dispatcher module.
+>>
+>> How could I reuse the same Ragel machine for both cases?
+> <snip>
+>
+> Here's an example from my own code. For various reasons (expediency,
+> simplicity) I used different machines to parse individual headers. But they
+> all use the same library of tokenization sub-machines.
+>
+> The first machine is the basic library. You could put this in a separate
+> file, but mine is in the same file as everything else HTTP/RTSP-related. The
+> second and third machines are parser examples. Note that most of the context
+> is missing, so you won't be able to copy+paste this. For example, I have a
+> basic tokenizer written in pure C (which follows DJB's algorithm for
+> structured MIME header parsing) which emits tagged characters as short
+> integers (e.g. an escaped or quoted character will have a high bit set).
+> This made it easier for me to handle things like quoted strings and
+> parenthetical comments. Although, I wrote this years ago and today I might
+> find it easier to handle those problems with Ragel's fcall and fgoto
+> statments. But the truly beautiful thing about Ragel is how it allows you to
+> mix-and-match approaches. So there's really no wrong way. And I would
+> counsel a novice to avoid attempts at Ragel-purity--i.e. trying to do
+> everything in Ragel, such as handle recursive structures directly in Ragel.
+> You can do it (and I do it in some other stuff, like my Flash FLV, Microsoft
+> ASF, and SMTP parsers), but it's not something worth struggling over.
+>
+> %%{
+>         machine tokenizer;
+>
+>         crlf = [\r\n];
+>         lwsp = [ \t];
+>
+>         qdigit  = (0x0130 - 0x0139);
+>         qxdigit = (0x0141 - 0x0146) | (0x0161 - 0x0166) | qdigit;
+>
+>         digits  = digit | qdigit;
+>         xdigits = xdigit | qxdigit;
+>
+>         qalpha = (0x0141 - 0x015a) | (0x0161 | 0x017a);
+>
+>         action num_begin { num = 0; }
+>         action num_write { num *= 10; num += (0xff & fc) - '0'; }
+>
+>         action hex_begin { num = 0; }
+>         action hex_write { num <<= 4; num += ((0xff & fc) > '9')? (10 + (tolower((0xff & fc)) - 'a')) : (0xff & fc) - '0'; }
+>
+>         action str_begin {
+>                 str = 0;
+>                 if ((error = obs_new(obs, 0)))
+>                         goto error;
+>         }
+>
+>         action str_write {
+>                 if ((error = obs_putc(obs, 0xff & fc)))
+>                         goto error;
+>         }
+>
+>         action str_end { str = obs_top(obs); }
+> }%%
+>
+>
+> %%{
+>         machine x_sessioncookie_parser;
+>         alphtype short;
+>
+>         include tokenizer;
+>
+>         action oops {
+>                 rtsp_badparse("x-sessioncookie", src, len, p);
+>                 error = EINVAL;
+>                 goto error;
+>         }
+>
+>         token = (alnum | "+" | "/")+ >str_begin $str_write %str_end %{ hdr->token = str; };
+>
+>         main := (token lwsp*) $!oops;
+>
+>         write data;
+> }%%
+>
+>
+> %%{
+>         machine content_type_parser;
+>         alphtype short;
+>
+>         getkey (0xff & (*fpc)); # Mask high-order bits.
+>
+>         include tokenizer;
+>
+>         action oops {
+>                 rtsp_badparse("Content-Type", src, len, p);
+>                 error = EINVAL;
+>                 goto error;
+>         }
+>
+>         equal = lwsp** "=" lwsp**;
+>
+>         reg_name = (alnum | [!#$&.+\-\^_]){1,127}; # RFC 4288 4.2
+>
+>         charset = "charset" equal reg_name >str_begin $str_write %str_end %{ hdr->charset = str; };
+>         boundary = "boundary" equal reg_name >str_begin $str_write %str_end %{ hdr->boundary = str; };
+>
+>         attrib = (charset | boundary)? <: ^";"**;
+>
+>         type = reg_name >str_begin $str_write %str_end %{ hdr->type = str; };
+>         subtype = reg_name >str_begin $str_write %str_end %{ hdr->subtype = str; };
+>
+>         main := (type "/" subtype lwsp** (";" lwsp** attrib)*) $!oops;
+>
+>         write data;
+> }%%
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Jul 13 17:08:56 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 13 Jul 2014 13:08:56 -0400
+Subject: [ragel-users] closing down the mailing list
+Message-ID: <20140713170855.GA25358@xform.complang.org>
+
+Hi Everyone,
+
+I'm closing down the ragel mailing list. I would recommend asking questions at Stack Overflow.
+
+Thank you for your support!
+
+Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

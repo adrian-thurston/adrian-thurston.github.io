@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Decoding DNS protocol
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Decoding%20DNS%20protocol&In-Reply-To=%3C4C3FF7D9.9050703%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001130.html">
+   <LINK REL="Next"  HREF="001133.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Decoding DNS protocol</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Decoding%20DNS%20protocol&In-Reply-To=%3C4C3FF7D9.9050703%40complang.org%3E"
+       TITLE="[ragel-users] Decoding DNS protocol">thurston at complang.org
+       </A><BR>
+    <I>Fri Jul 16 06:10:33 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001130.html">[ragel-users] Decoding DNS protocol
+</A></li>
+        <LI>Next message: <A HREF="001133.html">[ragel-users] Error State
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1132">[ date ]</a>
+              <a href="thread.html#1132">[ thread ]</a>
+              <a href="subject.html#1132">[ subject ]</a>
+              <a href="author.html#1132">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I typically don't recommend Ragel for DNS due to it being a binary 
+protocol, but it can be done.
+
+With Ragel there are two ways to count things. You can use conditions to 
+check for the counters getting down to zero. The advantage of conditions 
+is that you can more freely use machines with with embedded conditions 
+in the construction of other machines.
+
+The other approach is the one you're taking, which is to count and 
+call/return in actions. This is generally easier to program, because it 
+more closely resembles standard programming practice. The downside is 
+that you lose the ability freely union and you have to be more careful 
+with the other operations. The call/return statements are best for high 
+level flow control and can get you into a bind when used for the inner 
+definitions of a grammar.
+
+All in all, you may find that a hand-written parser for DNS is faster 
+and simpler due to all the counting.
+
+-Adrian
+
+Pete Gervais wrote:
+&gt;<i> I’m using ragel to decode protocols as a test of its capabilities.
+</I>&gt;<i> 
+</I>&gt;<i> One of the protocols is DNS.
+</I>&gt;<i> 
+</I>&gt;<i> This protocol has a fixed set of fields followed by one or more optional 
+</I>&gt;<i> fields. The count  of these optional fields are encoded within the fixed 
+</I>&gt;<i> data field.
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Would the code below be the best way to do this ?Initial the dnsAnswer 
+</I>&gt;<i> section called via fcall dnsAnswer.   It then sequentially processes all 
+</I>&gt;<i> fields in the order given. In the last field, 
+</I>&gt;<i> dnsAnswerResourceDataField  , it gets the count of the number of answer 
+</I>&gt;<i> fields included in the protocol, then perform a series of fgoto’s until 
+</I>&gt;<i> the dnsRecordCount is 0 at which time it returns.
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> dnsAnswer := (
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerNameField .
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerTypeField .
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerClassField .
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerTimeToLiveField .
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerResourceDataLengthField .
+</I>&gt;<i> 
+</I>&gt;<i>                                 dnsAnswerResourceDataField  @{ cout &lt;&lt; 
+</I>&gt;<i> &quot;In dnsAnswer processing&quot; &lt;&lt; endl; if (fsm-&gt;getdnsAnswerRecordCount() &gt; 
+</I>&gt;<i> 0 ) {
+</I>&gt;<i> 
+</I>&gt;<i>                                                 fsm-&gt;dnsAnswerRecordCount--;
+</I>&gt;<i> 
+</I>&gt;<i>                                                 fgoto dnsAnswer; } else {
+</I>&gt;<i> 
+</I>&gt;<i>                                                 fret; }
+</I>&gt;<i> 
+</I>&gt;<i>                 }
+</I>&gt;<i> 
+</I>&gt;<i>                 );
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Regards,
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Peter J. Gervais
+</I>&gt;<i> 
+</I>&gt;<i> President, Simtree Information Systems
+</I>&gt;<i> 
+</I>&gt;<i> 17621 Island Rd,
+</I>&gt;<i> 
+</I>&gt;<i> RR#2 , Martintown,
+</I>&gt;<i> 
+</I>&gt;<i> Martintown,Ont
+</I>&gt;<i> 
+</I>&gt;<i> K0C 1S0
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Business: 613-938-6549
+</I>&gt;<i> 
+</I>&gt;<i> Cell: 613-864-7370
+</I>&gt;<i> 
+</I>&gt;<i> E-mail: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">pgervais at xplornet.com</A>
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001130.html">[ragel-users] Decoding DNS protocol
+</A></li>
+	<LI>Next message: <A HREF="001133.html">[ragel-users] Error State
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1132">[ date ]</a>
+              <a href="thread.html#1132">[ thread ]</a>
+              <a href="subject.html#1132">[ subject ]</a>
+              <a href="author.html#1132">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,234 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Difference between generated C code using -G0 and -T0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Difference%20between%20generated%20C%20code%20using%20-G0%20and%0A%20-T0&In-Reply-To=%3C5290C956.5030407%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001624.html">
+   <LINK REL="Next"  HREF="001626.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Difference between generated C code using -G0 and -T0</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Difference%20between%20generated%20C%20code%20using%20-G0%20and%0A%20-T0&In-Reply-To=%3C5290C956.5030407%40complang.org%3E"
+       TITLE="[ragel-users] Difference between generated C code using -G0 and -T0">thurston at complang.org
+       </A><BR>
+    <I>Sat Nov 23 15:27:18 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001624.html">[ragel-users] Difference between generated C code using -G0 and -T0
+</A></li>
+        <LI>Next message: <A HREF="001626.html">[ragel-users] The best way to stop and force error state?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1630">[ date ]</a>
+              <a href="thread.html#1630">[ thread ]</a>
+              <a href="subject.html#1630">[ subject ]</a>
+              <a href="author.html#1630">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Dan,
+
+Thank you for submitting this. It is definitely a bug in the condition 
+implementation.
+
+I haven't dug into the details yet, but I can say the difference is 
+resolved in ragel 7, which has a completely new implementation of 
+conditions in the NFA to DFA algorithm, as well as the code generation step.
+
+Ragel 7 is on the master branch. It is still experimental. Currently 
+only the C and D code generators work. Quite a bit has changed. Building 
+it requires the the master branch of colm.
+
+I'm not sure if a workaround will be possible for ragel 6.
+
+Thank you for your attention to detail!
+
+Adrian
+
+On 13-11-14 03:29 AM, Daniel Salzman wrote:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I have reduced the problematic code which behaves differently in G mode
+</I>&gt;<i> comparing to T or F.
+</I>&gt;<i> Please, is there anybody who can fix it?
+</I>&gt;<i>
+</I>&gt;<i> T: output is &quot;A&quot;
+</I>&gt;<i> G: output is &quot;B&quot;
+</I>&gt;<i>
+</I>&gt;<i> =======================================
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i> machine foo;
+</I>&gt;<i>
+</I>&gt;<i> sep = ( [ ]
+</I>&gt;<i> | ';' when { 0 }
+</I>&gt;<i> )+;
+</I>&gt;<i>
+</I>&gt;<i> cmt = ^[ ;] &gt;!{ printf(&quot;A\n&quot;); } . 'x' &gt;!{ printf(&quot;B\n&quot;); };
+</I>&gt;<i>
+</I>&gt;<i> main := sep . cmt;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> %% write data;
+</I>&gt;<i>
+</I>&gt;<i> void main()
+</I>&gt;<i> {
+</I>&gt;<i> char buffer[] = &quot; ;&quot;;
+</I>&gt;<i>
+</I>&gt;<i> char *p = buffer;
+</I>&gt;<i> char *pe = buffer + sizeof(buffer);
+</I>&gt;<i> char *eof = pe;
+</I>&gt;<i> int cs = foo_start;
+</I>&gt;<i>
+</I>&gt;<i> %% write exec;
+</I>&gt;<i> }
+</I>&gt;<i> =======================================
+</I>&gt;<i>
+</I>&gt;<i> Thanks
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On 06/25/2013 01:18 PM, Daniel Salzman wrote:
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> At the beginning I would like to thank you for the great project Ragel.
+</I>&gt;&gt;<i> It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone
+</I>&gt;&gt;<i> files.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> But I have recently noticed that there is a small bug in C code
+</I>&gt;&gt;<i> generation with G{0,1,2},
+</I>&gt;&gt;<i> because there is different behaviour between G and T, F modes.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Meaningless and very pruned snippet of code which can demonstrate the
+</I>&gt;&gt;<i> problem:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> == test.rl ==
+</I>&gt;&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %%{
+</I>&gt;&gt;<i> machine zone_scanner;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> newline = '\n';
+</I>&gt;&gt;<i> comment = ';' . (^newline)*;
+</I>&gt;&gt;<i> wchar = [ \t\n;];
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> sep = ( [ \t]
+</I>&gt;&gt;<i> | (comment? . newline) when { 0 }
+</I>&gt;&gt;<i> )+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> err_line := (^newline)* . newline @{ fgoto main; };
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> action _text_char_error {
+</I>&gt;&gt;<i> printf(&quot;!TXT_ERROR!\n&quot;);
+</I>&gt;&gt;<i> fhold; fgoto err_line;
+</I>&gt;&gt;<i> }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> text = ^wchar . (alpha $!_text_char_error)+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> main := &quot;$INCLUDE&quot; . sep . text . newline;
+</I>&gt;&gt;<i> }%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %% write data;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> int main(int argc, char **argv)
+</I>&gt;&gt;<i> {
+</I>&gt;&gt;<i> char buffer[4096];
+</I>&gt;&gt;<i> FILE* f;
+</I>&gt;&gt;<i> long numbytes;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> f = fopen(argv[1], &quot;r&quot;);
+</I>&gt;&gt;<i> fseek(f, 0, SEEK_END);
+</I>&gt;&gt;<i> numbytes = ftell(f);
+</I>&gt;&gt;<i> fseek(f, 0, SEEK_SET);
+</I>&gt;&gt;<i> fread(buffer, 1, numbytes, f);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> char *p = buffer;
+</I>&gt;&gt;<i> char *pe = buffer + numbytes;
+</I>&gt;&gt;<i> char *eof = pe;
+</I>&gt;&gt;<i> int stack[16];
+</I>&gt;&gt;<i> int cs = zone_scanner_start;
+</I>&gt;&gt;<i> int top;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %% write exec;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> if (cs == zone_scanner_error) {
+</I>&gt;&gt;<i> printf(&quot;!MISC_ERROR!\n&quot;);
+</I>&gt;&gt;<i> return -1;
+</I>&gt;&gt;<i> }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> return 0;
+</I>&gt;&gt;<i> }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> == input.txt ==
+</I>&gt;&gt;<i> $INCLUDE ; Missing filename
+</I>&gt;&gt;<i> ==========
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ragel -T0 test.rl -o testT.c
+</I>&gt;&gt;<i> gcc testT.c -o testT
+</I>&gt;&gt;<i> ./testT ./input.txt
+</I>&gt;&gt;<i> !MISC_ERROR!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ragel -G0 test.rl -o testG.c
+</I>&gt;&gt;<i> gcc testG.c -o testG
+</I>&gt;&gt;<i> ./testG ./input.txt
+</I>&gt;&gt;<i> !TXT_ERROR!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Here you can see the state machines stop in different states.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Although this problem is marginal in our project, it would be nice if
+</I>&gt;&gt;<i> Ragel is absolute perfect :-)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Best regards,
+</I>&gt;&gt;<i> Dan
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001624.html">[ragel-users] Difference between generated C code using -G0 and -T0
+</A></li>
+	<LI>Next message: <A HREF="001626.html">[ragel-users] The best way to stop and force error state?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1630">[ date ]</a>
+              <a href="thread.html#1630">[ thread ]</a>
+              <a href="subject.html#1630">[ subject ]</a>
+              <a href="author.html#1630">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

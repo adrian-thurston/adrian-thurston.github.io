@@ -1,0 +1,1586 @@
+From alexander.me at gmail.com  Thu Sep  8 06:05:07 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 8 Sep 2011 10:05:07 +0400
+Subject: [ragel-users] utf-8 files problem
+Message-ID: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+
+Hi, Adrian.
+
+I found some problem with generated files on Windows platform.
+if *.rl file is utf-8 file with signature (first 2 bytes EF BB).
+
+Example:
+input file lexer.rl
+----- START ---------------
+//=== this is first line (comment)
+... // other lines
+----- END ---------------
+
+output file lexer.cs
+----- START ---------------
+/* #line 1 "lexer.rl" */
+?//=== this is first line (comment)
+... // other lines
+----- END ---------------
+
+ragel puts /* #line 1 "lexer.rl" */ comment before utf-8 signature at
+the begining of file and this is wrong utf-8 file.
+
+And second - if we disable #line generation with option -L, you remove
+generation /* #line */ - not just comment this lines.
+
+Best regards,
+Denis Naumov.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From francois at teksol.info  Thu Sep  8 21:06:32 2011
+From: francois at teksol.info (=?utf-8?Q?Fran=C3=A7ois_Beausoleil?=)
+Date: Thu, 8 Sep 2011 17:06:32 -0400
+Subject: [ragel-users] How to distinguish between two machines from within
+ the same action?
+Message-ID: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+
+ Hey folks!  
+
+I'm writing the "definitive" URL parser class. Lofty goal, perhaps, but also a learning exercise. I have an issue with entering and leaving actions.
+
+My code's on GitHub: https://github.com/francois/urlparser/blob/master/url.rl#L34
+
+Given the following two URLs:
+
+tcp://127.0.0.1:1234
+tcp://a:b at 127.0.0.1:1234/
+
+For both URLs, I correctly recognize the scheme. For both URLs, either user or hostname is wrong, and in both cases, the port's not recognized.
+
+My Ruby implementation is at https://github.com/francois/urlparser/blob/master/ruby/lib/urlparser/parser.rl#L14
+
+My question boils down to: how do I definitively know that what I'm looking at is a user, vs a hostname, since both have nearly the same set of characters. Should I be using "State Action Embedding Operators"? Actually, scratch that: it seems that's what I should be doing, because I managed to recognize the host in some cases. For the first URL above, I can recognize most of the port: I end up with 123, not 1234, thus losing the last character.
+
+A little pointer to some existing parser with the similar behavior would be appreciated.
+
+Thanks!
+François
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Sep  8 21:20:35 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:20:35 -0700
+Subject: [ragel-users] Trying to answer my own Ruby and Ragel questions
+In-Reply-To: <4DF7940D.4000007@abshere.net>
+References: <4DF7940D.4000007@abshere.net>
+Message-ID: <4E6931A3.9030009@complang.org>
+
+Hi Seamus, I have linked to your blog post from the main page. Had a 
+quick look, but as with all remote content, I don't go into detail.
+
+Thanks,
+  Adrian
+
+On 06/14/11 10:02, Seamus Abshere wrote:
+> hi all,
+>
+> Please do take a look at my ragel and ruby examples in
+>
+>> https://github.com/seamusabshere/ruby_ragel_examples
+>> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+>>
+>
+> I wouldn't want to spread misinformation!
+>
+> Best,
+> Seamus
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Sep  8 21:26:29 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:26:29 -0700
+Subject: [ragel-users] utf-8 files problem
+In-Reply-To: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+References: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+Message-ID: <4E693305.90502@complang.org>
+
+Thanks, noted.
+
+http://www.complang.org/redmine/issues/320
+
+On 09/07/11 23:05, Denis Naumov wrote:
+> I found some problem with generated files on Windows platform.
+> if *.rl file is utf-8 file with signature (first 2 bytes EF BB).
+>
+> Example:
+> input file lexer.rl
+> ----- START ---------------
+> //=== this is first line (comment)
+> ... // other lines
+> ----- END ---------------
+>
+> output file lexer.cs
+> ----- START ---------------
+> /* #line 1 "lexer.rl" */
+> ?//=== this is first line (comment)
+> ... // other lines
+> ----- END ---------------
+>
+> ragel puts /* #line 1 "lexer.rl" */ comment before utf-8 signature at
+> the begining of file and this is wrong utf-8 file.
+>
+> And second - if we disable #line generation with option -L, you remove
+> generation /* #line */ - not just comment this lines.
+>
+> Best regards,
+> Denis Naumov.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Sep  8 21:34:51 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:34:51 -0700
+Subject: [ragel-users] How to distinguish between two machines from
+ within the same action?
+In-Reply-To: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+References: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+Message-ID: <4E6934FB.6060307@complang.org>
+
+You're using from-state actions, which isn't going to give you the 
+desired results. Use > and % instead, then go from there. If you use %* 
+on digits, it will execute on every character since the final state is 
+going back into itself to implement the repetition.
+
+Remember that graphviz will help you immensely with debugging. You can 
+look at the result of compiling specific rules in your grammar.
+
+On 09/08/11 14:06, François Beausoleil wrote:
+>   Hey folks!
+>
+> I'm writing the "definitive" URL parser class. Lofty goal, perhaps, but also a learning exercise. I have an issue with entering and leaving actions.
+>
+> My code's on GitHub: https://github.com/francois/urlparser/blob/master/url.rl#L34
+>
+> Given the following two URLs:
+>
+> tcp://127.0.0.1:1234
+> tcp://a:b at 127.0.0.1:1234/
+>
+> For both URLs, I correctly recognize the scheme. For both URLs, either user or hostname is wrong, and in both cases, the port's not recognized.
+>
+> My Ruby implementation is at https://github.com/francois/urlparser/blob/master/ruby/lib/urlparser/parser.rl#L14
+>
+> My question boils down to: how do I definitively know that what I'm looking at is a user, vs a hostname, since both have nearly the same set of characters. Should I be using "State Action Embedding Operators"? Actually, scratch that: it seems that's what I should be doing, because I managed to recognize the host in some cases. For the first URL above, I can recognize most of the port: I end up with 123, not 1234, thus losing the last character.
+>
+> A little pointer to some existing parser with the similar behavior would be appreciated.
+>
+> Thanks!
+> François
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Sep 14 00:45:36 2011
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Sep 2011 17:45:36 -0700
+Subject: [ragel-users] job using ragel and similar tools
+Message-ID: <4E6FF930.4070702@esentire.com>
+
+My company is hiring. If you are looking for a job using ragel and 
+similar parsing tools then check out the "Security Developer" position. 
+We are located in Cambridge, Ontario, Canada (close to Waterloo and 
+Toronto).
+
+http://esentire.com/section/view/?fnode=42
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Sep 14 05:34:39 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 13 Sep 2011 22:34:39 -0700
+Subject: [ragel-users] State chart style and entering actions
+In-Reply-To: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+References: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+Message-ID: <4E703CEF.5030401@complang.org>
+
+Hi Shawn, does this work for you?
+
+A = (
+    start: A: (
+        IDLE -> A |
+        POLL @poll OPEN -> A |
+        POLL @poll CLOSED -> B
+    ),
+    B: (IDLE -> B | EXIT -> final)
+) >a_entry;
+
+m := START A;
+
+-Adrian
+
+On 11-07-27 08:00 AM, Shawn Hoover wrote:
+> Hello,
+>
+> I'm using the state chart style for processing application logic. So far
+> I've gotten by with finishing actions attached to specific events, but
+> now I'd like to use an entering action for an entire labeled expression.
+> Here's an example:
+>
+> machine := (
+> start: START -> A,
+> A: (IDLE -> A |
+>     POLL @poll OPEN -> A |
+>     POLL @poll CLOSED -> B), >~a_entry,
+> B: (IDLE -> B |
+>     EXIT -> final)
+> );
+>
+> I would like to execute a_entry once and only once when the A "loop" is
+> entered. It does execute on entrance, but then it also executes every
+> time I get IDLE or POLL OPEN.
+>
+> Is there a way to make a_entry execute only once while still using state
+> charts and the union operator in the same structure? I suppose the
+> following would work:
+>
+> A: (IDLE | POLL @poll OPEN)* POLL @poll CLOSED -> B >~a_entry;
+>
+> But I'd like to retain the original structure if there's a better way to
+> attach the action.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Sep 14 05:49:38 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 13 Sep 2011 22:49:38 -0700
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+	<CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+Message-ID: <4E704072.6040908@complang.org>
+
+I don't advertise this very often, but it's possible to use conditions 
+to require certain bit patterns. Improving conditions are the focus of 
+ragel 7. I am hoping to give them a better run-time implementation.
+
+main := any when { fc & 0xf0 };
+
+On 11-08-15 08:54 AM, Bob Paddock wrote:
+> On Mon, Aug 15, 2011 at 11:32 AM, Iñaki Baz Castillo<ibc at aliax.net>  wrote:
+>> Hi, I do know that Ragel cannot parse bits but just bytes.
+>
+> The language Erlang will do pattern matching at the bit level.
+> That certainly would be a nice addition to Ragel for using it in
+> Embedded Systems work.
+>
+>> maybe is it possible to use it for a binary packet format as WebSocket
+>> frames as defined in:
+>
+> This of any help?:
+>
+> http://www.zedshaw.com/essays/ragel_state_charts.html
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ra
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel at henpa.com  Thu Sep 15 21:37:33 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Thu, 15 Sep 2011 18:37:33 -0300
+Subject: [ragel-users] parsing c comments
+Message-ID: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+
+Hi, I've read the ragel manual a couple of times and searched the mailing
+list and I couldn't find the solution to this problem. I imagine the
+solution is there somewhere, but I couldn't find it since I couldn't search
+the mailing list archive properly.
+
+BTW, I don't really need to parse c comments, but I found this example to
+match perfectly what I am trying to accomplish. I'm really trying to parse
+and print data separated by a multi-character token.
+
+Page 29 of Ragel 6.7 manual shows an example on how to properly parse C
+language comments, but the action @comm also parses the * caracter at the
+ending "*/" as shown in the Graphviz image.
+
+I tried many ways to solve this problem, but I couldn't do it. Can someone
+help?
+
+action comm { printf("%c", fc); }
+p = "/* foo *** bar */";
+
+I tried:
+
+main := '/*' (any* -- '/*')@comm '*/';
+main := '/*' any*@comm :>> '*/';
+main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+
+But it always prints: "foo *** bar *" (note the * at the end) and I looking
+for a way for it to print just " foo *** bar ".
+
+Is there an easy way to fix this?
+
+
+Thanks in advance!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110915/32f8acc0/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel at henpa.com  Fri Sep 16 18:12:39 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Fri, 16 Sep 2011 15:12:39 -0300
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+Message-ID: <CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+
+Well, I solved this problem by using something like this:
+
+action mark { text_start = fpc; }
+action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+
+main := '/*' >mark any* :>> '*/' @show;
+
+I don't know if this is the "correct way" to solve this, but it worked. ;-)
+
+
+Thanks
+
+On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com>wrote:
+
+> Hi, I've read the ragel manual a couple of times and searched the mailing
+> list and I couldn't find the solution to this problem. I imagine the
+> solution is there somewhere, but I couldn't find it since I couldn't search
+> the mailing list archive properly.
+>
+> BTW, I don't really need to parse c comments, but I found this example to
+> match perfectly what I am trying to accomplish. I'm really trying to parse
+> and print data separated by a multi-character token.
+>
+> Page 29 of Ragel 6.7 manual shows an example on how to properly parse C
+> language comments, but the action @comm also parses the * caracter at the
+> ending "*/" as shown in the Graphviz image.
+>
+> I tried many ways to solve this problem, but I couldn't do it. Can someone
+> help?
+>
+> action comm { printf("%c", fc); }
+> p = "/* foo *** bar */";
+>
+> I tried:
+>
+> main := '/*' (any* -- '/*')@comm '*/';
+> main := '/*' any*@comm :>> '*/';
+> main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>
+> But it always prints: "foo *** bar *" (note the * at the end) and I looking
+> for a way for it to print just " foo *** bar ".
+>
+> Is there an easy way to fix this?
+>
+>
+> Thanks in advance!
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110916/a945ed54/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Sep 16 18:31:32 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Sep 2011 11:31:32 -0700
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+Message-ID: <4E739604.5050404@complang.org>
+
+Either you have to hack the string you've captured, like you did in this 
+solution, or you have to use a scanner. This parsing problem requires 
+delaying the action on the first '*' since you don't know if it is a 
+containing '*', or the first character in the terminating string.
+
+On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+> Well, I solved this problem by using something like this:
+>
+> action mark { text_start = fpc; }
+> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>
+> main := '/*' >mark any* :>> '*/' @show;
+>
+> I don't know if this is the "correct way" to solve this, but it worked. ;-)
+>
+>
+> Thanks
+>
+> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+> <mailto:ragel at henpa.com>> wrote:
+>
+>     Hi, I've read the ragel manual a couple of times and searched the
+>     mailing list and I couldn't find the solution to this problem. I
+>     imagine the solution is there somewhere, but I couldn't find it
+>     since I couldn't search the mailing list archive properly.
+>
+>     BTW, I don't really need to parse c comments, but I found this
+>     example to match perfectly what I am trying to accomplish. I'm
+>     really trying to parse and print data separated by a multi-character
+>     token.
+>
+>     Page 29 of Ragel 6.7 manual shows an example on how to properly
+>     parse C language comments, but the action @comm also parses the *
+>     caracter at the ending "*/" as shown in the Graphviz image.
+>
+>     I tried many ways to solve this problem, but I couldn't do it. Can
+>     someone help?
+>
+>     action comm { printf("%c", fc); }
+>     p = "/* foo *** bar */";
+>
+>     I tried:
+>
+>     main := '/*' (any* -- '/*')@comm '*/';
+>     main := '/*' any*@comm :>> '*/';
+>     main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>
+>     But it always prints: "foo *** bar *" (note the * at the end) and I
+>     looking for a way for it to print just " foo *** bar ".
+>
+>     Is there an easy way to fix this?
+>
+>
+>     Thanks in advance!
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Fri Sep 16 18:44:18 2011
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Fri, 16 Sep 2011 14:44:18 -0400
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <4E739604.5050404@complang.org>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+	<4E739604.5050404@complang.org>
+Message-ID: <CAEru=j5ZohLNHyPeZN1CMLi1eUEvHXpVC9o-9w3J3JC9AQyP8w@mail.gmail.com>
+
+There is also an example in the documentation (search for CDATA_body).
+
+On Fri, Sep 16, 2011 at 2:31 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Either you have to hack the string you've captured, like you did in this
+> solution, or you have to use a scanner. This parsing problem requires
+> delaying the action on the first '*' since you don't know if it is a
+> containing '*', or the first character in the terminating string.
+>
+> On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+>>
+>> Well, I solved this problem by using something like this:
+>>
+>> action mark { text_start = fpc; }
+>> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>>
+>> main := '/*' >mark any* :>> '*/' @show;
+>>
+>> I don't know if this is the "correct way" to solve this, but it worked.
+>> ;-)
+>>
+>>
+>> Thanks
+>>
+>> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+>> <mailto:ragel at henpa.com>> wrote:
+>>
+>>    Hi, I've read the ragel manual a couple of times and searched the
+>>    mailing list and I couldn't find the solution to this problem. I
+>>    imagine the solution is there somewhere, but I couldn't find it
+>>    since I couldn't search the mailing list archive properly.
+>>
+>>    BTW, I don't really need to parse c comments, but I found this
+>>    example to match perfectly what I am trying to accomplish. I'm
+>>    really trying to parse and print data separated by a multi-character
+>>    token.
+>>
+>>    Page 29 of Ragel 6.7 manual shows an example on how to properly
+>>    parse C language comments, but the action @comm also parses the *
+>>    caracter at the ending "*/" as shown in the Graphviz image.
+>>
+>>    I tried many ways to solve this problem, but I couldn't do it. Can
+>>    someone help?
+>>
+>>    action comm { printf("%c", fc); }
+>>    p = "/* foo *** bar */";
+>>
+>>    I tried:
+>>
+>>    main := '/*' (any* -- '/*')@comm '*/';
+>>    main := '/*' any*@comm :>> '*/';
+>>    main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>>
+>>    But it always prints: "foo *** bar *" (note the * at the end) and I
+>>    looking for a way for it to print just " foo *** bar ".
+>>
+>>    Is there an easy way to fix this?
+>>
+>>
+>>    Thanks in advance!
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel at henpa.com  Fri Sep 16 18:48:22 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Fri, 16 Sep 2011 15:48:22 -0300
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <4E739604.5050404@complang.org>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+	<4E739604.5050404@complang.org>
+Message-ID: <CAJo5aP3_Qj6PnYm1qq8a4Zb5B=QCB+Z2gCJx1RqHo1HTHh+c_w@mail.gmail.com>
+
+Thanks Adrian!
+
+By the way, I found this website yesterday:
+http://www.mail-archive.com/ragel-users at complang.org/index.html - I found it
+very useful for searching ragel's mailing list for help..  the default
+mailman archive on your site is awful for searching for stuff and following
+a conversation.
+
+Maybe you could consider posting this link on your website, or even better,
+migrate the mailing-list and it's archive to google groups... Let me know if
+find this idea useful or if you need any help on that.
+
+
+Thanks again!
+
+On Fri, Sep 16, 2011 at 3:31 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Either you have to hack the string you've captured, like you did in this
+> solution, or you have to use a scanner. This parsing problem requires
+> delaying the action on the first '*' since you don't know if it is a
+> containing '*', or the first character in the terminating string.
+>
+>
+> On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+>
+>> Well, I solved this problem by using something like this:
+>>
+>> action mark { text_start = fpc; }
+>> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>>
+>> main := '/*' >mark any* :>> '*/' @show;
+>>
+>> I don't know if this is the "correct way" to solve this, but it worked.
+>> ;-)
+>>
+>>
+>> Thanks
+>>
+>> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+>> <mailto:ragel at henpa.com>> wrote:
+>>
+>>    Hi, I've read the ragel manual a couple of times and searched the
+>>    mailing list and I couldn't find the solution to this problem. I
+>>    imagine the solution is there somewhere, but I couldn't find it
+>>    since I couldn't search the mailing list archive properly.
+>>
+>>    BTW, I don't really need to parse c comments, but I found this
+>>    example to match perfectly what I am trying to accomplish. I'm
+>>    really trying to parse and print data separated by a multi-character
+>>    token.
+>>
+>>    Page 29 of Ragel 6.7 manual shows an example on how to properly
+>>    parse C language comments, but the action @comm also parses the *
+>>    caracter at the ending "*/" as shown in the Graphviz image.
+>>
+>>    I tried many ways to solve this problem, but I couldn't do it. Can
+>>    someone help?
+>>
+>>    action comm { printf("%c", fc); }
+>>    p = "/* foo *** bar */";
+>>
+>>    I tried:
+>>
+>>    main := '/*' (any* -- '/*')@comm '*/';
+>>    main := '/*' any*@comm :>> '*/';
+>>    main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>>
+>>    But it always prints: "foo *** bar *" (note the * at the end) and I
+>>    looking for a way for it to print just " foo *** bar ".
+>>
+>>    Is there an easy way to fix this?
+>>
+>>
+>>    Thanks in advance!
+>>
+>>
+>>
+>>
+>> ______________________________**_________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>>
+>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110916/7ceed48a/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Fri Sep 16 20:08:00 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 16 Sep 2011 16:08:00 -0400
+Subject: [ragel-users] State chart style and entering actions
+In-Reply-To: <4E703CEF.5030401@complang.org>
+References: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+	<4E703CEF.5030401@complang.org>
+Message-ID: <CAN5w8SPmiuVJh3b0Q4RKQA4JeHajHNq-nCHfk0NdLD5epec-pw@mail.gmail.com>
+
+On Wed, Sep 14, 2011 at 1:34 AM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Shawn, does this work for you?
+>
+> A = (
+>   start: A: (
+>
+>       IDLE -> A |
+>       POLL @poll OPEN -> A |
+>       POLL @poll CLOSED -> B
+>   ),
+>   B: (IDLE -> B | EXIT -> final)
+> ) >a_entry;
+>
+> m := START A;
+>
+> -Adrian
+
+
+Hi Adrian,
+
+I didn't do a great job of translating my much larger state chart into the
+small example, so there are a few complications in the way of directly
+following your suggestion. However, this gives me some things to think about
+for how to better factor my machines. Thanks for the help!
+
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110916/d7fd911d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Sep 29 16:32:29 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 29 Sep 2011 18:32:29 +0200
+Subject: [ragel-users] utf-8 files problem
+In-Reply-To: <4E693305.90502@complang.org>
+References: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+	<4E693305.90502@complang.org>
+Message-ID: <7452A6B7766E408F86EF64B57A2385D3@localdomain>
+
+Allowing "UTF-8 with BOM" files will break cygwin builds. The somewhat older 
+gcc version (3.4.4) cannot handle the 3 marker bytes.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Thu Sep  8 06:05:07 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 8 Sep 2011 10:05:07 +0400
+Subject: [ragel-users] utf-8 files problem
+Message-ID: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+
+Hi, Adrian.
+
+I found some problem with generated files on Windows platform.
+if *.rl file is utf-8 file with signature (first 2 bytes EF BB).
+
+Example:
+input file lexer.rl
+----- START ---------------
+//=== this is first line (comment)
+... // other lines
+----- END ---------------
+
+output file lexer.cs
+----- START ---------------
+/* #line 1 "lexer.rl" */
+?//=== this is first line (comment)
+... // other lines
+----- END ---------------
+
+ragel puts /* #line 1 "lexer.rl" */ comment before utf-8 signature at
+the begining of file and this is wrong utf-8 file.
+
+And second - if we disable #line generation with option -L, you remove
+generation /* #line */ - not just comment this lines.
+
+Best regards,
+Denis Naumov.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From francois at teksol.info  Thu Sep  8 21:06:32 2011
+From: francois at teksol.info (=?utf-8?Q?Fran=C3=A7ois_Beausoleil?=)
+Date: Thu, 8 Sep 2011 17:06:32 -0400
+Subject: [ragel-users] How to distinguish between two machines from within
+ the same action?
+Message-ID: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+
+ Hey folks!  
+
+I'm writing the "definitive" URL parser class. Lofty goal, perhaps, but also a learning exercise. I have an issue with entering and leaving actions.
+
+My code's on GitHub: https://github.com/francois/urlparser/blob/master/url.rl#L34
+
+Given the following two URLs:
+
+tcp://127.0.0.1:1234
+tcp://a:b at 127.0.0.1:1234/
+
+For both URLs, I correctly recognize the scheme. For both URLs, either user or hostname is wrong, and in both cases, the port's not recognized.
+
+My Ruby implementation is at https://github.com/francois/urlparser/blob/master/ruby/lib/urlparser/parser.rl#L14
+
+My question boils down to: how do I definitively know that what I'm looking at is a user, vs a hostname, since both have nearly the same set of characters. Should I be using "State Action Embedding Operators"? Actually, scratch that: it seems that's what I should be doing, because I managed to recognize the host in some cases. For the first URL above, I can recognize most of the port: I end up with 123, not 1234, thus losing the last character.
+
+A little pointer to some existing parser with the similar behavior would be appreciated.
+
+Thanks!
+François
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Sep  8 21:20:35 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:20:35 -0700
+Subject: [ragel-users] Trying to answer my own Ruby and Ragel questions
+In-Reply-To: <4DF7940D.4000007@abshere.net>
+References: <4DF7940D.4000007@abshere.net>
+Message-ID: <4E6931A3.9030009@complang.org>
+
+Hi Seamus, I have linked to your blog post from the main page. Had a 
+quick look, but as with all remote content, I don't go into detail.
+
+Thanks,
+  Adrian
+
+On 06/14/11 10:02, Seamus Abshere wrote:
+> hi all,
+>
+> Please do take a look at my ragel and ruby examples in
+>
+>> https://github.com/seamusabshere/ruby_ragel_examples
+>> http://numbers.brighterplanet.com/2011/06/14/stream_parser_with_ragel_and_ruby/
+>>
+>
+> I wouldn't want to spread misinformation!
+>
+> Best,
+> Seamus
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Sep  8 21:26:29 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:26:29 -0700
+Subject: [ragel-users] utf-8 files problem
+In-Reply-To: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+References: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+Message-ID: <4E693305.90502@complang.org>
+
+Thanks, noted.
+
+http://www.complang.org/redmine/issues/320
+
+On 09/07/11 23:05, Denis Naumov wrote:
+> I found some problem with generated files on Windows platform.
+> if *.rl file is utf-8 file with signature (first 2 bytes EF BB).
+>
+> Example:
+> input file lexer.rl
+> ----- START ---------------
+> //=== this is first line (comment)
+> ... // other lines
+> ----- END ---------------
+>
+> output file lexer.cs
+> ----- START ---------------
+> /* #line 1 "lexer.rl" */
+> ?//=== this is first line (comment)
+> ... // other lines
+> ----- END ---------------
+>
+> ragel puts /* #line 1 "lexer.rl" */ comment before utf-8 signature at
+> the begining of file and this is wrong utf-8 file.
+>
+> And second - if we disable #line generation with option -L, you remove
+> generation /* #line */ - not just comment this lines.
+>
+> Best regards,
+> Denis Naumov.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Sep  8 21:34:51 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 08 Sep 2011 14:34:51 -0700
+Subject: [ragel-users] How to distinguish between two machines from
+ within the same action?
+In-Reply-To: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+References: <96F99E19DF27428F9FB4D4927660D6BF@ftml.net>
+Message-ID: <4E6934FB.6060307@complang.org>
+
+You're using from-state actions, which isn't going to give you the 
+desired results. Use > and % instead, then go from there. If you use %* 
+on digits, it will execute on every character since the final state is 
+going back into itself to implement the repetition.
+
+Remember that graphviz will help you immensely with debugging. You can 
+look at the result of compiling specific rules in your grammar.
+
+On 09/08/11 14:06, François Beausoleil wrote:
+>   Hey folks!
+>
+> I'm writing the "definitive" URL parser class. Lofty goal, perhaps, but also a learning exercise. I have an issue with entering and leaving actions.
+>
+> My code's on GitHub: https://github.com/francois/urlparser/blob/master/url.rl#L34
+>
+> Given the following two URLs:
+>
+> tcp://127.0.0.1:1234
+> tcp://a:b at 127.0.0.1:1234/
+>
+> For both URLs, I correctly recognize the scheme. For both URLs, either user or hostname is wrong, and in both cases, the port's not recognized.
+>
+> My Ruby implementation is at https://github.com/francois/urlparser/blob/master/ruby/lib/urlparser/parser.rl#L14
+>
+> My question boils down to: how do I definitively know that what I'm looking at is a user, vs a hostname, since both have nearly the same set of characters. Should I be using "State Action Embedding Operators"? Actually, scratch that: it seems that's what I should be doing, because I managed to recognize the host in some cases. For the first URL above, I can recognize most of the port: I end up with 123, not 1234, thus losing the last character.
+>
+> A little pointer to some existing parser with the similar behavior would be appreciated.
+>
+> Thanks!
+> François
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Sep 14 00:45:36 2011
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Sep 2011 17:45:36 -0700
+Subject: [ragel-users] job using ragel and similar tools
+Message-ID: <4E6FF930.4070702@esentire.com>
+
+My company is hiring. If you are looking for a job using ragel and 
+similar parsing tools then check out the "Security Developer" position. 
+We are located in Cambridge, Ontario, Canada (close to Waterloo and 
+Toronto).
+
+http://esentire.com/section/view/?fnode=42
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Sep 14 05:34:39 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 13 Sep 2011 22:34:39 -0700
+Subject: [ragel-users] State chart style and entering actions
+In-Reply-To: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+References: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+Message-ID: <4E703CEF.5030401@complang.org>
+
+Hi Shawn, does this work for you?
+
+A = (
+    start: A: (
+        IDLE -> A |
+        POLL @poll OPEN -> A |
+        POLL @poll CLOSED -> B
+    ),
+    B: (IDLE -> B | EXIT -> final)
+) >a_entry;
+
+m := START A;
+
+-Adrian
+
+On 11-07-27 08:00 AM, Shawn Hoover wrote:
+> Hello,
+>
+> I'm using the state chart style for processing application logic. So far
+> I've gotten by with finishing actions attached to specific events, but
+> now I'd like to use an entering action for an entire labeled expression.
+> Here's an example:
+>
+> machine := (
+> start: START -> A,
+> A: (IDLE -> A |
+>     POLL @poll OPEN -> A |
+>     POLL @poll CLOSED -> B), >~a_entry,
+> B: (IDLE -> B |
+>     EXIT -> final)
+> );
+>
+> I would like to execute a_entry once and only once when the A "loop" is
+> entered. It does execute on entrance, but then it also executes every
+> time I get IDLE or POLL OPEN.
+>
+> Is there a way to make a_entry execute only once while still using state
+> charts and the union operator in the same structure? I suppose the
+> following would work:
+>
+> A: (IDLE | POLL @poll OPEN)* POLL @poll CLOSED -> B >~a_entry;
+>
+> But I'd like to retain the original structure if there's a better way to
+> attach the action.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Sep 14 05:49:38 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 13 Sep 2011 22:49:38 -0700
+Subject: [ragel-users] Using Ragel to parse a binary message (WebSocket)
+In-Reply-To: <CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+References: <CALiegfkj_2b8Zy-V1_TNtUSrYE_DN=qY7X-Mj069kAD8_uWekQ@mail.gmail.com>
+	<CAOuGh89E+z3dKpftoG05WEEtujdtXXb-ErMLT6NhOcus69J-GA@mail.gmail.com>
+Message-ID: <4E704072.6040908@complang.org>
+
+I don't advertise this very often, but it's possible to use conditions 
+to require certain bit patterns. Improving conditions are the focus of 
+ragel 7. I am hoping to give them a better run-time implementation.
+
+main := any when { fc & 0xf0 };
+
+On 11-08-15 08:54 AM, Bob Paddock wrote:
+> On Mon, Aug 15, 2011 at 11:32 AM, Iñaki Baz Castillo<ibc at aliax.net>  wrote:
+>> Hi, I do know that Ragel cannot parse bits but just bytes.
+>
+> The language Erlang will do pattern matching at the bit level.
+> That certainly would be a nice addition to Ragel for using it in
+> Embedded Systems work.
+>
+>> maybe is it possible to use it for a binary packet format as WebSocket
+>> frames as defined in:
+>
+> This of any help?:
+>
+> http://www.zedshaw.com/essays/ragel_state_charts.html
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ra
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel at henpa.com  Thu Sep 15 21:37:33 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Thu, 15 Sep 2011 18:37:33 -0300
+Subject: [ragel-users] parsing c comments
+Message-ID: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+
+Hi, I've read the ragel manual a couple of times and searched the mailing
+list and I couldn't find the solution to this problem. I imagine the
+solution is there somewhere, but I couldn't find it since I couldn't search
+the mailing list archive properly.
+
+BTW, I don't really need to parse c comments, but I found this example to
+match perfectly what I am trying to accomplish. I'm really trying to parse
+and print data separated by a multi-character token.
+
+Page 29 of Ragel 6.7 manual shows an example on how to properly parse C
+language comments, but the action @comm also parses the * caracter at the
+ending "*/" as shown in the Graphviz image.
+
+I tried many ways to solve this problem, but I couldn't do it. Can someone
+help?
+
+action comm { printf("%c", fc); }
+p = "/* foo *** bar */";
+
+I tried:
+
+main := '/*' (any* -- '/*')@comm '*/';
+main := '/*' any*@comm :>> '*/';
+main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+
+But it always prints: "foo *** bar *" (note the * at the end) and I looking
+for a way for it to print just " foo *** bar ".
+
+Is there an easy way to fix this?
+
+
+Thanks in advance!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110915/32f8acc0/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel at henpa.com  Fri Sep 16 18:12:39 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Fri, 16 Sep 2011 15:12:39 -0300
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+Message-ID: <CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+
+Well, I solved this problem by using something like this:
+
+action mark { text_start = fpc; }
+action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+
+main := '/*' >mark any* :>> '*/' @show;
+
+I don't know if this is the "correct way" to solve this, but it worked. ;-)
+
+
+Thanks
+
+On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com>wrote:
+
+> Hi, I've read the ragel manual a couple of times and searched the mailing
+> list and I couldn't find the solution to this problem. I imagine the
+> solution is there somewhere, but I couldn't find it since I couldn't search
+> the mailing list archive properly.
+>
+> BTW, I don't really need to parse c comments, but I found this example to
+> match perfectly what I am trying to accomplish. I'm really trying to parse
+> and print data separated by a multi-character token.
+>
+> Page 29 of Ragel 6.7 manual shows an example on how to properly parse C
+> language comments, but the action @comm also parses the * caracter at the
+> ending "*/" as shown in the Graphviz image.
+>
+> I tried many ways to solve this problem, but I couldn't do it. Can someone
+> help?
+>
+> action comm { printf("%c", fc); }
+> p = "/* foo *** bar */";
+>
+> I tried:
+>
+> main := '/*' (any* -- '/*')@comm '*/';
+> main := '/*' any*@comm :>> '*/';
+> main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>
+> But it always prints: "foo *** bar *" (note the * at the end) and I looking
+> for a way for it to print just " foo *** bar ".
+>
+> Is there an easy way to fix this?
+>
+>
+> Thanks in advance!
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110916/a945ed54/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Sep 16 18:31:32 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Sep 2011 11:31:32 -0700
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+Message-ID: <4E739604.5050404@complang.org>
+
+Either you have to hack the string you've captured, like you did in this 
+solution, or you have to use a scanner. This parsing problem requires 
+delaying the action on the first '*' since you don't know if it is a 
+containing '*', or the first character in the terminating string.
+
+On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+> Well, I solved this problem by using something like this:
+>
+> action mark { text_start = fpc; }
+> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>
+> main := '/*' >mark any* :>> '*/' @show;
+>
+> I don't know if this is the "correct way" to solve this, but it worked. ;-)
+>
+>
+> Thanks
+>
+> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+> <mailto:ragel at henpa.com>> wrote:
+>
+>     Hi, I've read the ragel manual a couple of times and searched the
+>     mailing list and I couldn't find the solution to this problem. I
+>     imagine the solution is there somewhere, but I couldn't find it
+>     since I couldn't search the mailing list archive properly.
+>
+>     BTW, I don't really need to parse c comments, but I found this
+>     example to match perfectly what I am trying to accomplish. I'm
+>     really trying to parse and print data separated by a multi-character
+>     token.
+>
+>     Page 29 of Ragel 6.7 manual shows an example on how to properly
+>     parse C language comments, but the action @comm also parses the *
+>     caracter at the ending "*/" as shown in the Graphviz image.
+>
+>     I tried many ways to solve this problem, but I couldn't do it. Can
+>     someone help?
+>
+>     action comm { printf("%c", fc); }
+>     p = "/* foo *** bar */";
+>
+>     I tried:
+>
+>     main := '/*' (any* -- '/*')@comm '*/';
+>     main := '/*' any*@comm :>> '*/';
+>     main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>
+>     But it always prints: "foo *** bar *" (note the * at the end) and I
+>     looking for a way for it to print just " foo *** bar ".
+>
+>     Is there an easy way to fix this?
+>
+>
+>     Thanks in advance!
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Fri Sep 16 18:44:18 2011
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Fri, 16 Sep 2011 14:44:18 -0400
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <4E739604.5050404@complang.org>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+	<4E739604.5050404@complang.org>
+Message-ID: <CAEru=j5ZohLNHyPeZN1CMLi1eUEvHXpVC9o-9w3J3JC9AQyP8w@mail.gmail.com>
+
+There is also an example in the documentation (search for CDATA_body).
+
+On Fri, Sep 16, 2011 at 2:31 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Either you have to hack the string you've captured, like you did in this
+> solution, or you have to use a scanner. This parsing problem requires
+> delaying the action on the first '*' since you don't know if it is a
+> containing '*', or the first character in the terminating string.
+>
+> On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+>>
+>> Well, I solved this problem by using something like this:
+>>
+>> action mark { text_start = fpc; }
+>> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>>
+>> main := '/*' >mark any* :>> '*/' @show;
+>>
+>> I don't know if this is the "correct way" to solve this, but it worked.
+>> ;-)
+>>
+>>
+>> Thanks
+>>
+>> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+>> <mailto:ragel at henpa.com>> wrote:
+>>
+>>    Hi, I've read the ragel manual a couple of times and searched the
+>>    mailing list and I couldn't find the solution to this problem. I
+>>    imagine the solution is there somewhere, but I couldn't find it
+>>    since I couldn't search the mailing list archive properly.
+>>
+>>    BTW, I don't really need to parse c comments, but I found this
+>>    example to match perfectly what I am trying to accomplish. I'm
+>>    really trying to parse and print data separated by a multi-character
+>>    token.
+>>
+>>    Page 29 of Ragel 6.7 manual shows an example on how to properly
+>>    parse C language comments, but the action @comm also parses the *
+>>    caracter at the ending "*/" as shown in the Graphviz image.
+>>
+>>    I tried many ways to solve this problem, but I couldn't do it. Can
+>>    someone help?
+>>
+>>    action comm { printf("%c", fc); }
+>>    p = "/* foo *** bar */";
+>>
+>>    I tried:
+>>
+>>    main := '/*' (any* -- '/*')@comm '*/';
+>>    main := '/*' any*@comm :>> '*/';
+>>    main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>>
+>>    But it always prints: "foo *** bar *" (note the * at the end) and I
+>>    looking for a way for it to print just " foo *** bar ".
+>>
+>>    Is there an easy way to fix this?
+>>
+>>
+>>    Thanks in advance!
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel at henpa.com  Fri Sep 16 18:48:22 2011
+From: ragel at henpa.com (Henrique Pantarotto)
+Date: Fri, 16 Sep 2011 15:48:22 -0300
+Subject: [ragel-users] parsing c comments
+In-Reply-To: <4E739604.5050404@complang.org>
+References: <CAJo5aP21niN=TT_yk+SiQrjvgb_v5SZ4DEQgQR4uRZ7NOx3hCg@mail.gmail.com>
+	<CAJo5aP0ua2s61c39W=E+Lsbfj7O6+kNeAaqxjz2Wukq4gNx1bA@mail.gmail.com>
+	<4E739604.5050404@complang.org>
+Message-ID: <CAJo5aP3_Qj6PnYm1qq8a4Zb5B=QCB+Z2gCJx1RqHo1HTHh+c_w@mail.gmail.com>
+
+Thanks Adrian!
+
+By the way, I found this website yesterday:
+http://www.mail-archive.com/ragel-users at complang.org/index.html - I found it
+very useful for searching ragel's mailing list for help..  the default
+mailman archive on your site is awful for searching for stuff and following
+a conversation.
+
+Maybe you could consider posting this link on your website, or even better,
+migrate the mailing-list and it's archive to google groups... Let me know if
+find this idea useful or if you need any help on that.
+
+
+Thanks again!
+
+On Fri, Sep 16, 2011 at 3:31 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Either you have to hack the string you've captured, like you did in this
+> solution, or you have to use a scanner. This parsing problem requires
+> delaying the action on the first '*' since you don't know if it is a
+> containing '*', or the first character in the terminating string.
+>
+>
+> On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+>
+>> Well, I solved this problem by using something like this:
+>>
+>> action mark { text_start = fpc; }
+>> action show { printf("'%.*s'\n", fpc - text_start - 1, text_start); }
+>>
+>> main := '/*' >mark any* :>> '*/' @show;
+>>
+>> I don't know if this is the "correct way" to solve this, but it worked.
+>> ;-)
+>>
+>>
+>> Thanks
+>>
+>> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto <ragel at henpa.com
+>> <mailto:ragel at henpa.com>> wrote:
+>>
+>>    Hi, I've read the ragel manual a couple of times and searched the
+>>    mailing list and I couldn't find the solution to this problem. I
+>>    imagine the solution is there somewhere, but I couldn't find it
+>>    since I couldn't search the mailing list archive properly.
+>>
+>>    BTW, I don't really need to parse c comments, but I found this
+>>    example to match perfectly what I am trying to accomplish. I'm
+>>    really trying to parse and print data separated by a multi-character
+>>    token.
+>>
+>>    Page 29 of Ragel 6.7 manual shows an example on how to properly
+>>    parse C language comments, but the action @comm also parses the *
+>>    caracter at the ending "*/" as shown in the Graphviz image.
+>>
+>>    I tried many ways to solve this problem, but I couldn't do it. Can
+>>    someone help?
+>>
+>>    action comm { printf("%c", fc); }
+>>    p = "/* foo *** bar */";
+>>
+>>    I tried:
+>>
+>>    main := '/*' (any* -- '/*')@comm '*/';
+>>    main := '/*' any*@comm :>> '*/';
+>>    main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+>>
+>>    But it always prints: "foo *** bar *" (note the * at the end) and I
+>>    looking for a way for it to print just " foo *** bar ".
+>>
+>>    Is there an easy way to fix this?
+>>
+>>
+>>    Thanks in advance!
+>>
+>>
+>>
+>>
+>> ______________________________**_________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>>
+>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110916/7ceed48a/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Fri Sep 16 20:08:00 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 16 Sep 2011 16:08:00 -0400
+Subject: [ragel-users] State chart style and entering actions
+In-Reply-To: <4E703CEF.5030401@complang.org>
+References: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+	<4E703CEF.5030401@complang.org>
+Message-ID: <CAN5w8SPmiuVJh3b0Q4RKQA4JeHajHNq-nCHfk0NdLD5epec-pw@mail.gmail.com>
+
+On Wed, Sep 14, 2011 at 1:34 AM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Shawn, does this work for you?
+>
+> A = (
+>   start: A: (
+>
+>       IDLE -> A |
+>       POLL @poll OPEN -> A |
+>       POLL @poll CLOSED -> B
+>   ),
+>   B: (IDLE -> B | EXIT -> final)
+> ) >a_entry;
+>
+> m := START A;
+>
+> -Adrian
+
+
+Hi Adrian,
+
+I didn't do a great job of translating my much larger state chart into the
+small example, so there are a few complications in the way of directly
+following your suggestion. However, this gives me some things to think about
+for how to better factor my machines. Thanks for the help!
+
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110916/d7fd911d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Sep 29 16:32:29 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 29 Sep 2011 18:32:29 +0200
+Subject: [ragel-users] utf-8 files problem
+In-Reply-To: <4E693305.90502@complang.org>
+References: <CAD5e4CkP1_KhXM2=Ry3Q3UU90Gi1me0nry6nKtA_mq-bZZPZAQ@mail.gmail.com>
+	<4E693305.90502@complang.org>
+Message-ID: <7452A6B7766E408F86EF64B57A2385D3@localdomain>
+
+Allowing "UTF-8 with BOM" files will break cygwin builds. The somewhat older 
+gcc version (3.4.4) cannot handle the 3 marker bytes.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

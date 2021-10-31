@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Action for leaving a machine from a non-final	state
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20for%20leaving%20a%20machine%20from%20a%20non-final%0A%09state&In-Reply-To=%3Cop.waed9hmkah38gt%40osangar.int.intellitree.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001503.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Action for leaving a machine from a non-final	state</H1>
+    <B>M Conrad</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20for%20leaving%20a%20machine%20from%20a%20non-final%0A%09state&In-Reply-To=%3Cop.waed9hmkah38gt%40osangar.int.intellitree.com%3E"
+       TITLE="[ragel-users] Action for leaving a machine from a non-final	state">silverdirk-rgl at silverdirk.com
+       </A><BR>
+    <I>Tue Feb 28 16:47:31 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001503.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1504">[ date ]</a>
+              <a href="thread.html#1504">[ thread ]</a>
+              <a href="subject.html#1504">[ subject ]</a>
+              <a href="author.html#1504">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>There's lots of ways to accomplish what you want, and it's hard to say if
+one way is really better than another, but my favorite way to work with
+these sorts of problems is to have all my data in one buffer, and then use
+pointers to mark the bounds.
+
+So, instead of copying one character at a time, and &quot;goto&quot; bouncing
+between states, I would
+
+     open = /.*\*OPEN\*/ %{ start_of_data= p; };
+     close = /\*CLOS\*/ &gt;{ if (!end_of_data) end_of_data= p; }
+         @!{ end_of_data= NULL; }
+         %{ process_data(); start_of_data= end_of_data= NULL; fret; };
+     data := . | close;
+
+end_of_data gets set every time the machine sees a &quot;*&quot;, but then if it
+doesn't complete the pattern it will get set again later.  Meanwhile, you
+need to keep enlarging the buffer in other code, and if the buffer address
+changes, alter the start_of_data and end_of_data pointers to match.
+
+If you would rather use a static buffer, and process the data in pieces,
+you would need something like this each time your buffer was full:
+
+     shift_buffer() {
+       if (start_of_data) {
+         int ofs= start_of_data - buffer;
+         int data_count= (end_of_data)? end_of_data - start_of_data
+                       : sizeof(buffer) - ofs;
+         int keep_count= sizeof(buffer) - ofs - data_count;
+
+         // process portion of data
+         printf(&quot;Data: '%.*s'\n&quot;, data_count, start_of_data);
+
+         memmove(buffer, start_of_data+data_count, keep_count);
+         start_of_data= buffer;
+         end_of_data= buffer;
+         p= buffer+keep_count;
+       }
+     }
+
+The pointers and fixed buffer are more complicated, but it results in a
+faster machine, since you don't write to memory on most data characters.
+
+Hope that helps.
+
+-Mike
+
+On Tue, 21 Feb 2012 18:27:18 -0500, Ivan Reche &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ivan.reche at gmail.com</A>&gt;
+wrote:
+
+&gt;<i> 2012/2/20 &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-user at jgoettgens.de</A>&gt;
+</I>&gt;<i>
+</I>&gt;&gt;<i>   Ivan,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> so you need to mark the beginning and the end of either “command” or
+</I>&gt;&gt;<i> “data” mode given the keywords “*OPEN*”  and “*CLOS*”. Right? Once  
+</I>&gt;&gt;<i> matched
+</I>&gt;&gt;<i> it is entirely up to you what to do with the matched text (User Actions,
+</I>&gt;&gt;<i> chapter 3). You could post a typical token stream and an outline of your
+</I>&gt;&gt;<i> ragel specs. Otherwise it is difficult to see the cause of your problem.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> jg
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I'm sorry if my post wasn't clear enough.
+</I>&gt;<i>
+</I>&gt;<i> I've managed to achieve the results that I expect, although I don't know  
+</I>&gt;<i> if
+</I>&gt;<i> it is the most effective way to do it. I'm gonna post it in this e-mail.  
+</I>&gt;<i> My
+</I>&gt;<i> objective is to read the stream of characters between the *OPEN* and  
+</I>&gt;<i> *CLOS*
+</I>&gt;<i> &quot;tokens&quot;. Thanks in advance for any tips or insights on this.
+</I>&gt;<i>
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;<i> #include &lt;string.h&gt;
+</I>&gt;<i> #include &lt;stdbool.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i>
+</I>&gt;<i>     machine test;
+</I>&gt;<i>
+</I>&gt;<i>     action open_found {
+</I>&gt;<i>         printf(&quot;FOUND OPEN\r\n&quot;);
+</I>&gt;<i>         fgoto data;
+</I>&gt;<i>     }
+</I>&gt;<i>     action close_found {
+</I>&gt;<i>         printf(&quot;FOUND CLOSE\r\n&quot;);
+</I>&gt;<i>         fgoto main;
+</I>&gt;<i>     }
+</I>&gt;<i>     action new_data_char {
+</I>&gt;<i>         printf(&quot;NEW CHAR: %c, lock: %d\n&quot;, fc, lock_data);
+</I>&gt;<i>         if (!lock_data)
+</I>&gt;<i>             rec[count++] = fc;
+</I>&gt;<i>     }
+</I>&gt;<i>     action close_candidate {
+</I>&gt;<i>         printf(&quot;CLOSE CANDIDATE: %c\n&quot;, fc);
+</I>&gt;<i>         lock_data = true;
+</I>&gt;<i>         cacount = 0;
+</I>&gt;<i>         fhold; fgoto clos;
+</I>&gt;<i>     }
+</I>&gt;<i>     action not_close {
+</I>&gt;<i>         printf(&quot;NOT CLOSE: %c, candidate: %s, cacount: %d\n&quot;, fc,
+</I>&gt;<i> candidate, cacount);
+</I>&gt;<i>         lock_data = false;
+</I>&gt;<i>         strncat(rec, candidate, cacount);
+</I>&gt;<i>         count += cacount;
+</I>&gt;<i>         fgoto data;
+</I>&gt;<i>     }
+</I>&gt;<i>     action store_candidate_char {
+</I>&gt;<i>         printf(&quot;CANDIDATE CHAR: %c\n&quot;, fc);
+</I>&gt;<i>         candidate[cacount++] = fc;
+</I>&gt;<i>     }
+</I>&gt;<i>
+</I>&gt;<i>     open = /.*\*OPEN\*/;
+</I>&gt;<i>     close = /.*\*CLOS\*/;
+</I>&gt;<i>
+</I>&gt;<i>     main :=
+</I>&gt;<i>         (open %open_found)+;
+</I>&gt;<i>
+</I>&gt;<i>     data := /.*\*/ @~new_data_char %~close_candidate;
+</I>&gt;<i>     clos := /\*CLOS\*/ $/{fbreak;} $store_candidate_char @!(not_close)
+</I>&gt;<i> @close_found;
+</I>&gt;<i>
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> %% write data;
+</I>&gt;<i>
+</I>&gt;<i> const char *p, *pe, *eof;
+</I>&gt;<i> int cs;
+</I>&gt;<i> const char *ts, *te;
+</I>&gt;<i> int act;
+</I>&gt;<i> int stack[128] = {0};
+</I>&gt;<i> int top;
+</I>&gt;<i>
+</I>&gt;<i> char rec[1024] = {0};
+</I>&gt;<i> unsigned int count = 0;
+</I>&gt;<i> char candidate[1024] = {0};;
+</I>&gt;<i> unsigned int cacount = 0;
+</I>&gt;<i> bool lock_data = false;
+</I>&gt;<i>
+</I>&gt;<i> bool parse(const char * str) {
+</I>&gt;<i>     p = str; pe = str + strlen(str); eof = pe;
+</I>&gt;<i>
+</I>&gt;<i>     %% write exec;
+</I>&gt;<i>
+</I>&gt;<i>     return true;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> int main(int argc, char **argv) {
+</I>&gt;<i>     char buf[2048] =
+</I>&gt;<i> &quot;aaaaaaaaaa*OPEN*bbbbbbbb*CLbbbbbbbbb*CLOS*aaaaaaaaaaaaaaaaaaaa&quot;;
+</I>&gt;<i>
+</I>&gt;<i>     %% write init;
+</I>&gt;<i>
+</I>&gt;<i>     parse(buf);
+</I>&gt;<i>
+</I>&gt;<i>     printf(&quot;data[%d] = %s\n&quot;, count, rec);
+</I>&gt;<i>     return 0;
+</I>&gt;<i> }
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001503.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1504">[ date ]</a>
+              <a href="thread.html#1504">[ thread ]</a>
+              <a href="subject.html#1504">[ subject ]</a>
+              <a href="author.html#1504">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

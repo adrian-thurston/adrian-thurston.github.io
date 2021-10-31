@@ -1,0 +1,682 @@
+From zeds... at zedshaw.com  Thu Dec 21 06:41:19 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Wed, 20 Dec 2006 22:41:19 -0800
+Subject: Question about nested state charts
+Message-ID: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+
+Hi,
+
+I'm looking for some advice on doing a nested state chart.  First, here's a sample:
+
+Connection = (
+  start: ( open -> Accepting ),
+
+  Accepting: (
+    start: ( logged_in -> Processing ),
+    Processing: ( receive -> Delivering | close -> Connection::Aborting ),
+    Delivering: ( delivered -> Processing ),
+  ),
+
+  Aborting: ( finalized -> final )
+) >begin %finish @!error;
+
+So my first question is if I'm just crazy for doing it this way?  The manual doesn't *really* say you can nest state chart style machines like this, so the "| close -> Aborting" doesn't actually resolve.  The manual does talk about Resolving Names but "Connection::Aborting" doesn't work for breaking out of the Accepting::Processing state and into Aborting.
+
+Also, I'm doing this as an experiment in using Ragel machines for specifying a server's logic execution.  Not sure what the end result will be, but it's already simplified quite a bit of code.  My only complaint is that there's tons of duplication between the source and the ragel file.  For example, I have to say logged_in='L' in the .rl and then again in a .h somewhere.  It would be nicer if I can tell ragel, "Anything you can resolve should be used symbolically since I defined it someplace else."  Could work for actions too where ragel assumes any action it knows nothing about is a direct function call with a certain signature.
+
+Thanks!
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Thu Dec 21 05:11:30 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 21 Dec 2006 00:11:30 -0500
+Subject: [ragel-users] Question about nested state charts
+In-Reply-To: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+Message-ID: <458A1782.6030507@cs.queensu.ca>
+
+Hi Zed,
+
+I think nesting is a really good idea. Though Ragel can't build your 
+machine exactly the way you've specified it. It's a limitation of the 
+Ragel language and not of the underlying machines. When the end of a 
+comma-separated list of machines is found Ragel tries to resolve all 
+epsilon transitions inside it. So the epsilon drawn to Aborting is 
+resolved when the inner join is complete, only the Aborting label 
+doesn't exist at that time. What you want is for it to be resolved on 
+the outer join but the language doesn't give you a way to say that.
+
+But since you've only got one destination on the exit from the inner 
+join you can change it to this:
+
+Connection = (
+
+   start: ( open -> Accepting ),
+
+   Accepting: (
+     start: ( logged_in -> Processing ),
+     Processing: ( receive -> Delivering | close -> final ),
+     Delivering: ( delivered -> Processing ),
+   ) -> Aborting,
+
+   Aborting: ( finalized -> final )
+
+) >begin %finish @!error;
+
+If you need more than one exit then you'll have to subsume the inner 
+state chart.
+
+About the duplication ... I've actually been meaning to add a feature 
+for importing machine definitions. Though I wanted to wait until I 
+finished rewriting the parsers before I start adding to them. I'm 
+currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+there is ... which I'm aware is quite painful to many coders.
+
+Cheers
+  Adrian
+
+Zed A. Shaw wrote:
+> 
+> Hi,
+> 
+> I'm looking for some advice on doing a nested state chart.  First, 
+> here's a sample:
+> 
+> Connection = (
+>  start: ( open -> Accepting ),
+> 
+>  Accepting: (
+>    start: ( logged_in -> Processing ),
+>    Processing: ( receive -> Delivering | close -> Connection::Aborting ),
+>    Delivering: ( delivered -> Processing ),
+>  ),
+> 
+>  Aborting: ( finalized -> final )
+> ) >begin %finish @!error;
+> 
+> So my first question is if I'm just crazy for doing it this way?  The 
+> manual doesn't *really* say you can nest state chart style machines like 
+> this, so the "| close -> Aborting" doesn't actually resolve.  The manual 
+> does talk about Resolving Names but "Connection::Aborting" doesn't work 
+> for breaking out of the Accepting::Processing state and into Aborting.
+> 
+> Also, I'm doing this as an experiment in using Ragel machines for 
+> specifying a server's logic execution.  Not sure what the end result 
+> will be, but it's already simplified quite a bit of code.  My only 
+> complaint is that there's tons of duplication between the source and the 
+> ragel file.  For example, I have to say logged_in='L' in the .rl and 
+> then again in a .h somewhere.  It would be nicer if I can tell ragel, 
+> "Anything you can resolve should be used symbolically since I defined it 
+> someplace else."  Could work for actions too where ragel assumes any 
+> action it knows nothing about is a direct function call with a certain 
+> signature.
+> 
+> Thanks!
+> 
+
+
+From zeds... at zedshaw.com  Thu Dec 21 08:40:06 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Thu, 21 Dec 2006 00:40:06 -0800
+Subject: [ragel-users] Re: Question about nested state charts
+In-Reply-To: <458A1782.6030507@cs.queensu.ca>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+	<458A1782.6030507@cs.queensu.ca>
+Message-ID: <20061221004006.896a9a18.zedshaw@zedshaw.com>
+
+On Thu, 21 Dec 2006 00:11:30 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> 
+> Hi Zed,
+> 
+> I think nesting is a really good idea. Though Ragel can't build your 
+> machine exactly the way you've specified it. It's a limitation of the 
+> Ragel language and not of the underlying machines. When the end of a 
+> comma-separated list of machines is found Ragel tries to resolve all 
+> epsilon transitions inside it. So the epsilon drawn to Aborting is 
+> resolved when the inner join is complete, only the Aborting label 
+> doesn't exist at that time. What you want is for it to be resolved on 
+> the outer join but the language doesn't give you a way to say that.
+<snip>
+
+Ok, this is possible since I can also set a state variable and then alter the transition on final with an action.  There aren't a whole lot of states right now by I like the idea of making is smaller.
+
+One thing that I believe is *kind* of missing from the state chart idea is "inheriting transitions".  I don't know if I like the idea, but when I showed it to someone, they immediately thought that having a nested chart be able to let a parent chart handle common events or transitions would complete the state chart.
+
+> About the duplication ... I've actually been meaning to add a feature 
+> for importing machine definitions. Though I wanted to wait until I 
+> finished rewriting the parsers before I start adding to them. I'm 
+> currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+> there is ... which I'm aware is quite painful to many coders.
+
+Oooh, kelbt looks interesting.  Downloaded it and will play with it.  My favorite parser generator is Lemon, mostly because it has insane debugging capabilities.  Please mimick Lemon this way :-)
+
+One thing though, and more of a style choice, but I *hate* this syntax:
+
+define conditionals
+...
+end define
+
+As you mentioned, I hate repetition, so making me type "define" twice is really really annoying since your parser has got to be able to know that "end" is enough.  Especially since it looks like you can't do nesting.  Even if you can, the end keyword should be enough to close off the statement.
+
+Anyway, i'll play with kelbt a bit.  If you're looking for a realworld use on it, I know folks looking for powerful scaner/parser combos for several open source projects.  I'll get them to try it out too.
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Thu Dec 21 06:26:23 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 21 Dec 2006 01:26:23 -0500
+Subject: [ragel-users] Re: Question about nested state charts
+In-Reply-To: <20061221004006.896a9a18.zedshaw@zedshaw.com>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com> <458A1782.6030507@cs.queensu.ca> <20061221004006.896a9a18.zedshaw@zedshaw.com>
+Message-ID: <458A290F.2030308@cs.queensu.ca>
+
+That define ... end define syntax comes from TXL. You're probably 
+looking at cpp.grm, which is a TXL program that reads the output of 
+cxxprep. The kelbt grammars are in .kl and .kh files.
+
+TXL is pretty awesome, but it does have a dated syntax. My supervisor 
+designed it and at that time keywordy syntax was hugely popular. Now ... 
+not so much :)
+
+I'm always interested in tough parsing problems to test Kelbt on. One 
+thing to keep in mind is that it's research grade at the moment. In 
+terms of usability it's going to be a little rough around the edges.
+
+Adrian
+
+
+Zed A. Shaw wrote:
+> 
+> On Thu, 21 Dec 2006 00:11:30 -0500
+> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> 
+>>
+>> Hi Zed,
+>>
+>> I think nesting is a really good idea. Though Ragel can't build your 
+>> machine exactly the way you've specified it. It's a limitation of the 
+>> Ragel language and not of the underlying machines. When the end of a 
+>> comma-separated list of machines is found Ragel tries to resolve all 
+>> epsilon transitions inside it. So the epsilon drawn to Aborting is 
+>> resolved when the inner join is complete, only the Aborting label 
+>> doesn't exist at that time. What you want is for it to be resolved on 
+>> the outer join but the language doesn't give you a way to say that.
+> <snip>
+> 
+> Ok, this is possible since I can also set a state variable and then 
+> alter the transition on final with an action.  There aren't a whole lot 
+> of states right now by I like the idea of making is smaller.
+> 
+> One thing that I believe is *kind* of missing from the state chart idea 
+> is "inheriting transitions".  I don't know if I like the idea, but when 
+> I showed it to someone, they immediately thought that having a nested 
+> chart be able to let a parent chart handle common events or transitions 
+> would complete the state chart.
+> 
+>> About the duplication ... I've actually been meaning to add a feature 
+>> for importing machine definitions. Though I wanted to wait until I 
+>> finished rewriting the parsers before I start adding to them. I'm 
+>> currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+>> there is ... which I'm aware is quite painful to many coders.
+> 
+> Oooh, kelbt looks interesting.  Downloaded it and will play with it.  My 
+> favorite parser generator is Lemon, mostly because it has insane 
+> debugging capabilities.  Please mimick Lemon this way :-)
+> 
+> One thing though, and more of a style choice, but I *hate* this syntax:
+> 
+> define conditionals
+> ...
+> end define
+> 
+> As you mentioned, I hate repetition, so making me type "define" twice is 
+> really really annoying since your parser has got to be able to know that 
+> "end" is enough.  Especially since it looks like you can't do nesting.  
+> Even if you can, the end keyword should be enough to close off the 
+> statement.
+> 
+> Anyway, i'll play with kelbt a bit.  If you're looking for a realworld 
+> use on it, I know folks looking for powerful scaner/parser combos for 
+> several open source projects.  I'll get them to try it out too.
+> 
+
+
+From zeds... at zedshaw.com  Sun Dec 24 19:36:20 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Sun, 24 Dec 2006 11:36:20 -0800
+Subject: [RFC] A Complete Description of Using Ragel State Charts
+Message-ID: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+
+Hey Everyone,
+
+I had such a hard time explaining how cool the Ragel state chart stuff is that I finally broke down and wrote some very detailed instructions and discussions about them:
+
+http://www.zedshaw.com/tips/ragel_state_charts.html
+
+Please take a look and give me any comments you have.  I'm using this style of state machine more and more in my code so I'd like to get a good grip on explaining it to folks.
+
+Have a good Christmas (if you celebrate it).
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Tue Dec 26 16:55:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 26 Dec 2006 11:55:32 -0500 (EST)
+Subject: [ragel-users] [RFC] A Complete Description of Using Ragel 
+     State Charts
+In-Reply-To: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+References: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+Message-ID: <1112.66.102.72.165.1167152132.squirrel@mambo.cs.queensu.ca>
+
+Hi Zed,
+
+Nice work, an excellent article! Not much has been written about state
+charts in Ragel and it fills the gap nicely. I have a couple comments.
+
+In section "Actions in Ragel" the details are a bit off.
+
+"@!error" access nonfinal states and embeds an error handler
+"$!error" access all states
+
+Though in your example they have the same effect.
+
+"@" on it's own accesses transitions which move into a final state.
+
+In section "Generating the Code"
+
+The only code style supported with Java right now is the plain table based
+(-T0). The lack of goto statements in Java makes porting to Java more
+work.
+
+Cheers,
+ Adrian
+
+
+>
+> Hey Everyone,
+>
+> I had such a hard time explaining how cool the Ragel state chart stuff is
+> that I finally broke down and wrote some very detailed instructions and
+> discussions about them:
+>
+> http://www.zedshaw.com/tips/ragel_state_charts.html
+>
+> Please take a look and give me any comments you have.  I'm using this
+> style of state machine more and more in my code so I'd like to get a good
+> grip on explaining it to folks.
+>
+> Have a good Christmas (if you celebrate it).
+>
+> --
+> Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+> http://www.zedshaw.com/
+> http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+> http://mongrel.rubyforge.org/
+> http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+>
+> >
+
+
+
+From zeds... at zedshaw.com  Thu Dec 21 06:41:19 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Wed, 20 Dec 2006 22:41:19 -0800
+Subject: Question about nested state charts
+Message-ID: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+
+Hi,
+
+I'm looking for some advice on doing a nested state chart.  First, here's a sample:
+
+Connection = (
+  start: ( open -> Accepting ),
+
+  Accepting: (
+    start: ( logged_in -> Processing ),
+    Processing: ( receive -> Delivering | close -> Connection::Aborting ),
+    Delivering: ( delivered -> Processing ),
+  ),
+
+  Aborting: ( finalized -> final )
+) >begin %finish @!error;
+
+So my first question is if I'm just crazy for doing it this way?  The manual doesn't *really* say you can nest state chart style machines like this, so the "| close -> Aborting" doesn't actually resolve.  The manual does talk about Resolving Names but "Connection::Aborting" doesn't work for breaking out of the Accepting::Processing state and into Aborting.
+
+Also, I'm doing this as an experiment in using Ragel machines for specifying a server's logic execution.  Not sure what the end result will be, but it's already simplified quite a bit of code.  My only complaint is that there's tons of duplication between the source and the ragel file.  For example, I have to say logged_in='L' in the .rl and then again in a .h somewhere.  It would be nicer if I can tell ragel, "Anything you can resolve should be used symbolically since I defined it someplace else."  Could work for actions too where ragel assumes any action it knows nothing about is a direct function call with a certain signature.
+
+Thanks!
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Thu Dec 21 05:11:30 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 21 Dec 2006 00:11:30 -0500
+Subject: [ragel-users] Question about nested state charts
+In-Reply-To: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+Message-ID: <458A1782.6030507@cs.queensu.ca>
+
+Hi Zed,
+
+I think nesting is a really good idea. Though Ragel can't build your 
+machine exactly the way you've specified it. It's a limitation of the 
+Ragel language and not of the underlying machines. When the end of a 
+comma-separated list of machines is found Ragel tries to resolve all 
+epsilon transitions inside it. So the epsilon drawn to Aborting is 
+resolved when the inner join is complete, only the Aborting label 
+doesn't exist at that time. What you want is for it to be resolved on 
+the outer join but the language doesn't give you a way to say that.
+
+But since you've only got one destination on the exit from the inner 
+join you can change it to this:
+
+Connection = (
+
+   start: ( open -> Accepting ),
+
+   Accepting: (
+     start: ( logged_in -> Processing ),
+     Processing: ( receive -> Delivering | close -> final ),
+     Delivering: ( delivered -> Processing ),
+   ) -> Aborting,
+
+   Aborting: ( finalized -> final )
+
+) >begin %finish @!error;
+
+If you need more than one exit then you'll have to subsume the inner 
+state chart.
+
+About the duplication ... I've actually been meaning to add a feature 
+for importing machine definitions. Though I wanted to wait until I 
+finished rewriting the parsers before I start adding to them. I'm 
+currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+there is ... which I'm aware is quite painful to many coders.
+
+Cheers
+  Adrian
+
+Zed A. Shaw wrote:
+> 
+> Hi,
+> 
+> I'm looking for some advice on doing a nested state chart.  First, 
+> here's a sample:
+> 
+> Connection = (
+>  start: ( open -> Accepting ),
+> 
+>  Accepting: (
+>    start: ( logged_in -> Processing ),
+>    Processing: ( receive -> Delivering | close -> Connection::Aborting ),
+>    Delivering: ( delivered -> Processing ),
+>  ),
+> 
+>  Aborting: ( finalized -> final )
+> ) >begin %finish @!error;
+> 
+> So my first question is if I'm just crazy for doing it this way?  The 
+> manual doesn't *really* say you can nest state chart style machines like 
+> this, so the "| close -> Aborting" doesn't actually resolve.  The manual 
+> does talk about Resolving Names but "Connection::Aborting" doesn't work 
+> for breaking out of the Accepting::Processing state and into Aborting.
+> 
+> Also, I'm doing this as an experiment in using Ragel machines for 
+> specifying a server's logic execution.  Not sure what the end result 
+> will be, but it's already simplified quite a bit of code.  My only 
+> complaint is that there's tons of duplication between the source and the 
+> ragel file.  For example, I have to say logged_in='L' in the .rl and 
+> then again in a .h somewhere.  It would be nicer if I can tell ragel, 
+> "Anything you can resolve should be used symbolically since I defined it 
+> someplace else."  Could work for actions too where ragel assumes any 
+> action it knows nothing about is a direct function call with a certain 
+> signature.
+> 
+> Thanks!
+> 
+
+
+From zeds... at zedshaw.com  Thu Dec 21 08:40:06 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Thu, 21 Dec 2006 00:40:06 -0800
+Subject: [ragel-users] Re: Question about nested state charts
+In-Reply-To: <458A1782.6030507@cs.queensu.ca>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com>
+	<458A1782.6030507@cs.queensu.ca>
+Message-ID: <20061221004006.896a9a18.zedshaw@zedshaw.com>
+
+On Thu, 21 Dec 2006 00:11:30 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> 
+> Hi Zed,
+> 
+> I think nesting is a really good idea. Though Ragel can't build your 
+> machine exactly the way you've specified it. It's a limitation of the 
+> Ragel language and not of the underlying machines. When the end of a 
+> comma-separated list of machines is found Ragel tries to resolve all 
+> epsilon transitions inside it. So the epsilon drawn to Aborting is 
+> resolved when the inner join is complete, only the Aborting label 
+> doesn't exist at that time. What you want is for it to be resolved on 
+> the outer join but the language doesn't give you a way to say that.
+<snip>
+
+Ok, this is possible since I can also set a state variable and then alter the transition on final with an action.  There aren't a whole lot of states right now by I like the idea of making is smaller.
+
+One thing that I believe is *kind* of missing from the state chart idea is "inheriting transitions".  I don't know if I like the idea, but when I showed it to someone, they immediately thought that having a nested chart be able to let a parent chart handle common events or transitions would complete the state chart.
+
+> About the duplication ... I've actually been meaning to add a feature 
+> for importing machine definitions. Though I wanted to wait until I 
+> finished rewriting the parsers before I start adding to them. I'm 
+> currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+> there is ... which I'm aware is quite painful to many coders.
+
+Oooh, kelbt looks interesting.  Downloaded it and will play with it.  My favorite parser generator is Lemon, mostly because it has insane debugging capabilities.  Please mimick Lemon this way :-)
+
+One thing though, and more of a style choice, but I *hate* this syntax:
+
+define conditionals
+...
+end define
+
+As you mentioned, I hate repetition, so making me type "define" twice is really really annoying since your parser has got to be able to know that "end" is enough.  Especially since it looks like you can't do nesting.  Even if you can, the end keyword should be enough to close off the statement.
+
+Anyway, i'll play with kelbt a bit.  If you're looking for a realworld use on it, I know folks looking for powerful scaner/parser combos for several open source projects.  I'll get them to try it out too.
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Thu Dec 21 06:26:23 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 21 Dec 2006 01:26:23 -0500
+Subject: [ragel-users] Re: Question about nested state charts
+In-Reply-To: <20061221004006.896a9a18.zedshaw@zedshaw.com>
+References: <20061220224119.d4a6c819.zedshaw@zedshaw.com> <458A1782.6030507@cs.queensu.ca> <20061221004006.896a9a18.zedshaw@zedshaw.com>
+Message-ID: <458A290F.2030308@cs.queensu.ca>
+
+That define ... end define syntax comes from TXL. You're probably 
+looking at cpp.grm, which is a TXL program that reads the output of 
+cxxprep. The kelbt grammars are in .kl and .kh files.
+
+TXL is pretty awesome, but it does have a dated syntax. My supervisor 
+designed it and at that time keywordy syntax was hugely popular. Now ... 
+not so much :)
+
+I'm always interested in tough parsing problems to test Kelbt on. One 
+thing to keep in mind is that it's research grade at the moment. In 
+terms of usability it's going to be a little rough around the edges.
+
+Adrian
+
+
+Zed A. Shaw wrote:
+> 
+> On Thu, 21 Dec 2006 00:11:30 -0500
+> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> 
+>>
+>> Hi Zed,
+>>
+>> I think nesting is a really good idea. Though Ragel can't build your 
+>> machine exactly the way you've specified it. It's a limitation of the 
+>> Ragel language and not of the underlying machines. When the end of a 
+>> comma-separated list of machines is found Ragel tries to resolve all 
+>> epsilon transitions inside it. So the epsilon drawn to Aborting is 
+>> resolved when the inner join is complete, only the Aborting label 
+>> doesn't exist at that time. What you want is for it to be resolved on 
+>> the outer join but the language doesn't give you a way to say that.
+> <snip>
+> 
+> Ok, this is possible since I can also set a state variable and then 
+> alter the transition on final with an action.  There aren't a whole lot 
+> of states right now by I like the idea of making is smaller.
+> 
+> One thing that I believe is *kind* of missing from the state chart idea 
+> is "inheriting transitions".  I don't know if I like the idea, but when 
+> I showed it to someone, they immediately thought that having a nested 
+> chart be able to let a parent chart handle common events or transitions 
+> would complete the state chart.
+> 
+>> About the duplication ... I've actually been meaning to add a feature 
+>> for importing machine definitions. Though I wanted to wait until I 
+>> finished rewriting the parsers before I start adding to them. I'm 
+>> currently migrating to Ragel/Kelbt. In the meantime duplication is all 
+>> there is ... which I'm aware is quite painful to many coders.
+> 
+> Oooh, kelbt looks interesting.  Downloaded it and will play with it.  My 
+> favorite parser generator is Lemon, mostly because it has insane 
+> debugging capabilities.  Please mimick Lemon this way :-)
+> 
+> One thing though, and more of a style choice, but I *hate* this syntax:
+> 
+> define conditionals
+> ...
+> end define
+> 
+> As you mentioned, I hate repetition, so making me type "define" twice is 
+> really really annoying since your parser has got to be able to know that 
+> "end" is enough.  Especially since it looks like you can't do nesting.  
+> Even if you can, the end keyword should be enough to close off the 
+> statement.
+> 
+> Anyway, i'll play with kelbt a bit.  If you're looking for a realworld 
+> use on it, I know folks looking for powerful scaner/parser combos for 
+> several open source projects.  I'll get them to try it out too.
+> 
+
+
+From zeds... at zedshaw.com  Sun Dec 24 19:36:20 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Sun, 24 Dec 2006 11:36:20 -0800
+Subject: [RFC] A Complete Description of Using Ragel State Charts
+Message-ID: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+
+Hey Everyone,
+
+I had such a hard time explaining how cool the Ragel state chart stuff is that I finally broke down and wrote some very detailed instructions and discussions about them:
+
+http://www.zedshaw.com/tips/ragel_state_charts.html
+
+Please take a look and give me any comments you have.  I'm using this style of state machine more and more in my code so I'd like to get a good grip on explaining it to folks.
+
+Have a good Christmas (if you celebrate it).
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From thurs... at cs.queensu.ca  Tue Dec 26 16:55:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 26 Dec 2006 11:55:32 -0500 (EST)
+Subject: [ragel-users] [RFC] A Complete Description of Using Ragel 
+     State Charts
+In-Reply-To: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+References: <20061224113620.f8a29c9e.zedshaw@zedshaw.com>
+Message-ID: <1112.66.102.72.165.1167152132.squirrel@mambo.cs.queensu.ca>
+
+Hi Zed,
+
+Nice work, an excellent article! Not much has been written about state
+charts in Ragel and it fills the gap nicely. I have a couple comments.
+
+In section "Actions in Ragel" the details are a bit off.
+
+"@!error" access nonfinal states and embeds an error handler
+"$!error" access all states
+
+Though in your example they have the same effect.
+
+"@" on it's own accesses transitions which move into a final state.
+
+In section "Generating the Code"
+
+The only code style supported with Java right now is the plain table based
+(-T0). The lack of goto statements in Java makes porting to Java more
+work.
+
+Cheers,
+ Adrian
+
+
+>
+> Hey Everyone,
+>
+> I had such a hard time explaining how cool the Ragel state chart stuff is
+> that I finally broke down and wrote some very detailed instructions and
+> discussions about them:
+>
+> http://www.zedshaw.com/tips/ragel_state_charts.html
+>
+> Please take a look and give me any comments you have.  I'm using this
+> style of state machine more and more in my code so I'd like to get a good
+> grip on explaining it to folks.
+>
+> Have a good Christmas (if you celebrate it).
+>
+> --
+> Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+> http://www.zedshaw.com/
+> http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+> http://mongrel.rubyforge.org/
+> http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+>
+> >
+
+
+

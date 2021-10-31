@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Primitive lookahead question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Primitive%20lookahead%20question&In-Reply-To=%3CEF11A3BC-912E-4128-A538-E68E3F5686AD%40wincent.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Primitive lookahead question</H1>
+    <B>Wincent Colaiuta</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Primitive%20lookahead%20question&In-Reply-To=%3CEF11A3BC-912E-4128-A538-E68E3F5686AD%40wincent.com%3E"
+       TITLE="Primitive lookahead question">w... at wincent.com
+       </A><BR>
+    <I>Thu Sep 20 18:01:04 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2121">[ date ]</a>
+              <a href="thread.html#2121">[ thread ]</a>
+              <a href="subject.html#2121">[ subject ]</a>
+              <a href="author.html#2121">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I'm trying to parse the output of &quot;git diff&quot; and in particular lines  
+which look like this:
+
+   diff --git a/my file b/my file
+
+Where &quot;a/my file&quot; is the &quot;from file&quot; and &quot;b/my file&quot; is the &quot;to  
+file&quot;. This is slightly tricky because as you can see there are no  
+delimiters between the two paths other than a space, but spaces are  
+also allowed inside the paths (and Git only uses quotation marks here  
+when the filenames contain embedded tabs, newlines, double-quotes or  
+backslash charcters).
+
+This means that the only sign that the &quot;from file&quot; has ended and the  
+&quot;to file&quot; has begun is when you hit &quot; b/&quot;, but by the time you see  
+that you're already inside the &quot;to file&quot; part. So I made rules to  
+capture the &quot;from file&quot; and the &quot;to file&quot;, but my initial attempt at  
+a &quot;from file&quot; rule was broken:
+
+   from_file = &quot;a/&quot; (any+ -- &quot; b/&quot;) ;
+
+The resulting state machine (quite correctly) takes input like:
+
+   a/hello b/world
+
+And identifies the &quot;from file&quot; as:
+
+   a/hello b
+
+Which is not what we want. One tactic is mash the &quot;from_file&quot; and  
+&quot;to_file&quot; rules into a single rule:
+
+   from_to_files = &quot;a/&quot; (any - linefeed)+ &quot; b/&quot; (any - linefeed)+ ;
+
+But that produces a fairly ugly DFA (especially when you add in rules  
+for parsing quotes filenames with embedded escape sequences). So I  
+tried to implement a primitive form of manual lookahead as follows:
+
+   from_file = &quot;a/&quot; (any - linefeed)+ %store &quot; b/&quot; @jumpback;
+
+Where &quot;store&quot; is an action which records the recognized file and  
+&quot;jumpback&quot; is just:
+
+   action jumpback { p -= 3; }
+
+The idea being that I have to &quot;lookahead&quot; and see the &quot; b/&quot; to know  
+that the &quot;from file&quot; has been scanned, but then bump the current  
+character pointer back by three so that the machine can resume  
+scanning and looking for the &quot;to file&quot;.
+
+The generated DFA for the rule looks correct to me and isn't too ugly  
+(7 states, about 14 transitions). Is my approach ok, or is there a  
+better way?
+
+Apart from that the format I am trying to parse is totally regular,  
+unambiguous, and can be parsed without backtracking, which is nice  
+for a change!
+
+Cheers,
+Wincent
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2121">[ date ]</a>
+              <a href="thread.html#2121">[ thread ]</a>
+              <a href="subject.html#2121">[ subject ]</a>
+              <a href="author.html#2121">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

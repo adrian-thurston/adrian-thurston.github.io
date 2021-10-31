@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Newbie question: Scanners?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Newbie%20question%3A%20Scanners%3F&In-Reply-To=%3C4648E029.7000309%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000239.html">
+   <LINK REL="Next"  HREF="000243.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Newbie question: Scanners?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Newbie%20question%3A%20Scanners%3F&In-Reply-To=%3C4648E029.7000309%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Newbie question: Scanners?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon May 14 22:18:17 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000239.html">Newbie question: Scanners?
+</A></li>
+        <LI>Next message: <A HREF="000243.html">Scanner question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Andrew,
+
+You could use a scanner for this but it isn't necessary. You could
+handle it with pure state machines if you like.
+
+Make a machine definition for IP addresses and a definition for delays
+and as long as you embed the actions which indicate IP/delay at some
+point at or past the second dot/space you can union them together
+because they diverge at the second dot/space.
+
+delay = digit+ '.' digit+ ' '* 'ms' @{print 'delay';};
+IP = digit+ '.' digit+ '.' digit+ '.' digit+ %{print 'IP';};
+
+main := 'something' ( delay | IP ) 'something else';
+
+-Adrian
+
+AndrewO wrote:
+&gt;<i> Hi Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for the response.   I think I understand the part about
+</I>&gt;<i> backtracking, but I guess I'm still wondering about the first part.
+</I>&gt;<i> It might help if I describe my situation a little more: I'm trying to
+</I>&gt;<i> write something to parse the output from the traceroute utility more
+</I>&gt;<i> quickly than a standard regex based solution written in Perl or Ruby.
+</I>&gt;<i> The thing that's tripped me up in the past is that there's some
+</I>&gt;<i> possible ambiguity which I think would have to be solved with
+</I>&gt;<i> backtracking.  For example, you can have lines like the following:
+</I>&gt;<i> 
+</I>&gt;<i> 6 sl-bb24-pen-15-0.sprintlink.net (144.232.16.81)  113.927 ms  110.118
+</I>&gt;<i> ms  109.133 ms
+</I>&gt;<i> 
+</I>&gt;<i> 5 195.3.70.65 (195.3.70.65)  17.557 ms  10.957 ms  11.692 ms
+</I>&gt;<i> 
+</I>&gt;<i> 7  61.19.60.22 (61.19.60.22)  2.708 ms 202.129.63.70 (202.129.63.70)
+</I>&gt;<i> 2.751 ms *
+</I>&gt;<i> 
+</I>&gt;<i> Hostnames are easy to extract.  Where is gets complicated is on the
+</I>&gt;<i> last line.  It can't be known that 202.129.63.70 is an IP address and
+</I>&gt;<i> not a delay until the second period.
+</I>&gt;<i> 
+</I>&gt;<i> So does this situation fit into criteria of being able to be &quot;broken
+</I>&gt;<i> down into a list of items taken from a pool of possibilities&quot;?
+</I>&gt;<i> 
+</I>&gt;<i> Sorry if this is a little remedial and thanks for the help.
+</I>&gt;<i> 
+</I>&gt;<i> -Andrew
+</I>&gt;<i> 
+</I>&gt;<i> On May 11, 3:49 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Hi Andrew,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Scanners are suitable for processing streams of tokens. Generally this
+</I>&gt;&gt;<i> is any input that can be broken down into a list of items taken from a
+</I>&gt;&gt;<i> pool of possibilities.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> You can also use a scanner for its backtracking features. They are
+</I>&gt;&gt;<i> useful in cases where you want to attempt one pattern and should that
+</I>&gt;&gt;<i> fail you would like to match some other pattern against a shorter string.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Regards,
+</I>&gt;&gt;<i>  Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> AndrewO wrote:
+</I>&gt;&gt;&gt;<i> Hi,
+</I>&gt;&gt;&gt;<i> I'm pretty new to FSMs, so this is probably an obvious question: when
+</I>&gt;&gt;&gt;<i> would you use a scanner over a standard machine?  Is it just for being
+</I>&gt;&gt;&gt;<i> able to backtrack if you're going to have ambiguity?  Or is it deeper
+</I>&gt;&gt;&gt;<i> than that?
+</I>&gt;&gt;&gt;<i> Sorry if this has been covered elsewere.
+</I>&gt;&gt;&gt;<i> Thanks,
+</I>&gt;&gt;&gt;<i> Andrew O'Brien
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  signature.asc
+</I>&gt;&gt;<i> 1KDownload
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070514/22e43e06/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070514/22e43e06/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000239.html">Newbie question: Scanners?
+</A></li>
+	<LI>Next message: <A HREF="000243.html">Scanner question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Maintaining char &amp; line counts in a scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Maintaining%20char%20%26%20line%20counts%20in%20a%20scanner&In-Reply-To=%3C4BD1E770.1080802%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001112.html">
+   <LINK REL="Next"  HREF="001114.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Maintaining char &amp; line counts in a scanner</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Maintaining%20char%20%26%20line%20counts%20in%20a%20scanner&In-Reply-To=%3C4BD1E770.1080802%40esentire.com%3E"
+       TITLE="[ragel-users] Maintaining char &amp; line counts in a scanner">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Fri Apr 23 18:31:12 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001112.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+        <LI>Next message: <A HREF="001114.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1113">[ date ]</a>
+              <a href="thread.html#1113">[ thread ]</a>
+              <a href="subject.html#1113">[ subject ]</a>
+              <a href="author.html#1113">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Joe,
+
+There are a few approaches to this problem. The simplest approach is to 
+simply count newlines in the matched text in every match action. The 
+downside to this is that you are passing over everything twice.
+
+If a second pass over each token is something you'd like to avoid, then 
+you can go down the sub-scanner road. Basically, any pattern that can 
+contain a newline, such as multi-line comments, or strings, can be 
+implemented with a sub-scanner. In the main scanner you write a pattern 
+for whatever sequence of characters takes you into comments, for 
+example, then jump into a separate scanner for comments. You end up with 
+broken down comments though, as opposed to a whole match of a comment.
+
+A third approach is to write patterns that count newlines as they go. 
+This is my favourite approach. The only worry is backtracking. If your 
+scanner patterns backtrack over newlines, then you've got double 
+counting happening. With a well-designed scanner, this isn't normally a 
+problem though. Try something like this:
+
+counter = ( any | '\n' @inc )*;
+comment = ( '/*' any* :&gt;&gt; '*/' ) &amp; counter;
+
+Or embed the counting deep:
+
+comment = ( '/*' ( any | '\n' @inc )* :&gt;&gt; '*/' ) &amp; counter;
+
+-Adrian
+
+&gt;<i> Hi All,
+</I>&gt;<i> 
+</I>&gt;<i> I'm using ragel as a scanner to tokenise input for parsing of a database query language. I'd like to maintain a line number and character offset in the struct that represents a matched token but I'm having a little difficulty.
+</I>&gt;<i> 
+</I>
+&gt;<i> 
+</I>&gt;<i> My idea would be to have two expressions - one that matches a newline and one that matches any other character. Clearly there would be an associated action with these expressions to maintain variables for the line and char count. Currently I have various expressions, some of which can potentially match multiple newlines (think multi-line comments), and some of which consume dead input (whitespace). I have played around keeping a tally of the counts on each successful match of a token (outside of the machine exex), but as in some cases I am discarding input completely within the state machine and not creating a token, it becomes difficult to track.... ideally, I'd like to keep it all within the machine, but can't see the best way to proceed.
+</I>&gt;<i> 
+</I>&gt;<i> Any help or pointers would be much appreciated.
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> -Joe
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> 
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001112.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+	<LI>Next message: <A HREF="001114.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1113">[ date ]</a>
+              <a href="thread.html#1113">[ thread ]</a>
+              <a href="subject.html#1113">[ subject ]</a>
+              <a href="author.html#1113">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

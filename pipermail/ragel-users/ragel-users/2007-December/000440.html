@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH]: improvements to rlgen-java
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%3A%20improvements%20to%20rlgen-java&In-Reply-To=%3C4772CB3C.9050304%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000439.html">
+   <LINK REL="Next"  HREF="000447.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH]: improvements to rlgen-java</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%3A%20improvements%20to%20rlgen-java&In-Reply-To=%3C4772CB3C.9050304%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] [PATCH]: improvements to rlgen-java">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Dec 26 21:44:28 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000439.html">[PATCH]: improvements to rlgen-java
+</A></li>
+        <LI>Next message: <A HREF="000447.html">[PATCH] repost: improvements to rlgen-java
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#440">[ date ]</a>
+              <a href="thread.html#440">[ thread ]</a>
+              <a href="subject.html#440">[ subject ]</a>
+              <a href="author.html#440">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi David, could you resend as an attachment? Some lines wrapped. I tried
+to fix them but the whitespace must have gone off. The patch still fails.
+
+Thanks,
+ Adrian
+
+David Waite wrote:
+&gt;<i> The following patch changes the Java generation a bit:
+</I>&gt;<i> 
+</I>&gt;<i> - Array row/max are changed slightly to 12/8184 based on 80 column
+</I>&gt;<i> display. This was just my own preference (some might prefer 10
+</I>&gt;<i> columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+</I>&gt;<i> it if desired.
+</I>&gt;<i> 
+</I>&gt;<i> - Arrays are generated with an array constructor rather than a large
+</I>&gt;<i> block of statement constructors. This reduced my packaged JAR size by
+</I>&gt;<i> 14k for a relatively simple JSON vocabulary with 68 states.
+</I>&gt;<i> - Arrays are generated with whitespace padding in code for
+</I>&gt;<i> readability.
+</I>&gt;<i> - Array overflow (over the SAIIC limit) is done by creating multiple
+</I>&gt;<i> functions with numbered prefixes, then generating a combine_&lt;name&gt;
+</I>&gt;<i> function which builds a new array using new and arraycopy over all the
+</I>&gt;<i> previous init_&lt;name&gt;_&lt;number&gt; functions.
+</I>&gt;<i> 
+</I>&gt;<i> -David Waite
+</I>&gt;<i> 
+</I>&gt;<i> Index: rlgen-java/javacodegen.cpp
+</I>&gt;<i> ===================================================================
+</I>&gt;<i> --- rlgen-java/javacodegen.cpp	(revision 346)
+</I>&gt;<i> +++ rlgen-java/javacodegen.cpp	(working copy)
+</I>&gt;<i> @@ -28,11 +28,11 @@
+</I>&gt;<i>  #include &lt;sstream&gt;
+</I>&gt;<i> 
+</I>&gt;<i>  /* Integer array line length. */
+</I>&gt;<i> -#define IALL 8
+</I>&gt;<i> +#define IALL 12
+</I>&gt;<i> 
+</I>&gt;<i>  /* Static array initialization item count
+</I>&gt;<i>   * (should be multiple of IALL). */
+</I>&gt;<i> -#define SAIIC 8192
+</I>&gt;<i> +#define SAIIC 8184
+</I>&gt;<i> 
+</I>&gt;<i>  #define _resume    1
+</I>&gt;<i>  #define _again     2
+</I>&gt;<i> @@ -40,11 +40,11 @@
+</I>&gt;<i>  #define _test_eof  4
+</I>&gt;<i>  #define _out       5
+</I>&gt;<i> 
+</I>&gt;<i> -using std::ostream;
+</I>&gt;<i> +using std::setw;
+</I>&gt;<i> +using std::ios;
+</I>&gt;<i>  using std::ostringstream;
+</I>&gt;<i>  using std::string;
+</I>&gt;<i>  using std::cerr;
+</I>&gt;<i> -using std::endl;
+</I>&gt;<i> 
+</I>&gt;<i>  void lineDirective( ostream &amp;out, char *fileName, int line )
+</I>&gt;<i>  {
+</I>&gt;<i> @@ -1125,54 +1125,59 @@
+</I>&gt;<i>  	item_count = 0;
+</I>&gt;<i>  	div_count = 1;
+</I>&gt;<i> 
+</I>&gt;<i> -	out &lt;&lt;
+</I>&gt;<i> -		&quot;private static void init_&quot; &lt;&lt; name &lt;&lt; &quot;_0( &quot; &lt;&lt; type &lt;&lt; &quot;[] r )\n&quot;
+</I>&gt;<i> -		&quot;{\n\t&quot;;
+</I>&gt;<i> -
+</I>&gt;<i> +	out &lt;&lt;  &quot;private static &quot; &lt;&lt; type &lt;&lt; &quot;[] init_&quot; &lt;&lt; name &lt;&lt; &quot;_0( )\n&quot;
+</I>&gt;<i> +		&quot;{\n\t&quot;
+</I>&gt;<i> +		&quot;return new &quot; &lt;&lt; type &lt;&lt; &quot; [] {\n\t&quot;;
+</I>&gt;<i>  	return out;
+</I>&gt;<i>  }
+</I>&gt;<i> 
+</I>&gt;<i>  std::ostream &amp;JavaTabCodeGen::ARRAY_ITEM( string item, bool last )
+</I>&gt;<i>  {
+</I>&gt;<i> -	out &lt;&lt; &quot;r[&quot; &lt;&lt; item_count &lt;&lt; &quot;]=&quot; &lt;&lt; item &lt;&lt; &quot;; &quot;;
+</I>&gt;<i> +	item_count++;
+</I>&gt;<i> 
+</I>&gt;<i> -	item_count += 1;
+</I>&gt;<i> +	out &lt;&lt; setw(5) &lt;&lt; setiosflags(ios::right) &lt;&lt; item;
+</I>&gt;<i> 
+</I>&gt;<i>  	if ( !last ) {
+</I>&gt;<i>  		if ( item_count % SAIIC == 0 ) {
+</I>&gt;<i> -			out &lt;&lt; &quot;\n}\n\n&quot;;
+</I>&gt;<i> -			out &lt;&lt; &quot;private static void init_&quot; &lt;&lt; array_name &lt;&lt; &quot;_&quot; &lt;&lt;
+</I>&gt;<i> div_count &lt;&lt;
+</I>&gt;<i> -					&quot;( &quot; &lt;&lt; array_type &lt;&lt; &quot;[] r )\n{\n\t&quot;;
+</I>&gt;<i> -			div_count += 1;
+</I>&gt;<i> +			out &lt;&lt; &quot;\n\t};\n};\n&quot;
+</I>&gt;<i> +				&quot;private static &quot;&lt;&lt; array_type &lt;&lt; &quot;[] init_&quot; &lt;&lt;
+</I>&gt;<i> +				array_name &lt;&lt; &quot;_&quot; &lt;&lt; div_count &lt;&lt; &quot;( )\n&quot;
+</I>&gt;<i> +				&quot;{\n\t&quot;
+</I>&gt;<i> +				&quot;return new &quot; &lt;&lt; array_type &lt;&lt; &quot; [] {\n\t&quot;;
+</I>&gt;<i> +			div_count++;
+</I>&gt;<i> +		} else if (item_count % IALL == 0) {
+</I>&gt;<i> +			out &lt;&lt; &quot;,\n\t&quot;;
+</I>&gt;<i> +		} else {
+</I>&gt;<i> +			out &lt;&lt; &quot;,&quot;;
+</I>&gt;<i>  		}
+</I>&gt;<i> -		else if ( item_count % IALL == 0 )
+</I>&gt;<i> -			out &lt;&lt; &quot;\n\t&quot;;
+</I>&gt;<i>  	}
+</I>&gt;<i> -
+</I>&gt;<i>  	return out;
+</I>&gt;<i>  }
+</I>&gt;<i> 
+</I>&gt;<i>  std::ostream &amp;JavaTabCodeGen::CLOSE_ARRAY()
+</I>&gt;<i>  {
+</I>&gt;<i> -	out &lt;&lt; &quot;\n}\n\n&quot;;
+</I>&gt;<i> +	out &lt;&lt; &quot;\n\t};\n}\n\n&quot;;
+</I>&gt;<i> 
+</I>&gt;<i> -	out &lt;&lt;
+</I>&gt;<i> -		&quot;private static &quot; &lt;&lt; array_type &lt;&lt; &quot;[] create_&quot; &lt;&lt; array_name &lt;&lt;
+</I>&gt;<i> &quot;( )\n&quot;
+</I>&gt;<i> -		&quot;{\n&quot;
+</I>&gt;<i> -		&quot;	&quot; &lt;&lt; array_type &lt;&lt; &quot;[] r = new &quot; &lt;&lt; array_type &lt;&lt; &quot;[&quot; &lt;&lt;
+</I>&gt;<i> item_count &lt;&lt; &quot;];\n&quot;;
+</I>&gt;<i> -
+</I>&gt;<i> -	for ( int i = 0; i &lt; div_count; i++ )
+</I>&gt;<i> -		out &lt;&lt; &quot;	init_&quot; &lt;&lt; array_name &lt;&lt; &quot;_&quot; &lt;&lt; i &lt;&lt; &quot;( r );\n&quot;;
+</I>&gt;<i> -
+</I>&gt;<i> -	out &lt;&lt;
+</I>&gt;<i> -		&quot;	return r;\n&quot;
+</I>&gt;<i> -		&quot;}\n&quot;
+</I>&gt;<i> -		&quot;\n&quot;;
+</I>&gt;<i> -
+</I>&gt;<i> -	out &lt;&lt;
+</I>&gt;<i> -		&quot;private static final &quot; &lt;&lt; array_type &lt;&lt; &quot; &quot; &lt;&lt; array_name &lt;&lt;
+</I>&gt;<i> -				&quot;[] = create_&quot; &lt;&lt; array_name &lt;&lt; &quot;();\n\n&quot;;
+</I>&gt;<i> -
+</I>&gt;<i> +	if (item_count &lt; SAIIC) {
+</I>&gt;<i> +		out &lt;&lt; &quot;private static final &quot; &lt;&lt; array_type &lt;&lt; &quot; &quot; &lt;&lt; array_name
+</I>&gt;<i> &lt;&lt;
+</I>&gt;<i> +			&quot;[] = init_&quot; &lt;&lt; array_name &lt;&lt; &quot;_0();\n\n&quot;;
+</I>&gt;<i> +	} else {
+</I>&gt;<i> +		out &lt;&lt; &quot;private static final &quot; &lt;&lt; array_type &lt;&lt; &quot; [] combine_&quot; &lt;&lt;
+</I>&gt;<i> array_name
+</I>&gt;<i> +			&lt;&lt; &quot; () {\n\t&quot;
+</I>&gt;<i> +			&lt;&lt; array_type &lt;&lt; &quot; [] combined = new &quot; &lt;&lt; array_type &lt;&lt;
+</I>&gt;<i> +			&quot; [ &quot; &lt;&lt; item_count &lt;&lt; &quot; ];\n\t&quot;;
+</I>&gt;<i> +		int block = 0;
+</I>&gt;<i> +		int max_block = item_count / SAIIC;
+</I>&gt;<i> +		for (;block &lt; max_block; ++block) {
+</I>&gt;<i> +			out &lt;&lt; &quot;System.arraycopy ( init_&quot; &lt;&lt; array_name &lt;&lt; &quot;_&quot; &lt;&lt; block
+</I>&gt;<i> &lt;&lt;
+</I>&gt;<i> +				&quot; ( ), 0, combined, &quot; &lt;&lt; SAIIC * block &lt;&lt; &quot;, &quot; &lt;&lt; SAIIC &lt;&lt; &quot; );\n
+</I>&gt;<i> \t&quot;;
+</I>&gt;<i> +		}
+</I>&gt;<i> +		out &lt;&lt; &quot;System.arraycopy ( init_&quot; &lt;&lt; array_name &lt;&lt; &quot;_&quot; &lt;&lt; block &lt;&lt;
+</I>&gt;<i> +			&quot; ( ), 0, combined, &quot; &lt;&lt; SAIIC * block &lt;&lt; &quot;, &quot; &lt;&lt; (item_count %
+</I>&gt;<i> SAIIC) &lt;&lt; &quot; );\n\t&quot;;
+</I>&gt;<i> +		out &lt;&lt; &quot;return combined;\n}\n&quot;;
+</I>&gt;<i> +		out &lt;&lt; &quot;private static final &quot; &lt;&lt; array_type &lt;&lt; &quot; [] &quot; &lt;&lt;
+</I>&gt;<i> array_name &lt;&lt;
+</I>&gt;<i> +			&quot; = combine_&quot; &lt;&lt; array_name &lt;&lt; &quot;();&quot;;
+</I>&gt;<i> +	}
+</I>&gt;<i>  	return out;
+</I>&gt;<i>  }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20071226/3dc6156c/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20071226/3dc6156c/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000439.html">[PATCH]: improvements to rlgen-java
+</A></li>
+	<LI>Next message: <A HREF="000447.html">[PATCH] repost: improvements to rlgen-java
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#440">[ date ]</a>
+              <a href="thread.html#440">[ thread ]</a>
+              <a href="subject.html#440">[ subject ]</a>
+              <a href="author.html#440">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Keywords and actions in a minimal example
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Keywords%20and%20actions%20in%20a%20minimal%20example&In-Reply-To=%3C5290C1D8.6010709%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001628.html">
+   <LINK REL="Next"  HREF="001631.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Keywords and actions in a minimal example</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Keywords%20and%20actions%20in%20a%20minimal%20example&In-Reply-To=%3C5290C1D8.6010709%40complang.org%3E"
+       TITLE="[ragel-users] Keywords and actions in a minimal example">thurston at complang.org
+       </A><BR>
+    <I>Sat Nov 23 14:55:20 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001628.html">[ragel-users] Need help using ragel with ObjC
+</A></li>
+        <LI>Next message: <A HREF="001631.html">[ragel-users] When does Ragel mark a state as 'Final'?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1629">[ date ]</a>
+              <a href="thread.html#1629">[ thread ]</a>
+              <a href="subject.html#1629">[ subject ]</a>
+              <a href="author.html#1629">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Lane,
+
+The simplest way to do it is to exclude the keywords from the 
+identifiers using set difference. You can use (vars - keys).
+
+You can also prioritize actions appropriately (keywords referenced 
+before idents) and break out of the action processing loop when you 
+execute the higher priority action.
+
+You can also use a scanner.
+
+-Adrian
+
+On 13-06-25 02:20 PM, Lane Schwartz wrote:
+&gt;<i> I have a minimal example, where tokens are separated by spaces. In
+</I>&gt;<i> this example &quot;a&quot; is one allowed pattern, and alpha+ is the other.
+</I>&gt;<i>
+</I>&gt;<i> I would like to trigger one particular action (let's say it prints
+</I>&gt;<i> &quot;keyword&quot;) when the pattern &quot;a&quot; has been recognized, and a different
+</I>&gt;<i> action when the alpha+ pattern has been recognized (let's say it
+</I>&gt;<i> prints &quot;variable&quot;).
+</I>&gt;<i>
+</I>&gt;<i> I've worked through most of the samples in the tutorial, but I'm still
+</I>&gt;<i> stumped on this basic question:
+</I>&gt;<i>
+</I>&gt;<i> How can I trigger these actions such that the action that prints
+</I>&gt;<i> &quot;keyword&quot; is triggered for the input &quot;a&quot; but not for the input &quot;abc&quot;,
+</I>&gt;<i> and the action that prints &quot;variable&quot; is triggered for the input &quot;abc&quot;
+</I>&gt;<i> but not for the input &quot;a&quot;?
+</I>&gt;<i>
+</I>&gt;<i> Given the input &quot;a bc abc def a gh a&quot;, I would like to see the following output:
+</I>&gt;<i> keyword
+</I>&gt;<i> variable
+</I>&gt;<i> variable
+</I>&gt;<i> variable
+</I>&gt;<i> keyword
+</I>&gt;<i> variable
+</I>&gt;<i> keyword
+</I>&gt;<i>
+</I>&gt;<i> My exact example is below. This is my first time posting to this list.
+</I>&gt;<i> I appreciate any help or tips, and if this isn't the right place to
+</I>&gt;<i> post please let me know. FWIW, I've tried using key @keyword, key
+</I>&gt;<i> %keyword, key %*keyword, var @name, var %name, var %*name, and several
+</I>&gt;<i> other user action triggers from chapter 3 of the manual.
+</I>&gt;<i>
+</I>&gt;<i> #include&lt;iostream&gt;
+</I>&gt;<i> #include&lt;sstream&gt;
+</I>&gt;<i> #include&lt;string.h&gt;
+</I>&gt;<i> #include&lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> void parse() {
+</I>&gt;<i>
+</I>&gt;<i>       char *p   = &quot;a bc abc def a gh a&quot;;
+</I>&gt;<i>       char *pe  = p + strlen(p);
+</I>&gt;<i>       char *eof = p + strlen(p);
+</I>&gt;<i>       int cs;
+</I>&gt;<i>
+</I>&gt;<i>       %%{
+</I>&gt;<i>
+</I>&gt;<i> 	machine minimal;
+</I>&gt;<i> 	write data;
+</I>&gt;<i>
+</I>&gt;<i> 	action keyword {
+</I>&gt;<i> 	       std::cerr&lt;&lt;  &quot;keyword&quot;&lt;&lt;  std::endl;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	action name {
+</I>&gt;<i> 	       std::cerr&lt;&lt;  &quot;variable&quot;&lt;&lt;  std::endl;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	key = &quot;a&quot;;
+</I>&gt;<i>
+</I>&gt;<i> 	var = alpha+;
+</I>&gt;<i>
+</I>&gt;<i> 	whitespace = ' '*;
+</I>&gt;<i>
+</I>&gt;<i> 	main := (( key | var ) whitespace )* ;
+</I>&gt;<i>
+</I>&gt;<i> 	write init;
+</I>&gt;<i> 	write exec;
+</I>&gt;<i>
+</I>&gt;<i>       }%%
+</I>&gt;<i>
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> int main() {
+</I>&gt;<i>      parse();
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Lane
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001628.html">[ragel-users] Need help using ragel with ObjC
+</A></li>
+	<LI>Next message: <A HREF="001631.html">[ragel-users] When does Ragel mark a state as 'Final'?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1629">[ date ]</a>
+              <a href="thread.html#1629">[ thread ]</a>
+              <a href="subject.html#1629">[ subject ]</a>
+              <a href="author.html#1629">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

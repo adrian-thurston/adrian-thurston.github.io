@@ -1,0 +1,278 @@
+/*
+ * Ascii-only XML parser based on the XML 1.0 BNF from:
+ * http://www.jelks.nu/XML/xmlebnf.html
+ */
+
+#include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+
+using namespace std;
+
+#define BUFSIZE 2048
+
+struct XML
+{
+	int cur_char;
+	int start_word;
+	int start_comment;
+	int start_literal;
+
+	int cs, top, stack[1024];
+
+	int init( );
+	int execute( const char *data, int len );
+	int finish( );
+};
+
+%%{
+	machine AsciiXml;
+	alphtype unsigned char;
+	
+	action next_char {
+		cur_char += 1;
+	}
+
+	action start_word {
+		start_word = cur_char;
+	}
+	action end_word {
+		cout << "word: " << start_word << 
+				" " << cur_char-1 << endl;
+	}
+
+	Extender = 0x00B7;
+
+	Digit = (0x0030..0x0039);
+
+	BaseChar = (0x0041..0x005A) | (0x0061..0x007A) | (0x00C0..0x00D6) | (0x00D8..0x00F6) | (0x00F8..0x00FF);
+
+	S = (0x20 | 0x9 | 0xD | 0xA)+;
+
+	Char = 0x9 | 0xA | 0xD | (0x20..0xFF);
+
+	PubidChar = 0x20 | 0xD | 0xA | [a-zA-Z0-9] | [\-'()+,./:=?;!*#@$_%];
+
+	PubidLiteral = '"' PubidChar* '"' | "'" (PubidChar - "'")* "'";
+
+	Letter = BaseChar;
+
+	NameChar = Letter | Digit | '.' | '-' | '_' | ':' | Extender;
+
+	Name = (Letter | '_' | ':') (NameChar)*;
+
+	Comment = '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->';
+
+	CharData = [^<&]+ -- ']]>';
+
+	SystemLiteral = ('"' [^"]* '"') | ("'" [^']* "'");
+
+	Eq = S? '=' S?;
+
+	VersionNum = ([a-zA-Z0-9_.:] | '-')+;
+
+	VersionInfo = S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"');
+
+	ExternalID = 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral;
+
+	PublicID = 'PUBLIC' S PubidLiteral;
+
+	NotationDecl = '<!NOTATION' S Name S (ExternalID |  PublicID) S? '>';
+
+	EncName = [A-Za-z] ([A-Za-z0-9._] | '-')*;
+
+	EncodingDecl = S 'encoding' Eq ('"' EncName  '"' |  "'" EncName "'" );
+
+	TextDecl = '<?xml' VersionInfo? EncodingDecl S? '?>';
+
+	NDataDecl = S 'NDATA' S Name;
+
+	PEReference = '%' Name ';';
+
+	EntityRef = '&' Name ';';
+
+	CharRef = '&#' [0-9]+ ';' | '&0x' [0-9a-fA-F]+ ';';
+
+	Reference = EntityRef | CharRef;
+
+	EntityValue = '"' ([^%&"] | PEReference | Reference)* '"' |  "'" ([^%&'] | PEReference | Reference)* "'";
+
+	PEDef = EntityValue | ExternalID;
+
+	EntityDef = EntityValue | (ExternalID NDataDecl?);
+
+	PEDecl = '<!ENTITY' S '%' S Name S PEDef S? '>';
+
+	GEDecl = '<!ENTITY' S Name S EntityDef S? '>';
+
+	EntityDecl = GEDecl | PEDecl;
+
+	Mixed = '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')';
+
+	cp = (Name) ('?' | '*' | '+')?;
+	# TODO cp = (Name | choice | seq) ('?' | '*' | '+')?;
+
+	seq = '(' S? cp ( S? ',' S? cp )* S? ')';
+
+	choice = '(' S? cp ( S? '|' S? cp )* S? ')';
+
+	children = (choice | seq) ('?' | '*' | '+')?;
+
+	contentspec = 'EMPTY' | 'ANY' | Mixed | children;
+
+	elementdecl = '<!ELEMENT' S Name S contentspec S? '>';
+
+	AttValue = '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'";
+
+	Attribute = Name Eq AttValue;
+
+	Nmtoken = (NameChar)+;
+
+	Nmtokens = Nmtoken (S Nmtoken)*;
+
+	Enumeration = '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')';
+
+	NotationType = 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')';
+
+	EnumeratedType = NotationType | Enumeration;
+
+	TokenizedType = 'ID' | 'IDREF' | 'IDREFS' | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS';
+
+	StringType = 'CDATA';
+
+	AttType = StringType | TokenizedType | EnumeratedType;
+
+	DefaultDecl = '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue);
+
+	AttDef = S Name S AttType S DefaultDecl;
+
+	AttlistDecl = '<!ATTLIST' S Name AttDef* S? '>';
+
+	EmptyElemTag = '<' Name (S Attribute)* S? '/>';
+
+	ETag = '</' Name S? '>';
+
+	PITarget = Name -- "xml"i;
+
+	PI = '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>';
+
+	markupdecl = elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment;
+
+	doctypedecl = '<!DOCTYPE' S Name (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>';
+
+	# TODO extSubsetDecl = ( markupdecl | conditionalSect | PEReference | S )*;
+	extSubsetDecl = ( markupdecl | PEReference | S )*;
+
+	extSubset = TextDecl? extSubsetDecl;
+
+	Ignore = Char* - (Char* ('<![' | ']]>') Char*);
+
+	# TODO: ignoreSectContents = Ignore ('<![' ignoreSectContents ']]>' Ignore)*;
+	ignoreSectContents = Ignore ('<![' ']]>' Ignore)*;
+
+	ignoreSect = '<![' S? 'IGNORE' S? '[' ignoreSectContents* ']]>';
+
+	includeSect = '<![' S? 'INCLUDE' S? '[' extSubsetDecl ']]>';
+
+	conditionalSect = includeSect | ignoreSect;
+
+	STag = '<' Name (S Attribute)* S? '>';
+
+	CDEnd = ']]>';
+
+	CData = (Char* - (Char* ']]>' Char*));
+
+	CDStart = '<![CDATA[';
+
+	CDSect = CDStart CData CDEnd;
+
+	Subcode = ([a-z] | [A-Z])+;
+
+	UserCode = ('x' | 'X') '-' ([a-z] | [A-Z])+;
+
+	IanaCode = ('i' | 'I') '-' ([a-z] | [A-Z])+;
+
+	ISO639Code = ([a-z] | [A-Z]) ([a-z] | [A-Z]);
+
+	Langcode = ISO639Code |  IanaCode |  UserCode;
+
+	LanguageID = Langcode ('-' Subcode)*;
+
+	SDDecl = S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'));
+
+	extPE = TextDecl? extSubsetDecl;
+
+	Misc = Comment | PI |  S;
+
+	XMLDecl = '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>';
+
+	prolog = XMLDecl? Misc* (doctypedecl Misc*)?;
+
+	Names = Name (S Name)*;
+
+	extParsedEnt = TextDecl? @{fcall content;};
+
+	element = EmptyElemTag | STag @{fcall content;} ETag;
+
+	content := (element | CharData | Reference | CDSect | PI | Comment)* @{fret;};
+
+	main := prolog element Misc*;
+	#main := element;
+
+}%%
+
+	%% write data;
+
+	int XML::init( )
+	{
+		%% write init;
+		cur_char = 0;
+		return 1;
+	}
+
+	int XML::execute( const char *data, int len )
+	{
+		const char *p = data;
+		const char *pe = data + len;
+
+		%% write exec;
+
+		if ( cs == XML_error )
+			return -1;
+		if ( cs >= XML_first_final )
+			return 1;
+		return 0;
+	}
+
+	int XML::finish( )
+	{
+		%% write eof;
+		if ( cs == XML_error )
+			return -1;
+		if ( cs >= XML_first_final )
+			return 1;
+		return 0;
+	}
+
+	XML xml;
+	char buf[BUFSIZE];
+
+	int main()
+	{
+		xml.init();
+		while ( 1 ) {
+			int len = fread( buf, 1, BUFSIZE, stdin );
+			xml.execute( buf, len );
+			if ( len != BUFSIZE )
+				break;
+		}
+
+		int exit = xml.finish();
+
+		if ( exit < 0 )
+			cerr << "xml: error parsing input" << endl;
+		else if ( exit == 0 )
+			cerr << "xml: unfinished input" << endl;
+
+		return 0;
+	}

@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Actions executing too often.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C200912081247.34037.ibc%40aliax.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001090.html">
+   <LINK REL="Next"  HREF="001092.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Actions executing too often.</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C200912081247.34037.ibc%40aliax.net%3E"
+       TITLE="[ragel-users] Actions executing too often.">ibc at aliax.net
+       </A><BR>
+    <I>Tue Dec  8 11:47:33 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001090.html">[ragel-users] Actions executing too often.
+</A></li>
+        <LI>Next message: <A HREF="001092.html">[ragel-users] Actions executing too often.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+&gt;<i> Hi,
+</I>&gt;<i> 	I've just recently started learning Ragel. I have read the guide pdf
+</I>&gt;<i> and I can't seem to find a solution to this problem.
+</I>&gt;<i> Let's say I have this grammar:
+</I>&gt;<i> 	%%{
+</I>&gt;<i> 		op = '+'+;
+</I>&gt;<i> 		word = alpha+;
+</I>&gt;<i> 		spaces = ' '+;
+</I>&gt;<i> 		base = 	  spaces
+</I>&gt;<i> 
+</I>&gt;<i> 				| word &gt;start_word $in_word %end_word
+</I>&gt;<i> 				| op &gt;start_op $in_op %end_op
+</I>&gt;<i> 
+</I>&gt;<i> 				;
+</I>&gt;<i> 		main := base+;
+</I>&gt;<i> 	}%%
+</I>&gt;<i> 
+</I>&gt;<i> What I would like to see is this:
+</I>&gt;<i> 	<A HREF="http://imgur.com/POP8U.png">http://imgur.com/POP8U.png</A>
+</I>&gt;<i> 
+</I>&gt;<i> What Ragel compiles is this:
+</I>&gt;<i> 	<A HREF="http://imgur.com/x36VA.png">http://imgur.com/x36VA.png</A>
+</I>&gt;<i> 
+</I>&gt;<i> Can anyone help me get the behavior I'm looking?
+</I>
+Imagine you parse &quot;abc&quot;.
+Note that &quot;main := base+;&quot;.
+
+
+So when Ragel reads &quot;a&quot; it performs &quot;&gt;start_word&quot;.
+
+Then Ragel reads &quot;b&quot;. How can Ragel know if &quot;b&quot; is part of the first 'base' or 
+the first char of a new 'base'? Both options are valid, so Ragel runs action 
+for both (in parallel), so it runs:
+
+- &quot;&gt;start_word&quot; because &quot;b&quot; could be the start of a new 'base'.
+
+- &quot;$in_word&quot; because &quot;b&quot; could be part of the previous 'base' and it's a valid 
+existing point.
+
+- &quot;&gt;end_word&quot; because when considering &quot;b&quot; as a new 'base' it means that first 
+'base' (&quot;a&quot;) has totally ended.
+
+Of course, this will happen for each char. The main problem of your grammar is 
+that Ragel cannot determine (who can?) how to split &quot;base+;&quot; into different 
+&quot;words&quot; so it takes *all* the valid options *in parallel*.
+
+
+Hope this helps. Regards.
+
+
+
+
+-- 
+Iñaki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001090.html">[ragel-users] Actions executing too often.
+</A></li>
+	<LI>Next message: <A HREF="001092.html">[ragel-users] Actions executing too often.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm-users] Off by one error in pdarun.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20Off%20by%20one%20error%20in%20pdarun.c&In-Reply-To=%3C5301adb09ce25c8653c37142ca8d88e4%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000206.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm-users] Off by one error in pdarun.c</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm-users%5D%20Off%20by%20one%20error%20in%20pdarun.c&In-Reply-To=%3C5301adb09ce25c8653c37142ca8d88e4%40mail.colm.net%3E"
+       TITLE="[colm-users] Off by one error in pdarun.c">thurston at colm.net
+       </A><BR>
+    <I>Thu Feb 28 11:28:54 UTC 2019</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000206.html">[colm-users] Off by one error in pdarun.c
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Wictor,
+
+Strings in colm are not normally null terminated. Probably the error 
+you're seeing originates from when the string is printed. Can you share 
+some code that exhibits the problem?
+
+On 2019-02-27 14:58, Wictor Lund wrote:
+&gt;<i> Hi colm users!
+</I>&gt;<i> 
+</I>&gt;<i> I started getting some garbage after the parse error message so I
+</I>&gt;<i> investigated and found that the error string is cut off just before the 
+</I>&gt;<i> '\0'
+</I>&gt;<i> character.
+</I>&gt;<i> 
+</I>&gt;<i> I made a patch that addresses this and  uses snprintf instead of 
+</I>&gt;<i> sprintf.
+</I>&gt;<i> 
+</I>&gt;<i> --
+</I>&gt;<i> Wictor Lund
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/src/pdarun.c b/src/pdarun.c
+</I>&gt;<i> index ab0de7eb..3914bc65 100644
+</I>&gt;<i> --- a/src/pdarun.c
+</I>&gt;<i> +++ b/src/pdarun.c
+</I>&gt;<i> @@ -436,9 +436,15 @@ static void report_parse_error( program_t *prg,
+</I>&gt;<i> tree_t **sp, struct pda_run *pda
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i>                 if ( name == 0 )
+</I>&gt;<i>                         name = &quot;&lt;input&gt;&quot;;
+</I>&gt;<i> -               char *formatted = malloc( strlen( name ) + 128 );
+</I>&gt;<i> -               sprintf( formatted, &quot;%s:%ld:%ld: parse error&quot;, name,
+</I>&gt;<i> line, column );
+</I>&gt;<i> -               error_head = string_alloc_full( prg, formatted,
+</I>&gt;<i> strlen(formatted) );
+</I>&gt;<i> +               size_t formatted_s = strlen( name ) + 128;
+</I>&gt;<i> +               char *formatted = malloc( formatted_s );
+</I>&gt;<i> +               size_t fmt_s = snprintf( formatted, formatted_s,
+</I>&gt;<i> +                                        &quot;%s:%ld:%ld: parse error&quot;,
+</I>&gt;<i> +                                        name, line, column );
+</I>&gt;<i> +               if ( fmt_s &gt;= formatted_s ) {
+</I>&gt;<i> +                       fmt_s = formatted_s - 1;
+</I>&gt;<i> +               }
+</I>&gt;<i> +               error_head = string_alloc_full( prg, formatted, fmt_s + 
+</I>&gt;<i> 1 );
+</I>&gt;<i>                 free( formatted );
+</I>&gt;<i> 
+</I>&gt;<i>                 error_head-&gt;location = location_allocate( prg );
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> colm-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">http://www.colm.net/cgi-bin/mailman/listinfo/colm-users</A>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000206.html">[colm-users] Off by one error in pdarun.c
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

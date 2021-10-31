@@ -1,0 +1,690 @@
+From felix.schwarz at oss.schwarz.eu  Sat Aug 19 21:30:55 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Sat, 19 Aug 2017 23:30:55 +0200
+Subject: [ragel] "include" does not check same directory in ragel 7? (trying
+ to build rspamd)
+Message-ID: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+
+Hey,
+
+I try to get rspamd (https://github.com/vstakhov/rspamd/) to build while using
+ragel 7 [1]. As documented in various bug reports this is not possible right
+now and I'd like to find out why this is (knowning next to nothing about ragel).
+
+This is the error I'm getting (CentOS 7) with the latest colm/ragel/rspamd git
+versions:
+
+[ 43%] [RAGEL][ragel_smtp_addr] Compiling state machine with Ragel 7.0.0.10
+error: could not open smtp_address.rl
+/bin/sh: line 1:  9721 Segmentation fault      /usr/local/bin/ragel -T1
+-o/foo/rspamd/src/smtp_addr_parser.rl.c /foo/rspamd/src/ragel/smtp_addr_parser.rl
+make[2]: *** [src/smtp_addr_parser.rl.c] Error 139
+
+
+"smtp_addr_parser.rl" contains these lines (and some more):
+%%{
+
+  machine smtp_date_parser;
+  include smtp_date "smtp_date.rl";
+
+  main := date_time;
+}%%
+
+"smtp_date.rl" is located in the same directory as "smtp_date.rl". The script
+can be compiled with ragel 6 without any problems.
+
+If I add the full patch in the include statement everything works as expected.
+Also when I manually "cd" into the directory everything is fine.
+
+The "ragel guide" (PDF) for 6.10 says:
+"Ragel searches for included files from the location of the current file.
+Additional directories can be added to the search path using the -I option."
+
+
+I seems that this behavior did change in 0.7 but I'm not sure if that is a bug
+or a conscious decision. Also adding "-I /foo/rspamd/src/ragel/" to the call
+did not help.
+
+thank you very much
+Felix
+
+
+[1] Background:
+Somehow the Fedora maintainer for ragel decided to use development releases of
+colm/ragel in Fedora (and even EPEL/CentOS). This unfortunate decision was
+maybe facilitated by the odd/even version numbering schema of ragel.
+
+
+From felix.schwarz at oss.schwarz.eu  Sun Aug 20 20:40:46 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Sun, 20 Aug 2017 22:40:46 +0200
+Subject: [ragel] "including" the same file multiple times (ragel 6 vs 7 /
+ building rspamd)
+Message-ID: <6a8c23a4-f9e7-2947-f315-aee9f6fd61e4@oss.schwarz.eu>
+
+
+still trying to compile rspamd with ragel 7.x. One important difference seems
+to be that rspamd tries to include the same .rl file multiple times.
+
+E.g. smtp_received.rl:
+  include smtp_whitespace "smtp_whitespace.rl";
+  ...
+  include smtp_date "smtp_date.rl";
+
+now "smtp_date.rl" contains:
+%%{
+  machine smtp_date;
+
+  include smtp_whitespace "smtp_whitespace.rl";
+
+  # SMTP date spec
+  # Obtained from: http://tools.ietf.org/html/rfc5322#section_3.3
+
+
+So there is a "duplicate" declaration of "smtp_whitespace" which leads to
+errors in the compilation process:
+/foo/rspamd/src/ragel/smtp_whitespace.rl:4:3: fsm "WSP" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:5:3: fsm "CRLF" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:6:3: fsm "DQUOTE" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:9:3: fsm "atext" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:13:3: fsm "dtext" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:15:3: fsm "ctext" previously defined
+...
+
+It seems that ragel 6 just includes the file once. Any idea why this changed
+and what should upstream projects do about this?
+
+thank you very much,
+Felix
+
+
+From ibragimovrinat at mail.ru  Mon Aug 21 21:24:31 2017
+From: ibragimovrinat at mail.ru (=?UTF-8?B?UmluYXQgSWJyYWdpbW92?=)
+Date: Tue, 22 Aug 2017 00:24:31 +0300
+Subject: [ragel] =?utf-8?q?=5BPATCH=5D_document_fall-through_cases_in_a_ge?=
+ =?utf-8?q?nerated_code?=
+Message-ID: <1503350671.890495928@f281.i.mail.ru>
+
+Hi.
+
+GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+code in "-G2" mode. It was intended to catch errors, in hope that
+developer would document places where code is intended to fall through
+case statement. But currently there are no such comments in a generated
+code.
+
+Patch is against ragel-6 branch.
+
+---
+Rinat
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-document-fall-through-cases-in-a-generated-code.patch
+Type: application/x-patch
+Size: 1194 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170822/18e2b6e7/attachment.bin>
+
+From thurston at colm.net  Wed Aug 23 18:38:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 23 Aug 2017 14:38:51 -0400
+Subject: [ragel] [PATCH] document fall-through cases in a generated code
+In-Reply-To: <1503350671.890495928@f281.i.mail.ru>
+References: <1503350671.890495928@f281.i.mail.ru>
+Message-ID: <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+
+Hi Rinat, does gcc suppress the error if a comment is seen, or is this 
+only for a developer who looks at the warning and then code?
+
+On 2017-08-21 17:24, Rinat Ibragimov wrote:
+> Hi.
+> 
+> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+> code in "-G2" mode. It was intended to catch errors, in hope that
+> developer would document places where code is intended to fall through
+> case statement. But currently there are no such comments in a generated
+> code.
+> 
+> Patch is against ragel-6 branch.
+> 
+> ---
+> Rinat
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From ibragimovrinat at mail.ru  Wed Aug 23 21:56:58 2017
+From: ibragimovrinat at mail.ru (=?UTF-8?B?UmluYXQgSWJyYWdpbW92?=)
+Date: Thu, 24 Aug 2017 00:56:58 +0300
+Subject: [ragel]
+ =?utf-8?q?=5BPATCH=5D_document_fall-through_cases_in_a_ge?=
+ =?utf-8?q?nerated_code?=
+In-Reply-To: <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+References: <1503350671.890495928@f281.i.mail.ru>
+ <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+Message-ID: <1503525418.455542919@f417.i.mail.ru>
+
+GCC looks into the comment and suppresses the warning based on
+its text.  There are actually a number of regular expressions
+that are matched against the comment. There is a more detailed
+description at
+https://developers.redhat.com/blog/2017/03/10/wimplicit-fallthrough-in-gcc-7/
+
+Sorry, I don't get the part about developer vs. warning.
+
+
+>Среда, 23 августа 2017, 21:38 +03:00 от Adrian Thurston <thurston at colm.net>:
+>
+>Hi Rinat, does gcc suppress the error if a comment is seen, or is this 
+>only for a developer who looks at the warning and then code?
+>
+>On 2017-08-21 17:24, Rinat Ibragimov wrote:
+>> Hi.
+>> 
+>> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+>> code in "-G2" mode. It was intended to catch errors, in hope that
+>> developer would document places where code is intended to fall through
+>> case statement. But currently there are no such comments in a generated
+>> code.
+>> 
+>> Patch is against ragel-6 branch.
+>> 
+>> ---
+>> Rinat
+>> 
+>> _______________________________________________
+>> ragel mailing list
+>>  ragel at colm.net
+>>  http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+---
+Rinat
+
+From thurston at colm.net  Sun Aug 27 20:35:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 27 Aug 2017 16:35:51 -0400
+Subject: [ragel]
+ =?utf-8?q?=22include=22_does_not_check_same_directory_in_?=
+ =?utf-8?q?ragel_7=3F_=28trying_to_build_rspamd=29?=
+In-Reply-To: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+References: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+Message-ID: <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+
+Hi Felix, I just checked in some changes which should allow rspamd to 
+compile with ragel 7. Also fixes the duplicate include. Let me know if 
+you have further problems.
+
+On 2017-08-19 17:30, Felix Schwarz wrote:
+> Hey,
+> 
+> I try to get rspamd (https://github.com/vstakhov/rspamd/) to build 
+> while using
+> ragel 7 [1]. As documented in various bug reports this is not possible 
+> right
+> now and I'd like to find out why this is (knowning next to nothing 
+> about ragel).
+> 
+> This is the error I'm getting (CentOS 7) with the latest 
+> colm/ragel/rspamd git
+> versions:
+> 
+> [ 43%] [RAGEL][ragel_smtp_addr] Compiling state machine with Ragel 
+> 7.0.0.10
+> error: could not open smtp_address.rl
+> /bin/sh: line 1:  9721 Segmentation fault      /usr/local/bin/ragel -T1
+> -o/foo/rspamd/src/smtp_addr_parser.rl.c
+> /foo/rspamd/src/ragel/smtp_addr_parser.rl
+> make[2]: *** [src/smtp_addr_parser.rl.c] Error 139
+> 
+> 
+> "smtp_addr_parser.rl" contains these lines (and some more):
+> %%{
+> 
+>   machine smtp_date_parser;
+>   include smtp_date "smtp_date.rl";
+> 
+>   main := date_time;
+> }%%
+> 
+> "smtp_date.rl" is located in the same directory as "smtp_date.rl". The 
+> script
+> can be compiled with ragel 6 without any problems.
+> 
+> If I add the full patch in the include statement everything works as 
+> expected.
+> Also when I manually "cd" into the directory everything is fine.
+> 
+> The "ragel guide" (PDF) for 6.10 says:
+> "Ragel searches for included files from the location of the current 
+> file.
+> Additional directories can be added to the search path using the -I 
+> option."
+> 
+> 
+> I seems that this behavior did change in 0.7 but I'm not sure if that 
+> is a bug
+> or a conscious decision. Also adding "-I /foo/rspamd/src/ragel/" to the 
+> call
+> did not help.
+> 
+> thank you very much
+> Felix
+> 
+> 
+> [1] Background:
+> Somehow the Fedora maintainer for ragel decided to use development 
+> releases of
+> colm/ragel in Fedora (and even EPEL/CentOS). This unfortunate decision 
+> was
+> maybe facilitated by the odd/even version numbering schema of ragel.
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From thurston at colm.net  Sun Aug 27 20:39:15 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 27 Aug 2017 16:39:15 -0400
+Subject: [ragel] [PATCH] document fall-through cases in a generated code
+In-Reply-To: <1503350671.890495928@f281.i.mail.ru>
+References: <1503350671.890495928@f281.i.mail.ru>
+Message-ID: <502ae556d07eb0ac8a7b62d5e14c3488@mail.colm.net>
+
+Thanks, applied to ragel 6 branch.
+
+On 2017-08-21 17:24, Rinat Ibragimov wrote:
+> Hi.
+> 
+> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+> code in "-G2" mode. It was intended to catch errors, in hope that
+> developer would document places where code is intended to fall through
+> case statement. But currently there are no such comments in a generated
+> code.
+> 
+> Patch is against ragel-6 branch.
+> 
+> ---
+> Rinat
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From felix.schwarz at oss.schwarz.eu  Mon Aug 28 07:43:56 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Mon, 28 Aug 2017 09:43:56 +0200
+Subject: [ragel] "include" does not check same directory in ragel 7?
+ (trying to build rspamd)
+In-Reply-To: <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+References: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+ <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+Message-ID: <4c6989ca-2428-0363-aae0-fd7b16e2e042@oss.schwarz.eu>
+
+
+Am 27.08.2017 um 22:35 schrieb Adrian Thurston:
+> Hi Felix, I just checked in some changes which should allow rspamd to compile
+> with ragel 7. Also fixes the duplicate include. Let me know if you have
+> further problems.
+
+Great - thank you very much. I'll try your changes in the next days and will
+report if I find any errors.
+
+Felix
+
+
+From felix.schwarz at oss.schwarz.eu  Sat Aug 19 21:30:55 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Sat, 19 Aug 2017 23:30:55 +0200
+Subject: [ragel] "include" does not check same directory in ragel 7? (trying
+ to build rspamd)
+Message-ID: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+
+Hey,
+
+I try to get rspamd (https://github.com/vstakhov/rspamd/) to build while using
+ragel 7 [1]. As documented in various bug reports this is not possible right
+now and I'd like to find out why this is (knowning next to nothing about ragel).
+
+This is the error I'm getting (CentOS 7) with the latest colm/ragel/rspamd git
+versions:
+
+[ 43%] [RAGEL][ragel_smtp_addr] Compiling state machine with Ragel 7.0.0.10
+error: could not open smtp_address.rl
+/bin/sh: line 1:  9721 Segmentation fault      /usr/local/bin/ragel -T1
+-o/foo/rspamd/src/smtp_addr_parser.rl.c /foo/rspamd/src/ragel/smtp_addr_parser.rl
+make[2]: *** [src/smtp_addr_parser.rl.c] Error 139
+
+
+"smtp_addr_parser.rl" contains these lines (and some more):
+%%{
+
+  machine smtp_date_parser;
+  include smtp_date "smtp_date.rl";
+
+  main := date_time;
+}%%
+
+"smtp_date.rl" is located in the same directory as "smtp_date.rl". The script
+can be compiled with ragel 6 without any problems.
+
+If I add the full patch in the include statement everything works as expected.
+Also when I manually "cd" into the directory everything is fine.
+
+The "ragel guide" (PDF) for 6.10 says:
+"Ragel searches for included files from the location of the current file.
+Additional directories can be added to the search path using the -I option."
+
+
+I seems that this behavior did change in 0.7 but I'm not sure if that is a bug
+or a conscious decision. Also adding "-I /foo/rspamd/src/ragel/" to the call
+did not help.
+
+thank you very much
+Felix
+
+
+[1] Background:
+Somehow the Fedora maintainer for ragel decided to use development releases of
+colm/ragel in Fedora (and even EPEL/CentOS). This unfortunate decision was
+maybe facilitated by the odd/even version numbering schema of ragel.
+
+
+
+From felix.schwarz at oss.schwarz.eu  Sun Aug 20 20:40:46 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Sun, 20 Aug 2017 22:40:46 +0200
+Subject: [ragel] "including" the same file multiple times (ragel 6 vs 7 /
+ building rspamd)
+Message-ID: <6a8c23a4-f9e7-2947-f315-aee9f6fd61e4@oss.schwarz.eu>
+
+
+still trying to compile rspamd with ragel 7.x. One important difference seems
+to be that rspamd tries to include the same .rl file multiple times.
+
+E.g. smtp_received.rl:
+  include smtp_whitespace "smtp_whitespace.rl";
+  ...
+  include smtp_date "smtp_date.rl";
+
+now "smtp_date.rl" contains:
+%%{
+  machine smtp_date;
+
+  include smtp_whitespace "smtp_whitespace.rl";
+
+  # SMTP date spec
+  # Obtained from: http://tools.ietf.org/html/rfc5322#section_3.3
+
+
+So there is a "duplicate" declaration of "smtp_whitespace" which leads to
+errors in the compilation process:
+/foo/rspamd/src/ragel/smtp_whitespace.rl:4:3: fsm "WSP" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:5:3: fsm "CRLF" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:6:3: fsm "DQUOTE" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:9:3: fsm "atext" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:13:3: fsm "dtext" previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:15:3: fsm "ctext" previously defined
+...
+
+It seems that ragel 6 just includes the file once. Any idea why this changed
+and what should upstream projects do about this?
+
+thank you very much,
+Felix
+
+
+
+From ibragimovrinat at mail.ru  Mon Aug 21 21:24:31 2017
+From: ibragimovrinat at mail.ru (=?UTF-8?B?UmluYXQgSWJyYWdpbW92?=)
+Date: Tue, 22 Aug 2017 00:24:31 +0300
+Subject: [ragel] =?utf-8?q?=5BPATCH=5D_document_fall-through_cases_in_a_ge?=
+ =?utf-8?q?nerated_code?=
+Message-ID: <1503350671.890495928@f281.i.mail.ru>
+
+Hi.
+
+GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+code in "-G2" mode. It was intended to catch errors, in hope that
+developer would document places where code is intended to fall through
+case statement. But currently there are no such comments in a generated
+code.
+
+Patch is against ragel-6 branch.
+
+---
+Rinat
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-document-fall-through-cases-in-a-generated-code.patch
+Type: application/x-patch
+Size: 1194 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170822/18e2b6e7/attachment-0002.bin>
+
+From thurston at colm.net  Wed Aug 23 18:38:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 23 Aug 2017 14:38:51 -0400
+Subject: [ragel] [PATCH] document fall-through cases in a generated code
+In-Reply-To: <1503350671.890495928@f281.i.mail.ru>
+References: <1503350671.890495928@f281.i.mail.ru>
+Message-ID: <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+
+Hi Rinat, does gcc suppress the error if a comment is seen, or is this 
+only for a developer who looks at the warning and then code?
+
+On 2017-08-21 17:24, Rinat Ibragimov wrote:
+> Hi.
+> 
+> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+> code in "-G2" mode. It was intended to catch errors, in hope that
+> developer would document places where code is intended to fall through
+> case statement. But currently there are no such comments in a generated
+> code.
+> 
+> Patch is against ragel-6 branch.
+> 
+> ---
+> Rinat
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From ibragimovrinat at mail.ru  Wed Aug 23 21:56:58 2017
+From: ibragimovrinat at mail.ru (=?UTF-8?B?UmluYXQgSWJyYWdpbW92?=)
+Date: Thu, 24 Aug 2017 00:56:58 +0300
+Subject: [ragel]
+ =?utf-8?q?=5BPATCH=5D_document_fall-through_cases_in_a_ge?=
+ =?utf-8?q?nerated_code?=
+In-Reply-To: <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+References: <1503350671.890495928@f281.i.mail.ru>
+ <c55e6fddcb72e659d4da9794ad05c7fe@mail.colm.net>
+Message-ID: <1503525418.455542919@f417.i.mail.ru>
+
+GCC looks into the comment and suppresses the warning based on
+its text.  There are actually a number of regular expressions
+that are matched against the comment. There is a more detailed
+description at
+https://developers.redhat.com/blog/2017/03/10/wimplicit-fallthrough-in-gcc-7/
+
+Sorry, I don't get the part about developer vs. warning.
+
+
+>Среда, 23 августа 2017, 21:38 +03:00 от Adrian Thurston <thurston at colm.net>:
+>
+>Hi Rinat, does gcc suppress the error if a comment is seen, or is this 
+>only for a developer who looks at the warning and then code?
+>
+>On 2017-08-21 17:24, Rinat Ibragimov wrote:
+>> Hi.
+>> 
+>> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+>> code in "-G2" mode. It was intended to catch errors, in hope that
+>> developer would document places where code is intended to fall through
+>> case statement. But currently there are no such comments in a generated
+>> code.
+>> 
+>> Patch is against ragel-6 branch.
+>> 
+>> ---
+>> Rinat
+>> 
+>> _______________________________________________
+>> ragel mailing list
+>>  ragel at colm.net
+>>  http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+---
+Rinat
+
+From thurston at colm.net  Sun Aug 27 20:35:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 27 Aug 2017 16:35:51 -0400
+Subject: [ragel]
+ =?utf-8?q?=22include=22_does_not_check_same_directory_in_?=
+ =?utf-8?q?ragel_7=3F_=28trying_to_build_rspamd=29?=
+In-Reply-To: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+References: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+Message-ID: <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+
+Hi Felix, I just checked in some changes which should allow rspamd to 
+compile with ragel 7. Also fixes the duplicate include. Let me know if 
+you have further problems.
+
+On 2017-08-19 17:30, Felix Schwarz wrote:
+> Hey,
+> 
+> I try to get rspamd (https://github.com/vstakhov/rspamd/) to build 
+> while using
+> ragel 7 [1]. As documented in various bug reports this is not possible 
+> right
+> now and I'd like to find out why this is (knowning next to nothing 
+> about ragel).
+> 
+> This is the error I'm getting (CentOS 7) with the latest 
+> colm/ragel/rspamd git
+> versions:
+> 
+> [ 43%] [RAGEL][ragel_smtp_addr] Compiling state machine with Ragel 
+> 7.0.0.10
+> error: could not open smtp_address.rl
+> /bin/sh: line 1:  9721 Segmentation fault      /usr/local/bin/ragel -T1
+> -o/foo/rspamd/src/smtp_addr_parser.rl.c
+> /foo/rspamd/src/ragel/smtp_addr_parser.rl
+> make[2]: *** [src/smtp_addr_parser.rl.c] Error 139
+> 
+> 
+> "smtp_addr_parser.rl" contains these lines (and some more):
+> %%{
+> 
+>   machine smtp_date_parser;
+>   include smtp_date "smtp_date.rl";
+> 
+>   main := date_time;
+> }%%
+> 
+> "smtp_date.rl" is located in the same directory as "smtp_date.rl". The 
+> script
+> can be compiled with ragel 6 without any problems.
+> 
+> If I add the full patch in the include statement everything works as 
+> expected.
+> Also when I manually "cd" into the directory everything is fine.
+> 
+> The "ragel guide" (PDF) for 6.10 says:
+> "Ragel searches for included files from the location of the current 
+> file.
+> Additional directories can be added to the search path using the -I 
+> option."
+> 
+> 
+> I seems that this behavior did change in 0.7 but I'm not sure if that 
+> is a bug
+> or a conscious decision. Also adding "-I /foo/rspamd/src/ragel/" to the 
+> call
+> did not help.
+> 
+> thank you very much
+> Felix
+> 
+> 
+> [1] Background:
+> Somehow the Fedora maintainer for ragel decided to use development 
+> releases of
+> colm/ragel in Fedora (and even EPEL/CentOS). This unfortunate decision 
+> was
+> maybe facilitated by the odd/even version numbering schema of ragel.
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From thurston at colm.net  Sun Aug 27 20:39:15 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 27 Aug 2017 16:39:15 -0400
+Subject: [ragel] [PATCH] document fall-through cases in a generated code
+In-Reply-To: <1503350671.890495928@f281.i.mail.ru>
+References: <1503350671.890495928@f281.i.mail.ru>
+Message-ID: <502ae556d07eb0ac8a7b62d5e14c3488@mail.colm.net>
+
+Thanks, applied to ragel 6 branch.
+
+On 2017-08-21 17:24, Rinat Ibragimov wrote:
+> Hi.
+> 
+> GCC7's Wimplicit-fallthrough diagnostics triggers a lot on generated C
+> code in "-G2" mode. It was intended to catch errors, in hope that
+> developer would document places where code is intended to fall through
+> case statement. But currently there are no such comments in a generated
+> code.
+> 
+> Patch is against ragel-6 branch.
+> 
+> ---
+> Rinat
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From felix.schwarz at oss.schwarz.eu  Mon Aug 28 07:43:56 2017
+From: felix.schwarz at oss.schwarz.eu (Felix Schwarz)
+Date: Mon, 28 Aug 2017 09:43:56 +0200
+Subject: [ragel] "include" does not check same directory in ragel 7?
+ (trying to build rspamd)
+In-Reply-To: <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+References: <9826b410-f527-f314-0c0d-76a367f862a7@oss.schwarz.eu>
+ <86bc475d3e11c0b8b71618d5d17b0008@mail.colm.net>
+Message-ID: <4c6989ca-2428-0363-aae0-fd7b16e2e042@oss.schwarz.eu>
+
+
+Am 27.08.2017 um 22:35 schrieb Adrian Thurston:
+> Hi Felix, I just checked in some changes which should allow rspamd to compile
+> with ragel 7. Also fixes the duplicate include. Let me know if you have
+> further problems.
+
+Great - thank you very much. I'll try your changes in the next days and will
+report if I find any errors.
+
+Felix
+
+
+

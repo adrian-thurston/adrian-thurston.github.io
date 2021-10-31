@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] When does Ragel mark a state as 'Final'?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20When%20does%20Ragel%20mark%20a%20state%20as%20%27Final%27%3F&In-Reply-To=%3CCANGO4PadXh%2Bxh2aPRkE0kZ7gD0M7t9zyVXpG6%2BdSziV0MLkFmA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] When does Ragel mark a state as 'Final'?</H1>
+    <B>Solomon Gibbs</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20When%20does%20Ragel%20mark%20a%20state%20as%20%27Final%27%3F&In-Reply-To=%3CCANGO4PadXh%2Bxh2aPRkE0kZ7gD0M7t9zyVXpG6%2BdSziV0MLkFmA%40mail.gmail.com%3E"
+       TITLE="[ragel-users] When does Ragel mark a state as 'Final'?">solomon.gibbs.lists at gmail.com
+       </A><BR>
+    <I>Thu Jul 25 04:31:19 UTC 2013</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3353">[ date ]</a>
+              <a href="thread.html#3353">[ thread ]</a>
+              <a href="subject.html#3353">[ subject ]</a>
+              <a href="author.html#3353">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+I'm not sure I understand what Ragel considers a &quot;final&quot; state. IIRC
+the User's Guide says that states that are final before machine
+simplification remain final thereafter.
+
+   When exactly is a state final, and how does one recognize this?
+
+I'm using the state machine syntax to implement a string finder --
+find ASCII strings with length greater than n, and print them. This
+means implementing a maximum length matcher, as below.
+
+Despite the fact that the dot output shows no final states, the EOF
+transitions behave differently depending on which flavor of {$%@}eof
+is used. I do not understand why this should be. For example, in the
+&quot;has_string&quot; state below, using %eof instead of @eof causes both the
+&quot;commit_nonstring_eof&quot; and &quot;commit_string_eof&quot; actions to be called
+from one of the generated/synthetic states terminating the matching
+state.
+
+(State graphics for this machine are are available via
+<A HREF="http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof">http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof</A>)
+
+action commit_string {    }
+
+action commit_string_eof { }
+
+action commit_nonstring_eof { }
+
+action set_mark { }
+
+action reset {
+   /* Force the machine back into state 1. This happens after
+    * an incomplete match when some graphical characters are
+    * consumed, but not enough for use to keep the string. */
+   fgoto start;
+}
+
+# Matching classes union to 0x00 .. 0xFF
+graphic = (0x09 | 0x20 .. 0x7E);
+non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+
+collector = (
+
+   start: (
+      # Set the mark if we have a graphic character,
+      # otherwise go to non_graphic state and consume input
+      graphic @set_mark -&gt; has_glyph |
+      non_graphic -&gt; no_glyph
+   ) $eof(commit_nonstring_eof),
+
+   no_glyph: (
+         # Consume input until a graphic character is encountered
+         non_graphic -&gt; no_glyph |
+         graphic @set_mark -&gt; has_glyph
+   ) $eof(commit_nonstring_eof),
+
+   has_glyph: (
+          # We already matched one graphic character to get here
+          # from start or no_glyph. Try to match N-1 before allowing
+              # the string to be committed. If we don't get to N-1,
+              # drop back to the start state
+              graphic{3} $lerr(reset) -&gt; has_string
+   ) @eof(commit_nonstring_eof),
+
+   has_string: (
+               # Already consumed our quota of N graphic characters;
+               # consume input until we run out of graphic characters
+               # then reset the machine. All exiting edges should commit
+               # the string. We diferentiate between exiting on a non-graphic
+               # input that shouldn't be added to the string and exiting
+               # on a (graphic) EOF that should be added.
+               graphic* non_graphic -&gt; start
+   ) %from(commit_string) @eof(commit_string_eof)
+   #) %from(commit_string) %eof(commit_string_eof) // bad
+
+); #$debug;
+
+main := (collector)+;Hello,
+
+I'm not sure I understand what Ragel considers a &quot;final&quot; state. IIRC
+the User's Guide says that states that are final before machine
+simplification remain final thereafter.
+
+   When exactly is a state final, and how does one recognize this?
+
+I'm using the state machine syntax to implement a string finder --
+find ASCII strings with length greater than n, and print them. This
+means implementing a maximum length matcher, as below.
+
+Despite the fact that the dot output shows no final states, the EOF
+transitions behave differently depending on which flavor of {$%@}eof
+is used. I do not understand why this should be. For example, in the
+&quot;has_string&quot; state below, using %eof instead of @eof causes both the
+&quot;commit_nonstring_eof&quot; and &quot;commit_string_eof&quot; actions to be called
+from one of the generated/synthetic states terminating the matching
+state.
+
+(State graphics for this machine are are available via
+<A HREF="http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof">http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof</A>)
+
+action commit_string {    }
+
+action commit_string_eof { }
+
+action commit_nonstring_eof { }
+
+action set_mark { }
+
+action reset {
+   /* Force the machine back into state 1. This happens after
+    * an incomplete match when some graphical characters are
+    * consumed, but not enough for use to keep the string. */
+   fgoto start;
+}
+
+# Matching classes union to 0x00 .. 0xFF
+graphic = (0x09 | 0x20 .. 0x7E);
+non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+
+collector = (
+
+   start: (
+      # Set the mark if we have a graphic character,
+      # otherwise go to non_graphic state and consume input
+      graphic @set_mark -&gt; has_glyph |
+      non_graphic -&gt; no_glyph
+   ) $eof(commit_nonstring_eof),
+
+   no_glyph: (
+         # Consume input until a graphic character is encountered
+         non_graphic -&gt; no_glyph |
+         graphic @set_mark -&gt; has_glyph
+   ) $eof(commit_nonstring_eof),
+
+   has_glyph: (
+          # We already matched one graphic character to get here
+          # from start or no_glyph. Try to match N-1 before allowing
+              # the string to be committed. If we don't get to N-1,
+              # drop back to the start state
+              graphic{3} $lerr(reset) -&gt; has_string
+   ) @eof(commit_nonstring_eof),
+
+   has_string: (
+               # Already consumed our quota of N graphic characters;
+               # consume input until we run out of graphic characters
+               # then reset the machine. All exiting edges should commit
+               # the string. We diferentiate between exiting on a non-graphic
+               # input that shouldn't be added to the string and exiting
+               # on a (graphic) EOF that should be added.
+               graphic* non_graphic -&gt; start
+   ) %from(commit_string) @eof(commit_string_eof)
+   #) %from(commit_string) %eof(commit_string_eof) // bad
+
+); #$debug;
+
+main := (collector)+;
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3353">[ date ]</a>
+              <a href="thread.html#3353">[ thread ]</a>
+              <a href="subject.html#3353">[ subject ]</a>
+              <a href="author.html#3353">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] scanning boolean expressions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20scanning%20boolean%20expressions&In-Reply-To=%3C4CE6B34B.8070008%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001186.html">
+   <LINK REL="Next"  HREF="001188.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] scanning boolean expressions</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20scanning%20boolean%20expressions&In-Reply-To=%3C4CE6B34B.8070008%40esentire.com%3E"
+       TITLE="[ragel-users] scanning boolean expressions">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Fri Nov 19 17:26:35 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001186.html">[ragel-users] scanning boolean expressions
+</A></li>
+        <LI>Next message: <A HREF="001188.html">[ragel-users] [PATCH] Add built-in ragel rules to vim syntax	highlighting
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1187">[ date ]</a>
+              <a href="thread.html#1187">[ thread ]</a>
+              <a href="subject.html#1187">[ subject ]</a>
+              <a href="author.html#1187">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Brodie,
+
+In general, Ragel is not made for parsing context-free languages. Also 
+speaking generally, expression languages are normally context free.
+
+There are exceptions to both of these rules. It's possible to write 
+recursive parsers using ragel and not all 'expression' languages have to 
+be context-free, however I would suggest sticking with the conventional 
+methods unless you really know what you are doing. Use Ragel for 
+scanning and some parser generator for parsing.
+
+-Adrian
+
+program some recursive language constructs into
+
+On 10-11-17 10:51 PM, Brodie Thiesfield wrote:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> Some advice please. I wanted to make a scanner/parser for a simple
+</I>&gt;<i> grammar. Simple boolean expressions with a variety of comparison
+</I>&gt;<i> operators.
+</I>&gt;<i>
+</I>&gt;<i> I originally tried to combine the scanner with the parser, resulting
+</I>&gt;<i> in something like:
+</I>&gt;<i>
+</I>&gt;<i> ============
+</I>&gt;<i> Tag := |*
+</I>&gt;<i>      '%' [a-z]+ { tag(ts,te); };
+</I>&gt;<i>      space;
+</I>&gt;<i>      *|;
+</I>&gt;<i> Op  := |*
+</I>&gt;<i>      &quot;&lt;&quot; { op(LT); };
+</I>&gt;<i>      &quot;&lt;=&quot; { op(LE); };
+</I>&gt;<i>      space;
+</I>&gt;<i>      *|;
+</I>&gt;<i> Val := |*
+</I>&gt;<i>      [0-9]+ { val(ts, te); };
+</I>&gt;<i>      space;
+</I>&gt;<i>      *|;
+</I>&gt;<i> Expr := Tag Op Val ;
+</I>&gt;<i> ============
+</I>&gt;<i>
+</I>&gt;<i> It seemed exactly what I wanted. I wanted to express the valid order
+</I>&gt;<i> for things as in the state machine of Expr, but using the scanner to
+</I>&gt;<i> find the actual tokens, limiting them to only what is valid. However
+</I>&gt;<i> it results in the error &quot;references to graph instantiations not
+</I>&gt;<i> allowed in expressions&quot;.
+</I>&gt;<i>
+</I>&gt;<i> I eventually split it into two parts, a complete scanner and a parser
+</I>&gt;<i> based on token types. I take the results of the scanner (calls to
+</I>&gt;<i> tag(), op(), val(), etc) and pipe them into an instance of the state
+</I>&gt;<i> machine Expr, watching for state errors to see if the token wasn't
+</I>&gt;<i> valid.
+</I>&gt;<i>
+</I>&gt;<i> ============
+</I>&gt;<i> Scanner := |*
+</I>&gt;<i>      # Tag
+</I>&gt;<i>      '%' [a-z]+ { tag(ts,te); };
+</I>&gt;<i>      # Op
+</I>&gt;<i>      &quot;&lt;&quot; { op(LT); };
+</I>&gt;<i>      &quot;&lt;=&quot; { op(LE); };
+</I>&gt;<i>      # Val
+</I>&gt;<i>      [0-9]+ { val(ts, te); };
+</I>&gt;<i>      space;
+</I>&gt;<i>      *|;
+</I>&gt;<i>
+</I>&gt;<i> Tag = 'T';
+</I>&gt;<i> Op  = 'O';
+</I>&gt;<i> Val = 'V';
+</I>&gt;<i> Expr := Tag Op Val ;
+</I>&gt;<i> ============
+</I>&gt;<i>
+</I>&gt;<i> I originally made it with a straight state machine, similar to the
+</I>&gt;<i> mongrel HTTP parser with lots of &quot;mark&quot; and field actions, but it
+</I>&gt;<i> tripped up on the difference between the operators &quot;&lt;&quot; and&quot;&lt;=&quot; for
+</I>&gt;<i> some reason giving me strange results there.
+</I>&gt;<i>
+</I>&gt;<i> Although this works, it can't be the right way to do it. Would someone
+</I>&gt;<i> please give me pointers to a better way of doing it?
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i> Brodie
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001186.html">[ragel-users] scanning boolean expressions
+</A></li>
+	<LI>Next message: <A HREF="001188.html">[ragel-users] [PATCH] Add built-in ragel rules to vim syntax	highlighting
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1187">[ date ]</a>
+              <a href="thread.html#1187">[ thread ]</a>
+              <a href="subject.html#1187">[ subject ]</a>
+              <a href="author.html#1187">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

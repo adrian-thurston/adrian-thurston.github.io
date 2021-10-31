@@ -1,0 +1,3614 @@
+From ibc at aliax.net  Sun Feb  1 22:08:18 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 1 Feb 2009 23:08:18 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+References: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+	<cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+Message-ID: <200902012308.18328.ibc@aliax.net>
+
+El Viernes, 30 de Enero de 2009, Iñaki Baz Castillo escribió:
+> I can solve it by adding '\0' and the end of the Ruby String acting as
+> "run_machine" argument, and also adding the following to the machine
+> "main":
+>
+>    main := protocol ':' user '@' host '\0' ;
+>
+> Not sure, however, if this is the cleaner solution.
+
+Really nobody can help me a bit please?
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Mon Feb  2 02:48:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 02:48:38 +0000
+Subject: [ragel-users] Acting when EOF
+Message-ID: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+
+Hi Inaki,
+
+You can either add another character or set eof = pe to induce the final action. Leaving actions require one char of lookahead.
+
+Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 30, 2009 7:08 AM
+Subject: Re: [ragel-users] Acting when EOF
+
+2009/1/27 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+> but I can't get the last field ("host"):
+>
+> --------------------------------------------------------
+> %%{
+>        machine sip_uri;
+>
+>        action _tag { mark_tag = p }
+>        action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+>        action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+>        action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+>
+>        protocol = ('sip'i|'sips'i) >_tag %protocol ;
+>        user = [a-zA-Z0-9]+ >_tag %user ;
+>        host = [.a-zA-Z0-9]+ >_tag %host ;
+>
+>        main := protocol ':' user '@' host ;
+> }%%
+>
+> run_machine "sip:user at domain.org"
+> -------------------------------------------------------
+>
+> The actions "protocol" and "user" are executed, storing the parsed
+> data into a Ruby attribute, but the action "host" is not executed. I
+> assume this occurs because leaving action (%) doesn't take place but
+> EOF action. So I try to use a EOF action:
+>
+>        host = [.a-zA-Z0-9]+ >_tag %/host ;
+>
+> But it doesn't work. I can't imagine how to get this "host" field, any
+> help please?
+
+I can solve it by adding '\0' and the end of the Ruby String acting as
+"run_machine" argument, and also adding the following to the machine
+"main":
+
+   main := protocol ':' user '@' host '\0' ;
+
+Not sure, however, if this is the cleaner solution.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Feb  2 03:01:57 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 03:01:57 +0000
+Subject: [ragel-users] hsm with statecharts
+Message-ID: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+
+Ragel wasn't designed to support the HSM paradigm. What you can do is use arbitrary ragel expressions as transitions when building state charts but I don't think this is the same.
+
+Adrian
+------Original Message------
+From: Pazzo Da Legare
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 27, 2009 6:20 PM
+Subject: [ragel-users] hsm with statecharts
+
+Dear ML,
+
+again with hsm (hierarchical state machine) question. I had a look
+around but I cannot find any clue.I'm trying to post my question on
+this subject.
+
+Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+for more infos). I would like to express state hierarchy with ragel
+statechart but I cannot find a comfortable solution. One way is to
+convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+define the latter in ragel, this step could be automated but I wonder
+if there is a straight way.
+
+Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+
+With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+transition):
+
+S1 {s0/action_s0_S1}
+S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+
+For the signal 's0' I would like to have in S12 the action
+'action_s0_S12' but in S1 the action defined by the super-state S1,
+action_s0_S1.
+
+Thank you in advance for your help!
+
+pazzodalegare
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Feb  2 03:04:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 03:04:49 +0000
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+
+Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+Sender: 
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 29, 2009 2:28 PM
+Subject: [ragel-users] Parsing a component of a machine
+
+Hi, is it possible to parse a subcomponent of a machine specification? I mean:
+
+
+	alphanum = [a-zA-Z0-9]
+	protocol = ('sip'i|'sips'i)
+	user = alphanum+
+	host = ( '.' | alphanum )+
+	
+	main := protocol ':' user '@' host ;
+
+
+This code allow me to parse a complete SIP uri using "%% write exec;", but 
+what about if I also want to parse a single "user" component? must I to 
+duplicate the code creating a new machine just for "user"?:
+
+	alphanum = [a-zA-Z0-9]
+	main := alphanum+
+
+Since "user" is already defined in the above machine, couldn't I use that 
+machine to parse a string just containing a "user" text?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Feb  2 09:58:17 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 2 Feb 2009 10:58:17 +0100
+Subject: [ragel-users] Parsing a component of a machine
+In-Reply-To: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+References: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <cc1f582e0902020158p26499278ha74b39953a723b49@mail.gmail.com>
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Ok, I was thinking about that exactly. Also I think I should use
+"fgoto" since I have the following grammar:
+
+
+- From header: display_name uri header_params
+
+- URI
+
+- More stuff (CRLF, SP, TAB, vchar...)
+
+
+So if I'm not wrong I could insert all the common stuff in a separate
+file (using later "include") and create two machines:
+
+- from_header
+- uri
+
+So when parsing a "from_header" I should use "fgoto" to parse the
+internal URI. I hope this is the correct way.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Mon Feb  2 09:59:28 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 2 Feb 2009 10:59:28 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+References: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <cc1f582e0902020159u3c254afaia1c3c497f13346ab@mail.gmail.com>
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Hi Inaki,
+>
+> You can either add another character or set eof = pe to induce the final action. Leaving actions require one char of lookahead.
+
+Really great to know :)
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Mon Feb  2 10:35:58 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Mon, 2 Feb 2009 11:35:58 +0100
+Subject: [ragel-users] hsm with statecharts
+In-Reply-To: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+References: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <1a26b4920902020235j60a412dai36ef45e9da885516@mail.gmail.com>
+
+Dear Adrian,
+
+Thank you for your answer...AND for your tool!
+I didn't find any straight way to express action inheritance. A
+solution could be translating (from a custom language) a hsm machine
+to a fsm and use ragel for implementation.
+I think translation would be quite straight and probably I'm going this way.
+
+Thanks again,
+
+pazzo
+
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Ragel wasn't designed to support the HSM paradigm. What you can do is use arbitrary ragel expressions as transitions when building state charts but I don't think this is the same.
+>
+> Adrian
+> ------Original Message------
+> From: Pazzo Da Legare
+> To: ragel-users at complang.org
+> ReplyTo: ragel-users at complang.org
+> Sent: Jan 27, 2009 6:20 PM
+> Subject: [ragel-users] hsm with statecharts
+>
+> Dear ML,
+>
+> again with hsm (hierarchical state machine) question. I had a look
+> around but I cannot find any clue.I'm trying to post my question on
+> this subject.
+>
+> Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+> http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+> for more infos). I would like to express state hierarchy with ragel
+> statechart but I cannot find a comfortable solution. One way is to
+> convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+> define the latter in ragel, this step could be automated but I wonder
+> if there is a straight way.
+>
+> Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+> S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+> only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+>
+> With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+> transition):
+>
+> S1 {s0/action_s0_S1}
+> S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+> S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+>
+> For the signal 's0' I would like to have in S12 the action
+> 'action_s0_S12' but in S1 the action defined by the super-state S1,
+> action_s0_S1.
+>
+> Thank you in advance for your help!
+>
+> pazzodalegare
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From ibc at aliax.net  Mon Feb  2 23:26:56 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 3 Feb 2009 00:26:56 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+Message-ID: <200902030026.56062.ibc@aliax.net>
+
+Hi, I want to set the "main" value of a Ragel dynamically based on the content 
+of a "main.h" file. Note however that I run Ragel using Ruby as host 
+language.
+
+I've tryed the following:
+
+main.h
+-----------------
+#define KEYWORD "comment"
+-----------------
+
+my_script.rl
+------------------
+#!/usr/bin/env ruby
+
+# String to parse.
+data = ARGV[0]
+
+%%{
+	machine my_machine;
+	import 'main.h' ;
+	main := KEYWORD ;
+	write data;
+}%%
+
+...
+------------------
+
+
+Unfortunatelly I get the following error when trying to compile my_script.rl 
+file:
+
+  my_script.rl: graph lookup of "KEYWORD" failed
+
+
+Is there any way to achieve it? Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Mon Feb  2 23:42:53 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 3 Feb 2009 00:42:53 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+	[SOLVED]
+In-Reply-To: <200902030026.56062.ibc@aliax.net>
+References: <200902030026.56062.ibc@aliax.net>
+Message-ID: <200902030042.53609.ibc@aliax.net>
+
+El Martes, 3 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> Hi, I want to set the "main" value of a Ragel dynamically based on the
+> content of a "main.h" file. Note however that I run Ragel using Ruby as
+> host language.
+
+Ok, I've solved it using replacing the "main := xxxx" string with "sed" before 
+running ragel.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Tue Feb  3 02:49:18 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 3 Feb 2009 02:49:18 +0000
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <1165369147-1233629324-cardhu_decombobulator_blackberry.rim.net-1771264086-@bxe246.bisx.prod.on.blackberry>
+
+Yes you can do it that way, but you don't need a separate file. You can include definitions from a different machine specification in the same file.
+
+-Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Feb 2, 2009 4:58 AM
+Subject: Re: [ragel-users] Parsing a component of a machine
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Ok, I was thinking about that exactly. Also I think I should use
+"fgoto" since I have the following grammar:
+
+
+- From header: display_name uri header_params
+
+- URI
+
+- More stuff (CRLF, SP, TAB, vchar...)
+
+
+So if I'm not wrong I could insert all the common stuff in a separate
+file (using later "include") and create two machines:
+
+- from_header
+- uri
+
+So when parsing a "from_header" I should use "fgoto" to parse the
+internal URI. I hope this is the correct way.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Wed Feb  4 14:49:03 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 4 Feb 2009 15:49:03 +0100
+Subject: [ragel-users] Ragel Ruby generated code uses singleton class so
+	it's not thread safe
+Message-ID: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+
+Hi, i'm using Ragel parser generating Ruby code. The generated code
+uses a Class instead of an instance, and that class has lots of
+attributes and methods. Something like:
+
+--------------
+class MyParser
+
+   class << self
+       attr_accessor :_machine_trans_keys
+       private :_machine_trans_keys, :_machine_trans_keys=
+   end
+
+ self._machine_trans_keys = [
+       0, 0, 9, 34, 10, 10,
+       9, 32, 9, 34, -64,
+       126, -128, -65, -128, -65,
+       -128, -65, -128, -65, -128, -65,
+       10, 10, 9, 32, 13,
+       13, 10, 10, 0, 127,
+       0, 0, 0
+   ]
+
+ ...
+ ...
+
+ def self.run_machine(data)
+     ...
+ end
+
+end
+-------------
+
+
+So I wonder how could I use this class into a threaded program. A Ruby
+singleton class is the Class itself, so if a running thread modifies
+some Class attribute then all the other threads will see that change (error!!!).
+
+As an ilustration, please run the following Ruby code:
+
+-----------------------
+#!/usr/bin/env ruby
+
+class Test
+
+	class << self
+		attr_accessor :my_string
+	end
+
+	self.my_string = "initial value"
+
+end
+
+t1 = Thread.new(Test) do |test|
+	puts "--- I'm thread 1:"
+	puts "---   Writting: my_string = 'new value'"
+	test.my_string = "new value"
+	puts "---   Reading:  my_string = #{test.my_string}"
+end
+
+sleep 0.5
+
+t2 = Thread.new(Test) do |test|
+	puts "--- I'm thread 2:"
+	puts "---   Reading:  my_string = #{test.my_string}"
+end
+
+t1.join
+t2.join
+-----------------------
+
+
+This will generate the following output:
+--------------------
+--- I'm thread 1:
+---   Writting: my_string = 'new value'
+---   Reading:  my_string = new value
+--- I'm thread 2:
+---   Reading:  my_string = new value
+-------------------
+
+As you can see, when thread2 gets the value of "my_string" it is "new
+value", the value set previously by thread1.
+AFAIK there is no way to avoid this problem since "Test" is a class,
+not an instance (we are using the Singleton mode).
+
+
+Now imagine that instead of Test we use MyParser with Ragel code
+generated (Singleton class again). We would have the same problem.
+
+
+Why does the Ruby generated code make use of Singleton class instead
+of creating instance methods and attributes?
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Wed Feb  4 21:18:49 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 4 Feb 2009 22:18:49 +0100
+Subject: [ragel-users] Ragel Ruby generated code uses singleton class so
+	it's not thread safe [INVALID]
+In-Reply-To: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+References: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+Message-ID: <200902042218.50007.ibc@aliax.net>
+
+El Miércoles, 4 de Febrero de 2009, Iñaki Baz Castillo escribió:
+
+> So I wonder how could I use this class into a threaded program. A Ruby
+> singleton class is the Class itself, so if a running thread modifies
+> some Class attribute then all the other threads will see that change
+> (error!!!).
+
+After asking it in Ruby-Talk maillist I've received a very good explanation:
+Singleton variable are read-only. The only writtable variable are local 
+variables into Singleton methods.
+
+So all is Ok :)
+
+Thanks a lot and sorry for a bad bug report.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From hsanson at gmail.com  Thu Feb  5 08:37:58 2009
+From: hsanson at gmail.com (Horacio Sanson)
+Date: Thu, 5 Feb 2009 17:37:58 +0900
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <497A532E.5020604@complang.org>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+	<497A532E.5020604@complang.org>
+Message-ID: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+
+Once I tried to implement a transport protocol parser with ragel but
+since ragel works with text strings any binary protocol (TCP, UDP, IP)
+would be difficult to parse. For example how would you match a TCP or
+IP header using text strings?
+
+In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+easier to do with Ragel.
+
+regards,
+Horacio
+
+On Sat, Jan 24, 2009 at 8:30 AM, Adrian Thurston <thurston at complang.org> wrote:
+> It's certainly possible:
+>
+> http://www.zedshaw.com/tips/ragel_state_charts.html
+>
+> Keep in mind though that this is not what ragel was designed for. It was
+> made for compiling regular languages with embedded actions to C code.
+>
+> -Adrian
+>
+> Alexis Letessier wrote:
+>> Hello,
+>>
+>> I am new to this mailing list and i am also discovering ragel.
+>>
+>> I would like to know if protocol analysis is possible with ragel?
+>>
+>> For example, would it be possible to feed ragel with tcpdump or tshark
+>> ouput and validate it against a tcp state diagram ?
+>> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+>>
+>> Regards
+>>
+>> Alexis
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From alan at alanz.com  Thu Feb  5 14:11:21 2009
+From: alan at alanz.com (Alan)
+Date: Thu, 5 Feb 2009 14:11:21 +0000
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+	<497A532E.5020604@complang.org>
+	<6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+Message-ID: <01A696DC-1090-48DA-95FE-297E185B5F67@alanz.com>
+
+On 5 Feb 2009, at 08:37, Horacio Sanson wrote:
+
+> Once I tried to implement a transport protocol parser with ragel but
+> since ragel works with text strings any binary protocol (TCP, UDP, IP)
+> would be difficult to parse. For example how would you match a TCP or
+> IP header using text strings?
+
+As the header is already in the form of a known structure, what is  
+left to parse?
+
+>
+>
+> In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+> easier to do with Ragel.
+
+But they waste bandwidth and cycles, because they aren't already in a  
+tight pre-determined structure. ;-)
+
+
+
+From thurston at complang.org  Fri Feb  6 00:31:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:31:25 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090129213649.GD51435@hades.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>	<497A3F87.5050404@complang.org>	<20090124042747.GD30982@deprived.panopticon>	<497BBC4E.5080100@complang.org>
+	<20090129213649.GD51435@hades.panopticon>
+Message-ID: <498B84DD.2050801@complang.org>
+
+I still can't see the problem. Can you restate it, if it's still an issue?
+
+-Adrian
+
+Dmitry Marakasov wrote:
+> * Adrian Thurston (thurston at complang.org) wrote:
+> 
+>> Sorry I went to fast and didn't see your problem. My mail program was 
+>> highlighting the lines beginning with ">", causing some confusion for me.
+>>
+>> The bit of info that you're missing is that action embedding operators 
+>> bind more tightly than concatenation. Use:
+>>
+>> b := ( a 'b'+ ) >{print} %{print};
+>>
+>> and I think you'll get what you want.
+> 
+> That would be too easy :)
+> 
+> Actually that was just an example, the real cause is more complex,
+> and my goal is to save all informaion encountered while parsing
+> subexpression amd process it as a whole when it's finished. Like
+> that:
+> 
+> char *a_start;
+> char *a_end;
+> 
+> a = 'a'+
+>     > { a_start = p; }
+>     % { a_end = p; }
+> ;
+> 
+> b = a 'b'+
+>     > { a_start = a_end = 0; /* reset state */ }
+>     % { printf("subexpr finished, there were %d a's\n", a_end-a_start); }
+> ;
+> 
+> main := b+;
+> 
+
+
+
+From thurston at complang.org  Fri Feb  6 00:37:56 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:37:56 -0500
+Subject: [ragel-users] Setting the "main := XXXX" value
+	dynamically	[SOLVED]
+In-Reply-To: <200902030042.53609.ibc@aliax.net>
+References: <200902030026.56062.ibc@aliax.net>
+	<200902030042.53609.ibc@aliax.net>
+Message-ID: <498B8664.5030300@complang.org>
+
+The problem is that you're doing something I didn't anticipate ... 
+importing from a C file when the input language is Ruby.
+
+Adrian
+
+Iñaki Baz Castillo wrote:
+> El Martes, 3 de Febrero de 2009, Iñaki Baz Castillo escribió:
+>> Hi, I want to set the "main" value of a Ragel dynamically based on the
+>> content of a "main.h" file. Note however that I run Ragel using Ruby as
+>> host language.
+> 
+> Ok, I've solved it using replacing the "main := xxxx" string with "sed" before 
+> running ragel.
+> 
+> 
+
+
+
+From thurston at complang.org  Fri Feb  6 00:45:12 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:45:12 -0500
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>	<497A532E.5020604@complang.org>
+	<6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+Message-ID: <498B8818.8060403@complang.org>
+
+You can parse binary protocols with ragel ... you just use numerical 
+values when defining the machines.
+
+main = 0xaf any;
+
+You can't define anything smaller than a byte, however. You need to 
+define ranges of bytes that give you the right bit-pattern and the whole 
+byte gets tested using binary search on the value, which is not optimal 
+for parsing binary protocols.
+
+-Adrian
+
+
+
+Horacio Sanson wrote:
+> Once I tried to implement a transport protocol parser with ragel but
+> since ragel works with text strings any binary protocol (TCP, UDP, IP)
+> would be difficult to parse. For example how would you match a TCP or
+> IP header using text strings?
+> 
+> In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+> easier to do with Ragel.
+> 
+> regards,
+> Horacio
+> 
+> On Sat, Jan 24, 2009 at 8:30 AM, Adrian Thurston <thurston at complang.org> wrote:
+>> It's certainly possible:
+>>
+>> http://www.zedshaw.com/tips/ragel_state_charts.html
+>>
+>> Keep in mind though that this is not what ragel was designed for. It was
+>> made for compiling regular languages with embedded actions to C code.
+>>
+>> -Adrian
+>>
+>> Alexis Letessier wrote:
+>>> Hello,
+>>>
+>>> I am new to this mailing list and i am also discovering ragel.
+>>>
+>>> I would like to know if protocol analysis is possible with ragel?
+>>>
+>>> For example, would it be possible to feed ragel with tcpdump or tshark
+>>> ouput and validate it against a tcp state diagram ?
+>>> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+>>>
+>>> Regards
+>>>
+>>> Alexis
+>>>
+>>>
+>>> ------------------------------------------------------------------------
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Fri Feb  6 09:36:01 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 6 Feb 2009 10:36:01 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+	[SOLVED]
+In-Reply-To: <498B8664.5030300@complang.org>
+References: <200902030026.56062.ibc@aliax.net>
+	<200902030042.53609.ibc@aliax.net> <498B8664.5030300@complang.org>
+Message-ID: <cc1f582e0902060136p6f3b6ac2r988569372e8fca1e@mail.gmail.com>
+
+2009/2/6 Adrian Thurston <thurston at complang.org>:
+> The problem is that you're doing something I didn't anticipate ...
+> importing from a C file when the input language is Ruby.
+
+Don't worry, this is just a workaround to test all the BNF nodes of my
+grammar. I've done a script which replaces the "main :=" line with the
+node I want to match.
+When I finish the whole parser I won't need it :)
+
+Thanks.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From amdmi3 at amdmi3.ru  Mon Feb  9 22:43:55 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Tue, 10 Feb 2009 01:43:55 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <498B84DD.2050801@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+	<497BBC4E.5080100@complang.org>
+	<20090129213649.GD51435@hades.panopticon>
+	<498B84DD.2050801@complang.org>
+Message-ID: <20090209224355.GA82330@hades.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> I still can't see the problem. Can you restate it, if it's still an issue?
+
+It still is. The problem in the behaviour of mentioned machine:
+
+%%{ 
+  machine foo; 
+ 
+  a = 'a'+;
+  b = a 'b'+;
+  main := b+; 
+}%%
+
+- Logically.
+Rule `b' contains rule `a', and no other rule contains `a'. Thus, you
+only can enter `a' from `b', thus `enter a' action should always be
+executed after `enter b'.
+
+- In practice
+Rule a is entered
+Rule a is left
+Rule b is entered
+Rule b is left
+
+That seem illogical to me.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Mon Feb  9 23:34:45 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 9 Feb 2009 23:34:45 +0000
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+Message-ID: <1426850096-1234222444-cardhu_decombobulator_blackberry.rim.net-1942092881-@bxe246.bisx.prod.on.blackberry>
+
+You must not have tried the 'easy' solution I gave. Run it and then look up the operator precedence rules in the manual.
+
+Also note, these are expressions that are evaluated into one machine and not rules in the usual sense. 
+
+Adrian
+------Original Message------
+From: Dmitry Marakasov
+Sender: 
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Feb 9, 2009 5:43 PM
+Subject: Re: [ragel-users] Actions embedded into unexpected transitions?
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> I still can't see the problem. Can you restate it, if it's still an issue?
+
+It still is. The problem in the behaviour of mentioned machine:
+
+%%{ 
+  machine foo; 
+ 
+  a = 'a'+;
+  b = a 'b'+;
+  main := b+; 
+}%%
+
+- Logically.
+Rule `b' contains rule `a', and no other rule contains `a'. Thus, you
+only can enter `a' from `b', thus `enter a' action should always be
+executed after `enter b'.
+
+- In practice
+Rule a is entered
+Rule a is left
+Rule b is entered
+Rule b is left
+
+That seem illogical to me.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Tue Feb 10 18:50:09 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 10 Feb 2009 19:50:09 +0100
+Subject: [ragel-users] Ragel syntax for KDE Kate editor?
+Message-ID: <200902101950.09717.ibc@aliax.net>
+
+Hi, there is Ragel syntax for Vim and for an editor in Mac. Do you know it 
+there is a Ragel syntax for KDE Kate editor?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 11 20:39:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 11 Feb 2009 21:39:00 +0100
+Subject: [ragel-users] Problem with an indetermination
+Message-ID: <200902112139.00587.ibc@aliax.net>
+
+Hi, I'm finishing a complete SIP protocol parser with Ragel, but I have an 
+issue I can't solve. The problem is basically the following (I use Ruby):
+
+--------------
+name = ( token ( SP token )* )   > { _tag = p }
+  %{ @value = data[_tag..p-1].pack("c*"); puts "--name=#{@value}--"} ;
+
+full = name SP* "<" [a-z]+ ">" ;
+
+main := full
+--------------
+
+I parse the following valid string:
+  'Alice Kiske <alice>'
+and I get two results for "name" node:
+
+  --name=Alice--
+  --name=Alice Kiske--
+
+Obviously I just want the second result, the first one shouldn't occur.
+
+I've solved similar problems using priorities but they don't help me in this 
+issue. Any help please?
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Wed Feb 11 22:50:21 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 17:50:21 -0500
+Subject: [ragel-users] Ragel syntax for KDE Kate editor?
+In-Reply-To: <200902101950.09717.ibc@aliax.net>
+References: <200902101950.09717.ibc@aliax.net>
+Message-ID: <4993562D.6040202@complang.org>
+
+Not that I'm aware of.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, there is Ragel syntax for Vim and for an editor in Mac. Do you know it 
+> there is a Ragel syntax for KDE Kate editor?
+> 
+> Thanks a lot.
+> 
+
+
+
+From thurston at complang.org  Wed Feb 11 23:46:32 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 18:46:32 -0500
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902112139.00587.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net>
+Message-ID: <49936358.60503@complang.org>
+
+The problem here is an ambiguity. When a space is seen it is unknown 
+whether or not the space extends the name or is the beginning of the end 
+("<"). You can change it to this:
+
+name = ( token ( SP token )* )   > { _tag = p }
+    %{ @value = data[_tag..p-1].pack("c*") };
+
+full = name SP* %{ puts "--name=#{@value}--" } "<" [a-z]+ ">";
+
+main := full;
+
+Now on each space the value is only stored. Basically you need to mark 
+the end separately from doing something about it because ever time you 
+think you see the end, it may not be the end.
+
+An alternative would be to include the SP* in name and strip trailing 
+whitespace after.
+
+-Adrian
+
+
+Iñaki Baz Castillo wrote:
+> Hi, I'm finishing a complete SIP protocol parser with Ragel, but I have an 
+> issue I can't solve. The problem is basically the following (I use Ruby):
+> 
+> --------------
+> name = ( token ( SP token )* )   > { _tag = p }
+>   %{ @value = data[_tag..p-1].pack("c*"); puts "--name=#{@value}--"} ;
+> 
+> full = name SP* "<" [a-z]+ ">" ;
+> 
+> main := full
+> --------------
+> 
+> I parse the following valid string:
+>   'Alice Kiske <alice>'
+> and I get two results for "name" node:
+> 
+>   --name=Alice--
+>   --name=Alice Kiske--
+> 
+> Obviously I just want the second result, the first one shouldn't occur.
+> 
+> I've solved similar problems using priorities but they don't help me in this 
+> issue. Any help please?
+> 
+> Thanks a lot.
+> 
+> 
+
+
+
+From ibc at aliax.net  Wed Feb 11 23:55:38 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 12 Feb 2009 00:55:38 +0100
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <49936358.60503@complang.org>
+References: <200902112139.00587.ibc@aliax.net> <49936358.60503@complang.org>
+Message-ID: <200902120055.38406.ibc@aliax.net>
+
+El Jueves, 12 de Febrero de 2009, Adrian Thurston escribió:
+> The problem here is an ambiguity. When a space is seen it is unknown
+> whether or not the space extends the name or is the beginning of the end
+> ("<"). You can change it to this:
+>
+> name = ( token ( SP token )* )   > { _tag = p }
+>     %{ @value = data[_tag..p-1].pack("c*") };
+>
+> full = name SP* %{ puts "--name=#{@value}--" } "<" [a-z]+ ">";
+>
+> main := full;
+>
+> Now on each space the value is only stored. Basically you need to mark
+> the end separately from doing something about it because ever time you
+> think you see the end, it may not be the end.
+
+Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H I" 
+then the % action will be called 9 times and for each time it will store the 
+data in @value.
+
+
+> An alternative would be to include the SP* in name and strip trailing
+> whitespace after.
+
+Unfortunatelly that change would involve more changes in the whole grammar, 
+and would require changes in the original BNF grammar of SIP protocol. SIP 
+has a really bad designed grammar, full of ambiguities :(
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 11 23:59:04 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 12 Feb 2009 00:59:04 +0100
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902120055.38406.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net> <49936358.60503@complang.org>
+	<200902120055.38406.ibc@aliax.net>
+Message-ID: <200902120059.04364.ibc@aliax.net>
+
+El Jueves, 12 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> > Now on each space the value is only stored. Basically you need to mark
+> > the end separately from doing something about it because ever time you
+> > think you see the end, it may not be the end.
+>
+> Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H
+> I" then the % action will be called 9 times and for each time it will store
+> the data in @value.
+
+Well, I understand, I could store the data in @value after parsing the 
+required "<". For that I would require to store the final value of 'p' when 
+leaving 'name'.  :)
+
+Hope I'm right. Thanks.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Thu Feb 12 00:10:36 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 19:10:36 -0500
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902120059.04364.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net>
+	<49936358.60503@complang.org>	<200902120055.38406.ibc@aliax.net>
+	<200902120059.04364.ibc@aliax.net>
+Message-ID: <499368FC.6070908@complang.org>
+
+Yes, that's right. You don't actually need to save off the entire value, 
+just record p whenever a space is seen and at the end of it all you'll 
+have the very last one.
+
+-Adrian.
+
+Iñaki Baz Castillo wrote:
+> El Jueves, 12 de Febrero de 2009, Iñaki Baz Castillo escribió:
+>>> Now on each space the value is only stored. Basically you need to mark
+>>> the end separately from doing something about it because ever time you
+>>> think you see the end, it may not be the end.
+>> Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H
+>> I" then the % action will be called 9 times and for each time it will store
+>> the data in @value.
+> 
+> Well, I understand, I could store the data in @value after parsing the 
+> required "<". For that I would require to store the final value of 'p' when 
+> leaving 'name'.  :)
+> 
+> Hope I'm right. Thanks.
+> 
+
+
+
+From yogieric at mac.com  Fri Feb 13 21:49:37 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Fri, 13 Feb 2009 13:49:37 -0800
+Subject: [ragel-users] A scanner within a scanner?
+Message-ID: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+
+Hi,
+
+If I want a scanner inside a scanner, do I have to stash any variables  
+(like ts, te & act) while I'm in the inner scanner? If so, what do I  
+initialize the new ts, te & act variables to. Is there a cleaner way  
+of doing this than doing it manually in my action?
+
+Cheers,
+Eric
+
+
+
+
+From thurston at complang.org  Sun Feb 15 17:07:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 15 Feb 2009 12:07:26 -0500
+Subject: [ragel-users] A scanner within a scanner?
+In-Reply-To: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+References: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+Message-ID: <49984BCE.50304@complang.org>
+
+No you don't have to stash them. You can jump to a new scanner in a 
+pattern action just fine. Once the pattern action is executed the 
+machine is finished with these variables. Immediately after the action 
+it will set tokstart = 0 but this is for the user's sake only. That is 
+done so the user can tell if a token is active on the boundary between 
+buffers.
+
+One thing you can't do however, is return to, or jump into the middle of 
+a pattern match. You shouldn't need to though. I can't think of a 
+parsing problem that would require it. Just break scanner patterns on 
+call boundaries and you should be fine.
+
+-Adrian
+
+Eric Brown wrote:
+> Hi,
+> 
+> If I want a scanner inside a scanner, do I have to stash any variables  
+> (like ts, te & act) while I'm in the inner scanner? If so, what do I  
+> initialize the new ts, te & act variables to. Is there a cleaner way  
+> of doing this than doing it manually in my action?
+> 
+> Cheers,
+> Eric
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From yogieric at mac.com  Wed Feb 18 08:29:15 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Wed, 18 Feb 2009 00:29:15 -0800
+Subject: [ragel-users] Generating code for gcc 2.95
+Message-ID: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+
+I have a customer still deploying to rather old/stable systems that  
+run on gcc 2.95.
+
+The only problem I'm noticing is that gcc 2.95 wants all variables  
+declared at the top of a scope. Ragel is generating something like  
+this: (which generates a syntax error when it sees const)
+...
+         if ( _msg_eof_trans[cs] > 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- > 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+...
+
+If I add one layer of scope, gcc 2.95 compiles properly:
+         if ( _msg_eof_trans[cs] > 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+{
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- > 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+}
+
+I hate to manually hack the ragel output this way. If there's a ragel  
+or gcc option I'm missing, please let me know.
+
+
+Got around this by using flat table-driven FSM (-F1). Still thought  
+the problems I was having were worth mentioning here.
+
+Cheers,
+Eric
+
+
+
+
+From ibc at aliax.net  Wed Feb 18 19:42:17 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 20:42:17 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+Message-ID: <200902182042.17128.ibc@aliax.net>
+
+Hi, I'm trying the following (using Ruby host language):
+
+
+	action _start { start = p }
+	action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+	action set_user { _stop ; user = value ; puts "---user=#{user}---" }
+	
+	user = ( unreserved | escaped | user_unreserved )+ >_start %set_user  ;
+
+
+What I want to do is avoid writting the stuff in '_stop' action in every 
+leaving action (%). But it seems to fail since '_stop' is executed as Ruby 
+language:
+  ERROR: undefined local variable or method `_stop'
+
+
+How could I invoke '_stop' action from 'set_user' action?
+
+Thanks.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 19:59:02 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 20:59:02 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <200902182042.17128.ibc@aliax.net>
+References: <200902182042.17128.ibc@aliax.net>
+Message-ID: <200902182059.02461.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> Hi, I'm trying the following (using Ruby host language):
+>
+>
+> 	action _start { start = p }
+> 	action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+> 	action set_user { _stop ; user = value ; puts "---user=#{user}---" }
+>
+> 	user = ( unreserved | escaped | user_unreserved )+ >_start %set_user  ;
+>
+>
+> What I want to do is avoid writting the stuff in '_stop' action in every
+> leaving action (%). But it seems to fail since '_stop' is executed as Ruby
+> language:
+>   ERROR: undefined local variable or method `_stop'
+>
+>
+> How could I invoke '_stop' action from 'set_user' action?
+>
+> Thanks.
+
+Ops, I've found a workaround:
+
+ action _start { start = p }
+ action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+ action set_user { user = value ; puts "---user=#{user}---" }
+
+ user = ( unreserved | escaped | user_unreserved )+ >_start %stop %set_user  ;
+
+As you see I use two leaving actions (%) in "user". It works but I've no idea 
+about if it *should* really work. Any problem with it?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From yogieric at mac.com  Wed Feb 18 22:22:15 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Wed, 18 Feb 2009 14:22:15 -0800
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <200902182059.02461.ibc@aliax.net>
+References: <200902182042.17128.ibc@aliax.net>
+	<200902182059.02461.ibc@aliax.net>
+Message-ID: <073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+
+Hi Iñaki,
+
+On Feb 18, 2009, at 11:59 AM, Iñaki Baz Castillo wrote:
+<snip>
+> Ops, I've found a workaround:
+>
+> action _start { start = p }
+> action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+> action set_user { user = value ; puts "---user=#{user}---" }
+>
+> user = ( unreserved | escaped | user_unreserved )+ >_start %stop  
+> %set_user  ;
+>
+> As you see I use two leaving actions (%) in "user". It works but  
+> I've no idea
+> about if it *should* really work. Any problem with it?
+
+That is specifically supposed to work according to the ragel 6.3 PDF  
+manual.
+
+About your original question -- calling one action from another -- I  
+don't think there is a way. Would be interesting if there was. Of  
+course actions can call other methods and if you use the "access" and  
+"variable" directives to put cs, p, pe, etc. in your object, you can  
+put your comment code in a method.
+
+Cheers,
+Eric
+
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:28:12 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:28:12 +0100
+Subject: [ragel-users] How to solve this Indetermination
+Message-ID: <200902182328.12672.ibc@aliax.net>
+
+Hi, note this simple machine:
+
+%%{
+
+machine sip_uri;
+
+action _start { start = p }
+action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+
+action set_userinfo { @userinfo = value ; puts "---userinfo=#{@userinfo}---" }
+action set_host { @host = value ; puts "---host=#{@host}---" }
+action set_port { @port = value ; puts "---port=#{@port}---" }
+
+user = [a-z]+ ;
+password = [a-z]+ ;
+userinfo = ( user ( ":" password )? "@" ) >_start %_stop %set_userinfo ;
+host = [a-z]+ >_start %_stop %set_host ;
+port = [0-9]+ >_start %_stop %set_port ;
+uri = "sip:" userinfo? host ( ":" port )? ;
+main := uri '\0' ;
+
+}%%
+
+
+When I parse:  "sip:ibc:xxxx at mydomain" I get this result:
+
+-------------
+Parsing 'sip:ibc:xxxx at mydomain'...
+---host=ibc---          <-------- WRONG !!!
+---userinfo=ibc:xxxx at ---
+---host=mydomain---
+
+Finished: cs: 13  p: 22  pe: 22
+Parsing OK !
+-------------
+
+I really don't know why 'host' is set twice. I know that it's due to ( ":" 
+port )?. In case it doesn't exist in the grammar then 'host' is set just once 
+(with 'ibc:xxxx' value).
+
+Is there any trick to avoid this duplicate result? I've tryed everything I 
+know with no success.
+
+Thanks a lot foir any help.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:29:37 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:29:37 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+References: <200902182042.17128.ibc@aliax.net>
+	<200902182059.02461.ibc@aliax.net>
+	<073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+Message-ID: <200902182329.37169.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Eric Brown escribió:
+
+> > As you see I use two leaving actions (%) in "user". It works but
+> > I've no idea
+> > about if it *should* really work. Any problem with it?
+>
+> That is specifically supposed to work according to the ragel 6.3 PDF
+> manual.
+
+Yes, I was reading about it right now :)
+
+
+> About your original question -- calling one action from another -- I
+> don't think there is a way. Would be interesting if there was. Of
+> course actions can call other methods and if you use the "access" and
+> "variable" directives to put cs, p, pe, etc. in your object, you can
+> put your comment code in a method.
+
+Well, using leaving action (%) twice is an ellegant workaround for me :)
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:33:29 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:33:29 +0100
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <200902182328.12672.ibc@aliax.net>
+References: <200902182328.12672.ibc@aliax.net>
+Message-ID: <200902182333.29331.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+
+> I really don't know why 'host' is set twice. I know that it's due to ( ":"
+> port )?. In case it doesn't exist in the grammar then 'host' is set just
+> once (with 'ibc:xxxx' value).
+>
+> Is there any trick to avoid this duplicate result? I've tryed everything I
+> know with no success.
+>
+> Thanks a lot foir any help.
+
+Trying and trying I've got a solution:
+
+BEFORE:
+  uri = "sip:" userinfo? host ( ":" port )? ;
+NOW:
+  uri = "sip:" ( userinfo? host ) <: ( ":" port )? ;
+
+
+:)
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Sat Feb 21 20:51:23 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Feb 2009 15:51:23 -0500
+Subject: [ragel-users] Generating code for gcc 2.95
+In-Reply-To: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+References: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+Message-ID: <49A0694B.70209@complang.org>
+
+Are you using an old version of Ragel? This shouldn't be happening with 
+the latest. Also, could you tell me which options (if any) you're 
+passing to Ragel.
+
+-Adrian
+
+Eric Brown wrote:
+> I have a customer still deploying to rather old/stable systems that  
+> run on gcc 2.95.
+> 
+> The only problem I'm noticing is that gcc 2.95 wants all variables  
+> declared at the top of a scope. Ragel is generating something like  
+> this: (which generates a syntax error when it sees const)
+> ...
+>          if ( _msg_eof_trans[cs] > 0 ) {
+>                  _trans = _msg_eof_trans[cs] - 1;
+>                  goto _eof_trans;
+>          }
+>          const char *__acts = _msg_actions + _msg_eof_actions[cs];
+>          unsigned int __nacts = (unsigned int) *__acts++;
+>          while ( __nacts-- > 0 ) {
+>                  switch ( *__acts++ ) {
+>                  case 12:
+>                          { p--; {stack[top++] = cs; cs = 176; goto  
+> _again;} }
+>                          break;
+>                  }
+>          }
+> ...
+> 
+> If I add one layer of scope, gcc 2.95 compiles properly:
+>          if ( _msg_eof_trans[cs] > 0 ) {
+>                  _trans = _msg_eof_trans[cs] - 1;
+>                  goto _eof_trans;
+>          }
+> {
+>          const char *__acts = _msg_actions + _msg_eof_actions[cs];
+>          unsigned int __nacts = (unsigned int) *__acts++;
+>          while ( __nacts-- > 0 ) {
+>                  switch ( *__acts++ ) {
+>                  case 12:
+>                          { p--; {stack[top++] = cs; cs = 176; goto  
+> _again;} }
+>                          break;
+>                  }
+>          }
+> }
+> 
+> I hate to manually hack the ragel output this way. If there's a ragel  
+> or gcc option I'm missing, please let me know.
+> 
+> 
+> Got around this by using flat table-driven FSM (-F1). Still thought  
+> the problems I was having were worth mentioning here.
+> 
+> Cheers,
+> Eric
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Feb 21 21:08:05 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Feb 2009 16:08:05 -0500
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <200902182333.29331.ibc@aliax.net>
+References: <200902182328.12672.ibc@aliax.net>
+	<200902182333.29331.ibc@aliax.net>
+Message-ID: <49A06D35.2030003@complang.org>
+
+Does that work okay with the following input?
+
+sip:mydomain:45
+
+I suspect it might not. The problem with this grammar is that you don't 
+know what a colon after "sip:word" means. It could either end a host and 
+start a port, or end a username and start a password. The presence of @ 
+will tell you, as will one more chacter of lookahead (if a number then 
+it's the former). This is where the one-pass model of ragel gets into 
+trouble! You might want to try just recording what you see in the 
+actions, but not doing anything about it until some action at the very 
+end. At that time you can check which parts you have.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> 
+>> I really don't know why 'host' is set twice. I know that it's due to ( ":"
+>> port )?. In case it doesn't exist in the grammar then 'host' is set just
+>> once (with 'ibc:xxxx' value).
+>>
+>> Is there any trick to avoid this duplicate result? I've tryed everything I
+>> know with no success.
+>>
+>> Thanks a lot foir any help.
+> 
+> Trying and trying I've got a solution:
+> 
+> BEFORE:
+>   uri = "sip:" userinfo? host ( ":" port )? ;
+> NOW:
+>   uri = "sip:" ( userinfo? host ) <: ( ":" port )? ;
+> 
+> 
+> :)
+> 
+> 
+
+
+
+From ibc at aliax.net  Sun Feb 22 18:29:52 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 22 Feb 2009 19:29:52 +0100
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <49A06D35.2030003@complang.org>
+References: <200902182328.12672.ibc@aliax.net>
+	<200902182333.29331.ibc@aliax.net> <49A06D35.2030003@complang.org>
+Message-ID: <200902221929.53061.ibc@aliax.net>
+
+El Sábado, 21 de Febrero de 2009, Adrian Thurston escribió:
+> Does that work okay with the following input?
+>
+> sip:mydomain:45
+>
+> I suspect it might not. The problem with this grammar is that you don't
+> know what a colon after "sip:word" means. It could either end a host and
+> start a port, or end a username and start a password. The presence of @
+> will tell you, as will one more chacter of lookahead (if a number then
+> it's the former). This is where the one-pass model of ragel gets into
+> trouble! You might want to try just recording what you see in the
+> actions, but not doing anything about it until some action at the very
+> end. At that time you can check which parts you have.
+
+You are right, thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From graceindustries at gmail.com  Wed Feb 25 15:05:41 2009
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 25 Feb 2009 10:05:41 -0500
+Subject: [ragel-users]  Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+	<47FD2D3B.6060405@cs.queensu.ca>
+	<a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+	<480511ED.2060000@cs.queensu.ca>
+	<a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+	<4816719F.8050502@cs.queensu.ca>
+	<a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+Message-ID: <a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+
+On Mon, Apr 28, 2008 at 7:53 PM, Adrian Thurston <thurston at cs.queensu.ca> wrote:
+>
+> Hi Bob, you can use priorities to do this.
+>
+> (
+>   'a' |
+>   'b' |
+>   'c' |
+>   ...
+> ) @1 |
+> (
+>   any @0
+> )
+>
+> Though there really should be a guarded union operator that does this.
+
+I'm not getting that to work.  Here is a simplified example,
+(with several non-working tries commented out):
+
+   blinks = (
+       start: (
+               SM2008_MODEL_EVENT -> SM2008_MODEL |
+               SM2009_MODEL_EVENT -> SM2009_MODEL
+              )@1 |
+              (
+#               any @(blink, 0)
+               any $(blink, 0)
+#               any @0
+              )
+#              )@blink
+
+
+If I get any character besides 2008 or 2009 events I want to call the
+action 'blink'.
+
+I am never seeing blink called.  Machine always returns -1 on
+non-2008/2009 events (blink never returns).
+
+What is the correct syntax here?
+
+>>     I think what you want instead of any* is [^>].
+>>
+>>
+>> [^>] worked fine when I have a few states.
+>> Is there a better way to do it if you have say
+>> forty states that would be valid?
+
+
+
+From ibc at aliax.net  Sun Feb  1 22:08:18 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 1 Feb 2009 23:08:18 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+References: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+	<cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+Message-ID: <200902012308.18328.ibc@aliax.net>
+
+El Viernes, 30 de Enero de 2009, Iñaki Baz Castillo escribió:
+> I can solve it by adding '\0' and the end of the Ruby String acting as
+> "run_machine" argument, and also adding the following to the machine
+> "main":
+>
+>    main := protocol ':' user '@' host '\0' ;
+>
+> Not sure, however, if this is the cleaner solution.
+
+Really nobody can help me a bit please?
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Mon Feb  2 02:48:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 02:48:38 +0000
+Subject: [ragel-users] Acting when EOF
+Message-ID: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+
+Hi Inaki,
+
+You can either add another character or set eof = pe to induce the final action. Leaving actions require one char of lookahead.
+
+Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 30, 2009 7:08 AM
+Subject: Re: [ragel-users] Acting when EOF
+
+2009/1/27 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+> but I can't get the last field ("host"):
+>
+> --------------------------------------------------------
+> %%{
+>        machine sip_uri;
+>
+>        action _tag { mark_tag = p }
+>        action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+>        action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+>        action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+>
+>        protocol = ('sip'i|'sips'i) >_tag %protocol ;
+>        user = [a-zA-Z0-9]+ >_tag %user ;
+>        host = [.a-zA-Z0-9]+ >_tag %host ;
+>
+>        main := protocol ':' user '@' host ;
+> }%%
+>
+> run_machine "sip:user at domain.org"
+> -------------------------------------------------------
+>
+> The actions "protocol" and "user" are executed, storing the parsed
+> data into a Ruby attribute, but the action "host" is not executed. I
+> assume this occurs because leaving action (%) doesn't take place but
+> EOF action. So I try to use a EOF action:
+>
+>        host = [.a-zA-Z0-9]+ >_tag %/host ;
+>
+> But it doesn't work. I can't imagine how to get this "host" field, any
+> help please?
+
+I can solve it by adding '\0' and the end of the Ruby String acting as
+"run_machine" argument, and also adding the following to the machine
+"main":
+
+   main := protocol ':' user '@' host '\0' ;
+
+Not sure, however, if this is the cleaner solution.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Feb  2 03:01:57 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 03:01:57 +0000
+Subject: [ragel-users] hsm with statecharts
+Message-ID: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+
+Ragel wasn't designed to support the HSM paradigm. What you can do is use arbitrary ragel expressions as transitions when building state charts but I don't think this is the same.
+
+Adrian
+------Original Message------
+From: Pazzo Da Legare
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 27, 2009 6:20 PM
+Subject: [ragel-users] hsm with statecharts
+
+Dear ML,
+
+again with hsm (hierarchical state machine) question. I had a look
+around but I cannot find any clue.I'm trying to post my question on
+this subject.
+
+Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+for more infos). I would like to express state hierarchy with ragel
+statechart but I cannot find a comfortable solution. One way is to
+convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+define the latter in ragel, this step could be automated but I wonder
+if there is a straight way.
+
+Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+
+With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+transition):
+
+S1 {s0/action_s0_S1}
+S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+
+For the signal 's0' I would like to have in S12 the action
+'action_s0_S12' but in S1 the action defined by the super-state S1,
+action_s0_S1.
+
+Thank you in advance for your help!
+
+pazzodalegare
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Feb  2 03:04:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 2 Feb 2009 03:04:49 +0000
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+
+Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+Sender: 
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Jan 29, 2009 2:28 PM
+Subject: [ragel-users] Parsing a component of a machine
+
+Hi, is it possible to parse a subcomponent of a machine specification? I mean:
+
+
+	alphanum = [a-zA-Z0-9]
+	protocol = ('sip'i|'sips'i)
+	user = alphanum+
+	host = ( '.' | alphanum )+
+	
+	main := protocol ':' user '@' host ;
+
+
+This code allow me to parse a complete SIP uri using "%% write exec;", but 
+what about if I also want to parse a single "user" component? must I to 
+duplicate the code creating a new machine just for "user"?:
+
+	alphanum = [a-zA-Z0-9]
+	main := alphanum+
+
+Since "user" is already defined in the above machine, couldn't I use that 
+machine to parse a string just containing a "user" text?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Feb  2 09:58:17 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 2 Feb 2009 10:58:17 +0100
+Subject: [ragel-users] Parsing a component of a machine
+In-Reply-To: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+References: <2054320426-1233543855-cardhu_decombobulator_blackberry.rim.net-1280118611-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <cc1f582e0902020158p26499278ha74b39953a723b49@mail.gmail.com>
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Ok, I was thinking about that exactly. Also I think I should use
+"fgoto" since I have the following grammar:
+
+
+- From header: display_name uri header_params
+
+- URI
+
+- More stuff (CRLF, SP, TAB, vchar...)
+
+
+So if I'm not wrong I could insert all the common stuff in a separate
+file (using later "include") and create two machines:
+
+- from_header
+- uri
+
+So when parsing a "from_header" I should use "fgoto" to parse the
+internal URI. I hope this is the correct way.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Mon Feb  2 09:59:28 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 2 Feb 2009 10:59:28 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+References: <1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <cc1f582e0902020159u3c254afaia1c3c497f13346ab@mail.gmail.com>
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Hi Inaki,
+>
+> You can either add another character or set eof = pe to induce the final action. Leaving actions require one char of lookahead.
+
+Really great to know :)
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Mon Feb  2 10:35:58 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Mon, 2 Feb 2009 11:35:58 +0100
+Subject: [ragel-users] hsm with statecharts
+In-Reply-To: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+References: <732486170-1233543684-cardhu_decombobulator_blackberry.rim.net-364316288-@bxe246.bisx.prod.on.blackberry>
+Message-ID: <1a26b4920902020235j60a412dai36ef45e9da885516@mail.gmail.com>
+
+Dear Adrian,
+
+Thank you for your answer...AND for your tool!
+I didn't find any straight way to express action inheritance. A
+solution could be translating (from a custom language) a hsm machine
+to a fsm and use ragel for implementation.
+I think translation would be quite straight and probably I'm going this way.
+
+Thanks again,
+
+pazzo
+
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Ragel wasn't designed to support the HSM paradigm. What you can do is use arbitrary ragel expressions as transitions when building state charts but I don't think this is the same.
+>
+> Adrian
+> ------Original Message------
+> From: Pazzo Da Legare
+> To: ragel-users at complang.org
+> ReplyTo: ragel-users at complang.org
+> Sent: Jan 27, 2009 6:20 PM
+> Subject: [ragel-users] hsm with statecharts
+>
+> Dear ML,
+>
+> again with hsm (hierarchical state machine) question. I had a look
+> around but I cannot find any clue.I'm trying to post my question on
+> this subject.
+>
+> Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+> http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+> for more infos). I would like to express state hierarchy with ragel
+> statechart but I cannot find a comfortable solution. One way is to
+> convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+> define the latter in ragel, this step could be automated but I wonder
+> if there is a straight way.
+>
+> Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+> S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+> only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+>
+> With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+> transition):
+>
+> S1 {s0/action_s0_S1}
+> S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+> S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+>
+> For the signal 's0' I would like to have in S12 the action
+> 'action_s0_S12' but in S1 the action defined by the super-state S1,
+> action_s0_S1.
+>
+> Thank you in advance for your help!
+>
+> pazzodalegare
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From ibc at aliax.net  Mon Feb  2 23:26:56 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 3 Feb 2009 00:26:56 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+Message-ID: <200902030026.56062.ibc@aliax.net>
+
+Hi, I want to set the "main" value of a Ragel dynamically based on the content 
+of a "main.h" file. Note however that I run Ragel using Ruby as host 
+language.
+
+I've tryed the following:
+
+main.h
+-----------------
+#define KEYWORD "comment"
+-----------------
+
+my_script.rl
+------------------
+#!/usr/bin/env ruby
+
+# String to parse.
+data = ARGV[0]
+
+%%{
+	machine my_machine;
+	import 'main.h' ;
+	main := KEYWORD ;
+	write data;
+}%%
+
+...
+------------------
+
+
+Unfortunatelly I get the following error when trying to compile my_script.rl 
+file:
+
+  my_script.rl: graph lookup of "KEYWORD" failed
+
+
+Is there any way to achieve it? Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Mon Feb  2 23:42:53 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 3 Feb 2009 00:42:53 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+	[SOLVED]
+In-Reply-To: <200902030026.56062.ibc@aliax.net>
+References: <200902030026.56062.ibc@aliax.net>
+Message-ID: <200902030042.53609.ibc@aliax.net>
+
+El Martes, 3 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> Hi, I want to set the "main" value of a Ragel dynamically based on the
+> content of a "main.h" file. Note however that I run Ragel using Ruby as
+> host language.
+
+Ok, I've solved it using replacing the "main := xxxx" string with "sed" before 
+running ragel.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Tue Feb  3 02:49:18 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 3 Feb 2009 02:49:18 +0000
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <1165369147-1233629324-cardhu_decombobulator_blackberry.rim.net-1771264086-@bxe246.bisx.prod.on.blackberry>
+
+Yes you can do it that way, but you don't need a separate file. You can include definitions from a different machine specification in the same file.
+
+-Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Feb 2, 2009 4:58 AM
+Subject: Re: [ragel-users] Parsing a component of a machine
+
+2009/2/2 Adrian Thurston <thurston at complang.org>:
+> Yes you can. Just make a machine specification containing common statements and then use the include feature.
+
+Ok, I was thinking about that exactly. Also I think I should use
+"fgoto" since I have the following grammar:
+
+
+- From header: display_name uri header_params
+
+- URI
+
+- More stuff (CRLF, SP, TAB, vchar...)
+
+
+So if I'm not wrong I could insert all the common stuff in a separate
+file (using later "include") and create two machines:
+
+- from_header
+- uri
+
+So when parsing a "from_header" I should use "fgoto" to parse the
+internal URI. I hope this is the correct way.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Wed Feb  4 14:49:03 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 4 Feb 2009 15:49:03 +0100
+Subject: [ragel-users] Ragel Ruby generated code uses singleton class so
+	it's not thread safe
+Message-ID: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+
+Hi, i'm using Ragel parser generating Ruby code. The generated code
+uses a Class instead of an instance, and that class has lots of
+attributes and methods. Something like:
+
+--------------
+class MyParser
+
+   class << self
+       attr_accessor :_machine_trans_keys
+       private :_machine_trans_keys, :_machine_trans_keys=
+   end
+
+ self._machine_trans_keys = [
+       0, 0, 9, 34, 10, 10,
+       9, 32, 9, 34, -64,
+       126, -128, -65, -128, -65,
+       -128, -65, -128, -65, -128, -65,
+       10, 10, 9, 32, 13,
+       13, 10, 10, 0, 127,
+       0, 0, 0
+   ]
+
+ ...
+ ...
+
+ def self.run_machine(data)
+     ...
+ end
+
+end
+-------------
+
+
+So I wonder how could I use this class into a threaded program. A Ruby
+singleton class is the Class itself, so if a running thread modifies
+some Class attribute then all the other threads will see that change (error!!!).
+
+As an ilustration, please run the following Ruby code:
+
+-----------------------
+#!/usr/bin/env ruby
+
+class Test
+
+	class << self
+		attr_accessor :my_string
+	end
+
+	self.my_string = "initial value"
+
+end
+
+t1 = Thread.new(Test) do |test|
+	puts "--- I'm thread 1:"
+	puts "---   Writting: my_string = 'new value'"
+	test.my_string = "new value"
+	puts "---   Reading:  my_string = #{test.my_string}"
+end
+
+sleep 0.5
+
+t2 = Thread.new(Test) do |test|
+	puts "--- I'm thread 2:"
+	puts "---   Reading:  my_string = #{test.my_string}"
+end
+
+t1.join
+t2.join
+-----------------------
+
+
+This will generate the following output:
+--------------------
+--- I'm thread 1:
+---   Writting: my_string = 'new value'
+---   Reading:  my_string = new value
+--- I'm thread 2:
+---   Reading:  my_string = new value
+-------------------
+
+As you can see, when thread2 gets the value of "my_string" it is "new
+value", the value set previously by thread1.
+AFAIK there is no way to avoid this problem since "Test" is a class,
+not an instance (we are using the Singleton mode).
+
+
+Now imagine that instead of Test we use MyParser with Ragel code
+generated (Singleton class again). We would have the same problem.
+
+
+Why does the Ruby generated code make use of Singleton class instead
+of creating instance methods and attributes?
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Wed Feb  4 21:18:49 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 4 Feb 2009 22:18:49 +0100
+Subject: [ragel-users] Ragel Ruby generated code uses singleton class so
+	it's not thread safe [INVALID]
+In-Reply-To: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+References: <cc1f582e0902040649x456dadabm69f9d43f4560ae9e@mail.gmail.com>
+Message-ID: <200902042218.50007.ibc@aliax.net>
+
+El Miércoles, 4 de Febrero de 2009, Iñaki Baz Castillo escribió:
+
+> So I wonder how could I use this class into a threaded program. A Ruby
+> singleton class is the Class itself, so if a running thread modifies
+> some Class attribute then all the other threads will see that change
+> (error!!!).
+
+After asking it in Ruby-Talk maillist I've received a very good explanation:
+Singleton variable are read-only. The only writtable variable are local 
+variables into Singleton methods.
+
+So all is Ok :)
+
+Thanks a lot and sorry for a bad bug report.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From hsanson at gmail.com  Thu Feb  5 08:37:58 2009
+From: hsanson at gmail.com (Horacio Sanson)
+Date: Thu, 5 Feb 2009 17:37:58 +0900
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <497A532E.5020604@complang.org>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+	<497A532E.5020604@complang.org>
+Message-ID: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+
+Once I tried to implement a transport protocol parser with ragel but
+since ragel works with text strings any binary protocol (TCP, UDP, IP)
+would be difficult to parse. For example how would you match a TCP or
+IP header using text strings?
+
+In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+easier to do with Ragel.
+
+regards,
+Horacio
+
+On Sat, Jan 24, 2009 at 8:30 AM, Adrian Thurston <thurston at complang.org> wrote:
+> It's certainly possible:
+>
+> http://www.zedshaw.com/tips/ragel_state_charts.html
+>
+> Keep in mind though that this is not what ragel was designed for. It was
+> made for compiling regular languages with embedded actions to C code.
+>
+> -Adrian
+>
+> Alexis Letessier wrote:
+>> Hello,
+>>
+>> I am new to this mailing list and i am also discovering ragel.
+>>
+>> I would like to know if protocol analysis is possible with ragel?
+>>
+>> For example, would it be possible to feed ragel with tcpdump or tshark
+>> ouput and validate it against a tcp state diagram ?
+>> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+>>
+>> Regards
+>>
+>> Alexis
+>>
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From alan at alanz.com  Thu Feb  5 14:11:21 2009
+From: alan at alanz.com (Alan)
+Date: Thu, 5 Feb 2009 14:11:21 +0000
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+	<497A532E.5020604@complang.org>
+	<6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+Message-ID: <01A696DC-1090-48DA-95FE-297E185B5F67@alanz.com>
+
+On 5 Feb 2009, at 08:37, Horacio Sanson wrote:
+
+> Once I tried to implement a transport protocol parser with ragel but
+> since ragel works with text strings any binary protocol (TCP, UDP, IP)
+> would be difficult to parse. For example how would you match a TCP or
+> IP header using text strings?
+
+As the header is already in the form of a known structure, what is  
+left to parse?
+
+>
+>
+> In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+> easier to do with Ragel.
+
+But they waste bandwidth and cycles, because they aren't already in a  
+tight pre-determined structure. ;-)
+
+
+
+From thurston at complang.org  Fri Feb  6 00:31:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:31:25 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090129213649.GD51435@hades.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>	<497A3F87.5050404@complang.org>	<20090124042747.GD30982@deprived.panopticon>	<497BBC4E.5080100@complang.org>
+	<20090129213649.GD51435@hades.panopticon>
+Message-ID: <498B84DD.2050801@complang.org>
+
+I still can't see the problem. Can you restate it, if it's still an issue?
+
+-Adrian
+
+Dmitry Marakasov wrote:
+> * Adrian Thurston (thurston at complang.org) wrote:
+> 
+>> Sorry I went to fast and didn't see your problem. My mail program was 
+>> highlighting the lines beginning with ">", causing some confusion for me.
+>>
+>> The bit of info that you're missing is that action embedding operators 
+>> bind more tightly than concatenation. Use:
+>>
+>> b := ( a 'b'+ ) >{print} %{print};
+>>
+>> and I think you'll get what you want.
+> 
+> That would be too easy :)
+> 
+> Actually that was just an example, the real cause is more complex,
+> and my goal is to save all informaion encountered while parsing
+> subexpression amd process it as a whole when it's finished. Like
+> that:
+> 
+> char *a_start;
+> char *a_end;
+> 
+> a = 'a'+
+>     > { a_start = p; }
+>     % { a_end = p; }
+> ;
+> 
+> b = a 'b'+
+>     > { a_start = a_end = 0; /* reset state */ }
+>     % { printf("subexpr finished, there were %d a's\n", a_end-a_start); }
+> ;
+> 
+> main := b+;
+> 
+
+
+
+From thurston at complang.org  Fri Feb  6 00:37:56 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:37:56 -0500
+Subject: [ragel-users] Setting the "main := XXXX" value
+	dynamically	[SOLVED]
+In-Reply-To: <200902030042.53609.ibc@aliax.net>
+References: <200902030026.56062.ibc@aliax.net>
+	<200902030042.53609.ibc@aliax.net>
+Message-ID: <498B8664.5030300@complang.org>
+
+The problem is that you're doing something I didn't anticipate ... 
+importing from a C file when the input language is Ruby.
+
+Adrian
+
+Iñaki Baz Castillo wrote:
+> El Martes, 3 de Febrero de 2009, Iñaki Baz Castillo escribió:
+>> Hi, I want to set the "main" value of a Ragel dynamically based on the
+>> content of a "main.h" file. Note however that I run Ragel using Ruby as
+>> host language.
+> 
+> Ok, I've solved it using replacing the "main := xxxx" string with "sed" before 
+> running ragel.
+> 
+> 
+
+
+
+From thurston at complang.org  Fri Feb  6 00:45:12 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Feb 2009 19:45:12 -0500
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>	<497A532E.5020604@complang.org>
+	<6156dd8b0902050037r3aa8fa68xf301d86e5682beb3@mail.gmail.com>
+Message-ID: <498B8818.8060403@complang.org>
+
+You can parse binary protocols with ragel ... you just use numerical 
+values when defining the machines.
+
+main = 0xaf any;
+
+You can't define anything smaller than a byte, however. You need to 
+define ranges of bytes that give you the right bit-pattern and the whole 
+byte gets tested using binary search on the value, which is not optimal 
+for parsing binary protocols.
+
+-Adrian
+
+
+
+Horacio Sanson wrote:
+> Once I tried to implement a transport protocol parser with ragel but
+> since ragel works with text strings any binary protocol (TCP, UDP, IP)
+> would be difficult to parse. For example how would you match a TCP or
+> IP header using text strings?
+> 
+> In the other hand text based protocols (RTSP, SDP, etc..) are a LOT
+> easier to do with Ragel.
+> 
+> regards,
+> Horacio
+> 
+> On Sat, Jan 24, 2009 at 8:30 AM, Adrian Thurston <thurston at complang.org> wrote:
+>> It's certainly possible:
+>>
+>> http://www.zedshaw.com/tips/ragel_state_charts.html
+>>
+>> Keep in mind though that this is not what ragel was designed for. It was
+>> made for compiling regular languages with embedded actions to C code.
+>>
+>> -Adrian
+>>
+>> Alexis Letessier wrote:
+>>> Hello,
+>>>
+>>> I am new to this mailing list and i am also discovering ragel.
+>>>
+>>> I would like to know if protocol analysis is possible with ragel?
+>>>
+>>> For example, would it be possible to feed ragel with tcpdump or tshark
+>>> ouput and validate it against a tcp state diagram ?
+>>> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+>>>
+>>> Regards
+>>>
+>>> Alexis
+>>>
+>>>
+>>> ------------------------------------------------------------------------
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Fri Feb  6 09:36:01 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 6 Feb 2009 10:36:01 +0100
+Subject: [ragel-users] Setting the "main := XXXX" value dynamically
+	[SOLVED]
+In-Reply-To: <498B8664.5030300@complang.org>
+References: <200902030026.56062.ibc@aliax.net>
+	<200902030042.53609.ibc@aliax.net> <498B8664.5030300@complang.org>
+Message-ID: <cc1f582e0902060136p6f3b6ac2r988569372e8fca1e@mail.gmail.com>
+
+2009/2/6 Adrian Thurston <thurston at complang.org>:
+> The problem is that you're doing something I didn't anticipate ...
+> importing from a C file when the input language is Ruby.
+
+Don't worry, this is just a workaround to test all the BNF nodes of my
+grammar. I've done a script which replaces the "main :=" line with the
+node I want to match.
+When I finish the whole parser I won't need it :)
+
+Thanks.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From amdmi3 at amdmi3.ru  Mon Feb  9 22:43:55 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Tue, 10 Feb 2009 01:43:55 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <498B84DD.2050801@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+	<497BBC4E.5080100@complang.org>
+	<20090129213649.GD51435@hades.panopticon>
+	<498B84DD.2050801@complang.org>
+Message-ID: <20090209224355.GA82330@hades.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> I still can't see the problem. Can you restate it, if it's still an issue?
+
+It still is. The problem in the behaviour of mentioned machine:
+
+%%{ 
+  machine foo; 
+ 
+  a = 'a'+;
+  b = a 'b'+;
+  main := b+; 
+}%%
+
+- Logically.
+Rule `b' contains rule `a', and no other rule contains `a'. Thus, you
+only can enter `a' from `b', thus `enter a' action should always be
+executed after `enter b'.
+
+- In practice
+Rule a is entered
+Rule a is left
+Rule b is entered
+Rule b is left
+
+That seem illogical to me.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Mon Feb  9 23:34:45 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 9 Feb 2009 23:34:45 +0000
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+Message-ID: <1426850096-1234222444-cardhu_decombobulator_blackberry.rim.net-1942092881-@bxe246.bisx.prod.on.blackberry>
+
+You must not have tried the 'easy' solution I gave. Run it and then look up the operator precedence rules in the manual.
+
+Also note, these are expressions that are evaluated into one machine and not rules in the usual sense. 
+
+Adrian
+------Original Message------
+From: Dmitry Marakasov
+Sender: 
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Sent: Feb 9, 2009 5:43 PM
+Subject: Re: [ragel-users] Actions embedded into unexpected transitions?
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> I still can't see the problem. Can you restate it, if it's still an issue?
+
+It still is. The problem in the behaviour of mentioned machine:
+
+%%{ 
+  machine foo; 
+ 
+  a = 'a'+;
+  b = a 'b'+;
+  main := b+; 
+}%%
+
+- Logically.
+Rule `b' contains rule `a', and no other rule contains `a'. Thus, you
+only can enter `a' from `b', thus `enter a' action should always be
+executed after `enter b'.
+
+- In practice
+Rule a is entered
+Rule a is left
+Rule b is entered
+Rule b is left
+
+That seem illogical to me.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Tue Feb 10 18:50:09 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 10 Feb 2009 19:50:09 +0100
+Subject: [ragel-users] Ragel syntax for KDE Kate editor?
+Message-ID: <200902101950.09717.ibc@aliax.net>
+
+Hi, there is Ragel syntax for Vim and for an editor in Mac. Do you know it 
+there is a Ragel syntax for KDE Kate editor?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 11 20:39:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 11 Feb 2009 21:39:00 +0100
+Subject: [ragel-users] Problem with an indetermination
+Message-ID: <200902112139.00587.ibc@aliax.net>
+
+Hi, I'm finishing a complete SIP protocol parser with Ragel, but I have an 
+issue I can't solve. The problem is basically the following (I use Ruby):
+
+--------------
+name = ( token ( SP token )* )   > { _tag = p }
+  %{ @value = data[_tag..p-1].pack("c*"); puts "--name=#{@value}--"} ;
+
+full = name SP* "<" [a-z]+ ">" ;
+
+main := full
+--------------
+
+I parse the following valid string:
+  'Alice Kiske <alice>'
+and I get two results for "name" node:
+
+  --name=Alice--
+  --name=Alice Kiske--
+
+Obviously I just want the second result, the first one shouldn't occur.
+
+I've solved similar problems using priorities but they don't help me in this 
+issue. Any help please?
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Wed Feb 11 22:50:21 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 17:50:21 -0500
+Subject: [ragel-users] Ragel syntax for KDE Kate editor?
+In-Reply-To: <200902101950.09717.ibc@aliax.net>
+References: <200902101950.09717.ibc@aliax.net>
+Message-ID: <4993562D.6040202@complang.org>
+
+Not that I'm aware of.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, there is Ragel syntax for Vim and for an editor in Mac. Do you know it 
+> there is a Ragel syntax for KDE Kate editor?
+> 
+> Thanks a lot.
+> 
+
+
+
+From thurston at complang.org  Wed Feb 11 23:46:32 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 18:46:32 -0500
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902112139.00587.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net>
+Message-ID: <49936358.60503@complang.org>
+
+The problem here is an ambiguity. When a space is seen it is unknown 
+whether or not the space extends the name or is the beginning of the end 
+("<"). You can change it to this:
+
+name = ( token ( SP token )* )   > { _tag = p }
+    %{ @value = data[_tag..p-1].pack("c*") };
+
+full = name SP* %{ puts "--name=#{@value}--" } "<" [a-z]+ ">";
+
+main := full;
+
+Now on each space the value is only stored. Basically you need to mark 
+the end separately from doing something about it because ever time you 
+think you see the end, it may not be the end.
+
+An alternative would be to include the SP* in name and strip trailing 
+whitespace after.
+
+-Adrian
+
+
+Iñaki Baz Castillo wrote:
+> Hi, I'm finishing a complete SIP protocol parser with Ragel, but I have an 
+> issue I can't solve. The problem is basically the following (I use Ruby):
+> 
+> --------------
+> name = ( token ( SP token )* )   > { _tag = p }
+>   %{ @value = data[_tag..p-1].pack("c*"); puts "--name=#{@value}--"} ;
+> 
+> full = name SP* "<" [a-z]+ ">" ;
+> 
+> main := full
+> --------------
+> 
+> I parse the following valid string:
+>   'Alice Kiske <alice>'
+> and I get two results for "name" node:
+> 
+>   --name=Alice--
+>   --name=Alice Kiske--
+> 
+> Obviously I just want the second result, the first one shouldn't occur.
+> 
+> I've solved similar problems using priorities but they don't help me in this 
+> issue. Any help please?
+> 
+> Thanks a lot.
+> 
+> 
+
+
+
+From ibc at aliax.net  Wed Feb 11 23:55:38 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 12 Feb 2009 00:55:38 +0100
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <49936358.60503@complang.org>
+References: <200902112139.00587.ibc@aliax.net> <49936358.60503@complang.org>
+Message-ID: <200902120055.38406.ibc@aliax.net>
+
+El Jueves, 12 de Febrero de 2009, Adrian Thurston escribió:
+> The problem here is an ambiguity. When a space is seen it is unknown
+> whether or not the space extends the name or is the beginning of the end
+> ("<"). You can change it to this:
+>
+> name = ( token ( SP token )* )   > { _tag = p }
+>     %{ @value = data[_tag..p-1].pack("c*") };
+>
+> full = name SP* %{ puts "--name=#{@value}--" } "<" [a-z]+ ">";
+>
+> main := full;
+>
+> Now on each space the value is only stored. Basically you need to mark
+> the end separately from doing something about it because ever time you
+> think you see the end, it may not be the end.
+
+Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H I" 
+then the % action will be called 9 times and for each time it will store the 
+data in @value.
+
+
+> An alternative would be to include the SP* in name and strip trailing
+> whitespace after.
+
+Unfortunatelly that change would involve more changes in the whole grammar, 
+and would require changes in the original BNF grammar of SIP protocol. SIP 
+has a really bad designed grammar, full of ambiguities :(
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 11 23:59:04 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 12 Feb 2009 00:59:04 +0100
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902120055.38406.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net> <49936358.60503@complang.org>
+	<200902120055.38406.ibc@aliax.net>
+Message-ID: <200902120059.04364.ibc@aliax.net>
+
+El Jueves, 12 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> > Now on each space the value is only stored. Basically you need to mark
+> > the end separately from doing something about it because ever time you
+> > think you see the end, it may not be the end.
+>
+> Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H
+> I" then the % action will be called 9 times and for each time it will store
+> the data in @value.
+
+Well, I understand, I could store the data in @value after parsing the 
+required "<". For that I would require to store the final value of 'p' when 
+leaving 'name'.  :)
+
+Hope I'm right. Thanks.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Thu Feb 12 00:10:36 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 11 Feb 2009 19:10:36 -0500
+Subject: [ragel-users] Problem with an indetermination
+In-Reply-To: <200902120059.04364.ibc@aliax.net>
+References: <200902112139.00587.ibc@aliax.net>
+	<49936358.60503@complang.org>	<200902120055.38406.ibc@aliax.net>
+	<200902120059.04364.ibc@aliax.net>
+Message-ID: <499368FC.6070908@complang.org>
+
+Yes, that's right. You don't actually need to save off the entire value, 
+just record p whenever a space is seen and at the end of it all you'll 
+have the very last one.
+
+-Adrian.
+
+Iñaki Baz Castillo wrote:
+> El Jueves, 12 de Febrero de 2009, Iñaki Baz Castillo escribió:
+>>> Now on each space the value is only stored. Basically you need to mark
+>>> the end separately from doing something about it because ever time you
+>>> think you see the end, it may not be the end.
+>> Thanks a lot. But, isn't inefficient? I mean: if 'name' is "A B C D E F G H
+>> I" then the % action will be called 9 times and for each time it will store
+>> the data in @value.
+> 
+> Well, I understand, I could store the data in @value after parsing the 
+> required "<". For that I would require to store the final value of 'p' when 
+> leaving 'name'.  :)
+> 
+> Hope I'm right. Thanks.
+> 
+
+
+
+From yogieric at mac.com  Fri Feb 13 21:49:37 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Fri, 13 Feb 2009 13:49:37 -0800
+Subject: [ragel-users] A scanner within a scanner?
+Message-ID: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+
+Hi,
+
+If I want a scanner inside a scanner, do I have to stash any variables  
+(like ts, te & act) while I'm in the inner scanner? If so, what do I  
+initialize the new ts, te & act variables to. Is there a cleaner way  
+of doing this than doing it manually in my action?
+
+Cheers,
+Eric
+
+
+
+
+From thurston at complang.org  Sun Feb 15 17:07:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 15 Feb 2009 12:07:26 -0500
+Subject: [ragel-users] A scanner within a scanner?
+In-Reply-To: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+References: <245B3F03-D65E-4647-8686-4D6B2BC0A137@mac.com>
+Message-ID: <49984BCE.50304@complang.org>
+
+No you don't have to stash them. You can jump to a new scanner in a 
+pattern action just fine. Once the pattern action is executed the 
+machine is finished with these variables. Immediately after the action 
+it will set tokstart = 0 but this is for the user's sake only. That is 
+done so the user can tell if a token is active on the boundary between 
+buffers.
+
+One thing you can't do however, is return to, or jump into the middle of 
+a pattern match. You shouldn't need to though. I can't think of a 
+parsing problem that would require it. Just break scanner patterns on 
+call boundaries and you should be fine.
+
+-Adrian
+
+Eric Brown wrote:
+> Hi,
+> 
+> If I want a scanner inside a scanner, do I have to stash any variables  
+> (like ts, te & act) while I'm in the inner scanner? If so, what do I  
+> initialize the new ts, te & act variables to. Is there a cleaner way  
+> of doing this than doing it manually in my action?
+> 
+> Cheers,
+> Eric
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From yogieric at mac.com  Wed Feb 18 08:29:15 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Wed, 18 Feb 2009 00:29:15 -0800
+Subject: [ragel-users] Generating code for gcc 2.95
+Message-ID: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+
+I have a customer still deploying to rather old/stable systems that  
+run on gcc 2.95.
+
+The only problem I'm noticing is that gcc 2.95 wants all variables  
+declared at the top of a scope. Ragel is generating something like  
+this: (which generates a syntax error when it sees const)
+...
+         if ( _msg_eof_trans[cs] > 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- > 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+...
+
+If I add one layer of scope, gcc 2.95 compiles properly:
+         if ( _msg_eof_trans[cs] > 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+{
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- > 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+}
+
+I hate to manually hack the ragel output this way. If there's a ragel  
+or gcc option I'm missing, please let me know.
+
+
+Got around this by using flat table-driven FSM (-F1). Still thought  
+the problems I was having were worth mentioning here.
+
+Cheers,
+Eric
+
+
+
+
+From ibc at aliax.net  Wed Feb 18 19:42:17 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 20:42:17 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+Message-ID: <200902182042.17128.ibc@aliax.net>
+
+Hi, I'm trying the following (using Ruby host language):
+
+
+	action _start { start = p }
+	action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+	action set_user { _stop ; user = value ; puts "---user=#{user}---" }
+	
+	user = ( unreserved | escaped | user_unreserved )+ >_start %set_user  ;
+
+
+What I want to do is avoid writting the stuff in '_stop' action in every 
+leaving action (%). But it seems to fail since '_stop' is executed as Ruby 
+language:
+  ERROR: undefined local variable or method `_stop'
+
+
+How could I invoke '_stop' action from 'set_user' action?
+
+Thanks.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 19:59:02 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 20:59:02 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <200902182042.17128.ibc@aliax.net>
+References: <200902182042.17128.ibc@aliax.net>
+Message-ID: <200902182059.02461.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> Hi, I'm trying the following (using Ruby host language):
+>
+>
+> 	action _start { start = p }
+> 	action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+> 	action set_user { _stop ; user = value ; puts "---user=#{user}---" }
+>
+> 	user = ( unreserved | escaped | user_unreserved )+ >_start %set_user  ;
+>
+>
+> What I want to do is avoid writting the stuff in '_stop' action in every
+> leaving action (%). But it seems to fail since '_stop' is executed as Ruby
+> language:
+>   ERROR: undefined local variable or method `_stop'
+>
+>
+> How could I invoke '_stop' action from 'set_user' action?
+>
+> Thanks.
+
+Ops, I've found a workaround:
+
+ action _start { start = p }
+ action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+ action set_user { user = value ; puts "---user=#{user}---" }
+
+ user = ( unreserved | escaped | user_unreserved )+ >_start %stop %set_user  ;
+
+As you see I use two leaving actions (%) in "user". It works but I've no idea 
+about if it *should* really work. Any problem with it?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From yogieric at mac.com  Wed Feb 18 22:22:15 2009
+From: yogieric at mac.com (Eric Brown)
+Date: Wed, 18 Feb 2009 14:22:15 -0800
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <200902182059.02461.ibc@aliax.net>
+References: <200902182042.17128.ibc@aliax.net>
+	<200902182059.02461.ibc@aliax.net>
+Message-ID: <073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+
+Hi Iñaki,
+
+On Feb 18, 2009, at 11:59 AM, Iñaki Baz Castillo wrote:
+<snip>
+> Ops, I've found a workaround:
+>
+> action _start { start = p }
+> action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+> action set_user { user = value ; puts "---user=#{user}---" }
+>
+> user = ( unreserved | escaped | user_unreserved )+ >_start %stop  
+> %set_user  ;
+>
+> As you see I use two leaving actions (%) in "user". It works but  
+> I've no idea
+> about if it *should* really work. Any problem with it?
+
+That is specifically supposed to work according to the ragel 6.3 PDF  
+manual.
+
+About your original question -- calling one action from another -- I  
+don't think there is a way. Would be interesting if there was. Of  
+course actions can call other methods and if you use the "access" and  
+"variable" directives to put cs, p, pe, etc. in your object, you can  
+put your comment code in a method.
+
+Cheers,
+Eric
+
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:28:12 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:28:12 +0100
+Subject: [ragel-users] How to solve this Indetermination
+Message-ID: <200902182328.12672.ibc@aliax.net>
+
+Hi, note this simple machine:
+
+%%{
+
+machine sip_uri;
+
+action _start { start = p }
+action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+
+action set_userinfo { @userinfo = value ; puts "---userinfo=#{@userinfo}---" }
+action set_host { @host = value ; puts "---host=#{@host}---" }
+action set_port { @port = value ; puts "---port=#{@port}---" }
+
+user = [a-z]+ ;
+password = [a-z]+ ;
+userinfo = ( user ( ":" password )? "@" ) >_start %_stop %set_userinfo ;
+host = [a-z]+ >_start %_stop %set_host ;
+port = [0-9]+ >_start %_stop %set_port ;
+uri = "sip:" userinfo? host ( ":" port )? ;
+main := uri '\0' ;
+
+}%%
+
+
+When I parse:  "sip:ibc:xxxx at mydomain" I get this result:
+
+-------------
+Parsing 'sip:ibc:xxxx at mydomain'...
+---host=ibc---          <-------- WRONG !!!
+---userinfo=ibc:xxxx at ---
+---host=mydomain---
+
+Finished: cs: 13  p: 22  pe: 22
+Parsing OK !
+-------------
+
+I really don't know why 'host' is set twice. I know that it's due to ( ":" 
+port )?. In case it doesn't exist in the grammar then 'host' is set just once 
+(with 'ibc:xxxx' value).
+
+Is there any trick to avoid this duplicate result? I've tryed everything I 
+know with no success.
+
+Thanks a lot foir any help.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:29:37 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:29:37 +0100
+Subject: [ragel-users] How to call an 'action' from other 'action' ?
+In-Reply-To: <073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+References: <200902182042.17128.ibc@aliax.net>
+	<200902182059.02461.ibc@aliax.net>
+	<073D9601-5E77-49F2-99F7-E72DED62631C@mac.com>
+Message-ID: <200902182329.37169.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Eric Brown escribió:
+
+> > As you see I use two leaving actions (%) in "user". It works but
+> > I've no idea
+> > about if it *should* really work. Any problem with it?
+>
+> That is specifically supposed to work according to the ragel 6.3 PDF
+> manual.
+
+Yes, I was reading about it right now :)
+
+
+> About your original question -- calling one action from another -- I
+> don't think there is a way. Would be interesting if there was. Of
+> course actions can call other methods and if you use the "access" and
+> "variable" directives to put cs, p, pe, etc. in your object, you can
+> put your comment code in a method.
+
+Well, using leaving action (%) twice is an ellegant workaround for me :)
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Wed Feb 18 22:33:29 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 18 Feb 2009 23:33:29 +0100
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <200902182328.12672.ibc@aliax.net>
+References: <200902182328.12672.ibc@aliax.net>
+Message-ID: <200902182333.29331.ibc@aliax.net>
+
+El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+
+> I really don't know why 'host' is set twice. I know that it's due to ( ":"
+> port )?. In case it doesn't exist in the grammar then 'host' is set just
+> once (with 'ibc:xxxx' value).
+>
+> Is there any trick to avoid this duplicate result? I've tryed everything I
+> know with no success.
+>
+> Thanks a lot foir any help.
+
+Trying and trying I've got a solution:
+
+BEFORE:
+  uri = "sip:" userinfo? host ( ":" port )? ;
+NOW:
+  uri = "sip:" ( userinfo? host ) <: ( ":" port )? ;
+
+
+:)
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Sat Feb 21 20:51:23 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Feb 2009 15:51:23 -0500
+Subject: [ragel-users] Generating code for gcc 2.95
+In-Reply-To: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+References: <C2B6FA80-46F7-4E88-88F0-BE749397E7A8@mac.com>
+Message-ID: <49A0694B.70209@complang.org>
+
+Are you using an old version of Ragel? This shouldn't be happening with 
+the latest. Also, could you tell me which options (if any) you're 
+passing to Ragel.
+
+-Adrian
+
+Eric Brown wrote:
+> I have a customer still deploying to rather old/stable systems that  
+> run on gcc 2.95.
+> 
+> The only problem I'm noticing is that gcc 2.95 wants all variables  
+> declared at the top of a scope. Ragel is generating something like  
+> this: (which generates a syntax error when it sees const)
+> ...
+>          if ( _msg_eof_trans[cs] > 0 ) {
+>                  _trans = _msg_eof_trans[cs] - 1;
+>                  goto _eof_trans;
+>          }
+>          const char *__acts = _msg_actions + _msg_eof_actions[cs];
+>          unsigned int __nacts = (unsigned int) *__acts++;
+>          while ( __nacts-- > 0 ) {
+>                  switch ( *__acts++ ) {
+>                  case 12:
+>                          { p--; {stack[top++] = cs; cs = 176; goto  
+> _again;} }
+>                          break;
+>                  }
+>          }
+> ...
+> 
+> If I add one layer of scope, gcc 2.95 compiles properly:
+>          if ( _msg_eof_trans[cs] > 0 ) {
+>                  _trans = _msg_eof_trans[cs] - 1;
+>                  goto _eof_trans;
+>          }
+> {
+>          const char *__acts = _msg_actions + _msg_eof_actions[cs];
+>          unsigned int __nacts = (unsigned int) *__acts++;
+>          while ( __nacts-- > 0 ) {
+>                  switch ( *__acts++ ) {
+>                  case 12:
+>                          { p--; {stack[top++] = cs; cs = 176; goto  
+> _again;} }
+>                          break;
+>                  }
+>          }
+> }
+> 
+> I hate to manually hack the ragel output this way. If there's a ragel  
+> or gcc option I'm missing, please let me know.
+> 
+> 
+> Got around this by using flat table-driven FSM (-F1). Still thought  
+> the problems I was having were worth mentioning here.
+> 
+> Cheers,
+> Eric
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Feb 21 21:08:05 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Feb 2009 16:08:05 -0500
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <200902182333.29331.ibc@aliax.net>
+References: <200902182328.12672.ibc@aliax.net>
+	<200902182333.29331.ibc@aliax.net>
+Message-ID: <49A06D35.2030003@complang.org>
+
+Does that work okay with the following input?
+
+sip:mydomain:45
+
+I suspect it might not. The problem with this grammar is that you don't 
+know what a colon after "sip:word" means. It could either end a host and 
+start a port, or end a username and start a password. The presence of @ 
+will tell you, as will one more chacter of lookahead (if a number then 
+it's the former). This is where the one-pass model of ragel gets into 
+trouble! You might want to try just recording what you see in the 
+actions, but not doing anything about it until some action at the very 
+end. At that time you can check which parts you have.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Miércoles, 18 de Febrero de 2009, Iñaki Baz Castillo escribió:
+> 
+>> I really don't know why 'host' is set twice. I know that it's due to ( ":"
+>> port )?. In case it doesn't exist in the grammar then 'host' is set just
+>> once (with 'ibc:xxxx' value).
+>>
+>> Is there any trick to avoid this duplicate result? I've tryed everything I
+>> know with no success.
+>>
+>> Thanks a lot foir any help.
+> 
+> Trying and trying I've got a solution:
+> 
+> BEFORE:
+>   uri = "sip:" userinfo? host ( ":" port )? ;
+> NOW:
+>   uri = "sip:" ( userinfo? host ) <: ( ":" port )? ;
+> 
+> 
+> :)
+> 
+> 
+
+
+
+From ibc at aliax.net  Sun Feb 22 18:29:52 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 22 Feb 2009 19:29:52 +0100
+Subject: [ragel-users] How to solve this Indetermination [SOLVED]
+In-Reply-To: <49A06D35.2030003@complang.org>
+References: <200902182328.12672.ibc@aliax.net>
+	<200902182333.29331.ibc@aliax.net> <49A06D35.2030003@complang.org>
+Message-ID: <200902221929.53061.ibc@aliax.net>
+
+El Sábado, 21 de Febrero de 2009, Adrian Thurston escribió:
+> Does that work okay with the following input?
+>
+> sip:mydomain:45
+>
+> I suspect it might not. The problem with this grammar is that you don't
+> know what a colon after "sip:word" means. It could either end a host and
+> start a port, or end a username and start a password. The presence of @
+> will tell you, as will one more chacter of lookahead (if a number then
+> it's the former). This is where the one-pass model of ragel gets into
+> trouble! You might want to try just recording what you see in the
+> actions, but not doing anything about it until some action at the very
+> end. At that time you can check which parts you have.
+
+You are right, thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From graceindustries at gmail.com  Wed Feb 25 15:05:41 2009
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 25 Feb 2009 10:05:41 -0500
+Subject: [ragel-users]  Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+	<47FD2D3B.6060405@cs.queensu.ca>
+	<a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+	<480511ED.2060000@cs.queensu.ca>
+	<a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+	<4816719F.8050502@cs.queensu.ca>
+	<a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+Message-ID: <a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+
+On Mon, Apr 28, 2008 at 7:53 PM, Adrian Thurston <thurston at cs.queensu.ca> wrote:
+>
+> Hi Bob, you can use priorities to do this.
+>
+> (
+>   'a' |
+>   'b' |
+>   'c' |
+>   ...
+> ) @1 |
+> (
+>   any @0
+> )
+>
+> Though there really should be a guarded union operator that does this.
+
+I'm not getting that to work.  Here is a simplified example,
+(with several non-working tries commented out):
+
+   blinks = (
+       start: (
+               SM2008_MODEL_EVENT -> SM2008_MODEL |
+               SM2009_MODEL_EVENT -> SM2009_MODEL
+              )@1 |
+              (
+#               any @(blink, 0)
+               any $(blink, 0)
+#               any @0
+              )
+#              )@blink
+
+
+If I get any character besides 2008 or 2009 events I want to call the
+action 'blink'.
+
+I am never seeing blink called.  Machine always returns -1 on
+non-2008/2009 events (blink never returns).
+
+What is the correct syntax here?
+
+>>     I think what you want instead of any* is [^>].
+>>
+>>
+>> [^>] worked fine when I have a few states.
+>> Is there a better way to do it if you have say
+>> forty states that would be valid?
+
+
+

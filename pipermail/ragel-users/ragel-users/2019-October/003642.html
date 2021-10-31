@@ -1,0 +1,265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] combining ragel and lemon
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20combining%20ragel%20and%20lemon&In-Reply-To=%3CF4B7059BF1E9EC31.802a8b77-80e6-4e18-be64-75a3ecf75db2%40mail.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003641.html">
+   <LINK REL="Next"  HREF="003643.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] combining ragel and lemon</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20combining%20ragel%20and%20lemon&In-Reply-To=%3CF4B7059BF1E9EC31.802a8b77-80e6-4e18-be64-75a3ecf75db2%40mail.outlook.com%3E"
+       TITLE="[ragel-users] combining ragel and lemon">thurston at colm.net
+       </A><BR>
+    <I>Wed Oct 16 19:26:21 EDT 2019</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="003641.html">[ragel-users] combining ragel and lemon
+</A></li>
+        <LI>Next message (by thread): <A HREF="003643.html">[ragel-users] combining ragel and lemon
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3642">[ date ]</a>
+              <a href="thread.html#3642">[ thread ]</a>
+              <a href="subject.html#3642">[ subject ]</a>
+              <a href="author.html#3642">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Just omits the static vars. So long as you are not checking final state status or if in the error state you can safely omit them.
+
+
+
+
+Get Outlook for Android
+
+
+
+
+
+
+
+On Wed, Oct 16, 2019 at 8:24 PM -0300, &quot;Rajeev Bharol&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">rajeev at arable.com</A>&gt; wrote:
+
+
+
+
+
+
+
+
+
+
+Hi Adrian
+The following:%% write data noentry noerror nofinal;
+
+Fixes all my errors. Will it have any unintended consequences?
+regards
+
+On Tue, Oct 15, 2019 at 9:09 PM Rajeev Bharol &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">rajeev at arable.com</A>&gt; wrote:
+Thanks Adrian,
+With write data noentry;
+Three variables ie., json_en_main, json_en_rest_object, json_en_rest_array are not created anymore. However, the variables json_error and json_first_final are still created, and hence GCC still complains. Any remedy for these?
+
+build/json.c:265:18: error: 'json_error' defined but not used [-Werror=unused-const-variable=]
+ static const int json_error = 0;
+                  ^~~~~~~~~~
+build/json.c:264:18: error: 'json_first_final' defined but not used [-Werror=unused-const-variable=]
+ static const int json_first_final = 61;
+                  ^~~~~~~~~~~~~~~~
+cc1: all warnings being treated as errors
+
+
+
+regardsRajeev
+
+
+
+On Tue, Oct 15, 2019 at 4:11 AM Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurston at colm.net</A>&gt; wrote:
+Hi Rajeev,
+
+
+
+Those are entry points you can use during initialization to start 
+
+parsing somewhere other than &quot;main&quot;. You can also use them to jump to 
+
+other parts from action code. To remove them from output use the noentry 
+
+write option to the write data command:
+
+
+
+write data noentry;
+
+
+
+Adrian
+
+
+
+On 2019-10-14 15:04, Rajeev Bharol wrote:
+
+&gt;<i> Hi
+</I>
+&gt;<i> I am using ragel 6.10 and it generates following unused variables that
+</I>
+&gt;<i> GCC compiler complains about. Is it a bug.
+</I>
+&gt;<i> 
+</I>
+&gt;<i> static const int json_en_rest_array = 12;
+</I>
+&gt;<i> static const int json_en_rest_object = 32;
+</I>
+&gt;<i> static const int json_en_main = 1;
+</I>
+&gt;<i> 
+</I>
+&gt;<i> Thanks
+</I>
+&gt;<i> Rajeev
+</I>
+&gt;<i> 
+</I>
+&gt;<i> On Fri, Aug 16, 2019 at 10:07 AM Mark Olesen
+</I>
+&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">Mark.Olesen at esi-group.com</A>&gt; wrote:
+</I>
+&gt;<i> 
+</I>
+&gt;&gt;<i> I've use ragel in a few places already for parsing, but now I'm
+</I>
+&gt;&gt;<i> looking
+</I>
+&gt;&gt;<i> to port over a medium sized chunk of flex/bison. Perhaps going for a
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> ragel/lemon combination.
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> According to the lemon docs
+</I>
+&gt;&gt;<i> (<A HREF="https://www.hwaci.com/sw/lemon/lemon.html">https://www.hwaci.com/sw/lemon/lemon.html</A>)
+</I>
+&gt;&gt;<i> the parser is the one calling the lexer. But this seems to be the
+</I>
+&gt;&gt;<i> same
+</I>
+&gt;&gt;<i> as ragel would like to be doing: match a pattern, call an action.
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> The few examples of ragel/lemon that I've found (the classic
+</I>
+&gt;&gt;<i> calculator,
+</I>
+&gt;&gt;<i> or a json parser) seem to be handling this by running ragel as the
+</I>
+&gt;&gt;<i> scanner, and calling the lemon parser in its actions.
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> Some other examples I've seen use re2c for the lexing part. This
+</I>
+&gt;&gt;<i> appears
+</I>
+&gt;&gt;<i> to fit better with what lemon expects, but there must be some way to
+</I>
+&gt;&gt;<i> lex
+</I>
+&gt;&gt;<i> a single token and return from ragel I suspect.
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> I would be thankful for ideas.
+</I>
+&gt;&gt;<i> 
+</I>
+&gt;&gt;<i> Cheers,
+</I>
+&gt;&gt;<i> /mark
+</I>
+&gt;&gt;<i> _______________________________________________
+</I>
+&gt;&gt;<i> ragel-users mailing list
+</I>
+&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>
+&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+&gt;<i> _______________________________________________
+</I>
+&gt;<i> ragel-users mailing list
+</I>
+&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>
+&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+
+
+-- 
+
+Dr. Adrian D. Thurston
+
+Chief Scientist
+
+Colm Networks
+
+<A HREF="http://colm.net/">http://colm.net/</A>
+
+
+
+_______________________________________________
+
+ragel-users mailing list
+
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+
+
+
+
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20191016/313de2d0/attachment.html">http://www.colm.net/pipermail/ragel-users/attachments/20191016/313de2d0/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="003641.html">[ragel-users] combining ragel and lemon
+</A></li>
+	<LI>Next message (by thread): <A HREF="003643.html">[ragel-users] combining ragel and lemon
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3642">[ date ]</a>
+              <a href="thread.html#3642">[ thread ]</a>
+              <a href="subject.html#3642">[ subject ]</a>
+              <a href="author.html#3642">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

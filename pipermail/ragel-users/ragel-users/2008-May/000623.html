@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Simple URL parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Simple%20URL%20parser&In-Reply-To=%3C483707EF.9050901%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000621.html">
+   <LINK REL="Next"  HREF="000624.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Simple URL parser</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Simple%20URL%20parser&In-Reply-To=%3C483707EF.9050901%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Simple URL parser">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri May 23 18:07:43 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000621.html">Simple URL parser
+</A></li>
+        <LI>Next message: <A HREF="000624.html">[ragel-users] Re: Simple URL parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#623">[ date ]</a>
+              <a href="thread.html#623">[ thread ]</a>
+              <a href="subject.html#623">[ subject ]</a>
+              <a href="author.html#623">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hey Horacio,
+
+The host action is executed on every character of the host name because
+the finishing operator is used on a repeated machine. Finishing actions
+are executed every time the state machine moves into a final state,
+which is every character in the case of a single character that is
+repeated. Use % instead.
+
+-Adrian
+
+hsanson wrote:
+&gt;<i> To learn how to use Ragel I am implementing a simple URL parser that
+</I>&gt;<i> receives something like &quot;<A HREF="http://www.ragel.com:8080/file.txt">http://www.ragel.com:8080/file.txt</A>&quot; and
+</I>&gt;<i> returns each part (scheme, hostname, port, path) as strings. As I
+</I>&gt;<i> understand doing this with Ragel should be a breeze.
+</I>&gt;<i> 
+</I>&gt;<i> Still there is something I am not getting right and would like some
+</I>&gt;<i> advice, see code below:
+</I>&gt;<i> 
+</I>&gt;<i> The scheme part seems to work so I assume my understanding of Ragel is
+</I>&gt;<i> not that bad. The problem is with the hostname and port parts. The
+</I>&gt;<i> hostname action gets called for each character on the hostname, that
+</I>&gt;<i> is not the intended behavior and the port action never gets called.
+</I>&gt;<i> 
+</I>&gt;<i> Any tips to take me back on track would be greatly appreciated.
+</I>&gt;<i> 
+</I>&gt;<i> Horacio
+</I>&gt;<i> 
+</I>&gt;<i> //###################################
+</I>&gt;<i> #include &lt;string.h&gt;
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> typedef struct {
+</I>&gt;<i>     char *scheme;
+</I>&gt;<i>     char *hostname;
+</I>&gt;<i>     char *service;
+</I>&gt;<i>     char *path;
+</I>&gt;<i>     char *uri;
+</I>&gt;<i> } suj_url;
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine uri_parser;
+</I>&gt;<i> 
+</I>&gt;<i> # Actions
+</I>&gt;<i>     action mark_start {
+</I>&gt;<i>         start = fpc;
+</I>&gt;<i>         printf(&quot;Mark start at %c\n&quot;, fc);
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     action scheme {
+</I>&gt;<i>         size_t len = fpc - start + 1;
+</I>&gt;<i>         url-&gt;scheme = calloc(len,sizeof(char));
+</I>&gt;<i>         strncpy(url-&gt;scheme, start, len);
+</I>&gt;<i>         url-&gt;scheme[len]='\0';
+</I>&gt;<i>         printf(&quot;scheme: %s\n&quot;,url-&gt;scheme);
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     action host {
+</I>&gt;<i>         size_t len = fpc - start + 1;
+</I>&gt;<i>         url-&gt;hostname = calloc(len,sizeof(char));
+</I>&gt;<i>         strncpy(url-&gt;hostname, start, len);
+</I>&gt;<i>         url-&gt;hostname[len]='\0';
+</I>&gt;<i>         printf(&quot;host: %s\n&quot;,url-&gt;hostname);
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     action port {
+</I>&gt;<i>         size_t len = fpc - start + 1;
+</I>&gt;<i>         url-&gt;service = calloc(len,sizeof(char));
+</I>&gt;<i>         strncpy(url-&gt;service, start, len);
+</I>&gt;<i>         url-&gt;service[len]='\0';
+</I>&gt;<i>         printf(&quot;service: %s\n&quot;,url-&gt;service);
+</I>&gt;<i>     }
+</I>&gt;<i> # Grammar
+</I>&gt;<i>     escaped = (&quot;%&quot; xdigit xdigit);
+</I>&gt;<i>     scheme = (&quot;http&quot;i | &quot;rtsp&quot;i | &quot;rtp&quot;i) &gt;mark_start @scheme;
+</I>&gt;<i>     port   = (&quot;:&quot; digit+) &gt;mark_start %port;
+</I>&gt;<i>     host   = (any* -- (&quot;/&quot; | &quot;:&quot;)) &gt;mark_start @host;
+</I>&gt;<i> 
+</I>&gt;<i>     uri = (scheme &quot;://&quot; host  port ) . '\0';
+</I>&gt;<i> 
+</I>&gt;<i> # Main
+</I>&gt;<i>     main := uri;
+</I>&gt;<i> 
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> %%write data;
+</I>&gt;<i> 
+</I>&gt;<i> suj_url * suj_url_new(char *uri)
+</I>&gt;<i> {
+</I>&gt;<i>     suj_url *url;
+</I>&gt;<i>     char *start;
+</I>&gt;<i>     char *end;
+</I>&gt;<i> 
+</I>&gt;<i>     int cs;
+</I>&gt;<i>     %% write init;
+</I>&gt;<i> 
+</I>&gt;<i>     char *p = uri;
+</I>&gt;<i>     char *pe = p + strlen(uri);
+</I>&gt;<i> 
+</I>&gt;<i>     url = calloc(1,sizeof(url));
+</I>&gt;<i>     url-&gt;uri = calloc(strlen(uri),sizeof(char));
+</I>&gt;<i>     strncpy(url-&gt;uri,uri, strlen(uri));
+</I>&gt;<i> 
+</I>&gt;<i>     %% write exec;
+</I>&gt;<i> 
+</I>&gt;<i>     return url;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> int main(int argc, char **argv)
+</I>&gt;<i> {
+</I>&gt;<i>     suj_url *url;
+</I>&gt;<i>     url = suj_url_new(&quot;<A HREF="rtp://www.ragel.org:8080">rtp://www.ragel.org:8080</A>&quot;);
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000621.html">Simple URL parser
+</A></li>
+	<LI>Next message: <A HREF="000624.html">[ragel-users] Re: Simple URL parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#623">[ date ]</a>
+              <a href="thread.html#623">[ thread ]</a>
+              <a href="subject.html#623">[ subject ]</a>
+              <a href="author.html#623">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

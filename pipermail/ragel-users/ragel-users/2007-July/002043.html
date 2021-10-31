@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Problem: Change state only when a new input is received
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%3A%20Change%20state%20only%20when%20a%20new%20input%20is%20received&In-Reply-To=%3C1184182999.252708.220010%40w3g2000hsg.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002042.html">
+   <LINK REL="Next"  HREF="002044.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Problem: Change state only when a new input is received</H1>
+    <B>Aditi</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Problem%3A%20Change%20state%20only%20when%20a%20new%20input%20is%20received&In-Reply-To=%3C1184182999.252708.220010%40w3g2000hsg.googlegroups.com%3E"
+       TITLE="Problem: Change state only when a new input is received">ad... at cse.iitk.ac.in
+       </A><BR>
+    <I>Wed Jul 11 19:43:19 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002042.html">[ragel-users] Problem: Change state only when a new input is received
+</A></li>
+        <LI>Next message: <A HREF="002044.html">[ragel-users] Re: Problem: Change state only when a new input is received
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2043">[ date ]</a>
+              <a href="thread.html#2043">[ thread ]</a>
+              <a href="subject.html#2043">[ subject ]</a>
+              <a href="author.html#2043">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+Thanks for your reply. With your help I got it partially working, but
+I still have some doubts and problems:
+Here is the code snipet-
+&lt;snip&gt;
+		%% write init;
+
+		while(true) {
+ 			if ((rval=read(msgsock, buff, 1024)) &lt; 0){
+				perror(&quot;reading stream message&quot;);
+				break;
+			}
+			else {
+				sscanf(buff, &quot;%d&quot;, &amp;num);
+				printf(&quot;--&gt;%d\n&quot;, num);
+				p = &num;
+				pe = p + 1;
+			}
+
+			%% write exec;
+
+			if(num == 0) break;
+		}
+&lt;/snip&gt;
+Now,
+1.) %% write exec will be executed in every iteration of the loop.
+Will this effect the performance? Is there a better way to do it? I
+couldn't get it working by putting it just once outside the loop. I am
+using this to build a tool which is required to be efficient, that's
+why I am concerned with this point.
+2.) The printing of the tokens and the action triggered(as of now,
+just a print statement) happen only after I send the next token. Why
+is there this delay of one token in the processing. Is my approach not
+correct?
+3.) There are certain other issues also, like I want to match this
+pattern anywhere in the string and may be multiple times if it occurs.
+This is not happening here. This code works if I give my pattern in
+the beginning only. What should I do?
+I am sorry about putting so many questions together. Any kind of help
+will be immensely useful.
+Thanks Again!
+Cheers,
+Aditi.
+
+
+On Jul 11, 7:42 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hi Aditi,
+</I>&gt;<i>
+</I>&gt;<i> For this task don't use the &quot;noend&quot; write option. Set the alphabet type
+</I>&gt;<i> to int and when an integer arrives set p to point it and set pe to (p +
+</I>&gt;<i> 1). Also, make sure you separate out the init code so it is invoked only
+</I>&gt;<i> once before you start reading input.
+</I>&gt;<i>
+</I>&gt;<i> I've always wanted to add a &quot;one-at-a-time&quot; option to write which would
+</I>&gt;<i> eliminate the unnecessary loop over the single character but never got
+</I>&gt;<i> around to it.
+</I>&gt;<i>
+</I>&gt;<i> Adrian
+</I>&gt;<i>
+</I>&gt;<i> Aditi wrote:
+</I>&gt;<i> &gt; Hi,
+</I>&gt;<i> &gt; I am new to ragel and was hoping to use it for the following purpose-
+</I>&gt;<i> &gt; I need to match a regular expression, but the input which is to be
+</I>&gt;<i> &gt; matched comes as a series of tokens over a socket. I need the state
+</I>&gt;<i> &gt; machine to advance to the next state as and when it receives the
+</I>&gt;<i> &gt; token.
+</I>&gt;<i>
+</I>&gt;<i> &gt; I am trying to do this with ragel but have been unsuccessful so far.
+</I>&gt;<i> &gt; According to my understanding of ragel, I need to specify the whole
+</I>&gt;<i> &gt; chunk of string between pointers p and pe and let machine run on it.
+</I>&gt;<i> &gt; Instead I want p to read one value from socket on advance on it. Can
+</I>&gt;<i> &gt; somebody please give me pointers on how to do this?
+</I>&gt;<i>
+</I>&gt;<i> &gt; This is a code snippet of one of my futile attempts :( --&gt;
+</I>&gt;<i> &gt; &lt;snip&gt;
+</I>&gt;<i> &gt;            if ((rval=read(msgsock, buff, 4)) &lt; 0){
+</I>&gt;<i> &gt;                    perror(&quot;reading stream message&quot;);
+</I>&gt;<i> &gt;                    exit(1);
+</I>&gt;<i> &gt;            }
+</I>&gt;<i>
+</I>&gt;<i> &gt;            p = buff;
+</I>&gt;<i>
+</I>&gt;<i> &gt;            %% write init;
+</I>&gt;<i> &gt;            %% write exec noend;
+</I>&gt;<i>
+</I>&gt;<i> &gt;            while(true) {
+</I>&gt;<i> &gt;                    if ((rval=read(msgsock, buff, 4)) &lt; 0){
+</I>&gt;<i> &gt;                            perror(&quot;reading stream message&quot;);
+</I>&gt;<i> &gt;                            break;
+</I>&gt;<i> &gt;                    }
+</I>&gt;<i> &gt;                    else {
+</I>&gt;<i> &gt;                            p = buff;
+</I>&gt;<i> &gt;                            printf(&quot;--&gt;%s\n&quot;, buff);
+</I>&gt;<i>
+</I>&gt;<i> &gt;                    }
+</I>&gt;<i> &gt;                    if(strcmp(buff,&quot;exit&quot;)== 0) break;
+</I>&gt;<i> &gt;            }
+</I>&gt;<i> &gt; &lt;/snip&gt;
+</I>&gt;<i>
+</I>&gt;<i> &gt; My token will by of type integer, but as a startup i was trying with
+</I>&gt;<i> &gt; normal string tokens. It would be really helpful if someone can help
+</I>&gt;<i> &gt; me out with this.
+</I>&gt;<i> &gt; Regards,
+</I>&gt;<i> &gt; Aditi.
+</I>&gt;<i>
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>  signature.asc
+</I>&gt;<i> 1KDownload
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002042.html">[ragel-users] Problem: Change state only when a new input is received
+</A></li>
+	<LI>Next message: <A HREF="002044.html">[ragel-users] Re: Problem: Change state only when a new input is received
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2043">[ date ]</a>
+              <a href="thread.html#2043">[ thread ]</a>
+              <a href="subject.html#2043">[ subject ]</a>
+              <a href="author.html#2043">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

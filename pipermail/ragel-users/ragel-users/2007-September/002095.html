@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Error actions and error recovery
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C1188956914.783454.314350%40r34g2000hsd.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000331.html">
+   <LINK REL="Next"  HREF="002098.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Error actions and error recovery</H1>
+    <B>Steve Horne</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C1188956914.783454.314350%40r34g2000hsd.googlegroups.com%3E"
+       TITLE="Error actions and error recovery">stephenhorne... at aol.com
+       </A><BR>
+    <I>Wed Sep  5 01:48:34 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000331.html">Error actions and error recovery
+</A></li>
+        <LI>Next message: <A HREF="002098.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2095">[ date ]</a>
+              <a href="thread.html#2095">[ thread ]</a>
+              <a href="subject.html#2095">[ subject ]</a>
+              <a href="author.html#2095">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> pr = alnum+ ';';
+</I>&gt;<i> se = '{' pr* '}';
+</I>&gt;<i> main := se+;
+</I>&gt;<i>
+</I>&gt;<i> What I would like to accomplish is that if there's an error in pr I
+</I>&gt;<i> would like to skip to the next ';' or '}'. I there's an error finding
+</I>&gt;<i> the first '{', I would like to skip to the next '}'.
+</I>
+This expression doesn't search for '{' at all - it expects to find one
+right at the start of the input, and another one immediately after
+every '}' (with nothing in-between) until you reach the final '}' at
+the end of the input stream.
+
+Perhaps you need to make use of an (any* -- se) term to skip any non-
+matching stuff between the blocks you are interested in...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any* -- se);
+main := other (se other)*;
+
+Not sure how well this will work in practice - it looks like it needs
+backtracking and may need to use the scanner construct...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any+ -- '{');
+main := |* se =&gt; { action };
+               other =&gt; { do nothing };
+               '{' =&gt; { last resort step past open brace action };
+            *|;
+
+The idea here is the 'other' shouldn't even accept part of the 'se'
+pattern. As soon as it spots an open brace, it should stop and give
+the 'se' token a chance to match. If neither 'se' nor 'other' can
+accept any characters, you must have an open brace as the next
+character, so skip past that then continue.
+
+For this to work, it is important that neither 'se' nor 'other' can
+accept a empty match - if they did, I suspect you'd get an infinite
+loop with the standalone '{' match never firing. Is that right,
+Adrian?
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000331.html">Error actions and error recovery
+</A></li>
+	<LI>Next message: <A HREF="002098.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2095">[ date ]</a>
+              <a href="thread.html#2095">[ thread ]</a>
+              <a href="subject.html#2095">[ subject ]</a>
+              <a href="author.html#2095">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

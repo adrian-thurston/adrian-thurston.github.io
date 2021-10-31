@@ -1,0 +1,512 @@
+From amdeich at gmail.com  Wed Jan 18 18:38:17 2017
+From: amdeich at gmail.com (Andrey Kulikov)
+Date: Wed, 18 Jan 2017 21:38:17 +0300
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+Message-ID: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+
+Hello,
+
+In my project I need to extract links from HTML document.
+For this purpose I've prepared ragel HTML grammar, primarily based on this
+work:
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+(mentioned here:
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+)
+
+
+Almost all works well (thanks for the great tool!), except one issue I
+can't overcome to date:
+
+If I specify this thext as an input:
+bbbb <a href="first_link.aspx">  cccc<a href="/second_link.aspx">
+my parser can correctly extract first link, but not the second one.
+The difference between them is that there is a space between 'bbbb' and
+'<a', but no spaces between 'cccc' and '<a'.
+
+In general, if any text, except spaces, exists before '<a' tag it makes
+parses consider it as content, and parser do not recognize tag open.
+
+Could please anyone give any hint how to improve existing grammar, in order
+to make it recognize tag open?
+
+Please find attached intentionally simplified sample with grammar, aiming
+to work as C program ( ngx_url_html_portion.rl ).
+There is also input file input-nbsp.html , which expected to contain input
+for the application.
+
+In order to play with it, make .c-file from grammar:
+ragel ngx_url_html_portion.rl
+then compile resulting .c-file and run programm.
+Input file should be in the same directory.
+
+Will be sincerely grateful for any clue.
+
+--
+Andrey
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170118/a0f0792d/attachment.html>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170118/a0f0792d/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ngx_url_html_portion.rl
+Type: application/octet-stream
+Size: 5384 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170118/a0f0792d/attachment.obj>
+
+From mlaing at post.harvard.edu  Thu Jan 19 12:54:15 2017
+From: mlaing at post.harvard.edu (Michael Laing)
+Date: Thu, 19 Jan 2017 07:54:15 -0500
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+Message-ID: <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+
+Try changing the definition of ‘content’ to:
+
+    content = (
+      any - (space | '<')
+    )+;
+
+Cheers,
+ml
+
+> On Jan 18, 2017, at 13:38 , Andrey Kulikov <amdeich at gmail.com> wrote:
+> 
+> Hello,
+> 
+> In my project I need to extract links from HTML document.
+> For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl <https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl>
+> (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript <http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript> )
+> 
+> 
+> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+> 
+> If I specify this thext as an input:
+> bbbb <a href="first_link.aspx">  cccc<a href="/second_link.aspx">
+> my parser can correctly extract first link, but not the second one.
+> The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'.
+> 
+> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+> 
+> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+> 
+> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ).
+> There is also input file input-nbsp.html , which expected to contain input for the application.
+> 
+> In order to play with it, make .c-file from grammar:
+> ragel ngx_url_html_portion.rl
+> then compile resulting .c-file and run programm.
+> Input file should be in the same directory.
+> 
+> Will be sincerely grateful for any clue.
+> 
+> --
+> Andrey
+> <input-nbsp.html><ngx_url_html_portion.rl>_______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170119/533b2c75/attachment.html>
+
+From thurston at colm.net  Mon Jan 23 07:26:21 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:26:21 +0700
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+Message-ID: <4d6776507f4fbe12102a10cf387f4783@mail.colm.net>
+
+ 
+
+Hi Andrey, 
+
+It's because your content includes the open of an HTML tag. So content
+is extened, rather than wrapping around to start a tag. It works when
+there is a space in front because only the space FSM is active and won't
+be extended. The machine wraps around. 
+
+-Adrian 
+
+On 2017-01-19 01:38, Andrey Kulikov wrote: 
+
+> Hello,
+> 
+> In my project I need to extract links from HTML document. For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl [2] (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript [3] )
+> 
+> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+> 
+> If I specify this thext as an input:
+> bbbb <a href="first_link.aspx"> cccc<a href="/second_link.aspx"> my parser can correctly extract first link, but not the second one. The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'. 
+> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+> 
+> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+> 
+> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ). There is also input file input-nbsp.html , which expected to contain input for the application.
+> 
+> In order to play with it, make .c-file from grammar: ragel ngx_url_html_portion.rl 
+> 
+> then compile resulting .c-file and run programm. 
+> Input file should be in the same directory.
+> 
+> Will be sincerely grateful for any clue.
+> 
+> -- 
+> Andrey 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+[2]
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+[3]
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170123/d6813d69/attachment.html>
+
+From thurston at colm.net  Mon Jan 23 07:28:18 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:28:18 +0700
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+ <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+Message-ID: <21387e01542f362efd07f59ddb5baa10@mail.colm.net>
+
+ 
+
+Ah sorry Michael, I didn't look at all my mail before I started
+responding and so I didn't notice you already responded. 
+
+Adrian 
+
+On 2017-01-19 19:54, Michael Laing wrote: 
+
+> Try changing the definition of 'content' to: 
+> 
+> content = ( 
+> any - (space | '<') 
+> )+; 
+> 
+> Cheers, 
+> ml 
+> 
+>> On Jan 18, 2017, at 13:38 , Andrey Kulikov <amdeich at gmail.com> wrote: 
+>> 
+>> Hello,
+>> 
+>> In my project I need to extract links from HTML document. For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+>> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl [1] (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript [2] )
+>> 
+>> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+>> 
+>> If I specify this thext as an input:
+>> bbbb <a href="first_link.aspx"> cccc<a href="/second_link.aspx"> my parser can correctly extract first link, but not the second one. The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'. 
+>> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+>> 
+>> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+>> 
+>> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ). There is also input file input-nbsp.html , which expected to contain input for the application.
+>> 
+>> In order to play with it, make .c-file from grammar: ragel ngx_url_html_portion.rl 
+>> 
+>> then compile resulting .c-file and run programm. 
+>> Input file should be in the same directory.
+>> 
+>> Will be sincerely grateful for any clue.
+>> 
+>> -- 
+>> Andrey <input-nbsp.html><ngx_url_html_portion.rl>_______________________________________________
+>> ragel mailing list
+>> ragel at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [3]
+ 
+
+Links:
+------
+[1]
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+[2]
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+[3] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170123/1c9b4ab2/attachment.html>
+
+From amdeich at gmail.com  Wed Jan 18 18:38:17 2017
+From: amdeich at gmail.com (Andrey Kulikov)
+Date: Wed, 18 Jan 2017 21:38:17 +0300
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+Message-ID: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+
+Hello,
+
+In my project I need to extract links from HTML document.
+For this purpose I've prepared ragel HTML grammar, primarily based on this
+work:
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+(mentioned here:
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+)
+
+
+Almost all works well (thanks for the great tool!), except one issue I
+can't overcome to date:
+
+If I specify this thext as an input:
+bbbb <a href="first_link.aspx">  cccc<a href="/second_link.aspx">
+my parser can correctly extract first link, but not the second one.
+The difference between them is that there is a space between 'bbbb' and
+'<a', but no spaces between 'cccc' and '<a'.
+
+In general, if any text, except spaces, exists before '<a' tag it makes
+parses consider it as content, and parser do not recognize tag open.
+
+Could please anyone give any hint how to improve existing grammar, in order
+to make it recognize tag open?
+
+Please find attached intentionally simplified sample with grammar, aiming
+to work as C program ( ngx_url_html_portion.rl ).
+There is also input file input-nbsp.html , which expected to contain input
+for the application.
+
+In order to play with it, make .c-file from grammar:
+ragel ngx_url_html_portion.rl
+then compile resulting .c-file and run programm.
+Input file should be in the same directory.
+
+Will be sincerely grateful for any clue.
+
+--
+Andrey
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170118/a0f0792d/attachment-0004.html>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170118/a0f0792d/attachment-0005.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ngx_url_html_portion.rl
+Type: application/octet-stream
+Size: 5384 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170118/a0f0792d/attachment-0002.obj>
+
+From mlaing at post.harvard.edu  Thu Jan 19 12:54:15 2017
+From: mlaing at post.harvard.edu (Michael Laing)
+Date: Thu, 19 Jan 2017 07:54:15 -0500
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+Message-ID: <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+
+Try changing the definition of ‘content’ to:
+
+    content = (
+      any - (space | '<')
+    )+;
+
+Cheers,
+ml
+
+> On Jan 18, 2017, at 13:38 , Andrey Kulikov <amdeich at gmail.com> wrote:
+> 
+> Hello,
+> 
+> In my project I need to extract links from HTML document.
+> For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl <https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl>
+> (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript <http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript> )
+> 
+> 
+> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+> 
+> If I specify this thext as an input:
+> bbbb <a href="first_link.aspx">  cccc<a href="/second_link.aspx">
+> my parser can correctly extract first link, but not the second one.
+> The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'.
+> 
+> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+> 
+> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+> 
+> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ).
+> There is also input file input-nbsp.html , which expected to contain input for the application.
+> 
+> In order to play with it, make .c-file from grammar:
+> ragel ngx_url_html_portion.rl
+> then compile resulting .c-file and run programm.
+> Input file should be in the same directory.
+> 
+> Will be sincerely grateful for any clue.
+> 
+> --
+> Andrey
+> <input-nbsp.html><ngx_url_html_portion.rl>_______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170119/533b2c75/attachment-0002.html>
+
+From thurston at colm.net  Mon Jan 23 07:26:21 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:26:21 +0700
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+Message-ID: <4d6776507f4fbe12102a10cf387f4783@mail.colm.net>
+
+ 
+
+Hi Andrey, 
+
+It's because your content includes the open of an HTML tag. So content
+is extened, rather than wrapping around to start a tag. It works when
+there is a space in front because only the space FSM is active and won't
+be extended. The machine wraps around. 
+
+-Adrian 
+
+On 2017-01-19 01:38, Andrey Kulikov wrote: 
+
+> Hello,
+> 
+> In my project I need to extract links from HTML document. For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl [2] (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript [3] )
+> 
+> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+> 
+> If I specify this thext as an input:
+> bbbb <a href="first_link.aspx"> cccc<a href="/second_link.aspx"> my parser can correctly extract first link, but not the second one. The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'. 
+> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+> 
+> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+> 
+> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ). There is also input file input-nbsp.html , which expected to contain input for the application.
+> 
+> In order to play with it, make .c-file from grammar: ragel ngx_url_html_portion.rl 
+> 
+> then compile resulting .c-file and run programm. 
+> Input file should be in the same directory.
+> 
+> Will be sincerely grateful for any clue.
+> 
+> -- 
+> Andrey 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+[2]
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+[3]
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170123/d6813d69/attachment-0002.html>
+
+From thurston at colm.net  Mon Jan 23 07:28:18 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:28:18 +0700
+Subject: [ragel] Fixing issues with ragel HTML grammar.
+In-Reply-To: <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+References: <CAMdTb+egAyS+NToUBjSqWLXfN3xG+gYg8PUmHGCqAVCwzugo8Q@mail.gmail.com>
+ <4A3AC397-AF47-49E5-A16A-7FE6C32B38F8@post.harvard.edu>
+Message-ID: <21387e01542f362efd07f59ddb5baa10@mail.colm.net>
+
+ 
+
+Ah sorry Michael, I didn't look at all my mail before I started
+responding and so I didn't notice you already responded. 
+
+Adrian 
+
+On 2017-01-19 19:54, Michael Laing wrote: 
+
+> Try changing the definition of 'content' to: 
+> 
+> content = ( 
+> any - (space | '<') 
+> )+; 
+> 
+> Cheers, 
+> ml 
+> 
+>> On Jan 18, 2017, at 13:38 , Andrey Kulikov <amdeich at gmail.com> wrote: 
+>> 
+>> Hello,
+>> 
+>> In my project I need to extract links from HTML document. For this purpose I've prepared ragel HTML grammar, primarily based on this work:
+>> https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl [1] (mentioned here: http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript [2] )
+>> 
+>> Almost all works well (thanks for the great tool!), except one issue I can't overcome to date:
+>> 
+>> If I specify this thext as an input:
+>> bbbb <a href="first_link.aspx"> cccc<a href="/second_link.aspx"> my parser can correctly extract first link, but not the second one. The difference between them is that there is a space between 'bbbb' and '<a', but no spaces between 'cccc' and '<a'. 
+>> In general, if any text, except spaces, exists before '<a' tag it makes parses consider it as content, and parser do not recognize tag open.
+>> 
+>> Could please anyone give any hint how to improve existing grammar, in order to make it recognize tag open?
+>> 
+>> Please find attached intentionally simplified sample with grammar, aiming to work as C program ( ngx_url_html_portion.rl ). There is also input file input-nbsp.html , which expected to contain input for the application.
+>> 
+>> In order to play with it, make .c-file from grammar: ragel ngx_url_html_portion.rl 
+>> 
+>> then compile resulting .c-file and run programm. 
+>> Input file should be in the same directory.
+>> 
+>> Will be sincerely grateful for any clue.
+>> 
+>> -- 
+>> Andrey <input-nbsp.html><ngx_url_html_portion.rl>_______________________________________________
+>> ragel mailing list
+>> ragel at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [3]
+ 
+
+Links:
+------
+[1]
+https://github.com/brianpane/jitify-core/blob/master/src/core/jitify_html_lexer.rl
+[2]
+http://ragel-users.complang.narkive.com/qhjr33zj/ragel-grammars-for-html-css-and-javascript
+[3] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170123/1c9b4ab2/attachment-0002.html>
+

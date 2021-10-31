@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Packaging ragel for Fedora Extras
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C46072440.2090007%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000209.html">
+   <LINK REL="Next"  HREF="000211.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Packaging ragel for Fedora Extras</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Packaging%20ragel%20for%20Fedora%20Extras&In-Reply-To=%3C46072440.2090007%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Packaging ragel for Fedora Extras">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Mar 26 01:39:12 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000209.html">Packaging ragel for Fedora Extras
+</A></li>
+        <LI>Next message: <A HREF="000211.html">[ragel-users] Re: Packaging ragel for Fedora Extras
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#210">[ date ]</a>
+              <a href="thread.html#210">[ thread ]</a>
+              <a href="subject.html#210">[ subject ]</a>
+              <a href="author.html#210">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jeremy,
+
+Ah, great! Thanks for the packaging and the patches. With the exception
+of adding the mention to Ruby in the man page, I just applied them. Ruby
+code generation isn't finished yet and until it is I'm trying not to
+advertise it.
+
+Thanks again,
+ Adrian
+
+Jeremy Hinegardner wrote:
+&gt;<i> Hi all,
+</I>&gt;<i> 
+</I>&gt;<i> I'm packaging up ragel for inclusion in Fedora Extras and I came across
+</I>&gt;<i> a parallel make dependency bug.  It seems the dependency graph as it
+</I>&gt;<i> currently stands can start building some of the command line
+</I>&gt;<i> applications before the common and redfsm libraries are complete. The
+</I>&gt;<i> attached patch should fix it.  
+</I>&gt;<i> 
+</I>&gt;<i> I've also made a patch for the ragel(1) man page. It was referencing
+</I>&gt;<i> rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+</I>&gt;<i> ragel created ruby code.  It is also attached.
+</I>&gt;<i> 
+</I>&gt;<i> I personally haven't used ragel for any of my projects, just seen it via
+</I>&gt;<i> other projects and noticed it hadn't been built for Fedora yet, so i
+</I>&gt;<i> thought I would do that.
+</I>&gt;<i> 
+</I>&gt;<i> Once ragel is building in Fedora Extras I'll post another announcement
+</I>&gt;<i> here.  In the meantime if anyone would like to try out the rpm I've
+</I>&gt;<i> built feel free.  Please send any and all feedback.
+</I>&gt;<i> 
+</I>&gt;<i>     <A HREF="http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm">http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm</A>
+</I>&gt;<i>     <A HREF="http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm">http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm</A>
+</I>&gt;<i> 
+</I>&gt;<i> enjoy,
+</I>&gt;<i> 
+</I>&gt;<i> -jeremy
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> --- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
+</I>&gt;<i> +++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+</I>&gt;<i> @@ -18,9 +18,9 @@
+</I>&gt;<i>  #   along with Ragel; if not, write to the Free Software
+</I>&gt;<i>  #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+</I>&gt;<i>  
+</I>&gt;<i> -
+</I>&gt;<i> -BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+</I>&gt;<i> -ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
+</I>&gt;<i> +BUILD_COMMON = common redfsm
+</I>&gt;<i> +BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+</I>&gt;<i> +ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+</I>&gt;<i>  
+</I>&gt;<i>  #*************************************
+</I>&gt;<i>  
+</I>&gt;<i> @@ -33,11 +33,14 @@
+</I>&gt;<i>  # build targets
+</I>&gt;<i>  all: $(BUILD_SUBDIRS)
+</I>&gt;<i>  
+</I>&gt;<i> -.PHONY: $(BUILD_SUBDIRS)
+</I>&gt;<i> +.PHONY: $(ALL_SUBDIRS)
+</I>&gt;<i>  
+</I>&gt;<i> -$(BUILD_SUBDIRS):
+</I>&gt;<i> +$(BUILD_COMMON):
+</I>&gt;<i>  	@cd $@ &amp;&amp; $(MAKE)
+</I>&gt;<i>  
+</I>&gt;<i> +$(BUILD_SUBDIRS): $(BUILD_COMMON)
+</I>&gt;<i> +	cd $@ &amp;&amp; $(MAKE)
+</I>&gt;<i> +
+</I>&gt;<i>  # clean targets.
+</I>&gt;<i>  
+</I>&gt;<i>  CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> --- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
+</I>&gt;<i> +++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+</I>&gt;<i> @@ -33,13 +33,12 @@
+</I>&gt;<i>  this is the frontend component of Ragel, which generates an intermediate
+</I>&gt;<i>  file format that must be processed by rlcodegen(1).
+</I>&gt;<i>  
+</I>&gt;<i> -Ragel compiles finite state machines from regular languages into executable
+</I>&gt;<i> -code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+</I>&gt;<i> -machines can not only recognize byte
+</I>&gt;<i> -sequences as regular expression machines do, but can also execute code at
+</I>&gt;<i> -arbitrary points in the recognition of a regular language.  User code is
+</I>&gt;<i> -embedded using inline operators that do not disrupt the regular language
+</I>&gt;<i> -syntax.
+</I>&gt;<i> +Ragel compiles finite state machines from regular languages into
+</I>&gt;<i> +executable code.  Ragel can generate C, C++, Objective-C, D, Java or
+</I>&gt;<i> +Ruby code. Ragel state machines can not only recognize byte sequences as
+</I>&gt;<i> +regular expression machines do, but can also execute code at arbitrary
+</I>&gt;<i> +points in the recognition of a regular language.  User code is embedded
+</I>&gt;<i> +using inline operators that do not disrupt the regular language syntax.
+</I>&gt;<i>  
+</I>&gt;<i>  The core language consists of standard regular expression operators, such as
+</I>&gt;<i>  union, concatenation and kleene star, accompanied by action embedding
+</I>&gt;<i> @@ -554,7 +553,10 @@
+</I>&gt;<i>  Ragel was written by Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt;.  Objective-C
+</I>&gt;<i>  output contributed by Erich Ocean. D output contributed by Alan West. 
+</I>&gt;<i>  .SH &quot;SEE ALSO&quot;
+</I>&gt;<i> -.BR rlcodegen (1),
+</I>&gt;<i> +.BR rlgen-cd(1),
+</I>&gt;<i> +.BR rlgen-dot(1),
+</I>&gt;<i> +.BR rlgen-java(1),
+</I>&gt;<i> +.BR rlgen-ruby(1),
+</I>&gt;<i>  .BR re2c (1),
+</I>&gt;<i>  .BR flex (1)
+</I>&gt;<i>  
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070325/4a48c6c1/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20070325/4a48c6c1/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000209.html">Packaging ragel for Fedora Extras
+</A></li>
+	<LI>Next message: <A HREF="000211.html">[ragel-users] Re: Packaging ragel for Fedora Extras
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#210">[ date ]</a>
+              <a href="thread.html#210">[ thread ]</a>
+              <a href="subject.html#210">[ subject ]</a>
+              <a href="author.html#210">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

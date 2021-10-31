@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> tuning/optimizing scanners
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20tuning/optimizing%20scanners&In-Reply-To=%3C19BA7B81-4686-4132-AE02-E325CC0DB108%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>tuning/optimizing scanners</H1>
+    <B>Chuck Remes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20tuning/optimizing%20scanners&In-Reply-To=%3C19BA7B81-4686-4132-AE02-E325CC0DB108%40mac.com%3E"
+       TITLE="tuning/optimizing scanners">cremes.devl... at mac.com
+       </A><BR>
+    <I>Fri Oct  5 15:47:25 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2153">[ date ]</a>
+              <a href="thread.html#2153">[ thread ]</a>
+              <a href="subject.html#2153">[ subject ]</a>
+              <a href="author.html#2153">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've written a log parsing tool using ragel and ruby. I'm using the  
+scanner construct to perform the parsing, but things appear to be  
+running very slowly. I fear I may have chosen the wrong methodology  
+to parse the log. (And yes, I know ruby isn't the quickest language  
+out there...) :-)
+
+The log in question is a set of key/value pairs that look like this  
+(this is one line):
+
+Oct  1 09:50:33.37204 [29193]: {market = ICE | type = order |  
+order_id = 4 | buy = 1 | price = 80.83 | volume = 1 | date =  
+2007-10-01 | time = 09:50:33.37201 | metadata = {l={f=Quote|g=4|j=1| 
+sid=8290182729}|ac=289182|cf=2881|ca= 289182}}
+
+I'm uninterested in the date and other data at the line start, so I  
+throw it away. I primarily search for the key (e.g. 'market = ') and  
+then fgoto another machine to parse the value. Upon hitting a pipe  
+character, I fgoto main again and look for another key. I pasted in a  
+section of the machine below to illustrate.
+
+Is this the correct approach? Is there a superior method for rapidly  
+parsing long text strings? Be gentle with me... I'm new to this stuff.
+
+Unfortunately, each log record is a slightly different format (for a  
+total of about 15 different formats). I also can't plan on the key/ 
+value pairs showing up in the same order every time.
+
+Any suggestions?
+
+----------- snip here ---------------
+	feedcode_name = [0-9a-zA-Z\-]+;
+	numbers = [0-9]+;
+
+#####
+	feedcode := |*
+		spaces;
+
+		'|' =&gt; { fgoto main; };
+
+		feedcode_name =&gt; { temp[:feedcode] = data[tokstart..tokend-1]; };
+		any =&gt; {puts &quot;ERR: feedcode #{data[tokstart..tokend-1]}&quot;};
+	*|;
+#####
+	volume := |*
+		spaces;
+
+		'|' =&gt; { fgoto main; };
+
+		numbers =&gt; { temp[:quantity] = data[tokstart..tokend].to_i; };
+		any =&gt; {puts &quot;ERR: volume #{data[tokstart..tokend]}&quot;};
+	*|;
+#####
+         main := |*
+					'module = ' =&gt; { fgoto module; };
+
+					'market = ' =&gt; { fgoto market; };
+
+					'feedcode = ' =&gt; { fgoto feedcode; };
+
+					'type = ' =&gt; { fgoto type; };
+
+					'order_id = ' =&gt; { fgoto order_id; };
+
+					'buy = ' =&gt; { fgoto activity; };
+
+					'price = ' =&gt; { fgoto price; };
+
+					'volume = ' =&gt; { fgoto volume; };
+
+					'date = ' =&gt; { fgoto date; };
+
+					'time = ' =&gt; { fgoto time; };
+
+					( numbers | letters | spaces | '\n' | '{' | '}' | other | any );
+		
+         *|;
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2153">[ date ]</a>
+              <a href="thread.html#2153">[ thread ]</a>
+              <a href="subject.html#2153">[ subject ]</a>
+              <a href="author.html#2153">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

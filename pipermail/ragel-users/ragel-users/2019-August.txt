@@ -1,0 +1,304 @@
+From wlund at iki.fi  Mon Aug 12 06:34:38 2019
+From: wlund at iki.fi (Wictor Lund)
+Date: Mon, 12 Aug 2019 13:34:38 +0300
+Subject: [ragel-users] [PATCH] Handle the new ragel version format in the
+	autoconf script
+Message-ID: <20190812103438.be3ks4qtsgfq5rgz@klein.local>
+
+Hi,
+
+Some older ragel version I have does like this:
+
+$ ragel --version
+Ragel State Machine Compiler version 6.9 Oct 2014
+Copyright (c) 2001-2009 by Adrian Thurston
+
+, while a newer one does like this:
+
+$ ragel --version      
+Ragel State Machine Compiler version 7.0.0.9 August 2016                                                 
+Copyright (c) 2001-2015 by Adrian Thurston          
+
+The current contrib/ragel.m4 file cannot parse the newer --version string. 
+I propose that contrib/ragel.m4 should be fixed according to the attached
+patch.
+
+--
+Wictor Lund
+
+---
+ contrib/ragel.m4 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/ragel.m4 b/contrib/ragel.m4
+index 3629d334..e7b42425 100644
+--- a/contrib/ragel.m4
++++ b/contrib/ragel.m4
+@@ -23,7 +23,7 @@ AC_DEFUN([CHECK_RAGEL], [
+   AS_IF([test x"$RAGEL" = x"no"],
+         [RAGEL=false],
+ 	AS_IF([test x"$2" != "x"],
+-	      [ragel_version=`$RAGEL --version | sed -n -e '1s:.*version \(@<:@0-9@:>@\.@<:@0-9@:>@\) .*:\1:p'`
++	      [ragel_version=`$RAGEL --version | sed -n -e '1s:.*version \(@<:@0-9@:>@\.@<:@0-9@:>@\)\(\.@<:@0-9@:>@\)* .*:\1:p'`
+ 	       ragel_version_compare=`echo $ragel_version | tr -d .`
+ 	       ragel_wanted_version=`echo $2 | tr -d .`
+ 	       AS_IF([test $ragel_version_compare -lt $ragel_wanted_version],
+-- 
+2.22.0
+
+
+
+From thurston at colm.net  Tue Aug 13 09:56:50 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 13 Aug 2019 07:56:50 -0600
+Subject: [ragel-users] [PATCH] Handle the new ragel version format in
+ the autoconf script
+In-Reply-To: <20190812103438.be3ks4qtsgfq5rgz@klein.local>
+References: <20190812103438.be3ks4qtsgfq5rgz@klein.local>
+Message-ID: <6f5b53bcf9e08340b4bbaf48befb85ba@mail.colm.net>
+
+Applied, thanks!
+
+On 2019-08-12 04:34, Wictor Lund wrote:
+> Hi,
+> 
+> Some older ragel version I have does like this:
+> 
+> $ ragel --version
+> Ragel State Machine Compiler version 6.9 Oct 2014
+> Copyright (c) 2001-2009 by Adrian Thurston
+> 
+> , while a newer one does like this:
+> 
+> $ ragel --version
+> Ragel State Machine Compiler version 7.0.0.9 August 2016
+> 
+> Copyright (c) 2001-2015 by Adrian Thurston
+> 
+> The current contrib/ragel.m4 file cannot parse the newer --version 
+> string.
+> I propose that contrib/ragel.m4 should be fixed according to the 
+> attached
+> patch.
+> 
+> --
+> Wictor Lund
+> 
+> ---
+>  contrib/ragel.m4 | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/contrib/ragel.m4 b/contrib/ragel.m4
+> index 3629d334..e7b42425 100644
+> --- a/contrib/ragel.m4
+> +++ b/contrib/ragel.m4
+> @@ -23,7 +23,7 @@ AC_DEFUN([CHECK_RAGEL], [
+>    AS_IF([test x"$RAGEL" = x"no"],
+>          [RAGEL=false],
+>  	AS_IF([test x"$2" != "x"],
+> -	      [ragel_version=`$RAGEL --version | sed -n -e '1s:.*version
+> \(@<:@0-9@:>@\.@<:@0-9@:>@\) .*:\1:p'`
+> +	      [ragel_version=`$RAGEL --version | sed -n -e '1s:.*version
+> \(@<:@0-9@:>@\.@<:@0-9@:>@\)\(\.@<:@0-9@:>@\)* .*:\1:p'`
+>  	       ragel_version_compare=`echo $ragel_version | tr -d .`
+>  	       ragel_wanted_version=`echo $2 | tr -d .`
+>  	       AS_IF([test $ragel_version_compare -lt $ragel_wanted_version],
+
+
+From Mark.Olesen at esi-group.com  Fri Aug 16 13:07:36 2019
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Fri, 16 Aug 2019 17:07:36 +0000
+Subject: [ragel-users] combining ragel and lemon
+Message-ID: <372df856-36a9-cc2b-b5e3-ccb7a07dc6a9@esi-group.com>
+
+I've use ragel in a few places already for parsing, but now I'm looking 
+to port over a medium sized chunk of flex/bison. Perhaps going for a 
+ragel/lemon combination.
+
+According to the lemon docs (https://www.hwaci.com/sw/lemon/lemon.html) 
+the parser is the one calling the lexer. But this seems to be the same 
+as ragel would like to be doing: match a pattern, call an action.
+
+The few examples of ragel/lemon that I've found (the classic calculator, 
+or a json parser) seem to be handling this by running ragel as the 
+scanner, and calling the lemon parser in its actions.
+
+Some other examples I've seen use re2c for the lexing part. This appears 
+to fit better with what lemon expects, but there must be some way to lex 
+a single token and return from ragel I suspect.
+
+I would be thankful for ideas.
+
+Cheers,
+/mark
+
+From thurston at colm.net  Fri Aug 16 15:57:21 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 16 Aug 2019 13:57:21 -0600
+Subject: [ragel-users] combining ragel and lemon
+In-Reply-To: <372df856-36a9-cc2b-b5e3-ccb7a07dc6a9@esi-group.com>
+References: <372df856-36a9-cc2b-b5e3-ccb7a07dc6a9@esi-group.com>
+Message-ID: <05a27548e93198f9bf09f1e54b09ee48@mail.colm.net>
+
+Hi Mark,
+
+You can return from the scanner pattern action if you like. You can also 
+craft a machine that that just attempts to match one token, then return 
+the token. If you want to stay faithful to lex semantics, you have to 
+take some care to implement the "longest-match" characteristic yourself.
+
+But from what I've seen, lemon lets you pass in one token at a time. 
+This is just one example I found, but there seems to be more.
+
+https://github.com/eloraiby/rl-json-parser/blob/master/json-parser/lexer.rl
+
+Adrian
+
+On 2019-08-16 11:07, Mark Olesen wrote:
+> I've use ragel in a few places already for parsing, but now I'm looking
+> to port over a medium sized chunk of flex/bison. Perhaps going for a
+> ragel/lemon combination.
+> 
+> According to the lemon docs (https://www.hwaci.com/sw/lemon/lemon.html)
+> the parser is the one calling the lexer. But this seems to be the same
+> as ragel would like to be doing: match a pattern, call an action.
+> 
+> The few examples of ragel/lemon that I've found (the classic 
+> calculator,
+> or a json parser) seem to be handling this by running ragel as the
+> scanner, and calling the lemon parser in its actions.
+> 
+> Some other examples I've seen use re2c for the lexing part. This 
+> appears
+> to fit better with what lemon expects, but there must be some way to 
+> lex
+> a single token and return from ragel I suspect.
+> 
+> I would be thankful for ideas.
+> 
+> Cheers,
+> /mark
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+From Mark.Olesen at esi-group.com  Wed Aug 21 13:16:57 2019
+From: Mark.Olesen at esi-group.com (Mark Olesen)
+Date: Wed, 21 Aug 2019 17:16:57 +0000
+Subject: [ragel-users] combining ragel and lemon
+In-Reply-To: <05a27548e93198f9bf09f1e54b09ee48@mail.colm.net>
+References: <372df856-36a9-cc2b-b5e3-ccb7a07dc6a9@esi-group.com>
+ <05a27548e93198f9bf09f1e54b09ee48@mail.colm.net>
+Message-ID: <0cb0b286-ec43-6a25-7a71-6be537c91bed@esi-group.com>
+
+Hi Adrian,
+
+Thanks for the feedback. After some more digging, it seems it won't make 
+much difference between having a push or pull model for a simple syntax. 
+The ragel potion of the code is fairly simple: just emit a token type or 
+a number - not much else.
+
+
+As my initial go, I'm trying to extend the simple calculator model with 
+some functions etc.  To ship around the longest match issue, it seems 
+okay to simply bind in the opening '(' into the token. Eg,
+
+   'log' space* '('         { EMIT_TOKEN(EXP); };
+
+And on the lemon side, accept that with a closing condition.
+
+exp(lhs) ::= LOG exp(a) RPAREN.
+{
+     lhs = std:log(a);
+}
+
+This deals adequately with incomplete content such as these
+     " log( "  and  " log(10"
+
+This disambiguation crutch fails when supplying some predefined 
+constants such as pi and M_PI. If I use a simple match,
+
+     'pi'  @{ EMIT_NUMBER(M_PI); };
+
+It fails with things like "2*pie" and "pi2". Here I can only resort to 
+either having a lex failure (ie, pe != eof afterwards) or let lemon 
+notice the syntax error.
+Neither feels particularly right. I started trying to add in additional 
+constraints. Eg,
+
+     ('pi' | 'M_PI') :> (delim | ')') @{ EMIT_NUMBER(M_PI); };
+
+but that eats the next character instead of doing a lookahead (can't 
+figure how to manage that) and falls apart for the eof case.  Do I 
+somehow need to push the parse point before the delimiters and pop it 
+again (and handle eof too)?
+
+If I can get this stage worked out, I might be able to move to the next 
+phase with different parse states. The code that I am attempting to port 
+is currently flex/bison (not particularly pretty) and I would like to 
+avoid a bison build dependency.
+
+https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionLexer.ll
+
+https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionParser.yy
+
+
+Perhaps I'm attempting too much and it's not really possible with 
+ragel/lemon.
+
+Thanks for any hints.
+
+Cheers,
+/mark
+
+
+On 8/16/19 9:57 PM, Adrian Thurston wrote:
+> Hi Mark,
+> 
+> You can return from the scanner pattern action if you like. You can also 
+> craft a machine that that just attempts to match one token, then return 
+> the token. If you want to stay faithful to lex semantics, you have to 
+> take some care to implement the "longest-match" characteristic yourself.
+> 
+> But from what I've seen, lemon lets you pass in one token at a time. 
+> This is just one example I found, but there seems to be more.
+> 
+> https://github.com/eloraiby/rl-json-parser/blob/master/json-parser/lexer.rl
+> 
+> Adrian
+> 
+> On 2019-08-16 11:07, Mark Olesen wrote:
+>> I've use ragel in a few places already for parsing, but now I'm looking
+>> to port over a medium sized chunk of flex/bison. Perhaps going for a
+>> ragel/lemon combination.
+>>
+>> According to the lemon docs (https://www.hwaci.com/sw/lemon/lemon.html)
+>> the parser is the one calling the lexer. But this seems to be the same
+>> as ragel would like to be doing: match a pattern, call an action.
+>>
+>> The few examples of ragel/lemon that I've found (the classic calculator,
+>> or a json parser) seem to be handling this by running ragel as the
+>> scanner, and calling the lemon parser in its actions.
+>>
+>> Some other examples I've seen use re2c for the lexing part. This appears
+>> to fit better with what lemon expects, but there must be some way to lex
+>> a single token and return from ragel I suspect.
+>>
+>> I would be thankful for ideas.
+>>
+>> Cheers,
+>> /mark
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+-- 
+Dr Mark OLESEN
+Principal Engineer, ESI-OpenCFD
+Engineering System International GmbH | Einsteinring 24 | 85609 Munich
+Mob. +49 171 9710 149
+www.openfoam.com | www.esi-group.com | mark.olesen at esi-group.com
+

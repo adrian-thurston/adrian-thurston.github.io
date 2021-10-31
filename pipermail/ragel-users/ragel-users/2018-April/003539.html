@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] simple parser for #include statements
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cbc868e0677c4e477412f565a458c35ae%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003537.html">
+   <LINK REL="Next"  HREF="003541.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] simple parser for #include statements</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cbc868e0677c4e477412f565a458c35ae%40mail.colm.net%3E"
+       TITLE="[ragel-users] simple parser for #include statements">thurston at colm.net
+       </A><BR>
+    <I>Wed Apr 25 13:45:02 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003537.html">[ragel-users] simple parser for #include statements
+</A></li>
+        <LI>Next message: <A HREF="003541.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3539">[ date ]</a>
+              <a href="thread.html#3539">[ thread ]</a>
+              <a href="subject.html#3539">[ subject ]</a>
+              <a href="author.html#3539">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Mark,
+
+So the thing to remember here is that a scanner will always try for the 
+longest match possible, and only in the case of matches of equal length 
+will it choose the pattern that appears ahead of the others. So in this 
+case the dnl at the end is taking precedence over the comment rules. It 
+doesn't interfere with the include matching rule because it also has a 
+dnl at the end.
+
+For the catch all you want to use just the any machine. It will go one 
+char at a time and this may seem less efficient, but ragel does its best 
+to optimize this.
+
+In regards to the slightly tighter machine that you mentioned, it would 
+be interesting to see before and after grammars in full to see what's 
+going on. On their own they produce the same machine, but in the context 
+of something larger there might be something preventing it, or it could 
+be a missed opportunity for optimization.
+
+-Adrian
+
+On 2018-04-23 02:29, Mark Olesen wrote:
+&gt;<i> Background:
+</I>&gt;<i> In OpenFOAM (www.OpenFOAM.com) we have a flex-based dependency parser.
+</I>&gt;<i> It simply goes through the file, finds all the #include &quot;file...&quot;
+</I>&gt;<i> statements and in turn processes each of them. It has some internal
+</I>&gt;<i> hashing and few other bits that make if faster than 'cpp -M'.
+</I>&gt;<i> However, this flex solution has it's own problems, one of which is
+</I>&gt;<i> that its internal buffer switching means that we can quickly exceed
+</I>&gt;<i> 1024 open file descriptors and there doesn't see to be a way to close
+</I>&gt;<i> them after processing a file.
+</I>&gt;<i> 
+</I>&gt;<i> I thus had a run at writing a ragel-based version that executes about
+</I>&gt;<i> 60% faster than the flex-based version and also does a better job of
+</I>&gt;<i> closing file descriptors. I was pleased to have found an example to
+</I>&gt;<i> work from
+</I>&gt;<i> (<A HREF="https://github.com/danmiley/ragel/blob/master/examples/cppscan.rl">https://github.com/danmiley/ragel/blob/master/examples/cppscan.rl</A>).
+</I>&gt;<i> 
+</I>&gt;<i> Problem at hand:
+</I>&gt;<i> In a stripped down version, I have the following grammar snippet:
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine wmkdep;
+</I>&gt;<i> 
+</I>&gt;<i>     action  buffer  { tok = p; /* Local token start */ }
+</I>&gt;<i>     action  process { processFile(std::string(tok, (p - tok))); }
+</I>&gt;<i> 
+</I>&gt;<i>     white   = [ \t\f\r];        # Horizontal whitespace
+</I>&gt;<i>     nl      = white* '\n';      # Newline
+</I>&gt;<i>     dnl     = [^\n]* '\n';      # Discard up to and including newline
+</I>&gt;<i> 
+</I>&gt;<i>     comment := any* :&gt;&gt; '*/' @{ fgoto main; };
+</I>&gt;<i> 
+</I>&gt;<i>     main := |*
+</I>&gt;<i> 
+</I>&gt;<i>         space*; # Discard whitespace, empty lines
+</I>&gt;<i> 
+</I>&gt;<i>         white* '#' white* 'include' white*
+</I>&gt;<i>             ('&quot;' [^\&quot;]+ &gt;buffer %process '&quot;') dnl;
+</I>&gt;<i> 
+</I>&gt;<i>         '//' dnl;                # 1-line comment
+</I>&gt;<i>         '/*' { fgoto comment; }; # Multi-line comment
+</I>&gt;<i> 
+</I>&gt;<i>         dnl;                            # Discard all other lines
+</I>&gt;<i> 
+</I>&gt;<i>     *|;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> However, the stripping of multi-line C-comments was failing and any
+</I>&gt;<i> #include ... mentioned in a comment was also being seen.
+</I>&gt;<i> 
+</I>&gt;<i> I figured that the example that I'd found with fgoto must be the right
+</I>&gt;<i> way, but maybe it wasn't switching at the correct parse point so I
+</I>&gt;<i> experimented with this instead:
+</I>&gt;<i> 
+</I>&gt;<i>    comment := any* :&gt;&gt; '*/' %{ fgoto main; };
+</I>&gt;<i> 
+</I>&gt;<i> But it was still parsing (not stripping) the c-comment.
+</I>&gt;<i> Finally, I did away with the fgoto and coded it straight up:
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine wmkdep;
+</I>&gt;<i> 
+</I>&gt;<i>     action  buffer  { tok = p; /* Local token start */ }
+</I>&gt;<i>     action  process { processFile(std::string(tok, (p - tok))); }
+</I>&gt;<i> 
+</I>&gt;<i>     white   = [ \t\f\r];        # Horizontal whitespace
+</I>&gt;<i>     nl      = white* '\n';      # Newline (allow trailing whitespace)
+</I>&gt;<i>     dnl     = (any* -- '\n') '\n';  # Discard up to and including 
+</I>&gt;<i> newline
+</I>&gt;<i> 
+</I>&gt;<i>     dquot   = '&quot;';              # double quote
+</I>&gt;<i>     dqarg   = (any+ -- dquot);  # double quoted argument
+</I>&gt;<i> 
+</I>&gt;<i>     main := |*
+</I>&gt;<i> 
+</I>&gt;<i>         space*;      # Discard whitespace, empty lines
+</I>&gt;<i> 
+</I>&gt;<i>         white* '#' white* 'include' white*
+</I>&gt;<i>             (dquot dqarg &gt;buffer %process dquot) dnl;
+</I>&gt;<i> 
+</I>&gt;<i>         '//' dnl;               # 1-line comment
+</I>&gt;<i>         '/*' any* :&gt;&gt; '*/';     # Multi-line comment
+</I>&gt;<i> 
+</I>&gt;<i>         dnl;                    # Discard all other lines
+</I>&gt;<i> 
+</I>&gt;<i>     *|;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> I'm fine with this solution. It strips the c-comments as I wanted, but
+</I>&gt;<i> I'd like to understand why the first attempt failed.
+</I>&gt;<i> 
+</I>&gt;<i> Additionally, I found the behaviour of 'dnl' construction (same name
+</I>&gt;<i> and behaviour as m4 dnl) rather intriguing. Since the purpose is to
+</I>&gt;<i> delete through to and including the newline, I'd expressed it like
+</I>&gt;<i> this:
+</I>&gt;<i> 
+</I>&gt;<i>     dnl = [^\n]* '\n';
+</I>&gt;<i> 
+</I>&gt;<i> However, I found that the following version
+</I>&gt;<i> 
+</I>&gt;<i>     dnl = (any* -- '\n') '\n';
+</I>&gt;<i> 
+</I>&gt;<i> produced a machine that was slightly tighter. I'd have thought that
+</I>&gt;<i> the matching would be identical, but the first 'dnl' variant had an
+</I>&gt;<i> additional intermediate stage in the machine. All machines were
+</I>&gt;<i> generated with ragel 6.9 (since that's what opensuse leap 42.3 ships
+</I>&gt;<i> with).
+</I>&gt;<i> 
+</I>&gt;<i> /mark
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003537.html">[ragel-users] simple parser for #include statements
+</A></li>
+	<LI>Next message: <A HREF="003541.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3539">[ date ]</a>
+              <a href="thread.html#3539">[ thread ]</a>
+              <a href="subject.html#3539">[ subject ]</a>
+              <a href="author.html#3539">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Feature Request: Inline Scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Feature%20Request%3A%20Inline%20Scanner&In-Reply-To=%3Ccb2ad8b50611041324l43d18f6u178be4cb2c81ed41%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000046.html">
+   <LINK REL="Next"  HREF="000048.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Feature Request: Inline Scanner</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Feature%20Request%3A%20Inline%20Scanner&In-Reply-To=%3Ccb2ad8b50611041324l43d18f6u178be4cb2c81ed41%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Feature Request: Inline Scanner">cmantu... at gmail.com
+       </A><BR>
+    <I>Sat Nov  4 21:24:19 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000046.html">Feature Request: Inline Scanner
+</A></li>
+        <LI>Next message: <A HREF="000048.html">[ragel-users] Re: Feature Request: Inline Scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#47">[ date ]</a>
+              <a href="thread.html#47">[ thread ]</a>
+              <a href="subject.html#47">[ subject ]</a>
+              <a href="author.html#47">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 11/4/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> But I still think containment could be useful. Maybe you'd want to have one
+</I>&gt;<i> markup for the whole email address and other markups which give you the user
+</I>&gt;<i> and host names.
+</I>&gt;<i>
+</I>
+Sure, you could do that but, at the same time, you could also do it
+sequentially with pretty much the same end result given that string
+concatenation is a pretty simple thing to do. Personally, I don't feel
+the need for capture within capture although it could prove useful in
+certain contexts.
+
+&gt;<i>
+</I>&gt;<i> &gt; Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+</I>&gt;<i> &gt; var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+</I>&gt;<i>
+</I>&gt;<i> I wonder if maintaining this could be made fast even when the number of
+</I>&gt;<i> variables grows.
+</I>&gt;<i>
+</I>
+Hmm,  'alltokstarts' could be updated at the beginning of each capture
+with something like min(alltokstarts, ts(n)), no? This would scale
+well.
+
+&gt;<i>
+</I>&gt;<i> &gt;&gt;From the point of view of the FSM, the inline scanner would be a
+</I>&gt;<i> &gt; virtual state. Transitions to this virtual state would happen if and
+</I>&gt;<i> &gt; only if at least one of the inline scanner patterns matches. If there
+</I>&gt;<i> &gt; is no possible match then the FSM would error.
+</I>&gt;<i>
+</I>&gt;<i> You'll have to bear with me here, I can be thick sometimes!
+</I>&gt;<i>
+</I>
+&gt;<i>From my point of view you are the expert here. Therefore, if you don't
+</I>understand what I'm saying, the blame is totally on me! :-)
+
+&gt;<i>
+</I>&gt;<i>From what you're saying it seems like it's not really a scanner
+</I>&gt;<i>
+</I>
+No, it's not like a regular scanner that keeps repeatedly trying to
+match any of the expressions. I guess I should rename my proposed
+'inline scanner' to 'longest-match capture'.
+
+&gt;<i>
+</I>&gt;<i>but more like a union because if it finishes when it matches a
+</I>pattern then it won't
+&gt;<i>ever match more than one. Is that right?
+</I>&gt;<i>
+</I>
+Well, union with a twist. For example, with:
+
+|&gt;<i> patternA =&gt; actionA; patternB =&gt; actionB; &lt;|
+</I>
+Once patternA or patternB matches (the longest or the first wins as
+with a regular scanner), the capture machine is done.
+
+&gt;<i>
+</I>&gt;<i>If that's the case then it seems like the criteria for it starting is
+</I>the same as for it finishing.
+&gt;<i>
+</I>
+Hmm, not sure I'm following you here. In any case, after I emailed the
+list yesterday, I thought a little bit more about the use of state
+embeddings as a way to emulate this functionality and end up
+concluding that it was probably rubbish. But I thought that the state
+chart paradigm could be used to illustrate the basic idea. For
+example, with an expression like:
+
+pattern= patA |&gt; patB1 =&gt; actionB1; patB2 =&gt; actionB2; &lt;| patC;
+
+one could have a state chart like so:
+
+pattern = (
+
+    start: ( patA -&gt; matched_patA ),
+
+    matched_patA: ( |&gt; patB1 =&gt; actionB1; patB2 =&gt; actionB2; &lt;| -&gt;
+matched_patB ),
+
+    matched_patB: ( patC -&gt; final )
+
+);
+
+Another thing to consider is whether my initially proposal of strictly
+relying on longest-match for capture makes sense. Maybe the programmer
+should have a choice?
+
+So, do you think this is something you'd be willing to implement? :-)
+
+Thanks!
+
+Carlos
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000046.html">Feature Request: Inline Scanner
+</A></li>
+	<LI>Next message: <A HREF="000048.html">[ragel-users] Re: Feature Request: Inline Scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#47">[ date ]</a>
+              <a href="thread.html#47">[ thread ]</a>
+              <a href="subject.html#47">[ subject ]</a>
+              <a href="author.html#47">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

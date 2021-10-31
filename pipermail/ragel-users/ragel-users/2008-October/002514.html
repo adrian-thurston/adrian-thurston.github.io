@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH 3/6] Make it possible to enable/disable parsers generation at ./configure
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%203/6%5D%20Make%20it%20possible%20to%20enable/disable%0A%20parsers%20generation%20at%20./configure&In-Reply-To=%3C48EA49B5.7080002%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000750.html">
+   <LINK REL="Next"  HREF="000756.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH 3/6] Make it possible to enable/disable parsers generation at ./configure</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%203/6%5D%20Make%20it%20possible%20to%20enable/disable%0A%20parsers%20generation%20at%20./configure&In-Reply-To=%3C48EA49B5.7080002%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] [PATCH 3/6] Make it possible to enable/disable parsers generation at ./configure">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Oct  6 17:24:05 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000750.html">[PATCH 3/6] Make it possible to enable/disable parsers generation at	./configure
+</A></li>
+        <LI>Next message: <A HREF="000756.html">[PATCH 4/6] Remove need for version.mk file.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2514">[ date ]</a>
+              <a href="thread.html#2514">[ thread ]</a>
+              <a href="subject.html#2514">[ subject ]</a>
+              <a href="author.html#2514">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I don't see why anyone would need to use this. Either you're doing 
+development on ragel and you're working out of SVN or you're grabbing a 
+release for building and installing. Maybe someone might want to do 
+development on an older version but I think that would be pretty rare.
+
+Adrian
+
+Diego 'Flameeyes' Pettenò wrote:
+&gt;<i> Instead of having to edit the configure.in file to disable parsers,
+</I>&gt;<i> make it possible to disable it at ./configure stage, like any good
+</I>&gt;<i> autoconf project should do.
+</I>&gt;<i> ---
+</I>&gt;<i> 
+</I>&gt;<i>  configure.in       |   12 +++++++-----
+</I>&gt;<i>  ragel/Makefile.in  |    6 +++---
+</I>&gt;<i>  redfsm/Makefile.in |    2 +-
+</I>&gt;<i>  3 files changed, 11 insertions(+), 9 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/configure.in b/configure.in
+</I>&gt;<i> index cc25f2e..3995551 100644
+</I>&gt;<i> --- a/configure.in
+</I>&gt;<i> +++ b/configure.in
+</I>&gt;<i> @@ -21,10 +21,12 @@ dnl   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</I>&gt;<i>  AC_INIT(ragel/main.cpp)
+</I>&gt;<i>  AC_CONFIG_HEADER(common/config.h)
+</I>&gt;<i>  
+</I>&gt;<i> -dnl Set to true if build system should generate parsers from ragel, kelbt, and
+</I>&gt;<i> -dnl gperf sources. Set to false if generated files are included and not to be
+</I>&gt;<i> -dnl built (production).
+</I>&gt;<i> -AC_SUBST(BUILD_PARSERS,true)
+</I>&gt;<i> +dnl You need to enable this unless the generated files are included
+</I>&gt;<i> +dnl and don't need to be built.
+</I>&gt;<i> +AC_ARG_ENABLE([parsers],
+</I>&gt;<i> +  AS_HELP_STRING([--disable-parsers], [Disable building of parsers with ragel, kelbt and gperf]),
+</I>&gt;<i> +  [], [enable_parsers=yes])
+</I>&gt;<i> +AC_SUBST([enable_parsers])
+</I>&gt;<i>  
+</I>&gt;<i>  dnl Checks for programs.
+</I>&gt;<i>  AC_PROG_CC
+</I>&gt;<i> @@ -38,7 +40,7 @@ AC_LANG_CPLUSPLUS
+</I>&gt;<i>  dnl Check for definition of MAKE.
+</I>&gt;<i>  AC_PROG_MAKE_SET
+</I>&gt;<i>  
+</I>&gt;<i> -if test $BUILD_PARSERS = true; then
+</I>&gt;<i> +if test $enable_parsers = yes; then
+</I>&gt;<i>  
+</I>&gt;<i>  dnl Check for Ragel
+</I>&gt;<i>  AC_CHECK_PROG(RAGEL, ragel, ragel)
+</I>&gt;<i> diff --git a/ragel/Makefile.in b/ragel/Makefile.in
+</I>&gt;<i> index b6397dc..2a6b5da 100644
+</I>&gt;<i> --- a/ragel/Makefile.in
+</I>&gt;<i> +++ b/ragel/Makefile.in
+</I>&gt;<i> @@ -45,7 +45,7 @@ MINGW_LIBS = -lpsapi
+</I>&gt;<i>  #*************************************
+</I>&gt;<i>  
+</I>&gt;<i>  prefix = @prefix@
+</I>&gt;<i> -BUILD_PARSERS = @BUILD_PARSERS@
+</I>&gt;<i> +BUILD_PARSERS = @enable_parsers@
+</I>&gt;<i>  EXEEXT = @EXEEXT@
+</I>&gt;<i>  CXX = @CXX@
+</I>&gt;<i>  
+</I>&gt;<i> @@ -63,7 +63,7 @@ all: ragel$(EXEEXT)
+</I>&gt;<i>  ragel$(EXEEXT): $(GEN_SRC) $(OBJS) $(RAGEL_LIBS)
+</I>&gt;<i>  	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+</I>&gt;<i>  
+</I>&gt;<i> -ifeq ($(BUILD_PARSERS),true)
+</I>&gt;<i> +ifeq ($(BUILD_PARSERS),yes)
+</I>&gt;<i>  
+</I>&gt;<i>  rlparse.h: rlparse.kh
+</I>&gt;<i>  	kelbt -o $@ $&lt;
+</I>&gt;<i> @@ -87,7 +87,7 @@ endif
+</I>&gt;<i>  distclean: clean
+</I>&gt;<i>  	rm -f Makefile 
+</I>&gt;<i>  
+</I>&gt;<i> -ifeq ($(BUILD_PARSERS),true)
+</I>&gt;<i> +ifeq ($(BUILD_PARSERS),yes)
+</I>&gt;<i>  EXTRA_CLEAN = $(GEN_SRC)
+</I>&gt;<i>  endif
+</I>&gt;<i>  
+</I>&gt;<i> diff --git a/redfsm/Makefile.in b/redfsm/Makefile.in
+</I>&gt;<i> index a4c6737..951de79 100644
+</I>&gt;<i> --- a/redfsm/Makefile.in
+</I>&gt;<i> +++ b/redfsm/Makefile.in
+</I>&gt;<i> @@ -28,7 +28,7 @@ CC_SRCS = redfsm.cpp gendata.cpp xmltags.cpp xmlscan.cpp xmlparse.cpp
+</I>&gt;<i>  
+</I>&gt;<i>  GEN_SRC = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
+</I>&gt;<i>  
+</I>&gt;<i> -BUILD_PARSERS = @BUILD_PARSERS@
+</I>&gt;<i> +BUILD_PARSERS = @enable_parsers@
+</I>&gt;<i>  
+</I>&gt;<i>  #*************************************
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000750.html">[PATCH 3/6] Make it possible to enable/disable parsers generation at	./configure
+</A></li>
+	<LI>Next message: <A HREF="000756.html">[PATCH 4/6] Remove need for version.mk file.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2514">[ date ]</a>
+              <a href="thread.html#2514">[ thread ]</a>
+              <a href="subject.html#2514">[ subject ]</a>
+              <a href="author.html#2514">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

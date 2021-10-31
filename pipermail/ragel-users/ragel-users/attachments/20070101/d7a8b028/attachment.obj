@@ -1,0 +1,119 @@
+#import "DiffParser.h"
+
+%%{
+	machine DiffParser;
+	
+### actions
+	action clear_buffer {
+		[stringBuffer clear];
+	}
+	
+	action buffer_char {
+		[stringBuffer append:fc];
+	}
+	
+	action add_common_code {
+		NSString* line = [stringBuffer fetch];
+		[diffSpec addLine:line ofType:@" "];
+		NSLog( @" %@", line );
+	}
+	
+	action add_old_code {
+		NSString* line = [stringBuffer fetch];
+		[diffSpec addLine:line ofType:@"-"];
+		NSLog( @"-%@", line );
+	}
+	
+	action add_new_code {
+		NSString* line = [stringBuffer fetch];
+		[diffSpec addLine:line ofType:@"+"];
+		NSLog( @"+%@", line );
+	}
+	
+	action set_index_file {
+		NSLog( @"Index file: %@", [stringBuffer fetch] );
+	}
+	
+	action add_hunk {
+		[diffSpec addHunk];
+		NSLog( @"Adding hunk" );
+	}
+	
+	action here_i_am {
+		NSLog( @"I'm here" );
+	}
+	
+### expressions
+	line = print+ @buffer_char '\n';
+	commonCode = ' ' @clear_buffer line @add_common_code;
+	oldCode = '-' @clear_buffer line @add_old_code;
+	newCode = '+' @clear_buffer line @add_new_code;
+	ignoreCode = '\\' line;
+	
+	hunkMarker = '@@';
+	
+	separator = '='+ '\n';
+	
+	oldFile = '---' print+ '\n';
+	newFile = '+++' print+ '\n';
+	
+	diffBody = ( commonCode | oldCode | newCode )+ ( ignoreCode | hunkMarker @{ fhold; } );
+	
+	hunkHeader = hunkMarker print+ hunkMarker '\n';
+	
+	hunk = hunkHeader diffBody @add_hunk;
+	
+	fileSpec = "Index:" space @clear_buffer print+ @buffer_char '\n';
+	
+	diffHeader = ( fileSpec @set_index_file separator oldFile newFile );
+	
+	main := ( diffHeader hunk+ )*;
+	
+}%%	
+
+@implementation DiffParser
+
+%% write data;
+
+- (id)init
+{
+	[super init];
+	
+	count = 0;
+	stringBuffer = [[CStrBuffer alloc] init];
+	
+	diffSpec = [[DiffSpec alloc] init];
+	
+	NSLog( @"Initializing DiffParser" );
+	%% write init;
+	NSLog( @"Initialization complete" );
+	
+	return self;
+}
+
+- (void)finish
+{
+	%% write eof;
+}
+
+- (void)parse:(NSString*)data
+{
+	const char* p = [data UTF8String];
+	const char* pe = p + [data length];
+
+	%% write exec;
+	
+	if( cs == DiffParser_error )
+	{
+		NSLog( @"Error for char %c", fc );
+	}
+}
+
+- (void)dealloc
+{
+	NSLog( @"DiffParser dealloc" );
+	[stringBuffer release];
+	[super dealloc];
+}
+
+@end

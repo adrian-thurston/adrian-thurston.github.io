@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Am I misinterpreting the purpose of fbreak?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Am%20I%20misinterpreting%20the%20purpose%20of%20fbreak%3F&In-Reply-To=%3C47802631.4020501%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000462.html">
+   <LINK REL="Next"  HREF="000464.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Am I misinterpreting the purpose of fbreak?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Am%20I%20misinterpreting%20the%20purpose%20of%20fbreak%3F&In-Reply-To=%3C47802631.4020501%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Am I misinterpreting the purpose of fbreak?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sun Jan  6 00:52:01 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000462.html">Am I misinterpreting the purpose of fbreak?
+</A></li>
+        <LI>Next message: <A HREF="000464.html">Am I misinterpreting the purpose of fbreak?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#463">[ date ]</a>
+              <a href="thread.html#463">[ thread ]</a>
+              <a href="subject.html#463">[ subject ]</a>
+              <a href="author.html#463">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sorry that won't work. When you break from the processing loop you
+abandon any remaining actions on that character. Ragel does not jump
+back into the action list to the point of departure.
+
+What you could do is queue up actions and then embed the break action using:
+
+${ p++; break; }
+
+Just be sure the break action is embedded after the actions that queue
+up tokens. See the section on action ordering in the manual.
+
+-Adrian
+
+David Waite wrote:
+&gt;<i> I don't know if advancing p is the correct option all the time though,
+</I>&gt;<i> because (in the example, and unfortunately in the actual machine I'm
+</I>&gt;<i> trying to create) I trigger multiple breaking actions on a single
+</I>&gt;<i> transition. For example, the two character JSON document &quot;[]&quot;
+</I>&gt;<i> currently should have the following actions triggered by my machine:
+</I>&gt;<i> 
+</I>&gt;<i> main:
+</I>&gt;<i>   StartDocument - fbreak; (returns Event.Document)
+</I>&gt;<i>   ParseArray - fcall array;
+</I>&gt;<i>   StartArray - fbreak; (returns Event.Array)
+</I>&gt;<i>   EndArray - fbreak; (returns Event.EndArray)
+</I>&gt;<i>   Return - fret;
+</I>&gt;<i>   EndDocument (eof) - fbreak; (returns Event.EndDocument)
+</I>&gt;<i> 
+</I>&gt;<i> If I remove the StartDocument fbreak, would incrementing p on break
+</I>&gt;<i> work?
+</I>&gt;<i> 
+</I>&gt;<i> -DW
+</I>&gt;<i> 
+</I>&gt;<i> On Jan 5, 3:56 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> The problem is that fbreak does not advance p when it breaks out of the
+</I>&gt;&gt;<i> loop. This is a choice I made a long time ago and I think I was taking
+</I>&gt;&gt;<i> the &quot;do as little as possible on behalf of the user&quot; approach. But not
+</I>&gt;&gt;<i> advancing p while advancing cs is clearly wrong and confusing. This is
+</I>&gt;&gt;<i> something that will change in 6.0 (it's in the TODO already).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> In the meantime you can do p++ just before the break.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000462.html">Am I misinterpreting the purpose of fbreak?
+</A></li>
+	<LI>Next message: <A HREF="000464.html">Am I misinterpreting the purpose of fbreak?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#463">[ date ]</a>
+              <a href="thread.html#463">[ thread ]</a>
+              <a href="subject.html#463">[ subject ]</a>
+              <a href="author.html#463">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Split ragel source files to several and include one	to other
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Split%20ragel%20source%20files%20to%20several%20and%20include%20one%0A%09to%20other&In-Reply-To=%3CAANLkTik6u%2BMx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003020.html">
+   <LINK REL="Next"  HREF="003022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Split ragel source files to several and include one	to other</H1>
+    <B>Oleg Tsarev</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Split%20ragel%20source%20files%20to%20several%20and%20include%20one%0A%09to%20other&In-Reply-To=%3CAANLkTik6u%2BMx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Split ragel source files to several and include one	to other">zabivator at gmail.com
+       </A><BR>
+    <I>Tue Feb 15 10:54:04 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003020.html">[ragel-users] longest matching kleene star &amp; parse error
+</A></li>
+        <LI>Next message: <A HREF="003022.html">[ragel-users] Split ragel source files to several and include one to other
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3021">[ date ]</a>
+              <a href="thread.html#3021">[ thread ]</a>
+              <a href="subject.html#3021">[ subject ]</a>
+              <a href="author.html#3021">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello guys,
+
+I try to use ragel in the open-source project &quot;Percona-Playback&quot;:
+<A HREF="https://code.launchpad.net/~tsarev/percona-playback/alpha">https://code.launchpad.net/~tsarev/percona-playback/alpha</A>
+Ragel is great compliant to my targets.
+
+But I have trouble what can't solve and documentation not answer to my
+question.
+So I read parts 2.1.4, but don't understand how its work
+
+Suppose I have one machine (thread_id.rl file):
+{{%
+    machine thread_id;
+    action thread_id_begin { thread_id= 0; }
+    action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+    action thread_id_end   { set_thread_id(thread_id); }
+    key   = 'Thread_id: ';
+    value = ([0-9] @thread_id_step;)+ %thread_id_end;
+    main := (key @thread_id_begin) . value;
+%}}
+
+Now i want two things:
+1) Write unit test to this machine
+2) Use this machine to another, more complex machine.
+
+I tried to include this machine in another file:
+%%{
+    machine thread_id_test;
+    error = [^\n]* '\n'
+      &gt;{ std::cout &lt;&lt; &quot;start skip: '&quot;; }
+      ${ std::cout &lt;&lt; fc; }
+      @{ std::cout &lt; &quot;'\n&quot; &lt;&lt; std::flush; fgoto main; };
+    thread_id= include thread_id &quot;../../src/parser/thread_id.rl&quot;;
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but receive error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:10: at token
+TK_ColonEquals: parse error
+
+I tried another way:
+%%{
+    machine thread_id_test;
+    include thread_id &quot;../../src/parser/thread_id.rl&quot;;
+    error = [^\n]* '\n'
+      &gt;{ std::cout &lt;&lt; &quot;start skip: '&quot;; }
+      ${ std::cout &lt;&lt; fc; }
+      @{ std::cout &lt; &quot;'\n&quot; &lt;&lt; std::flush; fgoto main; };
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but get another error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:14: graph
+lookup of &quot;thread_id&quot; failed
+
+Thank you very much for any help.
+
+Best regards, Oleg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20110215/331fbecb/attachment-0001.html">http://www.colm.net/pipermail/ragel-users/attachments/20110215/331fbecb/attachment-0001.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003020.html">[ragel-users] longest matching kleene star &amp; parse error
+</A></li>
+	<LI>Next message: <A HREF="003022.html">[ragel-users] Split ragel source files to several and include one to other
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3021">[ date ]</a>
+              <a href="thread.html#3021">[ thread ]</a>
+              <a href="subject.html#3021">[ subject ]</a>
+              <a href="author.html#3021">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,482 @@
+From thurston at complang.org  Thu Aug  5 04:54:33 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 04 Aug 2010 21:54:33 -0700
+Subject: [ragel-users] C enum usage in state machines and visualization
+ improvements
+In-Reply-To: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+References: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+Message-ID: <4C5A4409.8020102@complang.org>
+
+Hi,
+
+Sorry I missed this message.
+
+In a simple state machine, it might seem natural to give states the 
+names that come from source file, but unfortunately it doesn't 
+generalize. States are often the combination of several states defined 
+in the source file. Also, states specified in the source can end up 
+contributing to more than one state in the compiled machine.
+
+-Adrian
+
+On 10-07-12 09:56 AM, David Weidenkopf wrote:
+> Hello, I am a ragel noob. One observation I have as a new user is that the generated dot files would be better if they used more of the information provided in the source file. For example, why aren't the state names output instead of numbers? Or is there a way to get the state names used in the diagram? Finally, I read that it was possible to use a C enum to define events. Are there any examples of this available?
+>
+> Also, does anyone with experience with the ragel source have an idea of the feasibility of adding more features to the dot generation? For example, what about color coding events?
+>
+> Thanks in advance.
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From colin.t.curtin at gmail.com  Thu Aug 12 00:20:09 2010
+From: colin.t.curtin at gmail.com (Colin Curtin)
+Date: Wed, 11 Aug 2010 17:20:09 -0700
+Subject: [ragel-users] Gearman Protocol
+Message-ID: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+
+Howdy, I'm trying my hand at a Ragel machine to parse the Gearman
+protocol found here: http://gearman.org/index.php?id=protocol
+
+Here's what I have so far: http://gist.github.com/520065
+
+I'm not sure why, but it's telling me:
+
+$ ragel -R -s gearman.rl
+lexer.rl:117:3: sorry, no more characters are available in the alphabet space
+lexer.rl:117:3:   for conditions, please use a smaller alphtype or reduce
+lexer.rl:117:3:   the span of characters on which conditions are embedded
+
+It seems to be the line "  data        = (any when test_size)*;"
+
+But I'm just going off of the Ragel guide, section 6.5. Is that "when"
+syntax not supported? How can I guarantee the length and data's length
+are the same?
+
+Thanks!
+Colin
+
+
+-- 
+=begin
+Colin Curtin
+Engineer, Cramer Development
+http://cramerdev.com
+email:  colin at cramerdev.com
+skype: colin.t.curtin
+phone: +1.805.694.UNIX (8649)
+=end
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Fri Aug 13 23:01:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 13 Aug 2010 16:01:38 -0700
+Subject: [ragel-users] Gearman Protocol
+In-Reply-To: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+References: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+Message-ID: <4C65CED2.3070800@esentire.com>
+
+What you're seeing is a limitation of conditions and large alphabets. To 
+implement conditions Ragel eats up characters in the alphabet space. It 
+does so quite aggressively (actually eats up bits). The int alphabet 
+type doesn't have much space to begin with. The standard remedy is to 
+use a smaller alphabet type.
+
+What I need to do is to convert Ragel to internally use variable-size 
+alphabet types so this limit is hit less, but that's further down the 
+road for Ragel at this time.
+
+-Adrian
+
+On 10-08-11 05:20 PM, Colin Curtin wrote:
+> Howdy, I'm trying my hand at a Ragel machine to parse the Gearman
+> protocol found here: http://gearman.org/index.php?id=protocol
+>
+> Here's what I have so far: http://gist.github.com/520065
+>
+> I'm not sure why, but it's telling me:
+>
+> $ ragel -R -s gearman.rl
+> lexer.rl:117:3: sorry, no more characters are available in the alphabet space
+> lexer.rl:117:3:   for conditions, please use a smaller alphtype or reduce
+> lexer.rl:117:3:   the span of characters on which conditions are embedded
+>
+> It seems to be the line "  data        = (any when test_size)*;"
+>
+> But I'm just going off of the Ragel guide, section 6.5. Is that "when"
+> syntax not supported? How can I guarantee the length and data's length
+> are the same?
+>
+> Thanks!
+> Colin
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander at stunpix.com  Thu Aug 19 15:12:18 2010
+From: alexander at stunpix.com (Alexander Shashkevych)
+Date: Thu, 19 Aug 2010 18:12:18 +0300
+Subject: [ragel-users] Bug or feature?
+Message-ID: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+
+Hello folks!
+
+  I'm using ragel to parse my project configs and faced with strange ragel
+behavior. Seems I've found a bug, but I'm not sure. So, use case was
+following:
+
+Input cpp file contained:
+
+ . . .
+   %%{
+   write data;
+   write init;
+   write exec;
+   }%%
+. . .
+   DBG_ERROR(("ConfigReader::readConfig: error opening config file '%s'!",
+configFile.getBuffer() ));
+
+DBG_ERROR is my debug macro.
+
+After compiling this file using ragel I've found that block %%{ . . . }%%
+wasn't processed by ragel and was leaved as is in destination cpp file.
+
+When I changed '%s' to %s (without quotes) problem has gone! Seems '%s'
+substring makes ragel crazy. =)
+
+Someone faced with something like this?
+
+*With kindest regards,*
+*Alexander*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100819/d1cab8e7/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Aug 19 15:41:14 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 19 Aug 2010 08:41:14 -0700
+Subject: [ragel-users] Bug or feature?
+In-Reply-To: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+References: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+Message-ID: <4C6D509A.7020406@complang.org>
+
+Hi Alexander,
+
+I can't reproduce the problem using these instructions. Can you send me 
+the exact input file that causes the problem? I will treat it as 
+confidential.
+
+-Adrian
+
+On 10-08-19 08:12 AM, Alexander Shashkevych wrote:
+> Hello folks!
+>
+>    I'm using ragel to parse my project configs and faced with strange
+> ragel behavior. Seems I've found a bug, but I'm not sure. So, use case
+> was following:
+>
+> Input cpp file contained:
+>
+>   . . .
+>     %%{
+>     write data;
+>     write init;
+>     write exec;
+>     }%%
+> . . .
+>     DBG_ERROR(("ConfigReader::readConfig: error opening config file
+> '%s'!", configFile.getBuffer() ));
+>
+> DBG_ERROR is my debug macro.
+>
+> After compiling this file using ragel I've found that block %%{ . . .
+> }%% wasn't processed by ragel and was leaved as is in destination cpp file.
+>
+> When I changed '%s' to %s (without quotes) problem has gone! Seems '%s'
+> substring makes ragel crazy. =)
+>
+> Someone faced with something like this?
+>
+> /With kindest regards,/
+> /Alexander/
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Aug  5 04:54:33 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 04 Aug 2010 21:54:33 -0700
+Subject: [ragel-users] C enum usage in state machines and visualization
+ improvements
+In-Reply-To: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+References: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+Message-ID: <4C5A4409.8020102@complang.org>
+
+Hi,
+
+Sorry I missed this message.
+
+In a simple state machine, it might seem natural to give states the 
+names that come from source file, but unfortunately it doesn't 
+generalize. States are often the combination of several states defined 
+in the source file. Also, states specified in the source can end up 
+contributing to more than one state in the compiled machine.
+
+-Adrian
+
+On 10-07-12 09:56 AM, David Weidenkopf wrote:
+> Hello, I am a ragel noob. One observation I have as a new user is that the generated dot files would be better if they used more of the information provided in the source file. For example, why aren't the state names output instead of numbers? Or is there a way to get the state names used in the diagram? Finally, I read that it was possible to use a C enum to define events. Are there any examples of this available?
+>
+> Also, does anyone with experience with the ragel source have an idea of the feasibility of adding more features to the dot generation? For example, what about color coding events?
+>
+> Thanks in advance.
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From colin.t.curtin at gmail.com  Thu Aug 12 00:20:09 2010
+From: colin.t.curtin at gmail.com (Colin Curtin)
+Date: Wed, 11 Aug 2010 17:20:09 -0700
+Subject: [ragel-users] Gearman Protocol
+Message-ID: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+
+Howdy, I'm trying my hand at a Ragel machine to parse the Gearman
+protocol found here: http://gearman.org/index.php?id=protocol
+
+Here's what I have so far: http://gist.github.com/520065
+
+I'm not sure why, but it's telling me:
+
+$ ragel -R -s gearman.rl
+lexer.rl:117:3: sorry, no more characters are available in the alphabet space
+lexer.rl:117:3:   for conditions, please use a smaller alphtype or reduce
+lexer.rl:117:3:   the span of characters on which conditions are embedded
+
+It seems to be the line "  data        = (any when test_size)*;"
+
+But I'm just going off of the Ragel guide, section 6.5. Is that "when"
+syntax not supported? How can I guarantee the length and data's length
+are the same?
+
+Thanks!
+Colin
+
+
+-- 
+=begin
+Colin Curtin
+Engineer, Cramer Development
+http://cramerdev.com
+email:  colin at cramerdev.com
+skype: colin.t.curtin
+phone: +1.805.694.UNIX (8649)
+=end
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Fri Aug 13 23:01:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 13 Aug 2010 16:01:38 -0700
+Subject: [ragel-users] Gearman Protocol
+In-Reply-To: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+References: <AANLkTin_EZaYL22PPbn=-tqz5H-rXi+FM86Qb=C4cawA@mail.gmail.com>
+Message-ID: <4C65CED2.3070800@esentire.com>
+
+What you're seeing is a limitation of conditions and large alphabets. To 
+implement conditions Ragel eats up characters in the alphabet space. It 
+does so quite aggressively (actually eats up bits). The int alphabet 
+type doesn't have much space to begin with. The standard remedy is to 
+use a smaller alphabet type.
+
+What I need to do is to convert Ragel to internally use variable-size 
+alphabet types so this limit is hit less, but that's further down the 
+road for Ragel at this time.
+
+-Adrian
+
+On 10-08-11 05:20 PM, Colin Curtin wrote:
+> Howdy, I'm trying my hand at a Ragel machine to parse the Gearman
+> protocol found here: http://gearman.org/index.php?id=protocol
+>
+> Here's what I have so far: http://gist.github.com/520065
+>
+> I'm not sure why, but it's telling me:
+>
+> $ ragel -R -s gearman.rl
+> lexer.rl:117:3: sorry, no more characters are available in the alphabet space
+> lexer.rl:117:3:   for conditions, please use a smaller alphtype or reduce
+> lexer.rl:117:3:   the span of characters on which conditions are embedded
+>
+> It seems to be the line "  data        = (any when test_size)*;"
+>
+> But I'm just going off of the Ragel guide, section 6.5. Is that "when"
+> syntax not supported? How can I guarantee the length and data's length
+> are the same?
+>
+> Thanks!
+> Colin
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander at stunpix.com  Thu Aug 19 15:12:18 2010
+From: alexander at stunpix.com (Alexander Shashkevych)
+Date: Thu, 19 Aug 2010 18:12:18 +0300
+Subject: [ragel-users] Bug or feature?
+Message-ID: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+
+Hello folks!
+
+  I'm using ragel to parse my project configs and faced with strange ragel
+behavior. Seems I've found a bug, but I'm not sure. So, use case was
+following:
+
+Input cpp file contained:
+
+ . . .
+   %%{
+   write data;
+   write init;
+   write exec;
+   }%%
+. . .
+   DBG_ERROR(("ConfigReader::readConfig: error opening config file '%s'!",
+configFile.getBuffer() ));
+
+DBG_ERROR is my debug macro.
+
+After compiling this file using ragel I've found that block %%{ . . . }%%
+wasn't processed by ragel and was leaved as is in destination cpp file.
+
+When I changed '%s' to %s (without quotes) problem has gone! Seems '%s'
+substring makes ragel crazy. =)
+
+Someone faced with something like this?
+
+*With kindest regards,*
+*Alexander*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100819/d1cab8e7/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Aug 19 15:41:14 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 19 Aug 2010 08:41:14 -0700
+Subject: [ragel-users] Bug or feature?
+In-Reply-To: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+References: <AANLkTinm8Gy5Fr8=0psMQaR=0rO5p+jNZgDFu0PvaOg3@mail.gmail.com>
+Message-ID: <4C6D509A.7020406@complang.org>
+
+Hi Alexander,
+
+I can't reproduce the problem using these instructions. Can you send me 
+the exact input file that causes the problem? I will treat it as 
+confidential.
+
+-Adrian
+
+On 10-08-19 08:12 AM, Alexander Shashkevych wrote:
+> Hello folks!
+>
+>    I'm using ragel to parse my project configs and faced with strange
+> ragel behavior. Seems I've found a bug, but I'm not sure. So, use case
+> was following:
+>
+> Input cpp file contained:
+>
+>   . . .
+>     %%{
+>     write data;
+>     write init;
+>     write exec;
+>     }%%
+> . . .
+>     DBG_ERROR(("ConfigReader::readConfig: error opening config file
+> '%s'!", configFile.getBuffer() ));
+>
+> DBG_ERROR is my debug macro.
+>
+> After compiling this file using ragel I've found that block %%{ . . .
+> }%% wasn't processed by ragel and was leaved as is in destination cpp file.
+>
+> When I changed '%s' to %s (without quotes) problem has gone! Seems '%s'
+> substring makes ragel crazy. =)
+>
+> Someone faced with something like this?
+>
+> /With kindest regards,/
+> /Alexander/
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

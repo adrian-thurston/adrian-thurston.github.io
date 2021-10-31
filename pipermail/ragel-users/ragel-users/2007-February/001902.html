@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] can't pull parse strings - BUG?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20can%27t%20pull%20parse%20strings%20-%20BUG%3F&In-Reply-To=%3C45C776B2.4010206%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000138.html">
+   <LINK REL="Next"  HREF="001903.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] can't pull parse strings - BUG?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20can%27t%20pull%20parse%20strings%20-%20BUG%3F&In-Reply-To=%3C45C776B2.4010206%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] can't pull parse strings - BUG?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Feb  5 18:25:54 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000138.html">can't pull parse strings - BUG?
+</A></li>
+        <LI>Next message: <A HREF="001903.html">can't pull parse strings - BUG?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1902">[ date ]</a>
+              <a href="thread.html#1902">[ thread ]</a>
+              <a href="subject.html#1902">[ subject ]</a>
+              <a href="author.html#1902">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Ahhh, sorry this example is broken. It's missing a %% write init; in the
+init function. Move the write data up, add the init and also add fbreaks
+after your ret_tok(TK_String) and your troubles should go away.
+
+Note that it worked before adding in the strings because it was just chance
+that the start state had id 0.
+
+-Adrian
+
+Jason wrote:
+&gt;<i> I've finally gotten a little time to start working with the new
+</I>&gt;<i> pullscan example.
+</I>&gt;<i> 
+</I>&gt;<i> Everything was going well until I tried to add string tokens. The rl
+</I>&gt;<i> (below) works as is but un-comment the String rules and all hell
+</I>&gt;<i> breaks loose.
+</I>&gt;<i> 
+</I>&gt;<i> Any pointers would be most welcome.
+</I>&gt;<i> 
+</I>&gt;<i> ---      TEST input file -------
+</I>&gt;<i> [target go: 124 with:(1..9) num:1,298,99 int:87 float:1,299.987]
+</I>&gt;<i> 
+</I>&gt;<i> (list &quot;some string&quot;)
+</I>&gt;<i> (list 'some other string')
+</I>&gt;<i> 
+</I>&gt;<i> -------------- mod_pullscan.rl ------------
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;<i> #include &lt;string.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> #define BUFSIZE 4096
+</I>&gt;<i> 
+</I>&gt;<i> typedef struct _Scanner {
+</I>&gt;<i> 	/* Scanner state. */
+</I>&gt;<i>     int cs;
+</I>&gt;<i>     int act;
+</I>&gt;<i>     int have;
+</I>&gt;<i>     int curline;
+</I>&gt;<i>     char *tokstart;
+</I>&gt;<i>     char *tokend;
+</I>&gt;<i>     char *p;
+</I>&gt;<i>     char *pe;
+</I>&gt;<i> 	FILE *file;
+</I>&gt;<i> 	int done;
+</I>&gt;<i> 
+</I>&gt;<i> 	/* Token data */
+</I>&gt;<i> 	char *data;
+</I>&gt;<i> 	int len;
+</I>&gt;<i>     int value;
+</I>&gt;<i> 	char *token_name;
+</I>&gt;<i> 	char buf[BUFSIZE];
+</I>&gt;<i> } Scanner;
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> void scan_init( Scanner *s, FILE *file )
+</I>&gt;<i> {
+</I>&gt;<i> 	memset (s, '\0', sizeof(Scanner));
+</I>&gt;<i> 	s-&gt;curline = 1;
+</I>&gt;<i> 	s-&gt;file = file;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> #define TK_NO_TOKEN (-1)
+</I>&gt;<i> #define TK_ERR 128
+</I>&gt;<i> #define TK_EOF 129
+</I>&gt;<i> #define TK_Identifier 130
+</I>&gt;<i> #define TK_Number 131
+</I>&gt;<i> #define TK_Keyword 132
+</I>&gt;<i> #define TK_String 133
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i> 	machine Scanner;
+</I>&gt;<i> 	write data;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> #define ret_tok( _tok ) token = _tok; s-&gt;data = s-&gt;tokstart; s-
+</I>&gt;&gt;<i> token_name = #_tok
+</I>&gt;<i> #define ret_char( _tok ) token = _tok; s-&gt;data = s-&gt;tokstart; s-
+</I>&gt;&gt;<i> token_name = &quot;TK_Char&quot;
+</I>&gt;<i> 
+</I>&gt;<i> int scan( Scanner *s )
+</I>&gt;<i> {
+</I>&gt;<i> 	char *p = s-&gt;p;
+</I>&gt;<i> 	char *pe = s-&gt;pe;
+</I>&gt;<i> 	int token = TK_NO_TOKEN;
+</I>&gt;<i> 	int space, readlen;
+</I>&gt;<i> 
+</I>&gt;<i> 	while ( 1 ) {
+</I>&gt;<i> 		if ( p == pe ) {
+</I>&gt;<i> 			printf(&quot;scanner: need more data\n&quot;);
+</I>&gt;<i> 
+</I>&gt;<i> 			if ( s-&gt;tokstart == 0 )
+</I>&gt;<i> 				s-&gt;have = 0;
+</I>&gt;<i> 			else {
+</I>&gt;<i> 				/* There is data that needs to be shifted over. */
+</I>&gt;<i> 				printf(&quot;scanner: buffer broken mid token\n&quot;);
+</I>&gt;<i> 				s-&gt;have = pe - s-&gt;tokstart;
+</I>&gt;<i> 				memmove( s-&gt;buf, s-&gt;tokstart, s-&gt;have );
+</I>&gt;<i> 				s-&gt;tokend -= (s-&gt;tokstart-s-&gt;buf);
+</I>&gt;<i> 				s-&gt;tokstart = s-&gt;buf;
+</I>&gt;<i> 			}
+</I>&gt;<i> 
+</I>&gt;<i> 			p = s-&gt;buf + s-&gt;have;
+</I>&gt;<i> 			space = BUFSIZE - s-&gt;have;
+</I>&gt;<i> 
+</I>&gt;<i> 			if ( space == 0 ) {
+</I>&gt;<i> 				/* We filled up the buffer trying to scan a token. */
+</I>&gt;<i> 				printf(&quot;scanner: out of buffer space\n&quot;);
+</I>&gt;<i> 				return TK_ERR;
+</I>&gt;<i> 			}
+</I>&gt;<i> 
+</I>&gt;<i> 			if ( s-&gt;done ) {
+</I>&gt;<i> 				printf(&quot;scanner: end of file\n&quot;);
+</I>&gt;<i> 				p[0] = 0;
+</I>&gt;<i> 				readlen = 1;
+</I>&gt;<i> 			}
+</I>&gt;<i> 			else {
+</I>&gt;<i> 				readlen = fread( p, 1, space, s-&gt;file );
+</I>&gt;<i> 				if ( readlen &lt; space )
+</I>&gt;<i> 					s-&gt;done = 1;
+</I>&gt;<i> 			}
+</I>&gt;<i> 
+</I>&gt;<i> 			pe = p + readlen;
+</I>&gt;<i> 		}
+</I>&gt;<i> 
+</I>&gt;<i> 		%%{
+</I>&gt;<i> 			machine Scanner;
+</I>&gt;<i> 			access s-&gt;;
+</I>&gt;<i> 
+</I>&gt;<i> 			newline = '\n' @{s-&gt;curline += 1;};
+</I>&gt;<i> 			any_count_line = any | newline;
+</I>&gt;<i> 
+</I>&gt;<i> 			main := |*
+</I>&gt;<i> 
+</I>&gt;<i> 			# Alpha numberic characters or underscore.
+</I>&gt;<i> 			alnum_u = alnum | '_';
+</I>&gt;<i> 
+</I>&gt;<i> 			# Alpha charactres or underscore.
+</I>&gt;<i> 			alpha_u = alpha | '_';
+</I>&gt;<i> 
+</I>&gt;<i> 			ident = alpha_u alnum_u*;
+</I>&gt;<i> 
+</I>&gt;<i> 			# Identifiers
+</I>&gt;<i> 			ident =&gt;
+</I>&gt;<i> 				{ ret_tok( TK_Identifier ); fbreak; };
+</I>&gt;<i> 
+</I>&gt;<i> 			# Keywords
+</I>&gt;<i> 			ident ':' =&gt; {
+</I>&gt;<i> 				ret_tok (TK_Keyword); fbreak;
+</I>&gt;<i> 			};
+</I>&gt;<i> 
+</I>&gt;<i> 	# Strings
+</I>&gt;<i> #			&quot;'&quot; ( [^'\\] | /\\./ )* &quot;'&quot; =&gt; { ret_tok (TK_String); };
+</I>&gt;<i> #			'&quot;' ( [^&quot;\\] | /\\./ )* '&quot;' =&gt; { ret_tok (TK_String); };
+</I>&gt;<i> 
+</I>&gt;<i> 			# Whitespace
+</I>&gt;<i> 			[ \t\n];
+</I>&gt;<i> 
+</I>&gt;<i> 			# Number
+</I>&gt;<i> 			digit+ =&gt;
+</I>&gt;<i> 				{ ret_tok( TK_Number ); fbreak; };
+</I>&gt;<i> 
+</I>&gt;<i> 			# EOF
+</I>&gt;<i> 			0 =&gt;
+</I>&gt;<i> 				{ ret_tok( TK_EOF ); fbreak; };
+</I>&gt;<i> 
+</I>&gt;<i> 			# Anything else
+</I>&gt;<i> 			any =&gt;
+</I>&gt;<i> 				{ ret_char( *p ); fbreak; };
+</I>&gt;<i> 
+</I>&gt;<i> 			*|;
+</I>&gt;<i> 
+</I>&gt;<i> 			write exec;
+</I>&gt;<i> 		}%%
+</I>&gt;<i> 
+</I>&gt;<i> 		if ( s-&gt;cs == Scanner_error )
+</I>&gt;<i> 			return TK_ERR;
+</I>&gt;<i> 
+</I>&gt;<i> 		if ( token != TK_NO_TOKEN ) {
+</I>&gt;<i> 			/* Save p and pe. fbreak does not advance p. */
+</I>&gt;<i> 			s-&gt;p = p + 1;
+</I>&gt;<i> 			s-&gt;pe = pe;
+</I>&gt;<i> 			s-&gt;len = s-&gt;p - s-&gt;data;
+</I>&gt;<i> 			return token;
+</I>&gt;<i> 		}
+</I>&gt;<i> 	}
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> int main (int argc, char** argv)
+</I>&gt;<i> {
+</I>&gt;<i> 	Scanner ss;
+</I>&gt;<i> 	int tok;
+</I>&gt;<i> 
+</I>&gt;<i> 	scan_init(&amp;ss, stdin);
+</I>&gt;<i> 
+</I>&gt;<i> 	while ( 1 ) {
+</I>&gt;<i> 		tok = scan (&amp;ss);
+</I>&gt;<i> 		if ( tok == TK_EOF ) {
+</I>&gt;<i> 			printf (&quot;parser: EOF\n&quot;);
+</I>&gt;<i> 			break;
+</I>&gt;<i> 		}
+</I>&gt;<i> 		else if ( tok == TK_ERR ) {
+</I>&gt;<i> 			printf (&quot;parser: ERR\n&quot;);
+</I>&gt;<i> 			break;
+</I>&gt;<i> 		}
+</I>&gt;<i> 		else {
+</I>&gt;<i> 			printf (&quot;parser: %s(%d) \&quot;&quot;, ss.token_name, tok);
+</I>&gt;<i> 			fwrite ( ss.data, 1, ss.len, stdout );
+</I>&gt;<i> 			printf (&quot;\&quot;\n&quot; );
+</I>&gt;<i> 		}
+</I>&gt;<i> 	}
+</I>&gt;<i> 
+</I>&gt;<i> 	return 0;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000138.html">can't pull parse strings - BUG?
+</A></li>
+	<LI>Next message: <A HREF="001903.html">can't pull parse strings - BUG?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1902">[ date ]</a>
+              <a href="thread.html#1902">[ thread ]</a>
+              <a href="subject.html#1902">[ subject ]</a>
+              <a href="author.html#1902">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

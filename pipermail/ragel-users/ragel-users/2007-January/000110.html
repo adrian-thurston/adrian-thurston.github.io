@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Fixing an edge case
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3C45AD2269.7050704%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000109.html">
+   <LINK REL="Next"  HREF="000111.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Fixing an edge case</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3C45AD2269.7050704%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Fixing an edge case">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Tue Jan 16 19:07:21 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000109.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+        <LI>Next message: <A HREF="000111.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've made this thread a little confusing, so here's a recap with some
+explanations.
+
+This machine does not do what you want. It does properly execute empty_diff
+when an empty diff is found, but it also executes empty_diff on the
+transitions from diffHeader to either binaryDiff or textDiff.
+
+diff1 = (
+	diffHeader %empty_diff %/empty_diff
+	( binaryDiff | textDiff ) ?
+);
+
+
+The following code is one way to fix the problem. It's like the above, but
+separates the leaving/eof actions from the non-empty case. When diff2 exits
+after only a diffHeader the empty diff action is executed. Note that here
+diffHeader is unioned with itself. This relies on the fact that ragel
+removes action duplicates from transition lists. Otherwise the actions of
+diffHeader would be doubled up.
+
+diff2 = (
+	diffHeader %empty_diff %/empty_diff |
+	diffHeader ( binaryDiff | textDiff )
+);
+
+And finally, this is another way to do it. I essentially factor out the
+diffHeader. The &quot;&quot; machine is a single state which has the leaving/eof
+actions embedded into it.
+	
+diff3 = (
+	diffHeader (
+		&quot;&quot; %empty_diff %/empty_diff |
+		( binaryDiff | textDiff )
+	)
+);
+
+
+I hope this helps,
+ Adrian
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000109.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+	<LI>Next message: <A HREF="000111.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

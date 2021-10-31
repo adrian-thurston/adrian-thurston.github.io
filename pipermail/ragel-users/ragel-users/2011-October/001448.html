@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel compilation hangs
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20compilation%20hangs&In-Reply-To=%3C4EA0DA19.20702%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001447.html">
+   <LINK REL="Next"  HREF="001449.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel compilation hangs</H1>
+    <B>Petru Severin</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20compilation%20hangs&In-Reply-To=%3C4EA0DA19.20702%40gmail.com%3E"
+       TITLE="[ragel-users] Ragel compilation hangs">petru.severin at gmail.com
+       </A><BR>
+    <I>Fri Oct 21 02:34:01 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001447.html">[ragel-users] ragel-users Digest, Vol 37, Issue 1
+</A></li>
+        <LI>Next message: <A HREF="001449.html">[ragel-users] [bug][ragel 6.6]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1448">[ date ]</a>
+              <a href="thread.html#1448">[ thread ]</a>
+              <a href="subject.html#1448">[ subject ]</a>
+              <a href="author.html#1448">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am trying to create a Ragel parser for SVG Path syntax. I lifted the 
+grammar from SVG specification and adapted it to be compatible with 
+Ragel. When I try to compile it, Ragel just hangs instead of finishing 
+immediately like it usually does. I understand that the machine might 
+need adjustments but it's difficult to guess what's wrong.
+
+I'd like to get an advice from more experienced Ragel users.
+
+Here's the machine for SVG path:
+
+%%{
+	machine PathParser;
+
+	wsp = (&quot; &quot; | 9 | 13 | 10);
+	digit_sequence = digit+;
+	sign = &quot;+&quot; | &quot;-&quot;;
+	exponent = ( &quot;e&quot; | &quot;E&quot; ) sign? digit_sequence;
+	fractional_constant = digit_sequence? &quot;.&quot; digit_sequence | 
+digit_sequence &quot;.&quot;;
+	floating_point_constant = fractional_constant exponent?  | 
+digit_sequence exponent;
+	integer_constant = digit_sequence;
+	comma = &quot;,&quot;;
+	comma_wsp = (wsp+ comma? wsp*) | (comma wsp*);
+	flag = &quot;0&quot; | &quot;1&quot;;
+	number = sign? integer_constant | sign? floating_point_constant;
+	nonnegative_number = integer_constant | floating_point_constant;
+	coordinate = number;
+	coordinate_pair = coordinate comma_wsp? coordinate;
+	elliptical_arc_argument = nonnegative_number comma_wsp? 
+nonnegative_number comma_wsp?  number comma_wsp flag comma_wsp? flag 
+comma_wsp? coordinate_pair;
+	elliptical_arc_argument_sequence = elliptical_arc_argument (comma_wsp? 
+elliptical_arc_argument)*;
+	elliptical_arc = ( &quot;A&quot; | &quot;a&quot; ) wsp* elliptical_arc_argument_sequence;
+	smooth_quadratic_bezier_curveto_argument_sequence = coordinate_pair 
+(comma_wsp? coordinate_pair)*;
+	smooth_quadratic_bezier_curveto = ( &quot;T&quot; | &quot;t&quot; ) wsp* 
+smooth_quadratic_bezier_curveto_argument_sequence;
+	quadratic_bezier_curveto_argument = coordinate_pair comma_wsp? 
+coordinate_pair;
+	quadratic_bezier_curveto_argument_sequence = 
+quadratic_bezier_curveto_argument (comma_wsp? 
+quadratic_bezier_curveto_argument)*;
+	quadratic_bezier_curveto = ( &quot;Q&quot; | &quot;q&quot; ) wsp* 
+quadratic_bezier_curveto_argument_sequence;
+	smooth_curveto_argument = coordinate_pair comma_wsp? coordinate_pair;
+	smooth_curveto_argument_sequence = smooth_curveto_argument (comma_wsp? 
+smooth_curveto_argument)*;
+	smooth_curveto = ( &quot;S&quot; | &quot;s&quot; ) wsp* smooth_curveto_argument_sequence;
+	curveto_argument = coordinate_pair comma_wsp? coordinate_pair 
+comma_wsp? coordinate_pair;
+	curveto_argument_sequence = curveto_argument (comma_wsp? 
+curveto_argument)*;
+	curveto = ( &quot;C&quot; | &quot;c&quot; ) wsp* curveto_argument_sequence;
+	vertical_lineto_argument_sequence = coordinate (comma_wsp? coordinate)*;
+	vertical_lineto = ( &quot;V&quot; | &quot;v&quot; ) wsp* vertical_lineto_argument_sequence;
+	horizontal_lineto_argument_sequence = coordinate (comma_wsp? coordinate)*;
+	horizontal_lineto = ( &quot;H&quot; | &quot;h&quot; ) wsp* horizontal_lineto_argument_sequence;
+	lineto_argument_sequence = coordinate_pair (comma_wsp? coordinate_pair)*;
+	lineto = ( &quot;L&quot; | &quot;l&quot; ) wsp* lineto_argument_sequence;
+	closepath = (&quot;Z&quot; | &quot;z&quot;);
+	moveto_argument_sequence = coordinate_pair | coordinate_pair comma_wsp? 
+lineto_argument_sequence;
+	moveto = ( &quot;M&quot; | &quot;m&quot; ) wsp* moveto_argument_sequence;
+	drawto_command = closepath | lineto | horizontal_lineto | 
+vertical_lineto | curveto | smooth_curveto | quadratic_bezier_curveto | 
+smooth_quadratic_bezier_curveto | elliptical_arc;
+	drawto_commands = drawto_command (wsp* drawto_command)*;
+	moveto_drawto_command_group = moveto wsp* drawto_commands?;
+	moveto_drawto_command_groups = moveto_drawto_command_group (wsp* 
+moveto_drawto_command_group)*;
+	svg_path := wsp* moveto_drawto_command_groups? wsp*;
+}%%
+
+package com.wireframesketcher.ui.svg.parser;
+
+class PathParser
+{	
+%% write data;
+
+	public void parse(String string)
+	{
+		int cs;
+		int p;
+		int pe;
+		int eof;
+		char[] data;
+		int ts;
+		int act;
+		int te;
+	
+%% write init;
+
+		data = string.toCharArray();
+		p = 0;
+		pe = string.length();
+		eof = pe;
+		
+%% write exec;
+	}
+}
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001447.html">[ragel-users] ragel-users Digest, Vol 37, Issue 1
+</A></li>
+	<LI>Next message: <A HREF="001449.html">[ragel-users] [bug][ragel 6.6]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1448">[ date ]</a>
+              <a href="thread.html#1448">[ thread ]</a>
+              <a href="subject.html#1448">[ subject ]</a>
+              <a href="author.html#1448">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

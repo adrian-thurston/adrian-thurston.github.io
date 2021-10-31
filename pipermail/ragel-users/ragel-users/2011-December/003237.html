@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Improving perf of the Java code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Improving%20perf%20of%20the%20Java%20code&In-Reply-To=%3CCAE-f1xTwDjvuAm3xyNY6cjHO4oocgqiJ5U-585_iiGKCoYXAnA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003236.html">
+   <LINK REL="Next"  HREF="003238.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Improving perf of the Java code</H1>
+    <B>Charles Oliver Nutter</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Improving%20perf%20of%20the%20Java%20code&In-Reply-To=%3CCAE-f1xTwDjvuAm3xyNY6cjHO4oocgqiJ5U-585_iiGKCoYXAnA%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Improving perf of the Java code">headius at headius.com
+       </A><BR>
+    <I>Wed Dec 21 18:52:46 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003236.html">[ragel-users] Improving perf of the Java code
+</A></li>
+        <LI>Next message: <A HREF="003238.html">[ragel-users] Improving perf of the Java code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3237">[ date ]</a>
+              <a href="thread.html#3237">[ thread ]</a>
+              <a href="subject.html#3237">[ subject ]</a>
+              <a href="author.html#3237">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Yeah, that's kinda what I was thinking. Specifically, my own JVM
+language that's a thin layer over JVM bytecode:
+
+<A HREF="https://github.com/headius/bitescript/blob/master/examples/fib.bs">https://github.com/headius/bitescript/blob/master/examples/fib.bs</A>
+
+The other though I had was emitting normal Java code that could be
+post-processed into a goto...i.e. emit calls like
+
+_label(&quot;named label&quot;)
+
+_goto(&quot;named label&quot;)
+
+And post-process the bytecode to use JVM bytecode goto instead.
+
+If we were able to emit something like that, how hard would it be to
+get the faster FSM forms ported to Java?
+
+- Charlie
+
+On Wed, Dec 21, 2011 at 11:02 AM, Conrad Steenberg
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">conrad.steenberg at gmail.com</A>&gt; wrote:
+&gt;<i> Hi Charlie,
+</I>&gt;<i>
+</I>&gt;<i> I addition to looking at a bytecode generator, you might also look at
+</I>&gt;<i> generating code for another JVM language that does have support for
+</I>&gt;<i> goto. That language might even be C, if you can get the resulting code
+</I>&gt;<i> to generate the JRuby objects you need.
+</I>&gt;<i>
+</I>&gt;<i> See <A HREF="http://en.wikipedia.org/wiki/List_of_JVM_languages">http://en.wikipedia.org/wiki/List_of_JVM_languages</A>
+</I>&gt;<i>
+</I>&gt;<i> On Wed, 2011-12-21 at 00:30 -0600, Charles Oliver Nutter wrote:
+</I>&gt;&gt;<i> Hello!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I work on JRuby, the Ruby implementation for the JVM. As you may know,
+</I>&gt;&gt;<i> Ruby users have latched on to Ragel for a number of parser tasks, such
+</I>&gt;&gt;<i> as json, http, various markup languages, and so on.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I have spent the last day trying to optimize a Ragel-generated json
+</I>&gt;&gt;<i> parser used as an extension to JRuby, and despite my best efforts I
+</I>&gt;&gt;<i> can't get it more than about 2x slower than the version for C Ruby.
+</I>&gt;&gt;<i> This is especially poor considering the Ruby code that surrounds it
+</I>&gt;&gt;<i> should run significantly faster on JRuby, and it still doesn't make up
+</I>&gt;&gt;<i> the gap.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm wondering what, if anything, can be done to improve the
+</I>&gt;&gt;<i> performance of the generated Java code. I notice that Java is only
+</I>&gt;&gt;<i> supported in the simplest output form, presumably because of the lack
+</I>&gt;&gt;<i> of &quot;goto&quot;. I'm interested in exploring options to bring the Java code
+</I>&gt;&gt;<i> up to par with the generated code for other languages, perhaps by
+</I>&gt;&gt;<i> implementing it using raw JVM bytecode (using some assembly-like
+</I>&gt;&gt;<i> format like BiteScript or Jasmin) or by post-processing the compiled
+</I>&gt;&gt;<i> result to insert true gotos.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Any pointers on this? Any prior work or tips?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - Charlie
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003236.html">[ragel-users] Improving perf of the Java code
+</A></li>
+	<LI>Next message: <A HREF="003238.html">[ragel-users] Improving perf of the Java code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3237">[ date ]</a>
+              <a href="thread.html#3237">[ thread ]</a>
+              <a href="subject.html#3237">[ subject ]</a>
+              <a href="author.html#3237">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

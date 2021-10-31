@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3C46950C03.4000503%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002034.html">
+   <LINK REL="Next"  HREF="002036.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3C46950C03.4000503%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Inline scanner">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Jul 11 16:57:39 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002034.html">[ragel-users] Re: Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="002036.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2035">[ date ]</a>
+              <a href="thread.html#2035">[ thread ]</a>
+              <a href="subject.html#2035">[ subject ]</a>
+              <a href="author.html#2035">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Carlos,
+
+After much thought I've decided that inline scanners are not a suitable
+feature for ragel. It is a good technique but there are a few issues.
+
+I think that calls and returns should not be encoded in a language
+construct. They need to be treated with care and I'm not comfortable
+with encapsulating them.
+
+There is the issue of when to return. Since the feature would be using
+the scanning machinery, one might expect to be able to match multiple
+tokens as an alternative to matching just a single token. Letting the
+user implement the technique allows them to chose. Also, it allows for
+the option of erring when no pattern matches.
+
+So far all the inline machine construction operators are compositional.
+Inline scanners are not. For example you cannot safely union a machine
+that contains an inline scanner because the call necessary to invoke it
+could interfere with the other machine. This is related to the issue of
+encapsulating calls and returns.
+
+I would however be interested to add a prefix operator which would allow
+you to automatically set up the machine that the call is embedded in.
+The prefix operator would simply set every state final (this might have
+another name in the literature). After you run the prefix operator you
+could intersect it with something else to get the correct length (one in
+this case).
+
+pat = [a-z][a-z0-9]*;
+
+inline_scanner = |*
+    pat =&gt; { fret; };
+    any =&gt; { fhold; fret; };
+  *|;
+
+call_pat = ( prefix(pat) &amp; any ) @{ fhold; fcall inline_scanner; };
+
+Regards,
+ Adrian
+
+Carlos Antunes wrote:
+&gt;<i> On 7/5/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Assuming I understand the idea you are trying to convey here (there's
+</I>&gt;&gt;&gt;<i> a good chance that I don't), isn't it possible to transition directly
+</I>&gt;&gt;&gt;<i> to the scanner by looking at all the potential transitions of the
+</I>&gt;&gt;&gt;<i> scanner as if it was a &quot;normal&quot; state machine?
+</I>&gt;&gt;<i> Yes, that's possible. The code I sent does exactly that, only it's
+</I>&gt;&gt;<i> explicitly implemented. When it sees a whitespace character it jumps to
+</I>&gt;&gt;<i> the whitespace scanner. I'll rework what I sent so hopefully it's clear
+</I>&gt;&gt;<i> that it is an implementation of an inline scanner.
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> Adrian, now that you've been able to explicitly design an inline
+</I>&gt;<i> scanner, would you be able to code ragel to do it implicitly? Although
+</I>&gt;<i> one can always do it by hand, as you did, it is error prone and
+</I>&gt;<i> sometimes somewhat difficult, depending on what you have inside the
+</I>&gt;<i> scanner. This feature would be very much appreciated.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos Antunes
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070711/49711107/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070711/49711107/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002034.html">[ragel-users] Re: Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="002036.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2035">[ date ]</a>
+              <a href="thread.html#2035">[ thread ]</a>
+              <a href="subject.html#2035">[ subject ]</a>
+              <a href="author.html#2035">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

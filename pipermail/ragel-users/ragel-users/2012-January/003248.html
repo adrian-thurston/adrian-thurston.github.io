@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Parsing of names with spaces in them
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20of%20names%20with%20spaces%20in%20them&In-Reply-To=%3CCABLBYvSk0xm-cLWTbaGe2HL9uUHaQnpG1nJowiHoJ4LpebaL2w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003247.html">
+   <LINK REL="Next"  HREF="003250.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Parsing of names with spaces in them</H1>
+    <B>Victor Khimenko</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20of%20names%20with%20spaces%20in%20them&In-Reply-To=%3CCABLBYvSk0xm-cLWTbaGe2HL9uUHaQnpG1nJowiHoJ4LpebaL2w%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Parsing of names with spaces in them">khim at chromium.org
+       </A><BR>
+    <I>Mon Jan 23 08:26:54 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003247.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+        <LI>Next message: <A HREF="003250.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3248">[ date ]</a>
+              <a href="thread.html#3248">[ thread ]</a>
+              <a href="subject.html#3248">[ subject ]</a>
+              <a href="author.html#3248">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Jan 23, 2012 at 11:11 AM, Gerald Gutierrez &lt;
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">gerald.gutierrez at gmail.com</A>&gt; wrote:
+
+&gt;<i> Hello folks,
+</I>&gt;<i>
+</I>&gt;<i> I recently found Ragel and have discovered that it is a very pleasant
+</I>&gt;<i> piece of software. That said, I've run into a problem that I was
+</I>&gt;<i> hoping is common and a solution available.
+</I>&gt;<i>
+</I>&gt;<i> Sadly the problem is common but solution is quite explicitly is NOT
+</I>available.
+
+
+&gt;<i> Please see the example code at <A HREF="https://gist.github.com/1661150.">https://gist.github.com/1661150.</A>
+</I>&gt;<i>
+</I>&gt;<i> Basically, I'd like to parse the following:
+</I>&gt;<i>
+</I>&gt;<i> name:name
+</I>&gt;<i>
+</I>&gt;<i> where the names start and end with an alnum, and can contain any
+</I>&gt;<i> combination of alnum and spaces inside. They could also be blank. My
+</I>&gt;<i> rules for this are:
+</I>&gt;<i>
+</I>&gt;<i> identifier = alnum (space* alnum)*;
+</I>&gt;<i> name       = (identifier | zlen) &gt;sName $pName %fName;
+</I>&gt;<i>
+</I>&gt;<i> The names can be separated by a colon and optionally spaces inbetween
+</I>&gt;<i> the names and the colon. My rules for this are:
+</I>&gt;<i>
+</I>&gt;<i> sep = space* &quot;:&quot; space*;
+</I>&gt;<i> main := name sep name;
+</I>&gt;<i>
+</I>&gt;<i> This doesn't work because apparently the space* in identifier and the
+</I>&gt;<i> space* in sep confuse the parser. I end up getting the action fName
+</I>&gt;<i> executed in every space of the name.
+</I>&gt;<i>
+</I>&gt;<i> If I change sep to:
+</I>&gt;<i>
+</I>&gt;<i> sep = &quot;:&quot;;
+</I>&gt;<i>
+</I>&gt;<i> then everything is fine. How do I modify these rules so that the
+</I>&gt;<i> parser does what I intend?
+</I>&gt;<i>
+</I>
+The answer is simple: you can't. Ragel generates DFA with actions attached.
+This means: symbol in =&gt; action out.
+
+Your definition is ambigous: when you see a space you have no idea if it
+belongs to the identifier or not. You must scan ahead and look for the next
+non-space char: if it's colon then the previous space was not part of the
+identifier, if it's alnum then it is. This is not something DFA can/should
+do...
+
+To solve your problem you need something more powerful: scanner (see the
+last chapter of ragel documentation), or full-blown parser: kelbt -
+<A HREF="http://www.complang.org/kelbt/">http://www.complang.org/kelbt/</A> (ragel itself uses it), bison -
+<A HREF="http://www.gnu.org/software/bison/">http://www.gnu.org/software/bison/</A> (most commonly used parser), etc.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20120123/73984075/attachment-0001.html">http://www.colm.net/pipermail/ragel-users/attachments/20120123/73984075/attachment-0001.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003247.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+	<LI>Next message: <A HREF="003250.html">[ragel-users] Parsing of names with spaces in them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3248">[ date ]</a>
+              <a href="thread.html#3248">[ thread ]</a>
+              <a href="subject.html#3248">[ subject ]</a>
+              <a href="author.html#3248">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: ragel and memory usage
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20ragel%20and%20memory%20usage&In-Reply-To=%3C45B4EA26.1000803%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001883.html">
+   <LINK REL="Next"  HREF="000113.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: ragel and memory usage</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20ragel%20and%20memory%20usage&In-Reply-To=%3C45B4EA26.1000803%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: ragel and memory usage">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Jan 22 16:45:26 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001883.html">ragel and memory usage
+</A></li>
+        <LI>Next message: <A HREF="000113.html">public read-only svn repository
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1884">[ date ]</a>
+              <a href="thread.html#1884">[ thread ]</a>
+              <a href="subject.html#1884">[ subject ]</a>
+              <a href="author.html#1884">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Damir,
+
+If you run
+
+ragel -M contact_param -s memory.rl &gt;memory.xml
+
+And then look at the XML file you'll see that there are several final states
+with transitions on ',' (44) in them. They seem to come from URIs. This is a
+problem for making a comma-separated list of contact_param. You need to
+exclude the comma if you want to make an unambiguous list.
+
+Contact = ((&quot;Contact&quot; | &quot;m&quot; ) HCOLON
+    (STAR | (contact_param (COMMA contact_param)*)));
+
+You should probably see what the RFC has to say, but if you want a quick fix
+you can resolve the ambiguity explicitly using priorities. This resolution
+favours the the COMMA which separates items.
+
+COMMA_pri = (SWS &quot;,&quot; @(contact_COMMA, 1) SWS);
+contact_param_pri = contact_param $(contact_COMMA, 0);
+
+Contact = ( ( &quot;Contact&quot; | &quot;m&quot; ) HCOLON (STAR |
+    (contact_param_pri (COMMA_pri contact_param_pri)*)));
+
+You can also resolve the ambiguity by making a new version of contact_param
+that does not have any commas. This can be done with &quot;strong subtraction&quot;
+(see the manual).
+
+contact_param_nocomma = contact_param -- &quot;,&quot;;
+
+To get a feel for what is going on here play around with a mini-version of
+your parser and look at the graphviz output.
+
+action in {}
+action all {}
+action out {}
+
+sym = &quot;+&quot; | &quot;-&quot; | &quot;,&quot;;
+word = ( [a-z] | sym )+ &gt;in $all %out;
+
+WS = ' ';
+COMMA = WS* &quot;,&quot; @1 WS*;
+
+word_lowpri = word $(COMMA,0);
+word_nocomma = word -- ',';
+
+main := ':' word_nocomma (COMMA word_nocomma)*;
+
+Cheers,
+ Adrian
+
+Damir Nedzibovic wrote:
+&gt;<i> Hi Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> it seems that I wasn't able to remove the ambiguity after all :-(
+</I>&gt;<i> 
+</I>&gt;<i> I managed to further isolate the problem, I think:
+</I>&gt;<i> 
+</I>&gt;<i> if I replace this line
+</I>&gt;<i> 
+</I>&gt;<i> contact_param  = ((name_addr | addr_spec) (SEMI contact_params)*);
+</I>&gt;<i> 
+</I>&gt;<i> with
+</I>&gt;<i> 
+</I>&gt;<i> contact_param  = ((name_addr ) (SEMI contact_params)*);
+</I>&gt;<i> 
+</I>&gt;<i> the problem goes away, and ragel is able to complete the task.
+</I>&gt;<i> 
+</I>&gt;<i> I'm pretty much clues at this point...
+</I>&gt;<i> 
+</I>&gt;<i> thanks,
+</I>&gt;<i> d
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001883.html">ragel and memory usage
+</A></li>
+	<LI>Next message: <A HREF="000113.html">public read-only svn repository
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1884">[ date ]</a>
+              <a href="thread.html#1884">[ thread ]</a>
+              <a href="subject.html#1884">[ subject ]</a>
+              <a href="author.html#1884">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

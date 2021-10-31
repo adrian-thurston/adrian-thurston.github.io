@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Parsing PokerHand-History file (kind of log file	withactions)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20PokerHand-History%20file%20%28kind%20of%20log%20file%0A%09withactions%29&In-Reply-To=%3C4464B64CDC68405D81A5CF4F9350775B%40localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003169.html">
+   <LINK REL="Next"  HREF="003171.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Parsing PokerHand-History file (kind of log file	withactions)</H1>
+    <B>ragel-user at jgoettgens.de</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20PokerHand-History%20file%20%28kind%20of%20log%20file%0A%09withactions%29&In-Reply-To=%3C4464B64CDC68405D81A5CF4F9350775B%40localdomain%3E"
+       TITLE="[ragel-users] Parsing PokerHand-History file (kind of log file	withactions)">ragel-user at jgoettgens.de
+       </A><BR>
+    <I>Sat Jul 23 16:00:19 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003169.html">[ragel-users] Parsing PokerHand-History file (kind of log file	with actions)
+</A></li>
+        <LI>Next message: <A HREF="003171.html">[ragel-users] Parsing PokerHand-History file (kind of log	filewithactions)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3170">[ date ]</a>
+              <a href="thread.html#3170">[ thread ]</a>
+              <a href="subject.html#3170">[ subject ]</a>
+              <a href="author.html#3170">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jens!
+
+It looks as if the “poker” language mainly consists of a simple list of key 
+value pairs, so a plain tokenizer might suffice. Compared to tools like 
+flex, or the scanner part of ANTLR, the focus is more on states and 
+transitions compared to entire. When matching arbitrary text you probably 
+also need to have a look at the longest-match Kleen star operator. With 
+Ragel you can do many things “on the fly”, but if you are just transforming 
+a list into a different format, you may not need this power. Likewise you 
+wouldn't need the power of an LR or LL(*) parser (though LL(*) grammars are 
+very easy to code and the speed penalty might be acceptable). You could use 
+the tokenizer of the C runtime library and subsequently match keywords using 
+the output from gperf. Simple and not slow.
+
+I am using both techniques to remotely control an Asterisk PBX server 
+(telphony system) using the AMI protocol 
+(<A HREF="http://www.voip-info.org/wiki/view/Asterisk+manager+API">http://www.voip-info.org/wiki/view/Asterisk+manager+API</A>). The AMI protocol 
+shares a lot with your &quot;poker&quot; language. The main difference is that I am 
+dealing with a real-time system (asynchronous communication, timing issues, 
+net problems, etc.) and I know that a valid input stream always has 
+terminating characters (or I insert a &quot;timeout&quot; token at the socket level, 
+so no need for expr**). Unfortunately not all Asterisk modules follow the 
+AMI protocol exactly (instead of violating the protocol view this as 
+extending the protocol) and there are a couple of exceptions that makes the 
+handwritten code now very ugly. This is where Ragel starts to shine.
+
+There are also various text transformation tools out there. I think it could 
+be possible to transform your key value lists into SQL code without any 
+written line of source code (if you don't count the code the transformation 
+specification).
+
+If you have a well behaved source, the system supplied tokenizer (+ gperf) 
+is probably preferrable, otherwise Ragel. Ragel is more fun, though. There's 
+a graphviz installer for your windows machine and starting from your simple 
+example you could add some output for all available actions to see what's 
+going on during execution time. It won't take long before you get a feeling 
+how things work and where you must be careful.
+
+Of course, if Adrian had a lot of spare time left over, he could add an 
+&quot;instrumentation&quot; option to Ragel by adding diagnostic code to all states 
+and transitions (essentially adding any allowable action with some code). In 
+the simplest form there would be just some console output. A better solution 
+would be to fire events though a socket and with a little extra work to 
+control the input, one could write a nice graphics tool to visualize the FSM 
+and its transitions. This would be helpful for beginners, but generally 
+would be useful as a teaching tool for a college level CS class.
+
+Happy tokenizing,
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003169.html">[ragel-users] Parsing PokerHand-History file (kind of log file	with actions)
+</A></li>
+	<LI>Next message: <A HREF="003171.html">[ragel-users] Parsing PokerHand-History file (kind of log	filewithactions)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3170">[ date ]</a>
+              <a href="thread.html#3170">[ thread ]</a>
+              <a href="subject.html#3170">[ subject ]</a>
+              <a href="author.html#3170">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

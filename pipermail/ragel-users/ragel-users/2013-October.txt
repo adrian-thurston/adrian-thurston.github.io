@@ -1,0 +1,2164 @@
+From dcb314 at hotmail.com  Thu Oct 10 12:37:49 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 12:37:49 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+Message-ID: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+
+Hello there,
+
+I just ran the static analysis tool "cppcheck" over
+the source code of ragel-6.8
+
+It said
+
+[parsedata.cpp:471]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:139]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:334]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:428]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:301]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1227]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1228]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1406]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[rlparse.cpp:1413]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[rlparse.cpp:1429]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+
+I looked at the first two and it did look like clear was intended.
+Suggest code rework.
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Thu Oct 10 12:48:36 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 14:48:36 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+Message-ID: <5256A224.8010700@jgoettgens.de>
+
+Are you sure that cppcheck knows about the Aapl template library?
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dcb314 at hotmail.com  Thu Oct 10 13:24:58 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 13:24:58 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <5256A224.8010700@jgoettgens.de>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>,
+	<5256A224.8010700@jgoettgens.de>
+Message-ID: <DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+
+Hello there,
+
+----------------------------------------
+> Are you sure that cppcheck knows about the Aapl template library?
+
+I am sure that cppcheck knows nothing about the Aapl template library.
+
+It does, however, know quite a bit about C++.
+
+Hint: would a check of the C++ reference manual to
+understand the difference between clear() and empty()
+be a wise idea ?
+
+Clue: empty() would be better named is_empty() and clear would
+be better named do_clear().  Maybe in some better future version 
+of C++. 
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Thu Oct 10 13:51:54 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 15:51:54 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>,
+	<5256A224.8010700@jgoettgens.de>
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+Message-ID: <5256B0FA.1030806@jgoettgens.de>
+
+Well, you would find empty() implementations like
+
+/**
+  * \brief Empty the tree and delete all the element.
+  *
+  * Resets the tree to its initial state.
+  */
+template <AVLMEL_TEMPDEF> void AvlTree<AVLMEL_TEMPUSE>::empty()
+{
+     if ( root ) {
+         /* Recursively delete from the tree structure. */
+         deleteChildrenOf(root);
+         delete root;
+         root = 0;
+         treeSize = 0;
+
+#ifdef WALKABLE
+         BASELIST::abandon();
+#endif
+  }
+
+What is called empty() here, is called erase() in other places. I would assume that cppcheck 
+applies the rules for the STL libs, but this is misleading here.  It's basically the author's 
+choice.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dcb314 at hotmail.com  Thu Oct 10 14:40:07 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 14:40:07 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <5256B0FA.1030806@jgoettgens.de>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>, ,
+	<5256A224.8010700@jgoettgens.de>,
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>,
+	<5256B0FA.1030806@jgoettgens.de>
+Message-ID: <DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+
+Hello there,
+
+----------------------------------------
+> Well, you would find empty() implementations like
+
+That's going to confuse any C++ STL programmer and the cppcheck tool too.
+
+Would it be worthwhile to rename function to erase or pick another name ?
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jkt at flaska.net  Thu Oct 10 14:43:14 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Thu, 10 Oct 2013 16:43:14 +0200
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+Message-ID: <2d478751-5022-48fd-be64-a6ba3dfc85e2@flaska.net>
+
+Hi, I was wondering if anybody read the mail (quoted below) which I sent 
+last month. I do see some commits in the git repository, but I haven't 
+received an answer to my bugreport yet.
+
+With kind regards,
+Jan
+
+
+On Wednesday, 18 September 2013 16:05:39 CEST, Jan Kundrát wrote:
+> Hi Adrian,
+> I'm using Ragel for parsing of e-mail headers as per RFC5322. 
+> When porting this project to ARM (MeeGo Harmattan, Nokia N9), 
+> I've noticed that it fails to build after I enable C++11 
+> features using clang 3.3. Here is the error message:
+>
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+> error: constant expression evaluates to -128 which cannot be 
+> narrowed to type 'char' [-Wc++11-narrowing]
+>         39, 42, 127, 10, 9, 32, -128, -1,                       
+>           ^~~~
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+> note: override this message by inserting an explicit cast
+>         39, 42, 127, 10, 9, 32, -128, -1,                       
+>           ^~~~
+>                                 static_cast<char>( )
+>
+> So the problem is that the signedness rules for the host 
+> (machine running ragel producing the .cpp file with parser) and 
+> target (the target platform of the C++ compiler which is 
+> producing Ragel's output) do not match. That's a big problem, 
+> and it isn't limited just to chars, actually -- because Ragel's 
+> code uses platform's native types instead of the portable ones, 
+> there's no guarantee that ragel's int can fit the data of the 
+> target's size, etc. I've solved this by patching ragel to use 
+> C's int<num>_t types, please see the commit at [1]. That patch 
+> fixes my problem.
+>
+> In addition, before I realized that I'm actually looking for 
+> the ragel-6 branch, I spent some time playing with master before 
+> I finding out that it's some kind of a rewrite. The same bug 
+> applies there as well. Before I was able to get the master 
+> branch to build on my system, I had to make the following 
+> changes:
+>
+> * Fixing a build failure due to a bug in colm's headers [2]. I 
+> see you're upstream for that project, too, perhaps you can fix 
+> it in there as well.
+>
+> * Making sure that version.h is generated [3].
+>
+> After that, I simply added a rule to always treat chars as 
+> signed [4]. That's arguably a wrong change; the code shall 
+> probably do the same thing as [1]. I don't have time for this 
+> now.
+>
+> And finally, when I tried the patched master, I found out that 
+> my ragel parser won't compile anymore -- please see the file at 
+> [5]. The error message I get is that it cannot find the "CRLF" 
+> symbol which is defined in the included .rl file [6]. That looks 
+> like a regression in the rewrite.
+>
+> Thanks for a cool software -- I hope these patches are OK and 
+> that you'll merge them.
+>
+> Cheers,
+> Jan
+>
+> [1]  
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+> [2] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+> [3] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+> [4] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+> [5] 
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+> [6] 
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+>
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Oct 10 14:54:27 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 16:54:27 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>, ,
+	<5256A224.8010700@jgoettgens.de>,
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>,
+	<5256B0FA.1030806@jgoettgens.de>
+	<DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+Message-ID: <5256BFA3.40502@jgoettgens.de>
+
+David,
+> That's going to confuse any C++ STL programmer and the cppcheck tool too.
+>
+> Would it be worthwhile to rename function to erase or pick another name ?
+there are worse things in life than this. Since you have the source code, you could do it 
+yourself. I actually like the idea of using the verb "empty". Let's say your container models a 
+real life entity, beer for example. You would empty the container, but erasing it is not useful.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 07:53:20 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 07:53:20 +0000
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+
+How to debug ragel in eclipse?? Is there a plug in available for it? If not what are the other options?
+
+ 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131013/af8fe71f/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sun Oct 13 08:03:08 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Sun, 13 Oct 2013 10:03:08 +0200
+Subject: [ragel-users] Debug ragel
+In-Reply-To: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+References: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+Message-ID: <525A53BC.10906@jgoettgens.de>
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 13:11:42 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 06:11:42 -0700
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY405-EAS88FEBA6140238A556A01DD80190@phx.gbl>
+
+In eclipse.?
+
+--- Original Message ---
+
+From: "RU" <ragel-user at jgoettgens.de>
+Sent: October 13, 2013 1:04 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 13:14:28 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 06:14:28 -0700
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+
+I want to debug the sequence of execution inside a state machine.  To see if a particular step is executed.
+
+--- Original Message ---
+
+From: "dinesh rtp" <mariner_element at hotmail.com>
+Sent: October 13, 2013 6:13 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+In eclipse.?
+
+--- Original Message ---
+
+From: "RU" <ragel-user at jgoettgens.de>
+Sent: October 13, 2013 1:04 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Oct 13 14:09:05 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Sun, 13 Oct 2013 16:09:05 +0200
+Subject: [ragel-users] Debug ragel
+In-Reply-To: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+References: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+Message-ID: <525AA981.3010707@jgoettgens.de>
+
+There is the -L option that allows you to step through the source code.
+
+I don't know what to do to work comfortably with Ragel inside Eclipse. I think you can use a 
+"make" sub project and then a standard C/C++ project, or whatever.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From eric at makechip.com  Sun Oct 13 19:14:18 2013
+From: eric at makechip.com (eric at makechip.com)
+Date: Sun, 13 Oct 2013 12:14:18 -0700
+Subject: [ragel-users] Question on ragel
+Message-ID: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131013/0dd2dd95/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mariner_element at hotmail.com  Tue Oct 15 17:32:25 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Tue, 15 Oct 2013 17:32:25 +0000
+Subject: [ragel-users] How to do substring match in ragel?
+Message-ID: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+
+Please excuse if this is question is direct, I am new to ragel and looking for directions so I can work on my own. Given a set of strings (say 15), how to build a state machine that given a string spits out if it is a substring or not? It would be really helpful if I can get pointed at the right direction.
+Thanks. 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131015/4b595bd9/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Tue Oct 15 17:54:13 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Tue, 15 Oct 2013 19:54:13 +0200
+Subject: [ragel-users] How to do substring match in ragel?
+In-Reply-To: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+References: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+Message-ID: <525D8145.1070004@jgoettgens.de>
+
+Obviously, you need to read the documentation. Then there is the example directory. I would 
+recommend to start with the simple ones and augment them with additional actions, just to see 
+the effect and to learn when they are called. You must really know what an "entering", 
+"finishing", "all transition", or "leaving" action does and when these actions happen.
+
+At some point you must decide whether you want a state machine or a scanner for your project. 
+The state machine does not do something like a longest match. You will find out soon what makes 
+sense in which situation.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Tue Oct 15 22:27:24 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Tue, 15 Oct 2013 22:27:24 +0000
+Subject: [ragel-users] How to specify where to stop when scanning a string
+Message-ID: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+
+I have a struct,
+typedef struct {  char* start_add;  char* end_add;} string_def;
+I used the example from the documentation,
+#include <string.h>#include <stdio.h>
+%%{   machine foo;   main :=        ( 'foo' | 'bar' )        0 @{ res = 1; };}%%
+%% write data;
+
+int main(){  int cs, res = 0;  char *p = "foo";  char *pe = p + strlen(p) + 1;  %% write init;  %% write exec;  printf("result = %i\n", res );  return 0;}
+This works fine : " result = 1" is the output.
+If I tweak this a little to work the way my struct is.
+extern string_def new_string(char* str, int len) {  string_def s;  s.start_add = str;  s.end_add = str + len;  return s;}
+int main(){  string_def str = new_string("foo\0", 4); ==> Works  // string_def str = new_string("foo", 3); ==> does not work, I WANT THIS TO WORK  int cs, res = 0;  char *p = str.start_add;  char *pe = str.end_add;  %% write init;  %% write exec;  printf("result = %i\n", res );  return 0;}
+Is ragel looking for a null character? How to override this behavior?? 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131015/7d1c998d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mariner_element at hotmail.com  Wed Oct 16 00:17:41 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Wed, 16 Oct 2013 00:17:41 +0000
+Subject: [ragel-users] How to indicate end of value?
+Message-ID: <BAY175-W23AED9AB2293FB164CA97F80040@phx.gbl>
+
+I have a string with two pointers to it. 
+Ex: abcdefghij
+start_pointer at 'c'end_pointer at 'g'
+How to make ragel understand that it should parse only till 'g' in the above example?Should I use the *pe variable? To set the end?
+I tried setting the *pe value to point to next to g. But still it fails. Please, let me know how I should approach this problem? 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131016/a6103577/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From romain.bossart at free.fr  Sun Oct 20 12:57:28 2013
+From: romain.bossart at free.fr (romain.bossart at free.fr)
+Date: Sun, 20 Oct 2013 14:57:28 +0200 (CEST)
+Subject: [ragel-users] Suggested patch for ravel-6.8 (clang error)
+In-Reply-To: <7234919.272611878.1382273775177.JavaMail.root@zimbra63-e11.priv.proxad.net>
+Message-ID: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+
+Hi,
+
+I'd like to suggest a tiny patch for ravel-6.8. Without this, clang cannot build (I only tested this with the latest clang).
+
+--> https://gist.github.com/romainbossart/7068665/raw/
+
+If any better way exists for suggesting this patch, thanks in advance for pointing me to it.
+
+Regards,
+Romain
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Oct 21 15:15:19 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 21 Oct 2013 17:15:19 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is greater
+	then upper end"
+Message-ID: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+
+Hi, using Ragel 6.7 in C with this simple grammar rule:
+
+  # Any byte except NULL, CR or LF.
+  main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+
+When compiling the grammar it generates the following error:
+
+  1:36: lower end of range is greater then upper en
+
+Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Oct 21 15:17:57 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 21 Oct 2013 17:17:57 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+	greater then upper end"
+In-Reply-To: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+Message-ID: <CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+
+2013/10/21 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>
+>   # Any byte except NULL, CR or LF.
+>   main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>
+> When compiling the grammar it generates the following error:
+>
+>   1:36: lower end of range is greater then upper en
+
+
+The following modification in the grammar fixes it:
+
+  ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+
+but I don't understand wht it is required to split the last range into
+two ranges.
+
+Thanks a lot.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Mon Oct 21 15:21:40 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Mon, 21 Oct 2013 17:21:40 +0200
+Subject: [ragel-users]
+	=?iso-8859-1?q?0x0E=2E=2E0xFF_produces_=22lower_end?=
+	=?iso-8859-1?q?_of_range_is_greater_then_upper_end=22?=
+In-Reply-To: <CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+Message-ID: <d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+
+On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+> The following modification in the grammar fixes it:
+>
+>   ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>
+> but I don't understand wht it is required to split the last range into
+> two ranges.
+
+Seems like ragel treats this as a signed char, i.e. -128..127. Your code 
+appears to be a nice and portable workaround.
+
+I've hit a "similar" problem recently -- the issue was a signedness of a 
+char, but in a different context. I don't think it applies, but the patch 
+is at [1] anyway.
+
+Cheers,
+Jan
+
+[1] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From guido at witmond.nl  Tue Oct 22 14:44:26 2013
+From: guido at witmond.nl (Guido Witmond)
+Date: Tue, 22 Oct 2013 16:44:26 +0200
+Subject: [ragel-users] Ragel 6.8 broken in Go
+Message-ID: <52668F4A.9010606@witmond.nl>
+
+Hi,
+
+Thanks for developing Ragel.
+
+Being new, I tried the example from the user manual.
+
+It runs in C but it breaks in Go.
+
+I've run: ragel -Z -G2 main.rl && go run main.go
+
+Results are:
+
+# command-line-arguments
+./main.go:66: goto tr0 jumps into block starting at ./main.go:39
+./main.go:71: goto tr3 jumps into block starting at ./main.go:48
+./main.go:72: goto st0 jumps into block starting at ./main.go:48
+... too many errors.
+
+It happens in a backported go-1.1.2 from Sid to Wheezy, 64bit
+and in go-1.02 on ubuntu 12.04 on 32bits.
+
+I've run the same program in C: number.rl
+
+   ragel number.rl && gcc number.c && ./a.out "123.456e+789"
+DGT: 1
+DGT: 2
+DGT: 3
+DEC: .
+enz...
+
+
+Is this a known problem? Do I (newbie) do something wrong?
+
+Regards, Guido.
+
+-------------- next part --------------
+package main
+import (
+	"fmt"
+)
+
+%%{
+	machine numbers;
+	action dgt      { fmt.Printf("DGT: %c\n", fc); }
+	action dec      { fmt.Printf("DEC: .\n"); }
+	action exp      { fmt.Printf("EXP: %c\n", fc); }
+	action exp_sign { fmt.Printf("SGN: %c\n", fc); }
+	action number   { fmt.Printf("Number parsed"); }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) %number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;
+
+func main() {
+	data := "123.456e+789" // data is the input to the state machine
+	cs := 0 // state 
+	p := 0 // data pointer (index into data)
+	pe := len(data)
+
+	%%	write init;
+	%%	write exec;
+
+	return
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: main.go
+Type: text/x-go
+Size: 2599 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.bin>
+-------------- next part --------------
+#include <string.h>
+#include <stdio.h>
+
+%%{
+	machine numbers;
+
+	action dgt      { printf("DGT: %c\n", fc); }
+	action dec      { printf("DEC: .\n"); }
+	action exp      { printf("EXP: %c\n", fc); }
+	action exp_sign { printf("SGN: %c\n", fc); }
+	action number   { res = 1; }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) $number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;		
+
+int main( int argc, char **argv )
+{
+	int cs, res = 0;
+	if ( argc > 1 ) {
+	   char *p = argv[1];
+	   char *pe = p + strlen(p) + 1;
+
+   	   %%	write init;
+	   %%	write exec;
+	   }
+	printf("result = %i\n", res );
+	return 0;
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 897 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Tue Oct 22 15:37:28 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Tue, 22 Oct 2013 19:37:28 +0400
+Subject: [ragel-users] Ragel 6.8 broken in Go
+In-Reply-To: <52668F4A.9010606@witmond.nl>
+References: <52668F4A.9010606@witmond.nl>
+Message-ID: <CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+
+Hello.
+
+I can't reproduce this case:
+
+$ ./ragel-6.8/ragel/ragel -v
+Ragel State Machine Compiler version 6.8 Feb 2013
+Copyright (c) 2001-2009 by Adrian Thurston
+$ ./ragel-6.8/ragel/ragel -Z -G2 main.rl
+$ go version
+go version go1.1.2 linux/amd64
+$ go run main.go
+DGT: 1
+DGT: 2
+DGT: 3
+DEC: .
+DGT: 4
+DGT: 5
+DGT: 6
+SGN: +
+EXP: 7
+EXP: 8
+EXP: 9
+
+It seems you use ragel 6.7 or older.
+
+
+
+On Tue, Oct 22, 2013 at 6:44 PM, Guido Witmond <guido at witmond.nl> wrote:
+
+> Hi,
+>
+> Thanks for developing Ragel.
+>
+> Being new, I tried the example from the user manual.
+>
+> It runs in C but it breaks in Go.
+>
+> I've run: ragel -Z -G2 main.rl && go run main.go
+>
+> Results are:
+>
+> # command-line-arguments
+> ./main.go:66: goto tr0 jumps into block starting at ./main.go:39
+> ./main.go:71: goto tr3 jumps into block starting at ./main.go:48
+> ./main.go:72: goto st0 jumps into block starting at ./main.go:48
+> ... too many errors.
+>
+> It happens in a backported go-1.1.2 from Sid to Wheezy, 64bit
+> and in go-1.02 on ubuntu 12.04 on 32bits.
+>
+> I've run the same program in C: number.rl
+>
+>    ragel number.rl && gcc number.c && ./a.out "123.456e+789"
+> DGT: 1
+> DGT: 2
+> DGT: 3
+> DEC: .
+> enz...
+>
+>
+> Is this a known problem? Do I (newbie) do something wrong?
+>
+> Regards, Guido.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131022/0f28acf1/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From guido at witmond.nl  Tue Oct 22 15:44:01 2013
+From: guido at witmond.nl (Guido Witmond)
+Date: Tue, 22 Oct 2013 17:44:01 +0200
+Subject: [ragel-users] Ragel 6.8 broken in Go
+In-Reply-To: <CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+References: <52668F4A.9010606@witmond.nl>
+	<CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+Message-ID: <52669D41.3070303@witmond.nl>
+
+On 10/22/13 17:37, Anton Ageev wrote:
+> Hello.
+> 
+> I can't reproduce this case:
+> 
+> $ ./ragel-6.8/ragel/ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+> Copyright (c) 2001-2009 by Adrian Thurston
+> $ ./ragel-6.8/ragel/ragel -Z -G2 main.rl
+> $ go version
+> go version go1.1.2 linux/amd64
+> $ go run main.go
+> DGT: 1
+> DGT: 2
+> DGT: 3
+> DEC: .
+> DGT: 4
+> DGT: 5
+> DGT: 6
+> SGN: +
+> EXP: 7
+> EXP: 8
+> EXP: 9
+> 
+> It seems you use ragel 6.7 or older.
+> 
+
+
+$ ragel -v
+Ragel State Machine Compiler version 6.7 May 2011
+
+
+Oops, forgot to check that.
+
+
+Thanks for pointing out that Wheezy is stable but old....
+
+
+Regards, Guido.
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 897 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131022/034a86bf/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From peter.van.dijk at netherlabs.nl  Thu Oct 24 18:52:17 2013
+From: peter.van.dijk at netherlabs.nl (Peter van Dijk)
+Date: Thu, 24 Oct 2013 20:52:17 +0200
+Subject: [ragel-users] signed/unsigned portability issue
+Message-ID: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+
+Hello folks,
+
+
+
+we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS TXT record data. Some time ago, we expanded the allowed inputs for this parser to the full 8 bit 'extended ASCII' range (which Ragel calls 'extend').
+
+This works well on most platforms - but it failed for us on Debian/s390x.
+
+After a lot of digging I found that char is unsigned on s390x, while it is signed on amd64, i386 and many other platforms.
+
+I have added 'alphtype unsigned char' to our Ragel file. This makes the parser work reliably on both amd64 and s390x (and,  hopefully, many other platforms).
+
+However, I feel something is wrong. It seems that on s390x, Ragel is mostly confused about the type of char. It generates a parser that treats extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This discrepancy feels like a Ragel issue to me.
+
+A much longer version of this story is at https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+
+My question: is this a Ragel bug? Regardless of yes/no, is what I did (alphtype unsigned char) the best workaround?
+
+I did most of the debugging with ragel 6.7-1 (Debian version number), but verified that the problem is identical in 6.8-1.
+
+Kind regards,
+-- 
+Peter van Dijk
+Netherlabs Computer Consulting BV - http://www.netherlabs.nl/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 841 bytes
+Desc: Message signed with OpenPGP using GPGMail
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131024/a3b83a44/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From william at 25thandClement.com  Thu Oct 24 19:53:12 2013
+From: william at 25thandClement.com (William Ahern)
+Date: Thu, 24 Oct 2013 12:53:12 -0700
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+Message-ID: <20131024195312.GA14263@wilbur.25thandClement.com>
+
+On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> Hello folks,
+> 
+> we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS
+> TXT record data. Some time ago, we expanded the allowed inputs for this
+> parser to the full 8 bit 'extended ASCII' range (which Ragel calls
+> 'extend').
+> 
+> This works well on most platforms - but it failed for us on Debian/s390x.
+> 
+> After a lot of digging I found that char is unsigned on s390x, while it is
+> signed on amd64, i386 and many other platforms.
+> 
+> I have added 'alphtype unsigned char' to our Ragel file. This makes the
+> parser work reliably on both amd64 and s390x (and, hopefully, many other
+> platforms).
+> 
+> However, I feel something is wrong. It seems that on s390x, Ragel is
+> mostly confused about the type of char. It generates a parser that treats
+> extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This
+> discrepancy feels like a Ragel issue to me.
+> 
+> A much longer version of this story is at
+> https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> 
+> My question: is this a Ragel bug? Regardless of yes/no, is what I did
+> (alphtype unsigned char) the best workaround?
+
+IMHO it would probably be better for Ragel to use unsigned char arithmetic
+for both char and unsigned char. Off the top of my head it even seems like
+Ragel should treat all input as unsigned.
+
+FWIW, I always use unsigned arithmetic, for Ragel and most everything else.
+Signed arithmetic is for mathematical formulas, not bit twiddling and string
+processing. At the very least, it quickly leads to undefined behavior,
+whereas signed->unsigned conversions in C are always well defined.
+
+Does anybody on the list actually use or depend on signed behavior in their
+machines?
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Fri Oct 25 15:39:01 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 25 Oct 2013 17:39:01 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+Message-ID: <CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+
+2013/10/21 Jan Kundrát <jkt at flaska.net>:
+> On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+>>
+>> The following modification in the grammar fixes it:
+>>
+>>   ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>>
+>> but I don't understand wht it is required to split the last range into
+>> two ranges.
+>
+>
+> Seems like ragel treats this as a signed char, i.e. -128..127. Your code
+> appears to be a nice and portable workaround.
+
+
+I've realized that setting:
+
+  alphtype unsigned char;
+or
+  alphtype unsigned int;
+
+also fixes the problem. Section 5.2 of the doc says that "The default
+is char for all languages except Go where the default is byte" so it
+makes sense.
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From dcb314 at hotmail.com  Thu Oct 10 12:37:49 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 12:37:49 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+Message-ID: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+
+Hello there,
+
+I just ran the static analysis tool "cppcheck" over
+the source code of ragel-6.8
+
+It said
+
+[parsedata.cpp:471]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:139]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:334]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmbase.cpp:428]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:301]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1227]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1228]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[fsmgraph.cpp:1406]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[rlparse.cpp:1413]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+[rlparse.cpp:1429]: (warning) Ineffective call of function 'empty()'. Did you intend to call 'clear()' instead?
+
+I looked at the first two and it did look like clear was intended.
+Suggest code rework.
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Thu Oct 10 12:48:36 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 14:48:36 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>
+Message-ID: <5256A224.8010700@jgoettgens.de>
+
+Are you sure that cppcheck knows about the Aapl template library?
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dcb314 at hotmail.com  Thu Oct 10 13:24:58 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 13:24:58 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <5256A224.8010700@jgoettgens.de>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>,
+	<5256A224.8010700@jgoettgens.de>
+Message-ID: <DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+
+Hello there,
+
+----------------------------------------
+> Are you sure that cppcheck knows about the Aapl template library?
+
+I am sure that cppcheck knows nothing about the Aapl template library.
+
+It does, however, know quite a bit about C++.
+
+Hint: would a check of the C++ reference manual to
+understand the difference between clear() and empty()
+be a wise idea ?
+
+Clue: empty() would be better named is_empty() and clear would
+be better named do_clear().  Maybe in some better future version 
+of C++. 
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Thu Oct 10 13:51:54 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 15:51:54 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>,
+	<5256A224.8010700@jgoettgens.de>
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>
+Message-ID: <5256B0FA.1030806@jgoettgens.de>
+
+Well, you would find empty() implementations like
+
+/**
+  * \brief Empty the tree and delete all the element.
+  *
+  * Resets the tree to its initial state.
+  */
+template <AVLMEL_TEMPDEF> void AvlTree<AVLMEL_TEMPUSE>::empty()
+{
+     if ( root ) {
+         /* Recursively delete from the tree structure. */
+         deleteChildrenOf(root);
+         delete root;
+         root = 0;
+         treeSize = 0;
+
+#ifdef WALKABLE
+         BASELIST::abandon();
+#endif
+  }
+
+What is called empty() here, is called erase() in other places. I would assume that cppcheck 
+applies the rules for the STL libs, but this is misleading here.  It's basically the author's 
+choice.
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dcb314 at hotmail.com  Thu Oct 10 14:40:07 2013
+From: dcb314 at hotmail.com (David Binderman)
+Date: Thu, 10 Oct 2013 14:40:07 +0000
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <5256B0FA.1030806@jgoettgens.de>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>, ,
+	<5256A224.8010700@jgoettgens.de>,
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>,
+	<5256B0FA.1030806@jgoettgens.de>
+Message-ID: <DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+
+Hello there,
+
+----------------------------------------
+> Well, you would find empty() implementations like
+
+That's going to confuse any C++ STL programmer and the cppcheck tool too.
+
+Would it be worthwhile to rename function to erase or pick another name ?
+
+Regards
+
+David Binderman 		 	   		  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jkt at flaska.net  Thu Oct 10 14:43:14 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Thu, 10 Oct 2013 16:43:14 +0200
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+Message-ID: <2d478751-5022-48fd-be64-a6ba3dfc85e2@flaska.net>
+
+Hi, I was wondering if anybody read the mail (quoted below) which I sent 
+last month. I do see some commits in the git repository, but I haven't 
+received an answer to my bugreport yet.
+
+With kind regards,
+Jan
+
+
+On Wednesday, 18 September 2013 16:05:39 CEST, Jan Kundrát wrote:
+> Hi Adrian,
+> I'm using Ragel for parsing of e-mail headers as per RFC5322. 
+> When porting this project to ARM (MeeGo Harmattan, Nokia N9), 
+> I've noticed that it fails to build after I enable C++11 
+> features using clang 3.3. Here is the error message:
+>
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+> error: constant expression evaluates to -128 which cannot be 
+> narrowed to type 'char' [-Wc++11-narrowing]
+>         39, 42, 127, 10, 9, 32, -128, -1,                       
+>           ^~~~
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+> note: override this message by inserting an explicit cast
+>         39, 42, 127, 10, 9, 32, -128, -1,                       
+>           ^~~~
+>                                 static_cast<char>( )
+>
+> So the problem is that the signedness rules for the host 
+> (machine running ragel producing the .cpp file with parser) and 
+> target (the target platform of the C++ compiler which is 
+> producing Ragel's output) do not match. That's a big problem, 
+> and it isn't limited just to chars, actually -- because Ragel's 
+> code uses platform's native types instead of the portable ones, 
+> there's no guarantee that ragel's int can fit the data of the 
+> target's size, etc. I've solved this by patching ragel to use 
+> C's int<num>_t types, please see the commit at [1]. That patch 
+> fixes my problem.
+>
+> In addition, before I realized that I'm actually looking for 
+> the ragel-6 branch, I spent some time playing with master before 
+> I finding out that it's some kind of a rewrite. The same bug 
+> applies there as well. Before I was able to get the master 
+> branch to build on my system, I had to make the following 
+> changes:
+>
+> * Fixing a build failure due to a bug in colm's headers [2]. I 
+> see you're upstream for that project, too, perhaps you can fix 
+> it in there as well.
+>
+> * Making sure that version.h is generated [3].
+>
+> After that, I simply added a rule to always treat chars as 
+> signed [4]. That's arguably a wrong change; the code shall 
+> probably do the same thing as [1]. I don't have time for this 
+> now.
+>
+> And finally, when I tried the patched master, I found out that 
+> my ragel parser won't compile anymore -- please see the file at 
+> [5]. The error message I get is that it cannot find the "CRLF" 
+> symbol which is defined in the included .rl file [6]. That looks 
+> like a regression in the rewrite.
+>
+> Thanks for a cool software -- I hope these patches are OK and 
+> that you'll merge them.
+>
+> Cheers,
+> Jan
+>
+> [1]  
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+> [2] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+> [3] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+> [4] 
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+> [5] 
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+> [6] 
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+>
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Oct 10 14:54:27 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Thu, 10 Oct 2013 16:54:27 +0200
+Subject: [ragel-users] ragel-6.8 bug report
+In-Reply-To: <DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+References: <DUB118-W13D9498B160C966172FB899C1E0@phx.gbl>, ,
+	<5256A224.8010700@jgoettgens.de>,
+	<DUB118-W36F3725390FB53C3B724BF9C1E0@phx.gbl>,
+	<5256B0FA.1030806@jgoettgens.de>
+	<DUB118-W456EAA4CE6161494AE80CA9C1E0@phx.gbl>
+Message-ID: <5256BFA3.40502@jgoettgens.de>
+
+David,
+> That's going to confuse any C++ STL programmer and the cppcheck tool too.
+>
+> Would it be worthwhile to rename function to erase or pick another name ?
+there are worse things in life than this. Since you have the source code, you could do it 
+yourself. I actually like the idea of using the verb "empty". Let's say your container models a 
+real life entity, beer for example. You would empty the container, but erasing it is not useful.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 07:53:20 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 07:53:20 +0000
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+
+How to debug ragel in eclipse?? Is there a plug in available for it? If not what are the other options?
+
+ 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131013/af8fe71f/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sun Oct 13 08:03:08 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Sun, 13 Oct 2013 10:03:08 +0200
+Subject: [ragel-users] Debug ragel
+In-Reply-To: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+References: <BAY175-W529AFD6F8C9A3E6A18450080190@phx.gbl>
+Message-ID: <525A53BC.10906@jgoettgens.de>
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 13:11:42 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 06:11:42 -0700
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY405-EAS88FEBA6140238A556A01DD80190@phx.gbl>
+
+In eclipse.?
+
+--- Original Message ---
+
+From: "RU" <ragel-user at jgoettgens.de>
+Sent: October 13, 2013 1:04 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Sun Oct 13 13:14:28 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Sun, 13 Oct 2013 06:14:28 -0700
+Subject: [ragel-users] Debug ragel
+Message-ID: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+
+I want to debug the sequence of execution inside a state machine.  To see if a particular step is executed.
+
+--- Original Message ---
+
+From: "dinesh rtp" <mariner_element at hotmail.com>
+Sent: October 13, 2013 6:13 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+In eclipse.?
+
+--- Original Message ---
+
+From: "RU" <ragel-user at jgoettgens.de>
+Sent: October 13, 2013 1:04 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Debug ragel
+
+What do you want to debug?
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Oct 13 14:09:05 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Sun, 13 Oct 2013 16:09:05 +0200
+Subject: [ragel-users] Debug ragel
+In-Reply-To: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+References: <BAY405-EAS908A79832175F4CBF3B44080190@phx.gbl>
+Message-ID: <525AA981.3010707@jgoettgens.de>
+
+There is the -L option that allows you to step through the source code.
+
+I don't know what to do to work comfortably with Ragel inside Eclipse. I think you can use a 
+"make" sub project and then a standard C/C++ project, or whatever.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From eric at makechip.com  Sun Oct 13 19:14:18 2013
+From: eric at makechip.com (eric at makechip.com)
+Date: Sun, 13 Oct 2013 12:14:18 -0700
+Subject: [ragel-users] Question on ragel
+Message-ID: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131013/0dd2dd95/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mariner_element at hotmail.com  Tue Oct 15 17:32:25 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Tue, 15 Oct 2013 17:32:25 +0000
+Subject: [ragel-users] How to do substring match in ragel?
+Message-ID: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+
+Please excuse if this is question is direct, I am new to ragel and looking for directions so I can work on my own. Given a set of strings (say 15), how to build a state machine that given a string spits out if it is a substring or not? It would be really helpful if I can get pointed at the right direction.
+Thanks. 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131015/4b595bd9/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Tue Oct 15 17:54:13 2013
+From: ragel-user at jgoettgens.de (RU)
+Date: Tue, 15 Oct 2013 19:54:13 +0200
+Subject: [ragel-users] How to do substring match in ragel?
+In-Reply-To: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+References: <BAY175-W272916362FC8FE3911CF90801B0@phx.gbl>
+Message-ID: <525D8145.1070004@jgoettgens.de>
+
+Obviously, you need to read the documentation. Then there is the example directory. I would 
+recommend to start with the simple ones and augment them with additional actions, just to see 
+the effect and to learn when they are called. You must really know what an "entering", 
+"finishing", "all transition", or "leaving" action does and when these actions happen.
+
+At some point you must decide whether you want a state machine or a scanner for your project. 
+The state machine does not do something like a longest match. You will find out soon what makes 
+sense in which situation.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mariner_element at hotmail.com  Tue Oct 15 22:27:24 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Tue, 15 Oct 2013 22:27:24 +0000
+Subject: [ragel-users] How to specify where to stop when scanning a string
+Message-ID: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+
+I have a struct,
+typedef struct {  char* start_add;  char* end_add;} string_def;
+I used the example from the documentation,
+#include <string.h>#include <stdio.h>
+%%{   machine foo;   main :=        ( 'foo' | 'bar' )        0 @{ res = 1; };}%%
+%% write data;
+
+int main(){  int cs, res = 0;  char *p = "foo";  char *pe = p + strlen(p) + 1;  %% write init;  %% write exec;  printf("result = %i\n", res );  return 0;}
+This works fine : " result = 1" is the output.
+If I tweak this a little to work the way my struct is.
+extern string_def new_string(char* str, int len) {  string_def s;  s.start_add = str;  s.end_add = str + len;  return s;}
+int main(){  string_def str = new_string("foo\0", 4); ==> Works  // string_def str = new_string("foo", 3); ==> does not work, I WANT THIS TO WORK  int cs, res = 0;  char *p = str.start_add;  char *pe = str.end_add;  %% write init;  %% write exec;  printf("result = %i\n", res );  return 0;}
+Is ragel looking for a null character? How to override this behavior?? 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131015/7d1c998d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mariner_element at hotmail.com  Wed Oct 16 00:17:41 2013
+From: mariner_element at hotmail.com (dinesh rtp)
+Date: Wed, 16 Oct 2013 00:17:41 +0000
+Subject: [ragel-users] How to indicate end of value?
+Message-ID: <BAY175-W23AED9AB2293FB164CA97F80040@phx.gbl>
+
+I have a string with two pointers to it. 
+Ex: abcdefghij
+start_pointer at 'c'end_pointer at 'g'
+How to make ragel understand that it should parse only till 'g' in the above example?Should I use the *pe variable? To set the end?
+I tried setting the *pe value to point to next to g. But still it fails. Please, let me know how I should approach this problem? 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131016/a6103577/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From romain.bossart at free.fr  Sun Oct 20 12:57:28 2013
+From: romain.bossart at free.fr (romain.bossart at free.fr)
+Date: Sun, 20 Oct 2013 14:57:28 +0200 (CEST)
+Subject: [ragel-users] Suggested patch for ravel-6.8 (clang error)
+In-Reply-To: <7234919.272611878.1382273775177.JavaMail.root@zimbra63-e11.priv.proxad.net>
+Message-ID: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+
+Hi,
+
+I'd like to suggest a tiny patch for ravel-6.8. Without this, clang cannot build (I only tested this with the latest clang).
+
+--> https://gist.github.com/romainbossart/7068665/raw/
+
+If any better way exists for suggesting this patch, thanks in advance for pointing me to it.
+
+Regards,
+Romain
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Oct 21 15:15:19 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 21 Oct 2013 17:15:19 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is greater
+	then upper end"
+Message-ID: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+
+Hi, using Ragel 6.7 in C with this simple grammar rule:
+
+  # Any byte except NULL, CR or LF.
+  main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+
+When compiling the grammar it generates the following error:
+
+  1:36: lower end of range is greater then upper en
+
+Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Oct 21 15:17:57 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 21 Oct 2013 17:17:57 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+	greater then upper end"
+In-Reply-To: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+Message-ID: <CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+
+2013/10/21 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>
+>   # Any byte except NULL, CR or LF.
+>   main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>
+> When compiling the grammar it generates the following error:
+>
+>   1:36: lower end of range is greater then upper en
+
+
+The following modification in the grammar fixes it:
+
+  ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+
+but I don't understand wht it is required to split the last range into
+two ranges.
+
+Thanks a lot.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Mon Oct 21 15:21:40 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Mon, 21 Oct 2013 17:21:40 +0200
+Subject: [ragel-users]
+	=?iso-8859-1?q?0x0E=2E=2E0xFF_produces_=22lower_end?=
+	=?iso-8859-1?q?_of_range_is_greater_then_upper_end=22?=
+In-Reply-To: <CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+Message-ID: <d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+
+On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+> The following modification in the grammar fixes it:
+>
+>   ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>
+> but I don't understand wht it is required to split the last range into
+> two ranges.
+
+Seems like ragel treats this as a signed char, i.e. -128..127. Your code 
+appears to be a nice and portable workaround.
+
+I've hit a "similar" problem recently -- the issue was a signedness of a 
+char, but in a different context. I don't think it applies, but the patch 
+is at [1] anyway.
+
+Cheers,
+Jan
+
+[1] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From guido at witmond.nl  Tue Oct 22 14:44:26 2013
+From: guido at witmond.nl (Guido Witmond)
+Date: Tue, 22 Oct 2013 16:44:26 +0200
+Subject: [ragel-users] Ragel 6.8 broken in Go
+Message-ID: <52668F4A.9010606@witmond.nl>
+
+Hi,
+
+Thanks for developing Ragel.
+
+Being new, I tried the example from the user manual.
+
+It runs in C but it breaks in Go.
+
+I've run: ragel -Z -G2 main.rl && go run main.go
+
+Results are:
+
+# command-line-arguments
+./main.go:66: goto tr0 jumps into block starting at ./main.go:39
+./main.go:71: goto tr3 jumps into block starting at ./main.go:48
+./main.go:72: goto st0 jumps into block starting at ./main.go:48
+... too many errors.
+
+It happens in a backported go-1.1.2 from Sid to Wheezy, 64bit
+and in go-1.02 on ubuntu 12.04 on 32bits.
+
+I've run the same program in C: number.rl
+
+   ragel number.rl && gcc number.c && ./a.out "123.456e+789"
+DGT: 1
+DGT: 2
+DGT: 3
+DEC: .
+enz...
+
+
+Is this a known problem? Do I (newbie) do something wrong?
+
+Regards, Guido.
+
+-------------- next part --------------
+package main
+import (
+	"fmt"
+)
+
+%%{
+	machine numbers;
+	action dgt      { fmt.Printf("DGT: %c\n", fc); }
+	action dec      { fmt.Printf("DEC: .\n"); }
+	action exp      { fmt.Printf("EXP: %c\n", fc); }
+	action exp_sign { fmt.Printf("SGN: %c\n", fc); }
+	action number   { fmt.Printf("Number parsed"); }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) %number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;
+
+func main() {
+	data := "123.456e+789" // data is the input to the state machine
+	cs := 0 // state 
+	p := 0 // data pointer (index into data)
+	pe := len(data)
+
+	%%	write init;
+	%%	write exec;
+
+	return
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: main.go
+Type: text/x-go
+Size: 2599 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131022/ec50e4df/attachment-0001.bin>
+-------------- next part --------------
+#include <string.h>
+#include <stdio.h>
+
+%%{
+	machine numbers;
+
+	action dgt      { printf("DGT: %c\n", fc); }
+	action dec      { printf("DEC: .\n"); }
+	action exp      { printf("EXP: %c\n", fc); }
+	action exp_sign { printf("SGN: %c\n", fc); }
+	action number   { res = 1; }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) $number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;		
+
+int main( int argc, char **argv )
+{
+	int cs, res = 0;
+	if ( argc > 1 ) {
+	   char *p = argv[1];
+	   char *pe = p + strlen(p) + 1;
+
+   	   %%	write init;
+	   %%	write exec;
+	   }
+	printf("result = %i\n", res );
+	return 0;
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 897 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131022/ec50e4df/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Tue Oct 22 15:37:28 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Tue, 22 Oct 2013 19:37:28 +0400
+Subject: [ragel-users] Ragel 6.8 broken in Go
+In-Reply-To: <52668F4A.9010606@witmond.nl>
+References: <52668F4A.9010606@witmond.nl>
+Message-ID: <CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+
+Hello.
+
+I can't reproduce this case:
+
+$ ./ragel-6.8/ragel/ragel -v
+Ragel State Machine Compiler version 6.8 Feb 2013
+Copyright (c) 2001-2009 by Adrian Thurston
+$ ./ragel-6.8/ragel/ragel -Z -G2 main.rl
+$ go version
+go version go1.1.2 linux/amd64
+$ go run main.go
+DGT: 1
+DGT: 2
+DGT: 3
+DEC: .
+DGT: 4
+DGT: 5
+DGT: 6
+SGN: +
+EXP: 7
+EXP: 8
+EXP: 9
+
+It seems you use ragel 6.7 or older.
+
+
+
+On Tue, Oct 22, 2013 at 6:44 PM, Guido Witmond <guido at witmond.nl> wrote:
+
+> Hi,
+>
+> Thanks for developing Ragel.
+>
+> Being new, I tried the example from the user manual.
+>
+> It runs in C but it breaks in Go.
+>
+> I've run: ragel -Z -G2 main.rl && go run main.go
+>
+> Results are:
+>
+> # command-line-arguments
+> ./main.go:66: goto tr0 jumps into block starting at ./main.go:39
+> ./main.go:71: goto tr3 jumps into block starting at ./main.go:48
+> ./main.go:72: goto st0 jumps into block starting at ./main.go:48
+> ... too many errors.
+>
+> It happens in a backported go-1.1.2 from Sid to Wheezy, 64bit
+> and in go-1.02 on ubuntu 12.04 on 32bits.
+>
+> I've run the same program in C: number.rl
+>
+>    ragel number.rl && gcc number.c && ./a.out "123.456e+789"
+> DGT: 1
+> DGT: 2
+> DGT: 3
+> DEC: .
+> enz...
+>
+>
+> Is this a known problem? Do I (newbie) do something wrong?
+>
+> Regards, Guido.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131022/0f28acf1/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From guido at witmond.nl  Tue Oct 22 15:44:01 2013
+From: guido at witmond.nl (Guido Witmond)
+Date: Tue, 22 Oct 2013 17:44:01 +0200
+Subject: [ragel-users] Ragel 6.8 broken in Go
+In-Reply-To: <CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+References: <52668F4A.9010606@witmond.nl>
+	<CAFygSNm+BP6hzmYbfBnX=mZWD+NXv9ykbaWsCGmyEOqOuao7cA@mail.gmail.com>
+Message-ID: <52669D41.3070303@witmond.nl>
+
+On 10/22/13 17:37, Anton Ageev wrote:
+> Hello.
+> 
+> I can't reproduce this case:
+> 
+> $ ./ragel-6.8/ragel/ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+> Copyright (c) 2001-2009 by Adrian Thurston
+> $ ./ragel-6.8/ragel/ragel -Z -G2 main.rl
+> $ go version
+> go version go1.1.2 linux/amd64
+> $ go run main.go
+> DGT: 1
+> DGT: 2
+> DGT: 3
+> DEC: .
+> DGT: 4
+> DGT: 5
+> DGT: 6
+> SGN: +
+> EXP: 7
+> EXP: 8
+> EXP: 9
+> 
+> It seems you use ragel 6.7 or older.
+> 
+
+
+$ ragel -v
+Ragel State Machine Compiler version 6.7 May 2011
+
+
+Oops, forgot to check that.
+
+
+Thanks for pointing out that Wheezy is stable but old....
+
+
+Regards, Guido.
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 897 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131022/034a86bf/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From peter.van.dijk at netherlabs.nl  Thu Oct 24 18:52:17 2013
+From: peter.van.dijk at netherlabs.nl (Peter van Dijk)
+Date: Thu, 24 Oct 2013 20:52:17 +0200
+Subject: [ragel-users] signed/unsigned portability issue
+Message-ID: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+
+Hello folks,
+
+
+
+we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS TXT record data. Some time ago, we expanded the allowed inputs for this parser to the full 8 bit 'extended ASCII' range (which Ragel calls 'extend').
+
+This works well on most platforms - but it failed for us on Debian/s390x.
+
+After a lot of digging I found that char is unsigned on s390x, while it is signed on amd64, i386 and many other platforms.
+
+I have added 'alphtype unsigned char' to our Ragel file. This makes the parser work reliably on both amd64 and s390x (and,  hopefully, many other platforms).
+
+However, I feel something is wrong. It seems that on s390x, Ragel is mostly confused about the type of char. It generates a parser that treats extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This discrepancy feels like a Ragel issue to me.
+
+A much longer version of this story is at https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+
+My question: is this a Ragel bug? Regardless of yes/no, is what I did (alphtype unsigned char) the best workaround?
+
+I did most of the debugging with ragel 6.7-1 (Debian version number), but verified that the problem is identical in 6.8-1.
+
+Kind regards,
+-- 
+Peter van Dijk
+Netherlabs Computer Consulting BV - http://www.netherlabs.nl/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 841 bytes
+Desc: Message signed with OpenPGP using GPGMail
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131024/a3b83a44/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From william at 25thandClement.com  Thu Oct 24 19:53:12 2013
+From: william at 25thandClement.com (William Ahern)
+Date: Thu, 24 Oct 2013 12:53:12 -0700
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+Message-ID: <20131024195312.GA14263@wilbur.25thandClement.com>
+
+On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> Hello folks,
+> 
+> we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS
+> TXT record data. Some time ago, we expanded the allowed inputs for this
+> parser to the full 8 bit 'extended ASCII' range (which Ragel calls
+> 'extend').
+> 
+> This works well on most platforms - but it failed for us on Debian/s390x.
+> 
+> After a lot of digging I found that char is unsigned on s390x, while it is
+> signed on amd64, i386 and many other platforms.
+> 
+> I have added 'alphtype unsigned char' to our Ragel file. This makes the
+> parser work reliably on both amd64 and s390x (and, hopefully, many other
+> platforms).
+> 
+> However, I feel something is wrong. It seems that on s390x, Ragel is
+> mostly confused about the type of char. It generates a parser that treats
+> extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This
+> discrepancy feels like a Ragel issue to me.
+> 
+> A much longer version of this story is at
+> https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> 
+> My question: is this a Ragel bug? Regardless of yes/no, is what I did
+> (alphtype unsigned char) the best workaround?
+
+IMHO it would probably be better for Ragel to use unsigned char arithmetic
+for both char and unsigned char. Off the top of my head it even seems like
+Ragel should treat all input as unsigned.
+
+FWIW, I always use unsigned arithmetic, for Ragel and most everything else.
+Signed arithmetic is for mathematical formulas, not bit twiddling and string
+processing. At the very least, it quickly leads to undefined behavior,
+whereas signed->unsigned conversions in C are always well defined.
+
+Does anybody on the list actually use or depend on signed behavior in their
+machines?
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Fri Oct 25 15:39:01 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 25 Oct 2013 17:39:01 +0200
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+Message-ID: <CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+
+2013/10/21 Jan Kundrát <jkt at flaska.net>:
+> On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+>>
+>> The following modification in the grammar fixes it:
+>>
+>>   ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>>
+>> but I don't understand wht it is required to split the last range into
+>> two ranges.
+>
+>
+> Seems like ragel treats this as a signed char, i.e. -128..127. Your code
+> appears to be a nice and portable workaround.
+
+
+I've realized that setting:
+
+  alphtype unsigned char;
+or
+  alphtype unsigned int;
+
+also fixes the problem. Section 5.2 of the doc says that "The default
+is char for all languages except Go where the default is byte" so it
+makes sense.
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

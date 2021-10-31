@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] 'string' ranges
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%27string%27%20ranges&In-Reply-To=%3C46165B63.9080903%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000224.html">
+   <LINK REL="Next"  HREF="001989.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] 'string' ranges</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%27string%27%20ranges&In-Reply-To=%3C46165B63.9080903%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] 'string' ranges">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Apr  6 14:38:27 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000224.html">'string' ranges
+</A></li>
+        <LI>Next message: <A HREF="001989.html">[ragel-users] Re: 'string' ranges
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1988">[ date ]</a>
+              <a href="thread.html#1988">[ thread ]</a>
+              <a href="subject.html#1988">[ subject ]</a>
+              <a href="author.html#1988">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Paul,
+
+I think in theory enumerating all the possibilities with a script then
+leaving it up to the minimization routine would work. Though it might
+end up taking forever to compile.
+
+Semantic conditions could be made to work, but I would advise trying to
+express the ranges directly. If that doesn't work well (or maybe if it
+generates too many states) you could go the semantic condition route.
+
+To express them directly assemble the ranges byte by byte and then
+section by section. I've never done this in a real program so if you try
+it out (or one of the other techniques) would you mind sending a message
+to the list to say how it went?
+
+alphtype unsigned char;
+
+# 0x0ED0-0x0ED9
+r1 = 0x0D ( 0xD0 .. 0xD9 );
+
+# 0x0A07-0x0D40
+r2 =
+	0x0A ( 0x07 .. 0xFF ) |
+	( 0x0B | 0x0C ) any |
+	0x0D ( 0x00 .. 0x40 );
+
+You're probably aware of this but I'll mention it just to put it out
+there ... for a really simple solution you can always process in two
+passes. First expand to a fixed-width character then change the alphabet
+type to short or int and process with Ragel.
+
+Regards,
+ Adrian
+
+
+Paul wrote:
+&gt;<i> Hello all,
+</I>&gt;<i> 
+</I>&gt;<i> I'm wanting my ragel state machine to process unicode text encoded as utf-8. 
+</I>&gt;<i> There are some unicode ranges that I want to transition on e.g.
+</I>&gt;<i> 
+</I>&gt;<i> range = [0x0ED0-0x0ED9];
+</I>&gt;<i> 
+</I>&gt;<i> but I don't know how to express this in a minimal way with an unsigned char 
+</I>&gt;<i> alphabet (i.e. I don't think it can be done directly in ragel's expression 
+</I>&gt;<i> syntax).
+</I>&gt;<i> 
+</I>&gt;<i> My brain isn't in the best condition, but the two approaches I have thought 
+</I>&gt;<i> of:
+</I>&gt;<i> 1.) use a script to write out the set of strings in the range and leave it to 
+</I>&gt;<i> ragel to minimise the states (or something like this)
+</I>&gt;<i> 2.) use ragel's semantic conditions somehow.. (assemble utf-32 version and use 
+</I>&gt;<i> integer comparison)
+</I>&gt;<i> 
+</I>&gt;<i> But before I attempt either, has anyone had to do anything similar? Or are 
+</I>&gt;<i> there any suggestions I could use?
+</I>&gt;<i> 
+</I>&gt;<i> Thanks, and have a good Easter
+</I>&gt;<i> 
+</I>&gt;<i>  - Paul
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070406/f965fc6d/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070406/f965fc6d/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000224.html">'string' ranges
+</A></li>
+	<LI>Next message: <A HREF="001989.html">[ragel-users] Re: 'string' ranges
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1988">[ date ]</a>
+              <a href="thread.html#1988">[ thread ]</a>
+              <a href="subject.html#1988">[ subject ]</a>
+              <a href="author.html#1988">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

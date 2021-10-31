@@ -1,0 +1,810 @@
+From david.keller at litchis.fr  Sat Jun  6 17:58:01 2009
+From: david.keller at litchis.fr (david.keller at litchis.fr)
+Date: Sat, 06 Jun 2009 19:58:01 +0200
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+Message-ID: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+
+
+
+Hi 
+
+When using this scanner (I removed actions), ragel seems to loop endless. 
+
+%%{
+ machine configuration_parser;
+ include scanner_common "scanner.rl";
+
+ newline = 'r'? 'n';
+
+ comment = '#' any* -- newline;
+
+ bulk = ([tvf ] | comment | newline)+;
+
+ key = bulk? (alnum ([_.]? alnum)*); 
+
+ value = bulk? """ any* :>> """;
+
+ values = bulk? value (bulk? ',' value)*;
+
+ assign = key bulk? '=' values;
+
+ main := assign* bulk?;
+}%% 
+
+But I works like a charm when: 
+
+ comment = '#' any* -- newline; 
+
+become: 
+
+ comment = '#' any* :>> newline; 
+
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090606/cb9e5872/attachment.html>
+
+From thurston at complang.org  Mon Jun  8 00:58:13 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 07 Jun 2009 20:58:13 -0400
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+In-Reply-To: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+References: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+Message-ID: <4A2C6225.90302@complang.org>
+
+The reason ragel seems to run endlessly is that you're getting a state 
+explosion. The machine:
+
+comment = '#' any* -- newline;
+
+Is not terminated with a newline. It's just a string that starts with 
+'#' and cannot contain a newline. When you put this in front of alnum 
+(in bulk?) you create an ambiguity that is costly for ragel to implement 
+with a deterministic state machine.
+
+Do this instead:
+
+comment = '#' (any* -- newline) newline;
+
+Or use :>> as you suggested.
+
+Cheers,
+  Adrian
+
+david.keller at litchis.fr wrote:
+> Hi
+> 
+> When using this scanner (I removed actions), ragel seems to loop endless.
+> 
+> %%{
+>     machine configuration_parser;
+>     include scanner_common "scanner.rl";
+> 
+>     newline = '\r'?  '\n';
+> 
+>     comment = '#' any* -- newline;
+> 
+>     bulk = ([\t\v\f\ ] | comment | newline)+;
+> 
+>     key = bulk? (alnum ([\_\.]? alnum)*);
+> 
+>     value = bulk? "\"" any* :>> "\"";
+> 
+>     values = bulk? value (bulk? ',' value)*;
+> 
+>     assign = key bulk? '=' values;
+> 
+>     main := assign* bulk?;
+> }%%
+> 
+>  
+> 
+> But I works like a charm when:
+> 
+>     comment = '#' any* -- newline;
+> 
+> become:
+> 
+>     comment = '#' any* :>> newline;
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From david.keller at litchis.fr  Mon Jun  8 11:56:32 2009
+From: david.keller at litchis.fr (david.keller at litchis.fr)
+Date: Mon, 08 Jun 2009 13:56:32 +0200
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+In-Reply-To: <4A2C6225.90302@complang.org>
+References: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+	<4A2C6225.90302@complang.org>
+Message-ID: <257b25c8f12ea2fb8ed88d0c50f13c72@litchis.fr>
+
+I see.
+
+Thanks.
+
+On Sun, 07 Jun 2009 20:58:13 -0400, Adrian Thurston 
+wrote:
+> The reason ragel seems to run endlessly is that you're getting a state 
+> explosion. The machine:
+> 
+> comment = '#' any* -- newline;
+> 
+> Is not terminated with a newline. It's just a string that starts with 
+> '#' and cannot contain a newline. When you put this in front of alnum 
+> (in bulk?) you create an ambiguity that is costly for ragel to implement
+
+> with a deterministic state machine.
+> 
+> Do this instead:
+> 
+> comment = '#' (any* -- newline) newline;
+> 
+> Or use :>> as you suggested.
+> 
+> Cheers,
+> Adrian
+> 
+> david.keller at litchis.fr wrote:
+>> Hi
+>> 
+>> When using this scanner (I removed actions), ragel seems to loop
+endless.
+>> 
+>> %%{
+>> machine configuration_parser;
+>> include scanner_common "scanner.rl";
+>> 
+>> newline = 'r'? 'n';
+>> 
+>> comment = '#' any* -- newline;
+>> 
+>> bulk = ([tvf ] | comment | newline)+;
+>> 
+>> key = bulk? (alnum ([_.]? alnum)*);
+>> 
+>> value = bulk? """ any* :>> """;
+>> 
+>> values = bulk? value (bulk? ',' value)*;
+>> 
+>> assign = key bulk? '=' values;
+>> 
+>> main := assign* bulk?;
+>> }%%
+>> 
+>> 
+>> 
+>> But I works like a charm when:
+>> 
+>> comment = '#' any* -- newline;
+>> 
+>> become:
+>> 
+>> comment = '#' any* :>> newline;
+>> 
+>> 
+>> 
+>> 
+>>
+------------------------------------------------------------------------
+>> 
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: maurice_moss.jpg
+Type: image/jpeg
+Size: 8414 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090608/291612dc/attachment.jpg>
+
+From spider.karma+ragel-users at gmail.com  Thu Jun 11 07:00:59 2009
+From: spider.karma+ragel-users at gmail.com (Gordon Smith)
+Date: Thu, 11 Jun 2009 01:00:59 -0600
+Subject: [ragel-users] foreach character?
+Message-ID: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+
+Hello -
+
+I have a functioning machine, a portion of which is below.
+
+%%{
+    a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+
+    main := ( a_packet | b_packet | c_packet )+;
+}%%
+
+Out of curiosity, is there a way to easily examine every input character in
+order to calculate a running CRC value for "a_packet", for example? Perhaps
+something like an action prior to the p++ operation?
+
+Thanks,
+Gordon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090611/5bb6aa92/attachment.html>
+
+From adrian.thurston at esentire.com  Thu Jun 11 14:41:35 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 11 Jun 2009 10:41:35 -0400
+Subject: [ragel-users] foreach character?
+In-Reply-To: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+Message-ID: <4A31179F.8020001@esentire.com>
+
+Like so:
+
+a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r' ${crcUpdate(*p);};
+
+-Adrian
+
+Gordon Smith wrote:
+> Hello -
+> 
+> I have a functioning machine, a portion of which is below.
+>  
+> %%{
+>     a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+> 
+>     main := ( a_packet | b_packet | c_packet )+;
+> }%%
+> 
+> Out of curiosity, is there a way to easily examine every input character 
+> in order to calculate a running CRC value for "a_packet", for example? 
+> Perhaps something like an action prior to the p++ operation?
+> 
+> Thanks,
+> Gordon
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From spider.karma+ragel-users at gmail.com  Thu Jun 11 16:56:12 2009
+From: spider.karma+ragel-users at gmail.com (Gordon Smith)
+Date: Thu, 11 Jun 2009 10:56:12 -0600
+Subject: [ragel-users] foreach character?
+In-Reply-To: <4A31179F.8020001@esentire.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+	<4A31179F.8020001@esentire.com>
+Message-ID: <2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+
+On Thu, Jun 11, 2009 at 8:41 AM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Like so:
+>
+> a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r' ${crcUpdate(*p);};
+>
+> -Adrian
+>
+
+Thanks. It's surprising how far such a straightforward statement on your
+part can go, even if I've read the user guide.
+
+For any other newbies, I think my difficulty was/is understanding operator
+boundaries. For example:
+
+    asub_packet = 'cde';
+    a_packet = 'a:' asub_packet ':b' ${ std::cout << "crc(" << ( * p) <<
+")\n"; };
+
+with input "a:cde:b" provides only
+    crc(:)
+    crc(b)
+( the "all transition operator" '$' operating only on the prior basic
+machine ':b'?)
+
+while operating on a group provides all characters:
+    asub_packet = 'cde';
+    a_packet = ( 'a:' asub_packet ':b' ) ${ std::cout << "crc(" << ( * p) <<
+")\n"; };
+
+
+>
+> Gordon Smith wrote:
+> > Hello -
+> >
+> > I have a functioning machine, a portion of which is below.
+> >
+> > %%{
+> >     a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+> >
+> >     main := ( a_packet | b_packet | c_packet )+;
+> > }%%
+> >
+> > Out of curiosity, is there a way to easily examine every input character
+> > in order to calculate a running CRC value for "a_packet", for example?
+> > Perhaps something like an action prior to the p++ operation?
+> >
+> > Thanks,
+> > Gordon
+> >
+> >
+> >
+> > ------------------------------------------------------------------------
+> >
+> > _______________________________________________
+> > ragel-users mailing list
+> > ragel-users at complang.org
+> > http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090611/d400116b/attachment.html>
+
+From thurston at complang.org  Fri Jun 19 00:45:05 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 18 Jun 2009 20:45:05 -0400
+Subject: [ragel-users] foreach character?
+In-Reply-To: <2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>	<4A31179F.8020001@esentire.com>
+	<2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+Message-ID: <4A3ADF91.6060607@complang.org>
+
+Hey Gordon,
+
+No worries, ragel is unique so some confusion from programmers is 
+expected. You can usually answer these questions by looking at the 
+precedence table in the manual. Action embedding operators bind more 
+tightly than '.' and '|' and I think many programmers might find that 
+strange at first.
+
+-Adrian
+
+Gordon Smith wrote:
+> For any other newbies, I think my difficulty was/is understanding 
+> operator boundaries. For example:
+> 
+>     asub_packet = 'cde';
+>     a_packet = 'a:' asub_packet ':b' ${ std::cout << "crc(" << ( * p) << 
+> ")\n"; };
+> 
+> with input "a:cde:b" provides only
+>     crc(:)
+>     crc(b)
+> ( the "all transition operator" '$' operating only on the prior basic 
+> machine ':b'?)
+> 
+> while operating on a group provides all characters:
+>     asub_packet = 'cde';
+>     a_packet = ( 'a:' asub_packet ':b' ) ${ std::cout << "crc(" << ( * 
+> p) << ")\n"; };
+>  
+
+
+
+
+From david.keller at litchis.fr  Sat Jun  6 17:58:01 2009
+From: david.keller at litchis.fr (david.keller at litchis.fr)
+Date: Sat, 06 Jun 2009 19:58:01 +0200
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+Message-ID: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+
+
+
+Hi 
+
+When using this scanner (I removed actions), ragel seems to loop endless. 
+
+%%{
+ machine configuration_parser;
+ include scanner_common "scanner.rl";
+
+ newline = 'r'? 'n';
+
+ comment = '#' any* -- newline;
+
+ bulk = ([tvf ] | comment | newline)+;
+
+ key = bulk? (alnum ([_.]? alnum)*); 
+
+ value = bulk? """ any* :>> """;
+
+ values = bulk? value (bulk? ',' value)*;
+
+ assign = key bulk? '=' values;
+
+ main := assign* bulk?;
+}%% 
+
+But I works like a charm when: 
+
+ comment = '#' any* -- newline; 
+
+become: 
+
+ comment = '#' any* :>> newline; 
+
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090606/cb9e5872/attachment-0001.html>
+
+From thurston at complang.org  Mon Jun  8 00:58:13 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 07 Jun 2009 20:58:13 -0400
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+In-Reply-To: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+References: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+Message-ID: <4A2C6225.90302@complang.org>
+
+The reason ragel seems to run endlessly is that you're getting a state 
+explosion. The machine:
+
+comment = '#' any* -- newline;
+
+Is not terminated with a newline. It's just a string that starts with 
+'#' and cannot contain a newline. When you put this in front of alnum 
+(in bulk?) you create an ambiguity that is costly for ragel to implement 
+with a deterministic state machine.
+
+Do this instead:
+
+comment = '#' (any* -- newline) newline;
+
+Or use :>> as you suggested.
+
+Cheers,
+  Adrian
+
+david.keller at litchis.fr wrote:
+> Hi
+> 
+> When using this scanner (I removed actions), ragel seems to loop endless.
+> 
+> %%{
+>     machine configuration_parser;
+>     include scanner_common "scanner.rl";
+> 
+>     newline = '\r'?  '\n';
+> 
+>     comment = '#' any* -- newline;
+> 
+>     bulk = ([\t\v\f\ ] | comment | newline)+;
+> 
+>     key = bulk? (alnum ([\_\.]? alnum)*);
+> 
+>     value = bulk? "\"" any* :>> "\"";
+> 
+>     values = bulk? value (bulk? ',' value)*;
+> 
+>     assign = key bulk? '=' values;
+> 
+>     main := assign* bulk?;
+> }%%
+> 
+>  
+> 
+> But I works like a charm when:
+> 
+>     comment = '#' any* -- newline;
+> 
+> become:
+> 
+>     comment = '#' any* :>> newline;
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From david.keller at litchis.fr  Mon Jun  8 11:56:32 2009
+From: david.keller at litchis.fr (david.keller at litchis.fr)
+Date: Mon, 08 Jun 2009 13:56:32 +0200
+Subject: [ragel-users] Ragel goes while(1) with the following scanner.
+In-Reply-To: <4A2C6225.90302@complang.org>
+References: <3bb79c58ededa8159157c74d90e6ea25@litchis.fr>
+	<4A2C6225.90302@complang.org>
+Message-ID: <257b25c8f12ea2fb8ed88d0c50f13c72@litchis.fr>
+
+I see.
+
+Thanks.
+
+On Sun, 07 Jun 2009 20:58:13 -0400, Adrian Thurston 
+wrote:
+> The reason ragel seems to run endlessly is that you're getting a state 
+> explosion. The machine:
+> 
+> comment = '#' any* -- newline;
+> 
+> Is not terminated with a newline. It's just a string that starts with 
+> '#' and cannot contain a newline. When you put this in front of alnum 
+> (in bulk?) you create an ambiguity that is costly for ragel to implement
+
+> with a deterministic state machine.
+> 
+> Do this instead:
+> 
+> comment = '#' (any* -- newline) newline;
+> 
+> Or use :>> as you suggested.
+> 
+> Cheers,
+> Adrian
+> 
+> david.keller at litchis.fr wrote:
+>> Hi
+>> 
+>> When using this scanner (I removed actions), ragel seems to loop
+endless.
+>> 
+>> %%{
+>> machine configuration_parser;
+>> include scanner_common "scanner.rl";
+>> 
+>> newline = 'r'? 'n';
+>> 
+>> comment = '#' any* -- newline;
+>> 
+>> bulk = ([tvf ] | comment | newline)+;
+>> 
+>> key = bulk? (alnum ([_.]? alnum)*);
+>> 
+>> value = bulk? """ any* :>> """;
+>> 
+>> values = bulk? value (bulk? ',' value)*;
+>> 
+>> assign = key bulk? '=' values;
+>> 
+>> main := assign* bulk?;
+>> }%%
+>> 
+>> 
+>> 
+>> But I works like a charm when:
+>> 
+>> comment = '#' any* -- newline;
+>> 
+>> become:
+>> 
+>> comment = '#' any* :>> newline;
+>> 
+>> 
+>> 
+>> 
+>>
+------------------------------------------------------------------------
+>> 
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: maurice_moss.jpg
+Type: image/jpeg
+Size: 8414 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090608/291612dc/attachment-0001.jpg>
+
+From spider.karma+ragel-users at gmail.com  Thu Jun 11 07:00:59 2009
+From: spider.karma+ragel-users at gmail.com (Gordon Smith)
+Date: Thu, 11 Jun 2009 01:00:59 -0600
+Subject: [ragel-users] foreach character?
+Message-ID: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+
+Hello -
+
+I have a functioning machine, a portion of which is below.
+
+%%{
+    a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+
+    main := ( a_packet | b_packet | c_packet )+;
+}%%
+
+Out of curiosity, is there a way to easily examine every input character in
+order to calculate a running CRC value for "a_packet", for example? Perhaps
+something like an action prior to the p++ operation?
+
+Thanks,
+Gordon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090611/5bb6aa92/attachment-0001.html>
+
+From adrian.thurston at esentire.com  Thu Jun 11 14:41:35 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 11 Jun 2009 10:41:35 -0400
+Subject: [ragel-users] foreach character?
+In-Reply-To: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+Message-ID: <4A31179F.8020001@esentire.com>
+
+Like so:
+
+a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r' ${crcUpdate(*p);};
+
+-Adrian
+
+Gordon Smith wrote:
+> Hello -
+> 
+> I have a functioning machine, a portion of which is below.
+>  
+> %%{
+>     a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+> 
+>     main := ( a_packet | b_packet | c_packet )+;
+> }%%
+> 
+> Out of curiosity, is there a way to easily examine every input character 
+> in order to calculate a running CRC value for "a_packet", for example? 
+> Perhaps something like an action prior to the p++ operation?
+> 
+> Thanks,
+> Gordon
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From spider.karma+ragel-users at gmail.com  Thu Jun 11 16:56:12 2009
+From: spider.karma+ragel-users at gmail.com (Gordon Smith)
+Date: Thu, 11 Jun 2009 10:56:12 -0600
+Subject: [ragel-users] foreach character?
+In-Reply-To: <4A31179F.8020001@esentire.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>
+	<4A31179F.8020001@esentire.com>
+Message-ID: <2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+
+On Thu, Jun 11, 2009 at 8:41 AM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Like so:
+>
+> a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r' ${crcUpdate(*p);};
+>
+> -Adrian
+>
+
+Thanks. It's surprising how far such a straightforward statement on your
+part can go, even if I've read the user guide.
+
+For any other newbies, I think my difficulty was/is understanding operator
+boundaries. For example:
+
+    asub_packet = 'cde';
+    a_packet = 'a:' asub_packet ':b' ${ std::cout << "crc(" << ( * p) <<
+")\n"; };
+
+with input "a:cde:b" provides only
+    crc(:)
+    crc(b)
+( the "all transition operator" '$' operating only on the prior basic
+machine ':b'?)
+
+while operating on a group provides all characters:
+    asub_packet = 'cde';
+    a_packet = ( 'a:' asub_packet ':b' ) ${ std::cout << "crc(" << ( * p) <<
+")\n"; };
+
+
+>
+> Gordon Smith wrote:
+> > Hello -
+> >
+> > I have a functioning machine, a portion of which is below.
+> >
+> > %%{
+> >     a_packet = 'a:' Part1 ':' Part2 ':' Part3 '\r';
+> >
+> >     main := ( a_packet | b_packet | c_packet )+;
+> > }%%
+> >
+> > Out of curiosity, is there a way to easily examine every input character
+> > in order to calculate a running CRC value for "a_packet", for example?
+> > Perhaps something like an action prior to the p++ operation?
+> >
+> > Thanks,
+> > Gordon
+> >
+> >
+> >
+> > ------------------------------------------------------------------------
+> >
+> > _______________________________________________
+> > ragel-users mailing list
+> > ragel-users at complang.org
+> > http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090611/d400116b/attachment-0001.html>
+
+From thurston at complang.org  Fri Jun 19 00:45:05 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 18 Jun 2009 20:45:05 -0400
+Subject: [ragel-users] foreach character?
+In-Reply-To: <2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+References: <2df568dc0906110000g435fdd86l4fa502b15ba162b3@mail.gmail.com>	<4A31179F.8020001@esentire.com>
+	<2df568dc0906110956x493c027bl2bb52e9576185be@mail.gmail.com>
+Message-ID: <4A3ADF91.6060607@complang.org>
+
+Hey Gordon,
+
+No worries, ragel is unique so some confusion from programmers is 
+expected. You can usually answer these questions by looking at the 
+precedence table in the manual. Action embedding operators bind more 
+tightly than '.' and '|' and I think many programmers might find that 
+strange at first.
+
+-Adrian
+
+Gordon Smith wrote:
+> For any other newbies, I think my difficulty was/is understanding 
+> operator boundaries. For example:
+> 
+>     asub_packet = 'cde';
+>     a_packet = 'a:' asub_packet ':b' ${ std::cout << "crc(" << ( * p) << 
+> ")\n"; };
+> 
+> with input "a:cde:b" provides only
+>     crc(:)
+>     crc(b)
+> ( the "all transition operator" '$' operating only on the prior basic 
+> machine ':b'?)
+> 
+> while operating on a group provides all characters:
+>     asub_packet = 'cde';
+>     a_packet = ( 'a:' asub_packet ':b' ) ${ std::cout << "crc(" << ( * 
+> p) << ")\n"; };
+>  
+
+
+
+

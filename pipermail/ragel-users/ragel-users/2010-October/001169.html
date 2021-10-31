@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] JavaScript code generation for Ragel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20JavaScript%20code%20generation%20for%20Ragel&In-Reply-To=%3C4CB3662E.2050709%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001168.html">
+   <LINK REL="Next"  HREF="001170.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] JavaScript code generation for Ragel</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20JavaScript%20code%20generation%20for%20Ragel&In-Reply-To=%3C4CB3662E.2050709%40complang.org%3E"
+       TITLE="[ragel-users] JavaScript code generation for Ragel">thurston at complang.org
+       </A><BR>
+    <I>Mon Oct 11 19:31:58 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001168.html">[ragel-users] JavaScript code generation for Ragel
+</A></li>
+        <LI>Next message: <A HREF="001170.html">[ragel-users] JavaScript code generation for Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1169">[ date ]</a>
+              <a href="thread.html#1169">[ thread ]</a>
+              <a href="subject.html#1169">[ subject ]</a>
+              <a href="author.html#1169">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Ya as far as Ragel code generation goes you shouldn't need to p, pe, or 
+data available in the write init context. If I remember right that was 
+due to a combination of Ruby variable scoping/declaration rules and the 
+typical usage pattern of Ragel+Ruby. The Ruby code generator really is a 
+special case for a number of reasons. What we need to a Ragel and Ruby 
+expert to sort it out. I'm not both of those things.
+
+There is also some strange stuff in the java code generator too. Java 
+doesn't have static array data. It makes functions that set the values. 
+But large arrays overflow the max function size so you can't have large 
+static arrays. To get around this the arrays are made using functions 
+(like the compiler does), but they are broken down into smaller parts 
+and concatenated. Ugh. I'm not sure if this would apply to javascript as 
+well.
+
+-Adrian
+
+On 10-10-11 12:14 PM, Dominic Marks wrote:
+&gt;<i> Hey Adrian,
+</I>&gt;<i>
+</I>&gt;<i> I haven't but I will do. Thank you.
+</I>&gt;<i>
+</I>&gt;<i> I'm not sure if the RubyCodeGen::writeInit function is incorrect but
+</I>&gt;<i> it's quite divergent from the CDCodeGen version. The only problem I had
+</I>&gt;<i> doing the work, besides a few missed semicolons, was that the write init
+</I>&gt;<i> directive was trying to initialise pe to the data length. In my testing
+</I>&gt;<i> script the initialisation and execution stages are in separate functions
+</I>&gt;<i> and this produced invalid JavaScript (data being undefined at that point).
+</I>&gt;<i>
+</I>&gt;<i> I assumed I had misunderstood something about the options that can be
+</I>&gt;<i> given to write init and write exec but after that turned up a blank I
+</I>&gt;<i> looked at CDCodeGen. I was surprised to find that it didn't include
+</I>&gt;<i> similar code relating to the end directive. I made my writeInit function
+</I>&gt;<i> more like CDCodeGen and my problem was resolved.
+</I>&gt;<i>
+</I>&gt;<i> The code in question:
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0">http://github.com/dominicmarks/ragel-js/commit/7a8e554f2829fbebe04a26837ebb5512314c376b#diff-0</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> The difference might be related to the concessions you mention, I didn't
+</I>&gt;<i> look into it too much.
+</I>&gt;<i>
+</I>&gt;<i> Thanks for Ragel, it's a great piece of software!
+</I>&gt;<i>
+</I>&gt;<i> Dominic
+</I>&gt;<i>
+</I>&gt;<i> On 11/10/2010 19:54, Adrian Thurston wrote:
+</I>&gt;&gt;<i> Great, thanks for working on this!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Did you have a look at the java code generator? There were a few
+</I>&gt;&gt;<i> concessions that had to be made in the Ruby code generator that might
+</I>&gt;&gt;<i> not need to be made in JS.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On 10-10-11 04:07 AM, Dominic Marks wrote:
+</I>&gt;&gt;&gt;<i> Hi all,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I've got the table code generation strategy working. I'm going to work
+</I>&gt;&gt;&gt;<i> on building a set of RL files for testing purposes and then have a crack
+</I>&gt;&gt;&gt;<i> at writing a code generation backend that targets modern JavaScript VMs
+</I>&gt;&gt;&gt;<i> (e.g. produces JavaScript that best suits a JIT/tracer). If anyone would
+</I>&gt;&gt;&gt;<i> like to help with any part of this process, I'd be most grateful.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I've forked Ragel trunk into a github repo while I work on this. There
+</I>&gt;&gt;&gt;<i> is a sample script (I translated the maillbox.rl file from the Ragel
+</I>&gt;&gt;&gt;<i> distribution) which you can play with if you install Node.js (a
+</I>&gt;&gt;&gt;<i> JavaScript application framework powered by Google's V8 VM). Note that
+</I>&gt;&gt;&gt;<i> while the sample script uses Node.js for IO, but the code generated is
+</I>&gt;&gt;&gt;<i> plain JavaScript. I look forward to being able to use Ragel in the
+</I>&gt;&gt;&gt;<i> browser soon too.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Github:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> <A HREF="http://github.com/dominicmarks/ragel-js">http://github.com/dominicmarks/ragel-js</A>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> A diff against Ragel trunk is here:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> <A HREF="http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff">http://goodforbusiness.co.uk/~dom/ragel-js-20101011.diff</A>
+</I>&gt;&gt;&gt;<i> &lt;<A HREF="http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff">http://goodforbusiness.co.uk/%7Edom/ragel-js-20101011.diff</A>&gt;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> The code is mostly a cut-paste-and-replace from Ruby at the moment. I'll
+</I>&gt;&gt;&gt;<i> be tidying it up over the next few weeks, as my time allows. However, it
+</I>&gt;&gt;&gt;<i> does at least run one Ragel state machine correctly already.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Mailbox.rl/Mailbox.js:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> <A HREF="http://goodforbusiness.co.uk/~dom/mailbox.js">http://goodforbusiness.co.uk/~dom/mailbox.js</A>
+</I>&gt;&gt;&gt;<i> &lt;<A HREF="http://goodforbusiness.co.uk/%7Edom/mailbox.js">http://goodforbusiness.co.uk/%7Edom/mailbox.js</A>&gt; (Requires Node.js).
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Cheers,
+</I>&gt;&gt;&gt;<i> Dom
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001168.html">[ragel-users] JavaScript code generation for Ragel
+</A></li>
+	<LI>Next message: <A HREF="001170.html">[ragel-users] JavaScript code generation for Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1169">[ date ]</a>
+              <a href="thread.html#1169">[ thread ]</a>
+              <a href="subject.html#1169">[ subject ]</a>
+              <a href="author.html#1169">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

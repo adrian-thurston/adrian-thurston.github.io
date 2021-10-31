@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Ragel for network protocols?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Ragel%20for%20network%20protocols%3F&In-Reply-To=%3C9946dc540611090717q19a5cfbbqebb776d90ff81fdb%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001835.html">
+   <LINK REL="Next"  HREF="001837.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Ragel for network protocols?</H1>
+    <B>Stéphane Bortzmeyer</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Ragel%20for%20network%20protocols%3F&In-Reply-To=%3C9946dc540611090717q19a5cfbbqebb776d90ff81fdb%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Ragel for network protocols?">bortzme... at gmail.com
+       </A><BR>
+    <I>Thu Nov  9 15:17:16 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001835.html">[ragel-users] Ragel for network protocols?
+</A></li>
+        <LI>Next message: <A HREF="001837.html">[ragel-users] Re: Ragel for network protocols?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1836">[ date ]</a>
+              <a href="thread.html#1836">[ thread ]</a>
+              <a href="subject.html#1836">[ subject ]</a>
+              <a href="author.html#1836">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2006/11/8, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;:
+
+&gt;<i> The mechanism for building machines with the state chart paradigm is hidden
+</I>&gt;<i> away in the language. You use the following operators
+</I>&gt;<i>
+</I>&gt;<i> label:  make labels
+</I>&gt;<i> -&gt;      draw epsilon operations
+</I>&gt;<i> ,       join machines together without transitions
+</I>&gt;<i> ()      grouping comes in handy
+</I>
+OK, thanks, now, I have a state machine which is compiled. But, at
+execution time, I always end in an invalid state. I wrote:
+
+%%{
+machine test;
+
+      OPEN = 'O';
+       CLOSE = 'C';
+
+       main :=
+               start:
+               door_closed: (
+                       OPEN -&gt; door_open -&gt; final
+               ),
+               door_open: (
+                       CLOSE -&gt; door_closed
+               );
+}%%
+
+and then the ancillary code:
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+        /* Mandatory Ragel variables, see the manual */
+        int cs;
+        char *p;
+        char *pe;
+
+        int res = 0;
+        int i;
+        %%write init;
+        if ( argc &gt; 1 ) {
+           for (i=1; i&lt;argc; i++)  {
+              p = argv[i];
+              pe = p + strlen(p) + 1;
+              printf(&quot;Step %i: input %s, current state %i... &quot;, i, p, cs);
+              %%write exec;
+              if (cs == test_error) {
+                 printf(&quot;Error, invalid input\n&quot;);
+                 break;
+              }
+              else {
+                 printf(&quot;New state is %i\n&quot;, cs);
+              }
+           }
+        }
+        else {
+	   printf(&quot;Usage: %s O C O C ...&quot;, argv[0]);
+           return 1;
+        }
+        printf(&quot;result = %i\n&quot;, res );
+        %%write eof;
+        return 0;
+}
+
+But I always get:
+
+% ragel test.rl | rlcodegen &amp;&amp; gcc -o test test.c &amp;&amp; ./test O C O
+Step 1: input O, current state 0... Error, invalid input
+result = 0
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001835.html">[ragel-users] Ragel for network protocols?
+</A></li>
+	<LI>Next message: <A HREF="001837.html">[ragel-users] Re: Ragel for network protocols?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1836">[ date ]</a>
+              <a href="thread.html#1836">[ thread ]</a>
+              <a href="subject.html#1836">[ subject ]</a>
+              <a href="author.html#1836">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

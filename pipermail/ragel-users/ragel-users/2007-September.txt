@@ -1,0 +1,5146 @@
+From thurs... at cs.queensu.ca  Sat Sep  1 21:08:40 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 01 Sep 2007 17:08:40 -0400
+Subject: [ragel-users] Re: is this possible?
+In-Reply-To: <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com> <1188507520.004288.103890@q4g2000prc.googlegroups.com> <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+Message-ID: <46D9D4D8.4000604@cs.queensu.ca>
+
+
+iceman wrote:
+> what i am worried about is that will it be possible for me to use the
+> parser associated with  that of ragel to parse the incoming packet[bit
+> patterns] at real time?
+
+Ragel code is pretty fast, but I'm not sure exactly what your
+requirements are. You should look at the generated code to decide if it
+is fast enough for you.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070901/29333895/attachment.sig>
+
+From chr... at gmail.com  Tue Sep  4 07:44:50 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Tue, 4 Sep 2007 09:44:50 +0200
+Subject: Error actions and error recovery
+Message-ID: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+
+Hello!
+
+I'm trying to understand and use error actions and error recovery and
+was hoping that someone here could help me out.
+
+Let's say I have this in my machine:
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+main := se+;
+
+What I would like to accomplish is that if there's an error in pr I
+would like to skip to the next ';' or '}'. I there's an error finding
+the first '{', I would like to skip to the next '}'.
+
+If someone could post some code snippets with examples of this I would
+be most greatful!
+
+Thanks,
+Christer
+
+
+From stephenhorne... at aol.com  Wed Sep  5 01:48:34 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Tue, 04 Sep 2007 18:48:34 -0700
+Subject: Error actions and error recovery
+In-Reply-To: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+Message-ID: <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+
+
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> main := se+;
+>
+> What I would like to accomplish is that if there's an error in pr I
+> would like to skip to the next ';' or '}'. I there's an error finding
+> the first '{', I would like to skip to the next '}'.
+
+This expression doesn't search for '{' at all - it expects to find one
+right at the start of the input, and another one immediately after
+every '}' (with nothing in-between) until you reach the final '}' at
+the end of the input stream.
+
+Perhaps you need to make use of an (any* -- se) term to skip any non-
+matching stuff between the blocks you are interested in...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any* -- se);
+main := other (se other)*;
+
+Not sure how well this will work in practice - it looks like it needs
+backtracking and may need to use the scanner construct...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any+ -- '{');
+main := |* se => { action };
+               other => { do nothing };
+               '{' => { last resort step past open brace action };
+            *|;
+
+The idea here is the 'other' shouldn't even accept part of the 'se'
+pattern. As soon as it spots an open brace, it should stop and give
+the 'se' token a chance to match. If neither 'se' nor 'other' can
+accept any characters, you must have an open brace as the next
+character, so skip past that then continue.
+
+For this to work, it is important that neither 'se' nor 'other' can
+accept a empty match - if they did, I suspect you'd get an infinite
+loop with the standalone '{' match never firing. Is that right,
+Adrian?
+
+
+From chr... at gmail.com  Wed Sep  5 07:32:39 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Wed, 5 Sep 2007 09:32:39 +0200
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745...@mail.gmail.com>
+	 <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+Message-ID: <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+
+>
+>
+> > pr = alnum+ ';';
+> > se = '{' pr* '}';
+> > main := se+;
+> >
+> > What I would like to accomplish is that if there's an error in pr I
+> > would like to skip to the next ';' or '}'. I there's an error finding
+> > the first '{', I would like to skip to the next '}'.
+>
+> This expression doesn't search for '{' at all - it expects to find one
+> right at the start of the input, and another one immediately after
+> every '}' (with nothing in-between) until you reach the final '}' at
+> the end of the input stream.
+
+I know, it's a good point but I just posted a simplified example to
+keep the example as simple as possible.
+
+>
+> Perhaps you need to make use of an (any* -- se) term to skip any non-
+> matching stuff between the blocks you are interested in...
+>
+
+In my "real" grammar I don't skip anything in between. It's all being handled.
+
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> other = (any* -- se);
+> main := other (se other)*;
+>
+> Not sure how well this will work in practice - it looks like it needs
+> backtracking and may need to use the scanner construct...
+>
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> other = (any+ -- '{');
+> main := |* se => { action };
+>               other => { do nothing };
+>               '{' => { last resort step past open brace action };
+>            *|;
+>
+> The idea here is the 'other' shouldn't even accept part of the 'se'
+> pattern. As soon as it spots an open brace, it should stop and give
+> the 'se' token a chance to match. If neither 'se' nor 'other' can
+> accept any characters, you must have an open brace as the next
+> character, so skip past that then continue.
+>
+> For this to work, it is important that neither 'se' nor 'other' can
+> accept a empty match - if they did, I suspect you'd get an infinite
+> loop with the standalone '{' match never firing. Is that right,
+> Adrian?
+>
+
+I've got it half working but not all the way. Here's the simple
+example machine again with some debugging output:
+
+  action _pr {
+    printf("_pr on '%c'\n", *p);
+  }
+
+  action pr {
+    printf("pr on '%c'\n", *p);
+  }
+
+  action _se {
+    printf("_se on '%c'\n", *p);
+  }
+
+  action se {
+    printf("se on '%c'\n", *p);
+  }
+
+  action pr_err {
+    printf("pr_err on '%c'\n", *p);
+    while (p != pe && *p != ';' && *p != '}') {
+      p++;
+    }
+
+    p++;
+    printf("pr_err skipped to '%c'\n", *p);
+    fgoto main;
+  }
+
+  pr = alnum+ >_pr ';' @pr;
+  se = '{' >_se pr* $lerr(pr_err) '}' @se;
+
+  main := se+;
+
+If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+following:
+
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+_se on '{'
+_pr on 'b'
+pr on ';'
+_pr on 'c'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+If I feed it with this incorrect string {$;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to '}'
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+The local error action skips to the closing '}' but then the se action
+is never invoked.
+
+If I feet it with this incorrect string (which has more than one pr
+between the first braces) {$;b1;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to 'b'
+css_error_error: 0
+
+As you can see the machine exits with an error.
+Any clues of how to solve this?
+
+/Christer
+
+
+From thurs... at cs.queensu.ca  Wed Sep  5 21:16:00 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Sep 2007 17:16:00 -0400
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com> <1188956914.783454.314350@r34g2000hsd.googlegroups.com> <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+Message-ID: <46DF1C90.5020003@cs.queensu.ca>
+
+Hi Christer,
+
+I'm not sure why you expect se to be executed in the first error
+example. Since you're matching the closing '}' using handwritten code in
+the action, the state machine isn't executing actions.
+
+In the second error example the problem is that you're jumping back to
+the main machine and so 'b1' isn't matched (expecting '{').
+
+Here's an example that uses extra machines to handle the errors then
+jumps back to appropriate recovery point. Sorry if there are any coding
+mistakes in it. I went fast.
+
+Adrian
+
+
+Christer Sandberg wrote:
+>>
+>>> pr = alnum+ ';';
+>>> se = '{' pr* '}';
+>>> main := se+;
+>>>
+>>> What I would like to accomplish is that if there's an error in pr I
+>>> would like to skip to the next ';' or '}'. I there's an error finding
+>>> the first '{', I would like to skip to the next '}'.
+>> This expression doesn't search for '{' at all - it expects to find one
+>> right at the start of the input, and another one immediately after
+>> every '}' (with nothing in-between) until you reach the final '}' at
+>> the end of the input stream.
+> 
+> I know, it's a good point but I just posted a simplified example to
+> keep the example as simple as possible.
+> 
+>> Perhaps you need to make use of an (any* -- se) term to skip any non-
+>> matching stuff between the blocks you are interested in...
+>>
+> 
+> In my "real" grammar I don't skip anything in between. It's all being handled.
+> 
+>> pr = alnum+ ';';
+>> se = '{' pr* '}';
+>> other = (any* -- se);
+>> main := other (se other)*;
+>>
+>> Not sure how well this will work in practice - it looks like it needs
+>> backtracking and may need to use the scanner construct...
+>>
+>> pr = alnum+ ';';
+>> se = '{' pr* '}';
+>> other = (any+ -- '{');
+>> main := |* se => { action };
+>>               other => { do nothing };
+>>               '{' => { last resort step past open brace action };
+>>            *|;
+>>
+>> The idea here is the 'other' shouldn't even accept part of the 'se'
+>> pattern. As soon as it spots an open brace, it should stop and give
+>> the 'se' token a chance to match. If neither 'se' nor 'other' can
+>> accept any characters, you must have an open brace as the next
+>> character, so skip past that then continue.
+>>
+>> For this to work, it is important that neither 'se' nor 'other' can
+>> accept a empty match - if they did, I suspect you'd get an infinite
+>> loop with the standalone '{' match never firing. Is that right,
+>> Adrian?
+>>
+> 
+> I've got it half working but not all the way. Here's the simple
+> example machine again with some debugging output:
+> 
+>   action _pr {
+>     printf("_pr on '%c'\n", *p);
+>   }
+> 
+>   action pr {
+>     printf("pr on '%c'\n", *p);
+>   }
+> 
+>   action _se {
+>     printf("_se on '%c'\n", *p);
+>   }
+> 
+>   action se {
+>     printf("se on '%c'\n", *p);
+>   }
+> 
+>   action pr_err {
+>     printf("pr_err on '%c'\n", *p);
+>     while (p != pe && *p != ';' && *p != '}') {
+>       p++;
+>     }
+> 
+>     p++;
+>     printf("pr_err skipped to '%c'\n", *p);
+>     fgoto main;
+>   }
+> 
+>   pr = alnum+ >_pr ';' @pr;
+>   se = '{' >_se pr* $lerr(pr_err) '}' @se;
+> 
+>   main := se+;
+> 
+> If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+> following:
+> 
+> _se on '{'
+> _pr on 'a'
+> pr on ';'
+> se on '}'
+> _se on '{'
+> _pr on 'b'
+> pr on ';'
+> _pr on 'c'
+> pr on ';'
+> se on '}'
+> css_error_first_final: 4
+> 
+> If I feed it with this incorrect string {$;}{a1;}, the output is this:
+> 
+> _se on '{'
+> pr_err on '$'
+> pr_err skipped to '}'
+> _se on '{'
+> _pr on 'a'
+> pr on ';'
+> se on '}'
+> css_error_first_final: 4
+> 
+> The local error action skips to the closing '}' but then the se action
+> is never invoked.
+> 
+> If I feet it with this incorrect string (which has more than one pr
+> between the first braces) {$;b1;}{a1;}, the output is this:
+> 
+> _se on '{'
+> pr_err on '$'
+> pr_err skipped to 'b'
+> css_error_error: 0
+> 
+> As you can see the machine exits with an error.
+> Any clues of how to solve this?
+> 
+> /Christer
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: foo.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070905/10b9dbd8/attachment.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070905/10b9dbd8/attachment.sig>
+
+From thurs... at cs.queensu.ca  Wed Sep  5 21:23:07 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Sep 2007 17:23:07 -0400
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com> <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+Message-ID: <46DF1E3B.7010308@cs.queensu.ca>
+
+
+Steve Horne wrote:
+> For this to work, it is important that neither 'se' nor 'other' can
+> accept a empty match - if they did, I suspect you'd get an infinite
+> loop with the standalone '{' match never firing. Is that right,
+> Adrian?
+
+In theory empty scanner actions would cause an infinite loop, but ragel
+isn't implemented that way. It actually would have taken extra effort to
+make ragel go into an infinite loop on empty patterns and I couldn't see
+a use for it.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070905/1e8449bf/attachment.sig>
+
+From chr... at gmail.com  Thu Sep  6 06:35:42 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Thu, 6 Sep 2007 08:35:42 +0200
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <46DF1C90.5020...@cs.queensu.ca>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745...@mail.gmail.com>
+	 <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+	 <13f6d2440709050032w637baf25u1e8f1f849be18...@mail.gmail.com>
+	 <46DF1C90.5020...@cs.queensu.ca>
+Message-ID: <13f6d2440709052335v5a4ee822r818069bfad361b2d@mail.gmail.com>
+
+On 9/5/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+>
+> #include <stdio.h>
+> #include <stdlib.h>
+>
+> %%{
+>         machine foo;
+>
+>         action ehandle1 {
+>                 printf( "error 1 at char: %c\n", *p );
+>                 fgoto err1;
+>         }
+>         action ehandle2 {
+>                 printf( "error 2 at char: %c\n", *p );
+>                 fgoto err2;
+>         }
+>
+>         err1 := [^}]* '}' @{
+>                 printf( "resuming from error 1\n" );
+>                 fgoto recover1;
+>         };
+>         err2 := [^;}]* (
+>                 ';' @{
+>                         printf( "resuming from error 2\n" );
+>                         fgoto recover2;
+>                 } |
+>                 '}' @{
+>                         printf( "resuming from error 2\n" );
+>                         fgoto recover1;
+>                 }
+>         );
+>
+>         something = ' '*;
+>         pr = alnum+ ';';
+>         se =
+>                 something $!ehandle1
+>                 '{'
+>                         recover2: pr* $!ehandle2
+>                 '}';
+>
+>         main := recover1: se+ '\n';
+> }%%
+>
+> %% write data nofinal;
+>
+> #define BUFSIZE 128
+>
+> void scanner()
+> {
+>         static char buf[BUFSIZE];
+>         int cs, done = 0;
+>
+>         %% write init;
+>
+>         while ( !done ) {
+>                 char *p = buf, *pe;
+>                 int len, space = BUFSIZE;
+>
+>                 len = fread( p, 1, space, stdin );
+>
+>                 /* If this is the last buffer, tack on an EOF. */
+>                 if ( len < space )
+>                         done = 1;
+>
+>                 pe = p + len;
+>                 %% write exec;
+>
+>                 if ( cs == foo_error ) {
+>                         fprintf(stderr, "PARSE ERROR\n" );
+>                         break;
+>                 }
+>         }
+> }
+>
+> int main()
+> {
+>         scanner();
+>         return 0;
+> }
+>
+>
+>
+>
+
+Hi Adrian!
+
+Thank you very much for the example. I've totally missed the
+possibility of using labels inside machine definitions. I just had to
+check the users guide as soon as I woke up this morning and found it
+at 6.4.3. After a search in this group I see that you've mentioned it
+before here as well. I'm new to Ragel and I've always felt that it's
+my lack of knowledge that has stopped me from using it more than I've
+been able to. It's very refreshing to learn new things like the labels
+in your example. I'm trying to construct a CSS 2.1 scanner in Ragel as
+a Ruby module.
+
+Again, thank you very much!
+
+Christer
+
+
+From jegan... at gmail.com  Tue Sep 11 03:48:12 2007
+From: jegan... at gmail.com (iceman)
+Date: Tue, 11 Sep 2007 03:48:12 -0000
+Subject: how to compile using ragel
+Message-ID: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+
+hi all,
+i am a newbie to ragel..
+i tried to compile a program[example 1]  in the user manual into cpp
+code.
+i used the command
+./ragel -C micheal.rl>micheal.cpp
+tried to run it using g++
+but i kept getting the error
+
+micheal.cpp:3:10: error: #include expects "FILENAME" or <FILENAME>
+micheal.cpp:1: error: expected unqualified-id before '<' token
+micheal.cpp:11: error: expected unqualified-id before '<' token
+
+so what  am i doing wrong?
+is the command  wrong?
+
+
+From stephenhorne... at aol.com  Tue Sep 11 05:17:16 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Mon, 10 Sep 2007 22:17:16 -0700
+Subject: how to compile using ragel
+In-Reply-To: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+References: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+Message-ID: <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+
+
+ragel -C micheal.rl -o micheal.rlo
+rlgen-cd micheal.rlo -l -o micheal.cpp
+
+and possibly...
+
+rlgen-dot micheal.rlo -o micheal.dot
+dot       -Tpng -O micheal.dot
+
+To generate dot visualisations in png format, using the (separate
+download) GraphViz package.
+
+The output of "ragel" is an intermediate file, which is processed
+differently accoding to the output language. I'm using an "rlo"
+extension to mean "ragel output", but there may be some other
+convention that didn't stick in my mind. "rli" for "ragel
+intermediate" would make more sense, now I think about it.
+
+See section 5.4 of the Ragel manual.
+
+
+From jegan... at gmail.com  Wed Sep 12 11:05:53 2007
+From: jegan... at gmail.com (iceman)
+Date: Wed, 12 Sep 2007 04:05:53 -0700
+Subject: how to compile using ragel
+In-Reply-To: <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+References: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+   <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+Message-ID: <1189595153.379322.216300@o80g2000hse.googlegroups.com>
+
+
+thanks steve.. i will let you know what happened
+
+
+From auxb... at googlemail.com  Sun Sep  9 18:14:20 2007
+From: auxb... at googlemail.com (bluetooth)
+Date: Sun, 09 Sep 2007 11:14:20 -0700
+Subject: Starting out with Java
+Message-ID: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+
+Hi,
+
+I'm trying to understand the basics of using ragel in Java. But I
+can't find any examples, so I'm struggling to get started.
+
+I notice that "the test directory" is often referenced in posts here,
+but no clue is given as to where this mysterious directory might be
+found. That might be a help.
+
+Taking simple.rl as a starting point, I so far have:
+
+public class Ragel {
+
+%% machine foo;
+
+	public static void main(String[] args) {
+		%% write data noerror nofinal;
+		int cs, res = 0;
+        if (args[0].length() > 0) {
+			char[] data = args[0].toCharArray();
+			int p = 0;
+			int pe = data.length + 1;
+	        %%{
+    	        main := [a-z]+ 0 @{ res = 1; fbreak; };
+        	    write init;
+            	write exec;
+        	}%%
+		}
+		System.out.println("Execute = " + res);
+	}
+}
+
+
+However, this fails for matches with an out of bounds exception.But if
+I set pe = data.length, then no matches are ever found.
+
+Just a suggestion, but examples of simple.rl in Ruby and Java might
+broaden your user base quite considerably. Putting the group on gmane
+might also garner a lot more input.
+
+
+From chr... at gmail.com  Sun Sep  9 19:33:37 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Sun, 9 Sep 2007 21:33:37 +0200
+Subject: [ragel-users] Starting out with Java
+In-Reply-To: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+References: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+Message-ID: <13f6d2440709091233i4094da3fy5c279fa50c02f4cb@mail.gmail.com>
+
+On 9/9/07, bluetooth <auxb... at googlemail.com> wrote:
+>
+> Hi,
+>
+> I'm trying to understand the basics of using ragel in Java. But I
+> can't find any examples, so I'm struggling to get started.
+>
+> I notice that "the test directory" is often referenced in posts here,
+> but no clue is given as to where this mysterious directory might be
+> found. That might be a help.
+>
+
+It's found below the top directory when unpacking the ragel source dist.
+
+> Taking simple.rl as a starting point, I so far have:
+>
+> public class Ragel {
+>
+> %% machine foo;
+>
+>         public static void main(String[] args) {
+>                 %% write data noerror nofinal;
+>                 int cs, res = 0;
+>         if (args[0].length() > 0) {
+>                         char[] data = args[0].toCharArray();
+>                         int p = 0;
+>                         int pe = data.length + 1;
+>                 %%{
+>                 main := [a-z]+ 0 @{ res = 1; fbreak; };
+>                     write init;
+>                 write exec;
+>                 }%%
+>                 }
+>                 System.out.println("Execute = " + res);
+>         }
+> }
+>
+>
+> However, this fails for matches with an out of bounds exception.But if
+> I set pe = data.length, then no matches are ever found.
+>
+
+main := [a-z]+ 0 @{ res = 1; fbreak; };
+
+The 0 above is only interesting when used with C/C++ since all strings
+are null-terminated. If you remove it (main := [a-z]+ @{ res = 1;
+fbreak; };) and set pe = data.length, your machine will work perfectly
+fine.
+
+> Just a suggestion, but examples of simple.rl in Ruby and Java might
+> broaden your user base quite considerably. Putting the group on gmane
+> might also garner a lot more input.
+>
+
+Again, there are some good examples in the test directory in the source dist.
+
+Good luck, I'm also trying to learn Ragel.
+Christer
+
+
+From auxb... at googlemail.com  Sun Sep  9 22:19:56 2007
+From: auxb... at googlemail.com (Marc Cooper)
+Date: Sun, 9 Sep 2007 23:19:56 +0100
+Subject: [ragel-users] Re: Starting out with Java
+In-Reply-To: <13f6d2440709091233i4094da3fy5c279fa50c02f...@mail.gmail.com>
+References: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+	 <13f6d2440709091233i4094da3fy5c279fa50c02f...@mail.gmail.com>
+Message-ID: <fe69f2ac0709091519p55cb3bfck9f26036c78703281@mail.gmail.com>
+
+> > I notice that "the test directory" is often referenced in posts here,
+> > but no clue is given as to where this mysterious directory might be
+> > found. That might be a help.
+> >
+>
+> It's found below the top directory when unpacking the ragel source dist.
+
+Ah! Okay. It's a shame that this is not made clear anywhere. I pulled
+down the svn "Development Version" and that seems to have plenty of
+good stuff in it.
+
+> > Taking simple.rl as a starting point, I so far have:
+> >
+> > public class Ragel {
+> >
+> > %% machine foo;
+> >
+> >         public static void main(String[] args) {
+> >                 %% write data noerror nofinal;
+> >                 int cs, res = 0;
+> >         if (args[0].length() > 0) {
+> >                         char[] data = args[0].toCharArray();
+> >                         int p = 0;
+> >                         int pe = data.length + 1;
+> >                 %%{
+> >                 main := [a-z]+ 0 @{ res = 1; fbreak; };
+> >                     write init;
+> >                 write exec;
+> >                 }%%
+> >                 }
+> >                 System.out.println("Execute = " + res);
+> >         }
+> > }
+> >
+> >
+> > However, this fails for matches with an out of bounds exception.But if
+> > I set pe = data.length, then no matches are ever found.
+> >
+>
+> main := [a-z]+ 0 @{ res = 1; fbreak; };
+>
+> The 0 above is only interesting when used with C/C++ since all strings
+> are null-terminated.
+
+Reminds me of the Java code I'm working on at present, where the
+author has converted everything into null-terminated byte arrays...
+and passes them around. Who needs objects?
+
+> If you remove it (main := [a-z]+ @{ res = 1;
+> fbreak; };) and set pe = data.length, your machine will work perfectly
+> fine.
+
+Thanks. That's an improvement, but I'm still wrong somewhere. I'll put
+my thinking cap on - it's probably to do with the args[0].length, but
+it's late here. Good to know I'm on the right track... and now have
+some examples to play with.
+
+> > Just a suggestion, but examples of simple.rl in Ruby and Java might
+> > broaden your user base quite considerably. Putting the group on gmane
+> > might also garner a lot more input.
+> >
+>
+> Again, there are some good examples in the test directory in the source dist.
+
+Yup, but I still think that examples on the web-page would help. The
+capabilities are not made very clear, and I think that's a shame.
+
+> Good luck, I'm also trying to learn Ragel.
+
+I can already see that I need a lot more than luck!
+
+Thanks again.
+
+-- 
+Best,
+Marc
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 00:51:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 12 Sep 2007 20:51:18 -0400
+Subject: [ragel-users] Starting out with Java
+In-Reply-To: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+References: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+Message-ID: <46E88986.5070007@cs.queensu.ca>
+
+Hi,
+
+I noticed that people have a tendency to play with the first example
+that appears in the manual, however that example uses a special-purpose
+write option and has caused confusion on more than one occasion. I just
+added a more basic example which appears first.
+
+Cheers,
+ Adrian
+
+bluetooth wrote:
+> Hi,
+> 
+> I'm trying to understand the basics of using ragel in Java. But I
+> can't find any examples, so I'm struggling to get started.
+> 
+> I notice that "the test directory" is often referenced in posts here,
+> but no clue is given as to where this mysterious directory might be
+> found. That might be a help.
+> 
+> Taking simple.rl as a starting point, I so far have:
+> 
+> public class Ragel {
+> 
+> %% machine foo;
+> 
+> 	public static void main(String[] args) {
+> 		%% write data noerror nofinal;
+> 		int cs, res = 0;
+>         if (args[0].length() > 0) {
+> 			char[] data = args[0].toCharArray();
+> 			int p = 0;
+> 			int pe = data.length + 1;
+> 	        %%{
+>     	        main := [a-z]+ 0 @{ res = 1; fbreak; };
+>         	    write init;
+>             	write exec;
+>         	}%%
+> 		}
+> 		System.out.println("Execute = " + res);
+> 	}
+> }
+> 
+> 
+> However, this fails for matches with an out of bounds exception.But if
+> I set pe = data.length, then no matches are ever found.
+> 
+> Just a suggestion, but examples of simple.rl in Ruby and Java might
+> broaden your user base quite considerably. Putting the group on gmane
+> might also garner a lot more input.
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070912/33b6bf9b/attachment.sig>
+
+From sanju.mathew.... at gmail.com  Thu Sep 13 02:27:16 2007
+From: sanju.mathew.... at gmail.com (Sarkar)
+Date: Wed, 12 Sep 2007 19:27:16 -0700
+Subject: another newbie question!!
+Message-ID: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+
+i went thru the earlier post on tryin to run c++ programs using
+ragel..i tried it..
+
+/ragel$ ragel -C prog.rl -o prog.rlo
+/ragel$ rlgen prog.rlo -l -o prog.cpp
+/ragel$ g++ prog.cpp -o prog
+/ragel$ ./prog input.txt
+
+the program i ran was
+
+#include <string.h>
+#include <stdio.h>
+
+%%{
+    machine foo;
+    main := ('foo'|'bar') @{res = 1; };
+}%%
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+	int cs, res = 0;
+	if ( argc > 0 ) {
+		char *p = argv[1];
+		char *pe = p + strlen(p) + 1;
+		%% write init;
+		%% write exec;
+	}
+printf("result = %i\n", res );
+return 0;
+}
+
+the input text file is gave was 'bar bar bar'
+
+i expect the output should have been 'result = 1'
+but the output always came out as 'result = 0'
+when i initialised res=1 the output came out as 'result = 1'
+
+could someone please help me understand what the program is all about
+and whether the output i got is valid and why??!
+
+Cheers!
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 15:05:20 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 11:05:20 -0400
+Subject: [ragel-users] another newbie question!!
+In-Reply-To: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+References: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+Message-ID: <46E951B0.7050608@cs.queensu.ca>
+
+Hi,
+
+This state machine is executed with the first argument string as input,
+not the contents of the file named by the first argument. Ragel does not
+open any files for you in case that's what you thought. You want to be
+executing the program with
+
+/ragel$ ./prog 'bar bar bar'
+
+-Adrian
+
+Sarkar wrote:
+> i went thru the earlier post on tryin to run c++ programs using
+> ragel..i tried it..
+> 
+> /ragel$ ragel -C prog.rl -o prog.rlo
+> /ragel$ rlgen prog.rlo -l -o prog.cpp
+> /ragel$ g++ prog.cpp -o prog
+> /ragel$ ./prog input.txt
+> 
+> the program i ran was
+> 
+> #include <string.h>
+> #include <stdio.h>
+> 
+> %%{
+>     machine foo;
+>     main := ('foo'|'bar') @{res = 1; };
+> }%%
+> 
+> %% write data;
+> 
+> int main( int argc, char **argv )
+> {
+> 	int cs, res = 0;
+> 	if ( argc > 0 ) {
+> 		char *p = argv[1];
+> 		char *pe = p + strlen(p) + 1;
+> 		%% write init;
+> 		%% write exec;
+> 	}
+> printf("result = %i\n", res );
+> return 0;
+> }
+> 
+> the input text file is gave was 'bar bar bar'
+> 
+> i expect the output should have been 'result = 1'
+> but the output always came out as 'result = 0'
+> when i initialised res=1 the output came out as 'result = 1'
+> 
+> could someone please help me understand what the program is all about
+> and whether the output i got is valid and why??!
+> 
+> Cheers!
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070913/cb8d15c3/attachment.sig>
+
+From matty.no... at gmail.com  Thu Sep 13 06:34:21 2007
+From: matty.no... at gmail.com (Elmin)
+Date: Wed, 12 Sep 2007 23:34:21 -0700
+Subject: Problem with long alphabet type
+Message-ID: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+
+Hi,
+
+I'm working on a project where I need to run tests on Unicode code
+points -- my idea was to decode them from UTF-8 first, then store them
+in an array of long integers and run that array through the FSM to
+validate/parse it.  I'm using semantic conditions to check the
+categories of the symbols.  The problem is that when I set the
+alphabet type to "long" or "unsigned long" I get compiler warnings:
+
+longtest.c:109: warning: this decimal constant is unsigned only in ISO
+C90
+longtest.c:109: warning: this decimal constant is unsigned only in ISO
+C90
+longtest.rl:9: warning: integer constant is too large for 'long' type
+
+Also, the FSMs don't seem to work as expected.  Here's the sample
+program I wrote to isolate the issue somewhat, which is pretty similar
+to the semantic conditions example from the guide:
+
+#include <stdio.h>
+
+%%{
+  machine longtest;
+
+action rec_num { i = 0; n = fc-'0'; }
+action test_len { i++ < n }
+  main := (
+'d'
+[0-9] @rec_num
+':'
+( [a-z] when test_len )*
+)**;
+
+  write data;
+}%%
+
+int main(int argc, char *argv[])
+{
+  long data[] = {'d', '2', ':', 'c', 'z'};
+  long *p = data, *pe = data+5;
+  int cs, i, n;
+
+  %% write init;
+  %% write exec;
+
+  if (cs == longtest_error && *p != 0)
+    {
+      printf("Error: %i\n", (int)*p);
+    }
+  else
+    printf("No Error!\n");
+
+  return 0;
+}
+
+It should print "No Error!"  It does, if the alphabet type is set to
+anything smaller than "long", but in the form above it always prints
+"Error: 99" -- anyone have any ideas?  It almost seems like Ragel is
+using the wrong limits or something.  This is on OS X 10.4 on PPC, and
+I saw the same behavior with Ragel versions 5.19 and 5.23.  The
+compiler is GCC 4.0.1.
+
+Thanks,
+Elmin
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 15:19:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 11:19:16 -0400
+Subject: [ragel-users] Problem with long alphabet type
+In-Reply-To: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+Message-ID: <46E954F4.90209@cs.queensu.ca>
+
+Hi,
+
+Semantic conditions don't work with the long type. If this isn't already
+documented somewhere it should be. Also, there should be an error
+emitted. Sorry about that.
+
+The semantic condition feature requires that Ragel be able to allocate
+characters from the alphabet space. Ragel uses these allocated
+characters to express "character c with cond1 true" or "c with cond1
+false." But internally Ragel uses longs to store characters and so if
+your alphabet type is long there is no more room left in the alphabet
+space to allocate from.
+
+Adrian
+
+Elmin wrote:
+> Hi,
+> 
+> I'm working on a project where I need to run tests on Unicode code
+> points -- my idea was to decode them from UTF-8 first, then store them
+> in an array of long integers and run that array through the FSM to
+> validate/parse it.  I'm using semantic conditions to check the
+> categories of the symbols.  The problem is that when I set the
+> alphabet type to "long" or "unsigned long" I get compiler warnings:
+> 
+> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+> C90
+> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+> C90
+> longtest.rl:9: warning: integer constant is too large for 'long' type
+> 
+> Also, the FSMs don't seem to work as expected.  Here's the sample
+> program I wrote to isolate the issue somewhat, which is pretty similar
+> to the semantic conditions example from the guide:
+> 
+> #include <stdio.h>
+> 
+> %%{
+>   machine longtest;
+> 
+> action rec_num { i = 0; n = fc-'0'; }
+> action test_len { i++ < n }
+>   main := (
+> 'd'
+> [0-9] @rec_num
+> ':'
+> ( [a-z] when test_len )*
+> )**;
+> 
+>   write data;
+> }%%
+> 
+> int main(int argc, char *argv[])
+> {
+>   long data[] = {'d', '2', ':', 'c', 'z'};
+>   long *p = data, *pe = data+5;
+>   int cs, i, n;
+> 
+>   %% write init;
+>   %% write exec;
+> 
+>   if (cs == longtest_error && *p != 0)
+>     {
+>       printf("Error: %i\n", (int)*p);
+>     }
+>   else
+>     printf("No Error!\n");
+> 
+>   return 0;
+> }
+> 
+> It should print "No Error!"  It does, if the alphabet type is set to
+> anything smaller than "long", but in the form above it always prints
+> "Error: 99" -- anyone have any ideas?  It almost seems like Ragel is
+> using the wrong limits or something.  This is on OS X 10.4 on PPC, and
+> I saw the same behavior with Ragel versions 5.19 and 5.23.  The
+> compiler is GCC 4.0.1.
+> 
+> Thanks,
+> Elmin
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070913/c5c3971a/attachment.sig>
+
+From cmantu... at gmail.com  Thu Sep 13 15:30:26 2007
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 13 Sep 2007 11:30:26 -0400
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <46E954F4.90...@cs.queensu.ca>
+References: <1189665261.744492.292...@57g2000hsv.googlegroups.com>
+	 <46E954F4.90...@cs.queensu.ca>
+Message-ID: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+
+On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> The semantic condition feature requires that Ragel be able to allocate
+> characters from the alphabet space. Ragel uses these allocated
+> characters to express "character c with cond1 true" or "c with cond1
+> false." But internally Ragel uses longs to store characters and so if
+> your alphabet type is long there is no more room left in the alphabet
+> space to allocate from.
+>
+
+Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+have a switch to turn on/off the use of longs/structs? Just a
+tought...
+
+
+From matty.no... at gmail.com  Thu Sep 13 17:49:31 2007
+From: matty.no... at gmail.com (Elmin)
+Date: Thu, 13 Sep 2007 10:49:31 -0700
+Subject: Problem with long alphabet type
+In-Reply-To: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+   <46E954F4.90209@cs.queensu.ca>
+   <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+Message-ID: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+
+Thanks for the quick answer!  I just compiled the newest version of
+the documentation and I didn't see anything about the long alphabet
+type in the section about semantic conditions.  Also, when I try to
+build a more complex machine, rlgen-cd crashes using the default code
+style -- strangely, it works with the goto style, but then the output
+is incorrect.
+
+I'd really appreciate this feature, since it would make it a lot
+easier to write scanners for Unicode-aware languages.  With the
+current tools, I pretty much have two options:
+
+1) Pretend Unicode is 16-bit, and risk offending those unfortunate
+ancient greeks who want to use musical notation in their identifiers,
+or
+
+2) Write the machine to deal with encoded streams (e.g. UTF-8) and
+hope that I never have to support multiple encodings.
+
+It occurs to me that since Unicode doesn't (for now) take up the full
+32-bit range, there might be an application for a kind of
+"intermediate" alphabet type between short and long -- that way the
+storage could still be long, and characters could be allocated in the
+range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+might work?
+
+On Sep 13, 8:30 am, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+> On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+>
+> > The semantic condition feature requires that Ragel be able to allocate
+> > characters from the alphabet space. Ragel uses these allocated
+> > characters to express "character c with cond1 true" or "c with cond1
+> > false." But internally Ragel uses longs to store characters and so if
+> > your alphabet type is long there is no more room left in the alphabet
+> > space to allocate from.
+>
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+
+From stephenhorne... at aol.com  Thu Sep 13 18:37:02 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 13 Sep 2007 11:37:02 -0700
+Subject: Problem with long alphabet type
+In-Reply-To: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+   <46E954F4.90209@cs.queensu.ca>
+   <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+Message-ID: <1189708622.745109.282660@22g2000hsm.googlegroups.com>
+
+
+On Sep 13, 4:30 pm, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+Modern compilers support 64-bit integer types - they can be very
+useful at times. The only problem is that different compilers seem to
+give them different names, though that may change with the new C++
+standard soon.
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 18:46:19 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Thu, 13 Sep 2007 18:46:19 +0000
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com> <46E954F4.90209@cs.queensu.ca> <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com><1189705771.070012.81100@o80g2000hse.googlegroups.com>
+Message-ID: <915713817-1189709181-cardhu_decombobulator_blackberry.rim.net-1909415055-@bxe033.bisx.prod.on.blackberry>
+
+Hi I just committed the necessary changes. 
+
+Could you post the code which causes rlgen-cd to crash?
+
+There is a data structure in common.h called key which encapsulates the character type. The core of ragel uses this structure heavily so the interface to it can't really change, but the type inside it can. I once changed this to long long to get a bigger key but ragel slowed down considerably. Maybe a good bignum library would work well. But we also need to consider how the backend changes in response to a larger key type. Also, the abstraction may be bypassed at times. I would need to audit the code. 
+
+Adrian
+
+-----Original Message-----
+From: Elmin <matty.noble at gmail.com>
+
+Date: Thu, 13 Sep 2007 10:49:31 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Problem with long alphabet type
+
+
+
+Thanks for the quick answer!  I just compiled the newest version of
+the documentation and I didn't see anything about the long alphabet
+type in the section about semantic conditions.  Also, when I try to
+build a more complex machine, rlgen-cd crashes using the default code
+style -- strangely, it works with the goto style, but then the output
+is incorrect.
+
+I'd really appreciate this feature, since it would make it a lot
+easier to write scanners for Unicode-aware languages.  With the
+current tools, I pretty much have two options:
+
+1) Pretend Unicode is 16-bit, and risk offending those unfortunate
+ancient greeks who want to use musical notation in their identifiers,
+or
+
+2) Write the machine to deal with encoded streams (e.g. UTF-8) and
+hope that I never have to support multiple encodings.
+
+It occurs to me that since Unicode doesn't (for now) take up the full
+32-bit range, there might be an application for a kind of
+"intermediate" alphabet type between short and long -- that way the
+storage could still be long, and characters could be allocated in the
+range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+might work?
+
+On Sep 13, 8:30 am, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+> On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+>
+> > The semantic condition feature requires that Ragel be able to allocate
+> > characters from the alphabet space. Ragel uses these allocated
+> > characters to express "character c with cond1 true" or "c with cond1
+> > false." But internally Ragel uses longs to store characters and so if
+> > your alphabet type is long there is no more room left in the alphabet
+> > space to allocate from.
+>
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 19:46:13 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 15:46:13 -0400
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com> <46E954F4.90209@cs.queensu.ca> <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com> <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+Message-ID: <46E99385.5040809@cs.queensu.ca>
+
+
+Elmin wrote:
+> It occurs to me that since Unicode doesn't (for now) take up the full
+> 32-bit range, there might be an application for a kind of
+> "intermediate" alphabet type between short and long -- that way the
+> storage could still be long, and characters could be allocated in the
+> range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+> might work?
+
+There is a half-implemented feature called "range" which could support
+this. It allows you to define which characters in the input alphabet
+that the machine can expect to see. It is assumed that the user of the
+machine guarantees that no characters outside the range make it to the
+state machine. I started on this thinking it would be useful, but never
+had a use for it myself so it was not finished.
+
+Though I should say that such a feature may not help as conditions can
+eat up the remaining available characters pretty quickly. This is
+especially true if you embed multiple conditions in the same transition.
+In the end it depends on how you use them.
+
+By the way, in the last email when I said "necessary changes" I was
+referring to the warning about longs+conditions in the documentation and
+the appropriate error message when the available characters run out.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070913/7f95b422/attachment.sig>
+
+From thurs... at cs.queensu.ca  Sat Sep 15 19:55:44 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 15 Sep 2007 15:55:44 -0400
+Subject: dynamically resizable fcall/fret stack
+Message-ID: <46EC38C0.6050602@cs.queensu.ca>
+
+Hi,
+
+I just implemented the prepush and postpop ragel statements. These allow
+you to supply stack management code that is written out during the
+generation of fcall and fret. Prepush is executed immediately before
+pushing the current state to the state stack on a call. Postpop is
+executed imediately after popping the current state on a return. These
+can be used to implement a dynamically resizable stack. Test cases are
+in test/recdescent?.rl.
+
+The recdescent1.rl test case is attached.
+
+Cheers,
+ Adrian
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: recdescent1.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070915/cb97a56d/attachment.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070915/cb97a56d/attachment.sig>
+
+From thurs... at cs.queensu.ca  Sun Sep 16 16:09:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 16 Sep 2007 12:09:18 -0400
+Subject: 5.24 released
+Message-ID: <46ED552E.4030501@cs.queensu.ca>
+
+Hi,
+
+I just released 5.24. A few backwards compatible changes popped up and I
+decided to do one more release before starting on 6.0. This release
+includes Victor Hugo Borja's ruby code generation patch and the new
+prepush and postpop statements.
+
+Cheers,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070916/64e7ee95/attachment.sig>
+
+From jonathan.st... at gmail.com  Wed Sep 19 10:43:45 2007
+From: jonathan.st... at gmail.com (Jonathan Stott)
+Date: Wed, 19 Sep 2007 11:43:45 +0100
+Subject: Parsing an indented structure
+Message-ID: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+
+Hi
+
+I'm quite new to ragel, and I'm using it to parse some input files for
+a program, so I can have human readable files, but still parse them
+easily.
+
+I started with a syntax like:
+
+# some interesting conditions
+ina: 2.1
+ito: 0.4 #X et al, 2007
+
+with various tokens accepted, and the double stored in an appropriate
+variable. I'd now like to extend the syntax to allow some more
+varaibles to be set, and so for organisations sake (and to seperate
+things into logical divisions, I'd like to be able to support a syntax
+like:
+
+x: 10
+y: 15
+currents:
+ina: 2.1
+
+This works okay. I have the main scanner fcall the 'current' scanner
+when the currents token is parsed, and it starts to parse current
+tokens, which is fine until I follow the currents section with another
+token, which then causes problems.  So I'd like to indent the current
+tokens by two spaces, like:
+y: 15
+currents:
+  ina: 1.01
+  ito: 1.2
+
+But I'm unsure how how to handle the indent or snapping back from the
+indented scanner to the main scanner.  Advice and pointers would be
+appreciated.
+
+Regards,
+Jonathan
+
+
+From thurs... at cs.queensu.ca  Wed Sep 19 17:00:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 19 Sep 2007 13:00:16 -0400
+Subject: [ragel-users] Parsing an indented structure
+In-Reply-To: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+References: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+Message-ID: <46F155A0.8050406@cs.queensu.ca>
+
+Hi,
+
+If you mean an offside rule (like python has) then what you want to do
+is maintain a stack of indentation levels. At the beginning of every
+line you count the spaces/tabs to see if you have more/less whitespace
+than the head of the stack. If more you push and go in one level (you
+could fcall at this point). If less you go out one level (fret). See the
+python manual, it's got a pretty good description of the process.
+
+Doing this requires that you have a grammar that can distinguish between
+whitespace at the beginning of a line and whitespace elsewhere. This
+means a line-oriented grammar. The top level of your callable machines
+should look like:
+
+line = check_indent stuff '\n';
+process := line*;
+
+-Adrian
+
+Jonathan Stott wrote:
+> Hi
+> 
+> I'm quite new to ragel, and I'm using it to parse some input files for
+> a program, so I can have human readable files, but still parse them
+> easily.
+> 
+> I started with a syntax like:
+> 
+> # some interesting conditions
+> ina: 2.1
+> ito: 0.4 #X et al, 2007
+> 
+> with various tokens accepted, and the double stored in an appropriate
+> variable. I'd now like to extend the syntax to allow some more
+> varaibles to be set, and so for organisations sake (and to seperate
+> things into logical divisions, I'd like to be able to support a syntax
+> like:
+> 
+> x: 10
+> y: 15
+> currents:
+> ina: 2.1
+> 
+> This works okay. I have the main scanner fcall the 'current' scanner
+> when the currents token is parsed, and it starts to parse current
+> tokens, which is fine until I follow the currents section with another
+> token, which then causes problems.  So I'd like to indent the current
+> tokens by two spaces, like:
+> y: 15
+> currents:
+>   ina: 1.01
+>   ito: 1.2
+> 
+> But I'm unsure how how to handle the indent or snapping back from the
+> indented scanner to the main scanner.  Advice and pointers would be
+> appreciated.
+> 
+> Regards,
+> Jonathan
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070919/436923eb/attachment.sig>
+
+From jonathan.st... at gmail.com  Thu Sep 20 13:00:06 2007
+From: jonathan.st... at gmail.com (namelessjon)
+Date: Thu, 20 Sep 2007 13:00:06 -0000
+Subject: Parsing an indented structure
+In-Reply-To: <46F155A0.8050406@cs.queensu.ca>
+References: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+   <46F155A0.8050406@cs.queensu.ca>
+Message-ID: <1190293206.233125.186950@d55g2000hsg.googlegroups.com>
+
+Hi
+
+Thanks for the quick reply. The offside rule, as I understand it from
+reading the python manual, is roughly what I want, yes.
+I will try and reimplement my scanner and see where that gets me.
+
+Regards,
+Jonathan.
+
+
+From w... at wincent.com  Thu Sep 20 18:01:04 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 20 Sep 2007 20:01:04 +0200
+Subject: Primitive lookahead question
+Message-ID: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+
+Hi,
+
+I'm trying to parse the output of "git diff" and in particular lines  
+which look like this:
+
+   diff --git a/my file b/my file
+
+Where "a/my file" is the "from file" and "b/my file" is the "to  
+file". This is slightly tricky because as you can see there are no  
+delimiters between the two paths other than a space, but spaces are  
+also allowed inside the paths (and Git only uses quotation marks here  
+when the filenames contain embedded tabs, newlines, double-quotes or  
+backslash charcters).
+
+This means that the only sign that the "from file" has ended and the  
+"to file" has begun is when you hit " b/", but by the time you see  
+that you're already inside the "to file" part. So I made rules to  
+capture the "from file" and the "to file", but my initial attempt at  
+a "from file" rule was broken:
+
+   from_file = "a/" (any+ -- " b/") ;
+
+The resulting state machine (quite correctly) takes input like:
+
+   a/hello b/world
+
+And identifies the "from file" as:
+
+   a/hello b
+
+Which is not what we want. One tactic is mash the "from_file" and  
+"to_file" rules into a single rule:
+
+   from_to_files = "a/" (any - linefeed)+ " b/" (any - linefeed)+ ;
+
+But that produces a fairly ugly DFA (especially when you add in rules  
+for parsing quotes filenames with embedded escape sequences). So I  
+tried to implement a primitive form of manual lookahead as follows:
+
+   from_file = "a/" (any - linefeed)+ %store " b/" @jumpback;
+
+Where "store" is an action which records the recognized file and  
+"jumpback" is just:
+
+   action jumpback { p -= 3; }
+
+The idea being that I have to "lookahead" and see the " b/" to know  
+that the "from file" has been scanned, but then bump the current  
+character pointer back by three so that the machine can resume  
+scanning and looking for the "to file".
+
+The generated DFA for the rule looks correct to me and isn't too ugly  
+(7 states, about 14 transitions). Is my approach ok, or is there a  
+better way?
+
+Apart from that the format I am trying to parse is totally regular,  
+unambiguous, and can be parsed without backtracking, which is nice  
+for a change!
+
+Cheers,
+Wincent
+
+
+From thurs... at cs.queensu.ca  Thu Sep 20 19:30:43 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 20 Sep 2007 15:30:43 -0400
+Subject: [ragel-users] Primitive lookahead question
+In-Reply-To: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+References: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+Message-ID: <46F2CA63.9060205@cs.queensu.ca>
+
+Hi Wincent,
+
+I would suggesting using your first solution, then manually shorten the
+from_file by 2 characters. It's a simple solution which avoids more
+elaborate backtracking/scanning approaches.
+
+What does git produce if the from file contains " b/"?
+
+-Adrian
+
+Wincent Colaiuta wrote:
+> Hi,
+> 
+> I'm trying to parse the output of "git diff" and in particular lines  
+> which look like this:
+> 
+>    diff --git a/my file b/my file
+> 
+> Where "a/my file" is the "from file" and "b/my file" is the "to  
+> file". This is slightly tricky because as you can see there are no  
+> delimiters between the two paths other than a space, but spaces are  
+> also allowed inside the paths (and Git only uses quotation marks here  
+> when the filenames contain embedded tabs, newlines, double-quotes or  
+> backslash charcters).
+> 
+> This means that the only sign that the "from file" has ended and the  
+> "to file" has begun is when you hit " b/", but by the time you see  
+> that you're already inside the "to file" part. So I made rules to  
+> capture the "from file" and the "to file", but my initial attempt at  
+> a "from file" rule was broken:
+> 
+>    from_file = "a/" (any+ -- " b/") ;
+> 
+> The resulting state machine (quite correctly) takes input like:
+> 
+>    a/hello b/world
+> 
+> And identifies the "from file" as:
+> 
+>    a/hello b
+> 
+> Which is not what we want. One tactic is mash the "from_file" and  
+> "to_file" rules into a single rule:
+> 
+>    from_to_files = "a/" (any - linefeed)+ " b/" (any - linefeed)+ ;
+> 
+> But that produces a fairly ugly DFA (especially when you add in rules  
+> for parsing quotes filenames with embedded escape sequences). So I  
+> tried to implement a primitive form of manual lookahead as follows:
+> 
+>    from_file = "a/" (any - linefeed)+ %store " b/" @jumpback;
+> 
+> Where "store" is an action which records the recognized file and  
+> "jumpback" is just:
+> 
+>    action jumpback { p -= 3; }
+> 
+> The idea being that I have to "lookahead" and see the " b/" to know  
+> that the "from file" has been scanned, but then bump the current  
+> character pointer back by three so that the machine can resume  
+> scanning and looking for the "to file".
+> 
+> The generated DFA for the rule looks correct to me and isn't too ugly  
+> (7 states, about 14 transitions). Is my approach ok, or is there a  
+> better way?
+> 
+> Apart from that the format I am trying to parse is totally regular,  
+> unambiguous, and can be parsed without backtracking, which is nice  
+> for a change!
+> 
+> Cheers,
+> Wincent
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070920/0b139318/attachment.sig>
+
+From w... at wincent.com  Thu Sep 20 19:57:28 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 20 Sep 2007 21:57:28 +0200
+Subject: [ragel-users] Re: Primitive lookahead question
+In-Reply-To: <46F2CA63.9060205@cs.queensu.ca>
+References: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com> <46F2CA63.9060205@cs.queensu.ca>
+Message-ID: <E701A547-7246-4C8D-8FF5-BB0BA881A96F@wincent.com>
+
+El 20/9/2007, a las 21:30, Adrian Thurston escribió:
+
+> Hi Wincent,
+>
+> I would suggesting using your first solution, then manually shorten  
+> the
+> from_file by 2 characters. It's a simple solution which avoids more
+> elaborate backtracking/scanning approaches.
+>
+> What does git produce if the from file contains " b/"?
+
+Ah, excellent question... let's see...	
+
+$ mkdir test
+$ cd test
+$ git init
+Initialized empty Git repository in .git/
+$ mkdir "a b"
+$ echo "content" > "a b/file"
+$ git add "a b/file"
+$ git commit -m "Initial content"
+Created initial commit def76f9: Initial content
+  1 files changed, 1 insertions(+), 0 deletions(-)
+  create mode 100644 a b/file
+$ echo "more content" >> "a b/file"
+$ git diff
+diff --git a/a b/file b/a b/file
+index d95f3ad..86436d0 100644
+--- a/a b/file
++++ b/a b/file
+@@ -1 +1,2 @@
+  content
++more content
+
+Geez... couldn't be worse, could it? I can barely parse it myself and  
+I'm not even an automata. Hehe.
+
+I think that really makes this question about lookahead to be moot:  
+the simplest thing to do will be to just ignore everything from "diff  
+--git" up to the next newline, because the path information is  
+redundantly available further down anyway (in the lines starting with  
+"---" and "+++") where it is much less difficult to extract.
+
+Thanks a lot for the help, Adrian. Your question has short-circuited  
+a painful side trip.
+
+Cheers,
+Wincent
+
+
+
+From coldredle... at gmail.com  Sat Sep 22 15:28:50 2007
+From: coldredle... at gmail.com (ry)
+Date: Sat, 22 Sep 2007 15:28:50 -0000
+Subject: two newbie questions
+Message-ID: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+
+1. I find myself calling %action and %eof(action) a lot. for example:
+    string = ( any - pair_sep )* >string_mark %string_store
+%eof(string_store);
+ if I wanted to parse the string "hello".
+
+2. I want to change a machine slightly based on input to a program. I
+just would like to change one
+  sep = '&';
+to
+  sep = ',';
+
+Thanks
+ry
+
+
+From thurs... at cs.queensu.ca  Sun Sep 23 17:41:53 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 23 Sep 2007 13:41:53 -0400
+Subject: [ragel-users] two newbie questions
+In-Reply-To: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+References: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+Message-ID: <46F6A561.4040401@cs.queensu.ca>
+
+ry wrote:
+> 1. I find myself calling %action and %eof(action) a lot. for example:
+>     string = ( any - pair_sep )* >string_mark %string_store
+> %eof(string_store);
+>  if I wanted to parse the string "hello".
+
+In the current version there is no operator that does both at the same
+time because of the fact that transition actions and EOF actions are
+written using two different write commands. This would mean that a
+single action could get written out in two different surrounding
+contexts. This is something I will address in version 6. Both transition
+actions and EOF actions will get written out by write exec. This will
+open the door to defining embedding operators that are called on
+transitions and the EOF event.
+
+In the meantime you could send some EOF character (perhaps 0) and just
+use %action.
+
+> 2. I want to change a machine slightly based on input to a program. I
+> just would like to change one
+>   sep = '&';
+> to
+>   sep = ',';
+> 
+
+You can do this using conditions. See the attached example.
+
+Cheers,
+ Adrian
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: tmp.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070923/8574e77f/attachment.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070923/8574e77f/attachment.sig>
+
+From graceindustr... at gmail.com  Tue Sep 25 14:36:38 2007
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 25 Sep 2007 10:36:38 -0400
+Subject: IrDA IrPHY/Byte Stuffing  in Ragel?
+Message-ID: <op.ty7r7cpiocf...@grace002.graceinc.com>
+
+
+Before I go off an reinvent the wheel, I was wondering
+if anyone has done anything with IrDA or Byte Stuffing
+Protocols in Ragel?
+
+I need to write some code to handel the IrDA IrPHY (Physical)
+Layer.
+
+Anyone already have a State Chart already in Ragel?
+
+Frame Format:
+
+All payload data is packed into IrPHY frames where each frame consists of:
+
+XBOF (0xFF *or* 0xC0), typically ten, but can be more or less, transmitted,
+ignored by receiving end beyond getting the hardware synced up.
+0xC0 followed by 0xC0 is XBOF, 0xC0 followed by something else is BOF.
+
+BOF (0xC0), Beginning of Frame
+Data Payload data, variable length
+FCS 16 bit Frame Check Sequence (CITT-CRC)
+EOF (0xC1) End of Frame.
+
+Between the BOF and EOF flags, so that the receiver may easily determine
+the start and end of each frame, no payload data or
+FCS character may have the same value as the BOF,
+EOF or control escape (CE) flags.
+If so, these characters are escaped, ie byte-stuffed,
+using the CE character (0x7D):
+
+0xC0 -> (0x7D, 0xE0) [^Bit 5]
+0xC1 -> (0x7D, 0xE1) ..
+0x7D -> (0x7D, 0x5D) ..
+
+Receiving 0x7D 0x7D is an error and you start over.
+
+After the buffer is destuffed it needs parsed.
+
+
+
+
+
+
+
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 19:02:05 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 15:02:05 -0400
+Subject: Ruby and Java code generation
+Message-ID: <46FD4FAD.8040708@cs.queensu.ca>
+
+Hi,
+
+I'm having some trouble with Ruby and Java code generation as I
+implement 6.0 features. The main problem with targeting both of these
+languages is the lack of goto statement. This is problematic even for
+the table-driven machine. There are a number of places in the driver
+where a jump in or jump out of the processing loop is required. So far
+I've gotten away with using named loops in Java and control flow
+variables in Ruby, however with the latest changes things are getting
+really ugly. I don't have a solution yet. I'm not sure what to do right
+now, so for the time being I will continue ahead with the 6.0 features
+and stall work on Ruby and Java code generation.
+
+Adrian
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070928/ebd71a9e/attachment.sig>
+
+From ryansk... at gmail.com  Fri Sep 28 19:41:27 2007
+From: ryansk... at gmail.com (Ryan King)
+Date: Fri, 28 Sep 2007 12:41:27 -0700
+Subject: [ragel-users] Ruby and Java code generation
+In-Reply-To: <46FD4FAD.8040708@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca>
+Message-ID: <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+
+On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+> Hi,
+>
+> I'm having some trouble with Ruby and Java code generation as I
+> implement 6.0 features. The main problem with targeting both of these
+> languages is the lack of goto statement. This is problematic even for
+> the table-driven machine. There are a number of places in the driver
+> where a jump in or jump out of the processing loop is required. So far
+> I've gotten away with using named loops in Java and control flow
+> variables in Ruby, however with the latest changes things are getting
+> really ugly. I don't have a solution yet. I'm not sure what to do  
+> right
+> now, so for the time being I will continue ahead with the 6.0 features
+> and stall work on Ruby and Java code generation.
+
+You can emulate GOTO-ish behavior in ruby with throw and catch:
+
+
+catch(:foo) do
+  ...
+  throw(:foo)
+  ...
+end
+
+There are limits to how the code can be structured in these cases (in  
+blocks).
+
+-ryan
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 20:04:06 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 16:04:06 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+Message-ID: <46FD5E36.1090407@cs.queensu.ca>
+
+Before loop breaks and variables were used in Ruby code call/cc features
+were used. This was found to be very slow (about 10 times slower than
+the current). Do you think throw/catch would be any better than call/cc?
+
+Later today I'm going to commit my work on the C version. I'll highlight
+the part that is troublesome and maybe someone that knows Java and Ruby
+well can suggest something.
+
+Adrian
+
+Ryan King wrote:
+> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>> Hi,
+>>
+>> I'm having some trouble with Ruby and Java code generation as I
+>> implement 6.0 features. The main problem with targeting both of these
+>> languages is the lack of goto statement. This is problematic even for
+>> the table-driven machine. There are a number of places in the driver
+>> where a jump in or jump out of the processing loop is required. So far
+>> I've gotten away with using named loops in Java and control flow
+>> variables in Ruby, however with the latest changes things are getting
+>> really ugly. I don't have a solution yet. I'm not sure what to do  
+>> right
+>> now, so for the time being I will continue ahead with the 6.0 features
+>> and stall work on Ruby and Java code generation.
+> 
+> You can emulate GOTO-ish behavior in ruby with throw and catch:
+> 
+> 
+> catch(:foo) do
+>   ...
+>   throw(:foo)
+>   ...
+> end
+> 
+> There are limits to how the code can be structured in these cases (in  
+> blocks).
+> 
+> -ryan
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070928/efeb0232/attachment.sig>
+
+From thurs... at cs.queensu.ca  Fri Sep 28 22:23:12 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 18:23:12 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD5E36.1090407@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca>
+Message-ID: <46FD7ED0.7000101@cs.queensu.ca>
+
+Hi,
+
+What is now needed in Ruby and Java code is a jump back into the
+processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+
+-Adrian
+
+Adrian Thurston wrote:
+> Before loop breaks and variables were used in Ruby code call/cc features
+> were used. This was found to be very slow (about 10 times slower than
+> the current). Do you think throw/catch would be any better than call/cc?
+> 
+> Later today I'm going to commit my work on the C version. I'll highlight
+> the part that is troublesome and maybe someone that knows Java and Ruby
+> well can suggest something.
+> 
+> Adrian
+> 
+> Ryan King wrote:
+>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>> Hi,
+>>>
+>>> I'm having some trouble with Ruby and Java code generation as I
+>>> implement 6.0 features. The main problem with targeting both of these
+>>> languages is the lack of goto statement. This is problematic even for
+>>> the table-driven machine. There are a number of places in the driver
+>>> where a jump in or jump out of the processing loop is required. So far
+>>> I've gotten away with using named loops in Java and control flow
+>>> variables in Ruby, however with the latest changes things are getting
+>>> really ugly. I don't have a solution yet. I'm not sure what to do  
+>>> right
+>>> now, so for the time being I will continue ahead with the 6.0 features
+>>> and stall work on Ruby and Java code generation.
+>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>
+>>
+>> catch(:foo) do
+>>   ...
+>>   throw(:foo)
+>>   ...
+>> end
+>>
+>> There are limits to how the code can be structured in these cases (in  
+>> blocks).
+>>
+>> -ryan
+>>
+>> --~--~---------~--~----~------------~-------~--~----~
+>> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+>> To post to this group, send email to ragel-users at googlegroups.com
+>> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+>> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+>> -~----------~----~----~----~------~----~------~--~---
+>>
+>>
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070928/62d1aa9d/attachment.sig>
+
+From er... at atlasocean.com  Fri Sep 28 22:29:14 2007
+From: er... at atlasocean.com (Erich Ocean)
+Date: Fri, 28 Sep 2007 15:29:14 -0700
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD7ED0.7000101@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca>
+Message-ID: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+
+Adrian,
+
+Duff's device can be used with Java, so you might be able to use that  
+technique to jump back into the middle of the processing loop.
+
+See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+an example.
+
+Best, Erich
+
+On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+
+> Hi,
+>
+> What is now needed in Ruby and Java code is a jump back into the
+> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>
+> -Adrian
+>
+> Adrian Thurston wrote:
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>
+>> Later today I'm going to commit my work on the C version. I'll  
+>> highlight
+>> the part that is troublesome and maybe someone that knows Java and  
+>> Ruby
+>> well can suggest something.
+>>
+>> Adrian
+>>
+>> Ryan King wrote:
+>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>> Hi,
+>>>>
+>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>> implement 6.0 features. The main problem with targeting both of  
+>>>> these
+>>>> languages is the lack of goto statement. This is problematic  
+>>>> even for
+>>>> the table-driven machine. There are a number of places in the  
+>>>> driver
+>>>> where a jump in or jump out of the processing loop is required.  
+>>>> So far
+>>>> I've gotten away with using named loops in Java and control flow
+>>>> variables in Ruby, however with the latest changes things are  
+>>>> getting
+>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>> right
+>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>> features
+>>>> and stall work on Ruby and Java code generation.
+>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>
+>>>
+>>> catch(:foo) do
+>>>   ...
+>>>   throw(:foo)
+>>>   ...
+>>> end
+>>>
+>>> There are limits to how the code can be structured in these cases  
+>>> (in
+>>> blocks).
+>>>
+>>> -ryan
+>>>
+>>> >>>
+>>>
+>>
+>
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 23:17:36 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Fri, 28 Sep 2007 23:17:36 +0000
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca><27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+Message-ID: <1612609378-1191021456-cardhu_decombobulator_blackberry.rim.net-529142882-@bxe033.bisx.prod.on.blackberry>
+
+Hi Erich,
+
+Thanks, that should work well. 
+
+Now we just need something for Ruby. I noticed that Ruby case statements don't fall through. 
+
+Adrian
+-----Original Message-----
+From: Erich Ocean <erich at atlasocean.com>
+
+Date: Fri, 28 Sep 2007 15:29:14 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: Ruby and Java code generation
+
+
+
+Adrian,
+
+Duff's device can be used with Java, so you might be able to use that  
+technique to jump back into the middle of the processing loop.
+
+See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+an example.
+
+Best, Erich
+
+On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+
+> Hi,
+>
+> What is now needed in Ruby and Java code is a jump back into the
+> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>
+> -Adrian
+>
+> Adrian Thurston wrote:
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>
+>> Later today I'm going to commit my work on the C version. I'll  
+>> highlight
+>> the part that is troublesome and maybe someone that knows Java and  
+>> Ruby
+>> well can suggest something.
+>>
+>> Adrian
+>>
+>> Ryan King wrote:
+>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>> Hi,
+>>>>
+>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>> implement 6.0 features. The main problem with targeting both of  
+>>>> these
+>>>> languages is the lack of goto statement. This is problematic  
+>>>> even for
+>>>> the table-driven machine. There are a number of places in the  
+>>>> driver
+>>>> where a jump in or jump out of the processing loop is required.  
+>>>> So far
+>>>> I've gotten away with using named loops in Java and control flow
+>>>> variables in Ruby, however with the latest changes things are  
+>>>> getting
+>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>> right
+>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>> features
+>>>> and stall work on Ruby and Java code generation.
+>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>
+>>>
+>>> catch(:foo) do
+>>>   ...
+>>>   throw(:foo)
+>>>   ...
+>>> end
+>>>
+>>> There are limits to how the code can be structured in these cases  
+>>> (in
+>>> blocks).
+>>>
+>>> -ryan
+>>>
+>>> >>>
+>>>
+>>
+>
+
+
+
+
+
+From thurs... at cs.queensu.ca  Sat Sep 29 18:59:46 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Sep 2007 14:59:46 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca> <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+Message-ID: <46FEA0A2.1060802@cs.queensu.ca>
+
+I just checked-in a java driver that uses a switch statement in place of
+gotos. Indeed it works well. Java code generation is now current.
+
+-Adrian
+
+Erich Ocean wrote:
+> Adrian,
+> 
+> Duff's device can be used with Java, so you might be able to use that  
+> technique to jump back into the middle of the processing loop.
+> 
+> See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+> an example.
+> 
+> Best, Erich
+> 
+> On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+> 
+>> Hi,
+>>
+>> What is now needed in Ruby and Java code is a jump back into the
+>> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>>
+>> -Adrian
+>>
+>> Adrian Thurston wrote:
+>>> Before loop breaks and variables were used in Ruby code call/cc  
+>>> features
+>>> were used. This was found to be very slow (about 10 times slower than
+>>> the current). Do you think throw/catch would be any better than  
+>>> call/cc?
+>>>
+>>> Later today I'm going to commit my work on the C version. I'll  
+>>> highlight
+>>> the part that is troublesome and maybe someone that knows Java and  
+>>> Ruby
+>>> well can suggest something.
+>>>
+>>> Adrian
+>>>
+>>> Ryan King wrote:
+>>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>>> Hi,
+>>>>>
+>>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>>> implement 6.0 features. The main problem with targeting both of  
+>>>>> these
+>>>>> languages is the lack of goto statement. This is problematic  
+>>>>> even for
+>>>>> the table-driven machine. There are a number of places in the  
+>>>>> driver
+>>>>> where a jump in or jump out of the processing loop is required.  
+>>>>> So far
+>>>>> I've gotten away with using named loops in Java and control flow
+>>>>> variables in Ruby, however with the latest changes things are  
+>>>>> getting
+>>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>>> right
+>>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>>> features
+>>>>> and stall work on Ruby and Java code generation.
+>>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>>
+>>>>
+>>>> catch(:foo) do
+>>>>   ...
+>>>>   throw(:foo)
+>>>>   ...
+>>>> end
+>>>>
+>>>> There are limits to how the code can be structured in these cases  
+>>>> (in
+>>>> blocks).
+>>>>
+>>>> -ryan
+>>>>
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070929/82372347/attachment.sig>
+
+From w... at wincent.com  Sun Sep 30 12:05:11 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 30 Sep 2007 14:05:11 +0200
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD5E36.1090407@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca>
+Message-ID: <893307F7-CA10-466F-A1F3-3DA61C82AB9B@wincent.com>
+
+El 28/9/2007, a las 22:04, Adrian Thurston escribió:
+
+> Before loop breaks and variables were used in Ruby code call/cc  
+> features
+> were used. This was found to be very slow (about 10 times slower than
+> the current). Do you think throw/catch would be any better than  
+> call/cc?
+
+Yes, if for no other reason than the fact that Ruby 1.9 won't have  
+call/cc...
+
+Cheers,
+Wincent
+
+
+From ola.b... at gmail.com  Sun Sep 30 12:26:06 2007
+From: ola.b... at gmail.com (Ola Bini)
+Date: Sun, 30 Sep 2007 13:26:06 +0100
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <893307F7-CA10-466F-A1F3-3DA61C82A...@wincent.com>
+References: <46FD4FAD.8040...@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D87...@gmail.com> <46FD5E36.1090...@cs.queensu.ca> <893307F7-CA10-466F-A1F3-3DA61C82A...@wincent.com>
+Message-ID: <46FF95DE.8030...@gmail.com>
+
+Wincent Colaiuta wrote:
+> El 28/9/2007, a las 22:04, Adrian Thurston escribió:
+>
+>   
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>     
+>
+> Yes, if for no other reason than the fact that Ruby 1.9 won't have  
+> call/cc...
+>
+> Cheers,
+> Wincent
+>   
+Throw/catch will perform much better - the speed of call/cc is due to 
+saving and restoring the stack each time you use it - this won't happen 
+with throw/catch.
+
+But you're wrong about 1.9. Matz and Koichi added continuations again a 
+month or two back.
+
+Cheers
+
+-- 
+ Ola Bini (http://ola-bini.blogspot.com) 
+ JRuby Core Developer
+ Developer, ThoughtWorks Studios (http://studios.thoughtworks.com)
+ Practical JRuby on Rails (http://apress.com/book/view/9781590598818)
+
+ "Yields falsehood when quined" yields falsehood when quined.
+
+
+
+From w... at wincent.com  Sun Sep 30 14:28:05 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 30 Sep 2007 16:28:05 +0200
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FF95DE.8030505@gmail.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <893307F7-CA10-466F-A1F3-3DA61C82AB9B@wincent.com> <46FF95DE.8030505@gmail.com>
+Message-ID: <B4ADD684-6559-40B8-BE4A-ABC96D6C21E2@wincent.com>
+
+El 30/9/2007, a las 14:26, Ola Bini escribió:
+
+> But you're wrong about 1.9. Matz and Koichi added continuations  
+> again a
+> month or two back.
+
+Ha! Really? That's great news. I have some good that uses them and  
+would require painful reworking to replace them.
+
+Cheers,
+Wincent
+
+
+From thurs... at cs.queensu.ca  Sat Sep  1 21:08:40 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 01 Sep 2007 17:08:40 -0400
+Subject: [ragel-users] Re: is this possible?
+In-Reply-To: <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+References: <1188444368.101053.249420@z24g2000prh.googlegroups.com> <1188507520.004288.103890@q4g2000prc.googlegroups.com> <1188538737.622821.28890@m37g2000prh.googlegroups.com>
+Message-ID: <46D9D4D8.4000604@cs.queensu.ca>
+
+
+iceman wrote:
+> what i am worried about is that will it be possible for me to use the
+> parser associated with  that of ragel to parse the incoming packet[bit
+> patterns] at real time?
+
+Ragel code is pretty fast, but I'm not sure exactly what your
+requirements are. You should look at the generated code to decide if it
+is fast enough for you.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070901/29333895/attachment-0001.sig>
+
+From chr... at gmail.com  Tue Sep  4 07:44:50 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Tue, 4 Sep 2007 09:44:50 +0200
+Subject: Error actions and error recovery
+Message-ID: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+
+Hello!
+
+I'm trying to understand and use error actions and error recovery and
+was hoping that someone here could help me out.
+
+Let's say I have this in my machine:
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+main := se+;
+
+What I would like to accomplish is that if there's an error in pr I
+would like to skip to the next ';' or '}'. I there's an error finding
+the first '{', I would like to skip to the next '}'.
+
+If someone could post some code snippets with examples of this I would
+be most greatful!
+
+Thanks,
+Christer
+
+
+From stephenhorne... at aol.com  Wed Sep  5 01:48:34 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Tue, 04 Sep 2007 18:48:34 -0700
+Subject: Error actions and error recovery
+In-Reply-To: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com>
+Message-ID: <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+
+
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> main := se+;
+>
+> What I would like to accomplish is that if there's an error in pr I
+> would like to skip to the next ';' or '}'. I there's an error finding
+> the first '{', I would like to skip to the next '}'.
+
+This expression doesn't search for '{' at all - it expects to find one
+right at the start of the input, and another one immediately after
+every '}' (with nothing in-between) until you reach the final '}' at
+the end of the input stream.
+
+Perhaps you need to make use of an (any* -- se) term to skip any non-
+matching stuff between the blocks you are interested in...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any* -- se);
+main := other (se other)*;
+
+Not sure how well this will work in practice - it looks like it needs
+backtracking and may need to use the scanner construct...
+
+pr = alnum+ ';';
+se = '{' pr* '}';
+other = (any+ -- '{');
+main := |* se => { action };
+               other => { do nothing };
+               '{' => { last resort step past open brace action };
+            *|;
+
+The idea here is the 'other' shouldn't even accept part of the 'se'
+pattern. As soon as it spots an open brace, it should stop and give
+the 'se' token a chance to match. If neither 'se' nor 'other' can
+accept any characters, you must have an open brace as the next
+character, so skip past that then continue.
+
+For this to work, it is important that neither 'se' nor 'other' can
+accept a empty match - if they did, I suspect you'd get an infinite
+loop with the standalone '{' match never firing. Is that right,
+Adrian?
+
+
+From chr... at gmail.com  Wed Sep  5 07:32:39 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Wed, 5 Sep 2007 09:32:39 +0200
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745...@mail.gmail.com>
+	 <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+Message-ID: <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+
+>
+>
+> > pr = alnum+ ';';
+> > se = '{' pr* '}';
+> > main := se+;
+> >
+> > What I would like to accomplish is that if there's an error in pr I
+> > would like to skip to the next ';' or '}'. I there's an error finding
+> > the first '{', I would like to skip to the next '}'.
+>
+> This expression doesn't search for '{' at all - it expects to find one
+> right at the start of the input, and another one immediately after
+> every '}' (with nothing in-between) until you reach the final '}' at
+> the end of the input stream.
+
+I know, it's a good point but I just posted a simplified example to
+keep the example as simple as possible.
+
+>
+> Perhaps you need to make use of an (any* -- se) term to skip any non-
+> matching stuff between the blocks you are interested in...
+>
+
+In my "real" grammar I don't skip anything in between. It's all being handled.
+
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> other = (any* -- se);
+> main := other (se other)*;
+>
+> Not sure how well this will work in practice - it looks like it needs
+> backtracking and may need to use the scanner construct...
+>
+> pr = alnum+ ';';
+> se = '{' pr* '}';
+> other = (any+ -- '{');
+> main := |* se => { action };
+>               other => { do nothing };
+>               '{' => { last resort step past open brace action };
+>            *|;
+>
+> The idea here is the 'other' shouldn't even accept part of the 'se'
+> pattern. As soon as it spots an open brace, it should stop and give
+> the 'se' token a chance to match. If neither 'se' nor 'other' can
+> accept any characters, you must have an open brace as the next
+> character, so skip past that then continue.
+>
+> For this to work, it is important that neither 'se' nor 'other' can
+> accept a empty match - if they did, I suspect you'd get an infinite
+> loop with the standalone '{' match never firing. Is that right,
+> Adrian?
+>
+
+I've got it half working but not all the way. Here's the simple
+example machine again with some debugging output:
+
+  action _pr {
+    printf("_pr on '%c'\n", *p);
+  }
+
+  action pr {
+    printf("pr on '%c'\n", *p);
+  }
+
+  action _se {
+    printf("_se on '%c'\n", *p);
+  }
+
+  action se {
+    printf("se on '%c'\n", *p);
+  }
+
+  action pr_err {
+    printf("pr_err on '%c'\n", *p);
+    while (p != pe && *p != ';' && *p != '}') {
+      p++;
+    }
+
+    p++;
+    printf("pr_err skipped to '%c'\n", *p);
+    fgoto main;
+  }
+
+  pr = alnum+ >_pr ';' @pr;
+  se = '{' >_se pr* $lerr(pr_err) '}' @se;
+
+  main := se+;
+
+If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+following:
+
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+_se on '{'
+_pr on 'b'
+pr on ';'
+_pr on 'c'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+If I feed it with this incorrect string {$;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to '}'
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+The local error action skips to the closing '}' but then the se action
+is never invoked.
+
+If I feet it with this incorrect string (which has more than one pr
+between the first braces) {$;b1;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to 'b'
+css_error_error: 0
+
+As you can see the machine exits with an error.
+Any clues of how to solve this?
+
+/Christer
+
+
+From thurs... at cs.queensu.ca  Wed Sep  5 21:16:00 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Sep 2007 17:16:00 -0400
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com> <1188956914.783454.314350@r34g2000hsd.googlegroups.com> <13f6d2440709050032w637baf25u1e8f1f849be187af@mail.gmail.com>
+Message-ID: <46DF1C90.5020003@cs.queensu.ca>
+
+Hi Christer,
+
+I'm not sure why you expect se to be executed in the first error
+example. Since you're matching the closing '}' using handwritten code in
+the action, the state machine isn't executing actions.
+
+In the second error example the problem is that you're jumping back to
+the main machine and so 'b1' isn't matched (expecting '{').
+
+Here's an example that uses extra machines to handle the errors then
+jumps back to appropriate recovery point. Sorry if there are any coding
+mistakes in it. I went fast.
+
+Adrian
+
+
+Christer Sandberg wrote:
+>>
+>>> pr = alnum+ ';';
+>>> se = '{' pr* '}';
+>>> main := se+;
+>>>
+>>> What I would like to accomplish is that if there's an error in pr I
+>>> would like to skip to the next ';' or '}'. I there's an error finding
+>>> the first '{', I would like to skip to the next '}'.
+>> This expression doesn't search for '{' at all - it expects to find one
+>> right at the start of the input, and another one immediately after
+>> every '}' (with nothing in-between) until you reach the final '}' at
+>> the end of the input stream.
+> 
+> I know, it's a good point but I just posted a simplified example to
+> keep the example as simple as possible.
+> 
+>> Perhaps you need to make use of an (any* -- se) term to skip any non-
+>> matching stuff between the blocks you are interested in...
+>>
+> 
+> In my "real" grammar I don't skip anything in between. It's all being handled.
+> 
+>> pr = alnum+ ';';
+>> se = '{' pr* '}';
+>> other = (any* -- se);
+>> main := other (se other)*;
+>>
+>> Not sure how well this will work in practice - it looks like it needs
+>> backtracking and may need to use the scanner construct...
+>>
+>> pr = alnum+ ';';
+>> se = '{' pr* '}';
+>> other = (any+ -- '{');
+>> main := |* se => { action };
+>>               other => { do nothing };
+>>               '{' => { last resort step past open brace action };
+>>            *|;
+>>
+>> The idea here is the 'other' shouldn't even accept part of the 'se'
+>> pattern. As soon as it spots an open brace, it should stop and give
+>> the 'se' token a chance to match. If neither 'se' nor 'other' can
+>> accept any characters, you must have an open brace as the next
+>> character, so skip past that then continue.
+>>
+>> For this to work, it is important that neither 'se' nor 'other' can
+>> accept a empty match - if they did, I suspect you'd get an infinite
+>> loop with the standalone '{' match never firing. Is that right,
+>> Adrian?
+>>
+> 
+> I've got it half working but not all the way. Here's the simple
+> example machine again with some debugging output:
+> 
+>   action _pr {
+>     printf("_pr on '%c'\n", *p);
+>   }
+> 
+>   action pr {
+>     printf("pr on '%c'\n", *p);
+>   }
+> 
+>   action _se {
+>     printf("_se on '%c'\n", *p);
+>   }
+> 
+>   action se {
+>     printf("se on '%c'\n", *p);
+>   }
+> 
+>   action pr_err {
+>     printf("pr_err on '%c'\n", *p);
+>     while (p != pe && *p != ';' && *p != '}') {
+>       p++;
+>     }
+> 
+>     p++;
+>     printf("pr_err skipped to '%c'\n", *p);
+>     fgoto main;
+>   }
+> 
+>   pr = alnum+ >_pr ';' @pr;
+>   se = '{' >_se pr* $lerr(pr_err) '}' @se;
+> 
+>   main := se+;
+> 
+> If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+> following:
+> 
+> _se on '{'
+> _pr on 'a'
+> pr on ';'
+> se on '}'
+> _se on '{'
+> _pr on 'b'
+> pr on ';'
+> _pr on 'c'
+> pr on ';'
+> se on '}'
+> css_error_first_final: 4
+> 
+> If I feed it with this incorrect string {$;}{a1;}, the output is this:
+> 
+> _se on '{'
+> pr_err on '$'
+> pr_err skipped to '}'
+> _se on '{'
+> _pr on 'a'
+> pr on ';'
+> se on '}'
+> css_error_first_final: 4
+> 
+> The local error action skips to the closing '}' but then the se action
+> is never invoked.
+> 
+> If I feet it with this incorrect string (which has more than one pr
+> between the first braces) {$;b1;}{a1;}, the output is this:
+> 
+> _se on '{'
+> pr_err on '$'
+> pr_err skipped to 'b'
+> css_error_error: 0
+> 
+> As you can see the machine exits with an error.
+> Any clues of how to solve this?
+> 
+> /Christer
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: foo.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070905/10b9dbd8/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Wed Sep  5 21:23:07 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Sep 2007 17:23:07 -0400
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745215@mail.gmail.com> <1188956914.783454.314350@r34g2000hsd.googlegroups.com>
+Message-ID: <46DF1E3B.7010308@cs.queensu.ca>
+
+
+Steve Horne wrote:
+> For this to work, it is important that neither 'se' nor 'other' can
+> accept a empty match - if they did, I suspect you'd get an infinite
+> loop with the standalone '{' match never firing. Is that right,
+> Adrian?
+
+In theory empty scanner actions would cause an infinite loop, but ragel
+isn't implemented that way. It actually would have taken extra effort to
+make ragel go into an infinite loop on empty patterns and I couldn't see
+a use for it.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070905/1e8449bf/attachment-0001.sig>
+
+From chr... at gmail.com  Thu Sep  6 06:35:42 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Thu, 6 Sep 2007 08:35:42 +0200
+Subject: [ragel-users] Re: Error actions and error recovery
+In-Reply-To: <46DF1C90.5020...@cs.queensu.ca>
+References: <13f6d2440709040044v6d6cd8ck1d30a786cc745...@mail.gmail.com>
+	 <1188956914.783454.314...@r34g2000hsd.googlegroups.com>
+	 <13f6d2440709050032w637baf25u1e8f1f849be18...@mail.gmail.com>
+	 <46DF1C90.5020...@cs.queensu.ca>
+Message-ID: <13f6d2440709052335v5a4ee822r818069bfad361b2d@mail.gmail.com>
+
+On 9/5/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+>
+> #include <stdio.h>
+> #include <stdlib.h>
+>
+> %%{
+>         machine foo;
+>
+>         action ehandle1 {
+>                 printf( "error 1 at char: %c\n", *p );
+>                 fgoto err1;
+>         }
+>         action ehandle2 {
+>                 printf( "error 2 at char: %c\n", *p );
+>                 fgoto err2;
+>         }
+>
+>         err1 := [^}]* '}' @{
+>                 printf( "resuming from error 1\n" );
+>                 fgoto recover1;
+>         };
+>         err2 := [^;}]* (
+>                 ';' @{
+>                         printf( "resuming from error 2\n" );
+>                         fgoto recover2;
+>                 } |
+>                 '}' @{
+>                         printf( "resuming from error 2\n" );
+>                         fgoto recover1;
+>                 }
+>         );
+>
+>         something = ' '*;
+>         pr = alnum+ ';';
+>         se =
+>                 something $!ehandle1
+>                 '{'
+>                         recover2: pr* $!ehandle2
+>                 '}';
+>
+>         main := recover1: se+ '\n';
+> }%%
+>
+> %% write data nofinal;
+>
+> #define BUFSIZE 128
+>
+> void scanner()
+> {
+>         static char buf[BUFSIZE];
+>         int cs, done = 0;
+>
+>         %% write init;
+>
+>         while ( !done ) {
+>                 char *p = buf, *pe;
+>                 int len, space = BUFSIZE;
+>
+>                 len = fread( p, 1, space, stdin );
+>
+>                 /* If this is the last buffer, tack on an EOF. */
+>                 if ( len < space )
+>                         done = 1;
+>
+>                 pe = p + len;
+>                 %% write exec;
+>
+>                 if ( cs == foo_error ) {
+>                         fprintf(stderr, "PARSE ERROR\n" );
+>                         break;
+>                 }
+>         }
+> }
+>
+> int main()
+> {
+>         scanner();
+>         return 0;
+> }
+>
+>
+>
+>
+
+Hi Adrian!
+
+Thank you very much for the example. I've totally missed the
+possibility of using labels inside machine definitions. I just had to
+check the users guide as soon as I woke up this morning and found it
+at 6.4.3. After a search in this group I see that you've mentioned it
+before here as well. I'm new to Ragel and I've always felt that it's
+my lack of knowledge that has stopped me from using it more than I've
+been able to. It's very refreshing to learn new things like the labels
+in your example. I'm trying to construct a CSS 2.1 scanner in Ragel as
+a Ruby module.
+
+Again, thank you very much!
+
+Christer
+
+
+From jegan... at gmail.com  Tue Sep 11 03:48:12 2007
+From: jegan... at gmail.com (iceman)
+Date: Tue, 11 Sep 2007 03:48:12 -0000
+Subject: how to compile using ragel
+Message-ID: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+
+hi all,
+i am a newbie to ragel..
+i tried to compile a program[example 1]  in the user manual into cpp
+code.
+i used the command
+./ragel -C micheal.rl>micheal.cpp
+tried to run it using g++
+but i kept getting the error
+
+micheal.cpp:3:10: error: #include expects "FILENAME" or <FILENAME>
+micheal.cpp:1: error: expected unqualified-id before '<' token
+micheal.cpp:11: error: expected unqualified-id before '<' token
+
+so what  am i doing wrong?
+is the command  wrong?
+
+
+From stephenhorne... at aol.com  Tue Sep 11 05:17:16 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Mon, 10 Sep 2007 22:17:16 -0700
+Subject: how to compile using ragel
+In-Reply-To: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+References: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+Message-ID: <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+
+
+ragel -C micheal.rl -o micheal.rlo
+rlgen-cd micheal.rlo -l -o micheal.cpp
+
+and possibly...
+
+rlgen-dot micheal.rlo -o micheal.dot
+dot       -Tpng -O micheal.dot
+
+To generate dot visualisations in png format, using the (separate
+download) GraphViz package.
+
+The output of "ragel" is an intermediate file, which is processed
+differently accoding to the output language. I'm using an "rlo"
+extension to mean "ragel output", but there may be some other
+convention that didn't stick in my mind. "rli" for "ragel
+intermediate" would make more sense, now I think about it.
+
+See section 5.4 of the Ragel manual.
+
+
+From jegan... at gmail.com  Wed Sep 12 11:05:53 2007
+From: jegan... at gmail.com (iceman)
+Date: Wed, 12 Sep 2007 04:05:53 -0700
+Subject: how to compile using ragel
+In-Reply-To: <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+References: <1189482492.144320.80760@r34g2000hsd.googlegroups.com>
+   <1189487836.414948.82220@r34g2000hsd.googlegroups.com>
+Message-ID: <1189595153.379322.216300@o80g2000hse.googlegroups.com>
+
+
+thanks steve.. i will let you know what happened
+
+
+From auxb... at googlemail.com  Sun Sep  9 18:14:20 2007
+From: auxb... at googlemail.com (bluetooth)
+Date: Sun, 09 Sep 2007 11:14:20 -0700
+Subject: Starting out with Java
+Message-ID: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+
+Hi,
+
+I'm trying to understand the basics of using ragel in Java. But I
+can't find any examples, so I'm struggling to get started.
+
+I notice that "the test directory" is often referenced in posts here,
+but no clue is given as to where this mysterious directory might be
+found. That might be a help.
+
+Taking simple.rl as a starting point, I so far have:
+
+public class Ragel {
+
+%% machine foo;
+
+	public static void main(String[] args) {
+		%% write data noerror nofinal;
+		int cs, res = 0;
+        if (args[0].length() > 0) {
+			char[] data = args[0].toCharArray();
+			int p = 0;
+			int pe = data.length + 1;
+	        %%{
+    	        main := [a-z]+ 0 @{ res = 1; fbreak; };
+        	    write init;
+            	write exec;
+        	}%%
+		}
+		System.out.println("Execute = " + res);
+	}
+}
+
+
+However, this fails for matches with an out of bounds exception.But if
+I set pe = data.length, then no matches are ever found.
+
+Just a suggestion, but examples of simple.rl in Ruby and Java might
+broaden your user base quite considerably. Putting the group on gmane
+might also garner a lot more input.
+
+
+From chr... at gmail.com  Sun Sep  9 19:33:37 2007
+From: chr... at gmail.com (Christer Sandberg)
+Date: Sun, 9 Sep 2007 21:33:37 +0200
+Subject: [ragel-users] Starting out with Java
+In-Reply-To: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+References: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+Message-ID: <13f6d2440709091233i4094da3fy5c279fa50c02f4cb@mail.gmail.com>
+
+On 9/9/07, bluetooth <auxb... at googlemail.com> wrote:
+>
+> Hi,
+>
+> I'm trying to understand the basics of using ragel in Java. But I
+> can't find any examples, so I'm struggling to get started.
+>
+> I notice that "the test directory" is often referenced in posts here,
+> but no clue is given as to where this mysterious directory might be
+> found. That might be a help.
+>
+
+It's found below the top directory when unpacking the ragel source dist.
+
+> Taking simple.rl as a starting point, I so far have:
+>
+> public class Ragel {
+>
+> %% machine foo;
+>
+>         public static void main(String[] args) {
+>                 %% write data noerror nofinal;
+>                 int cs, res = 0;
+>         if (args[0].length() > 0) {
+>                         char[] data = args[0].toCharArray();
+>                         int p = 0;
+>                         int pe = data.length + 1;
+>                 %%{
+>                 main := [a-z]+ 0 @{ res = 1; fbreak; };
+>                     write init;
+>                 write exec;
+>                 }%%
+>                 }
+>                 System.out.println("Execute = " + res);
+>         }
+> }
+>
+>
+> However, this fails for matches with an out of bounds exception.But if
+> I set pe = data.length, then no matches are ever found.
+>
+
+main := [a-z]+ 0 @{ res = 1; fbreak; };
+
+The 0 above is only interesting when used with C/C++ since all strings
+are null-terminated. If you remove it (main := [a-z]+ @{ res = 1;
+fbreak; };) and set pe = data.length, your machine will work perfectly
+fine.
+
+> Just a suggestion, but examples of simple.rl in Ruby and Java might
+> broaden your user base quite considerably. Putting the group on gmane
+> might also garner a lot more input.
+>
+
+Again, there are some good examples in the test directory in the source dist.
+
+Good luck, I'm also trying to learn Ragel.
+Christer
+
+
+From auxb... at googlemail.com  Sun Sep  9 22:19:56 2007
+From: auxb... at googlemail.com (Marc Cooper)
+Date: Sun, 9 Sep 2007 23:19:56 +0100
+Subject: [ragel-users] Re: Starting out with Java
+In-Reply-To: <13f6d2440709091233i4094da3fy5c279fa50c02f...@mail.gmail.com>
+References: <1189361660.829236.101...@r34g2000hsd.googlegroups.com>
+	 <13f6d2440709091233i4094da3fy5c279fa50c02f...@mail.gmail.com>
+Message-ID: <fe69f2ac0709091519p55cb3bfck9f26036c78703281@mail.gmail.com>
+
+> > I notice that "the test directory" is often referenced in posts here,
+> > but no clue is given as to where this mysterious directory might be
+> > found. That might be a help.
+> >
+>
+> It's found below the top directory when unpacking the ragel source dist.
+
+Ah! Okay. It's a shame that this is not made clear anywhere. I pulled
+down the svn "Development Version" and that seems to have plenty of
+good stuff in it.
+
+> > Taking simple.rl as a starting point, I so far have:
+> >
+> > public class Ragel {
+> >
+> > %% machine foo;
+> >
+> >         public static void main(String[] args) {
+> >                 %% write data noerror nofinal;
+> >                 int cs, res = 0;
+> >         if (args[0].length() > 0) {
+> >                         char[] data = args[0].toCharArray();
+> >                         int p = 0;
+> >                         int pe = data.length + 1;
+> >                 %%{
+> >                 main := [a-z]+ 0 @{ res = 1; fbreak; };
+> >                     write init;
+> >                 write exec;
+> >                 }%%
+> >                 }
+> >                 System.out.println("Execute = " + res);
+> >         }
+> > }
+> >
+> >
+> > However, this fails for matches with an out of bounds exception.But if
+> > I set pe = data.length, then no matches are ever found.
+> >
+>
+> main := [a-z]+ 0 @{ res = 1; fbreak; };
+>
+> The 0 above is only interesting when used with C/C++ since all strings
+> are null-terminated.
+
+Reminds me of the Java code I'm working on at present, where the
+author has converted everything into null-terminated byte arrays...
+and passes them around. Who needs objects?
+
+> If you remove it (main := [a-z]+ @{ res = 1;
+> fbreak; };) and set pe = data.length, your machine will work perfectly
+> fine.
+
+Thanks. That's an improvement, but I'm still wrong somewhere. I'll put
+my thinking cap on - it's probably to do with the args[0].length, but
+it's late here. Good to know I'm on the right track... and now have
+some examples to play with.
+
+> > Just a suggestion, but examples of simple.rl in Ruby and Java might
+> > broaden your user base quite considerably. Putting the group on gmane
+> > might also garner a lot more input.
+> >
+>
+> Again, there are some good examples in the test directory in the source dist.
+
+Yup, but I still think that examples on the web-page would help. The
+capabilities are not made very clear, and I think that's a shame.
+
+> Good luck, I'm also trying to learn Ragel.
+
+I can already see that I need a lot more than luck!
+
+Thanks again.
+
+-- 
+Best,
+Marc
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 00:51:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 12 Sep 2007 20:51:18 -0400
+Subject: [ragel-users] Starting out with Java
+In-Reply-To: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+References: <1189361660.829236.101480@r34g2000hsd.googlegroups.com>
+Message-ID: <46E88986.5070007@cs.queensu.ca>
+
+Hi,
+
+I noticed that people have a tendency to play with the first example
+that appears in the manual, however that example uses a special-purpose
+write option and has caused confusion on more than one occasion. I just
+added a more basic example which appears first.
+
+Cheers,
+ Adrian
+
+bluetooth wrote:
+> Hi,
+> 
+> I'm trying to understand the basics of using ragel in Java. But I
+> can't find any examples, so I'm struggling to get started.
+> 
+> I notice that "the test directory" is often referenced in posts here,
+> but no clue is given as to where this mysterious directory might be
+> found. That might be a help.
+> 
+> Taking simple.rl as a starting point, I so far have:
+> 
+> public class Ragel {
+> 
+> %% machine foo;
+> 
+> 	public static void main(String[] args) {
+> 		%% write data noerror nofinal;
+> 		int cs, res = 0;
+>         if (args[0].length() > 0) {
+> 			char[] data = args[0].toCharArray();
+> 			int p = 0;
+> 			int pe = data.length + 1;
+> 	        %%{
+>     	        main := [a-z]+ 0 @{ res = 1; fbreak; };
+>         	    write init;
+>             	write exec;
+>         	}%%
+> 		}
+> 		System.out.println("Execute = " + res);
+> 	}
+> }
+> 
+> 
+> However, this fails for matches with an out of bounds exception.But if
+> I set pe = data.length, then no matches are ever found.
+> 
+> Just a suggestion, but examples of simple.rl in Ruby and Java might
+> broaden your user base quite considerably. Putting the group on gmane
+> might also garner a lot more input.
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070912/33b6bf9b/attachment-0001.sig>
+
+From sanju.mathew.... at gmail.com  Thu Sep 13 02:27:16 2007
+From: sanju.mathew.... at gmail.com (Sarkar)
+Date: Wed, 12 Sep 2007 19:27:16 -0700
+Subject: another newbie question!!
+Message-ID: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+
+i went thru the earlier post on tryin to run c++ programs using
+ragel..i tried it..
+
+/ragel$ ragel -C prog.rl -o prog.rlo
+/ragel$ rlgen prog.rlo -l -o prog.cpp
+/ragel$ g++ prog.cpp -o prog
+/ragel$ ./prog input.txt
+
+the program i ran was
+
+#include <string.h>
+#include <stdio.h>
+
+%%{
+    machine foo;
+    main := ('foo'|'bar') @{res = 1; };
+}%%
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+	int cs, res = 0;
+	if ( argc > 0 ) {
+		char *p = argv[1];
+		char *pe = p + strlen(p) + 1;
+		%% write init;
+		%% write exec;
+	}
+printf("result = %i\n", res );
+return 0;
+}
+
+the input text file is gave was 'bar bar bar'
+
+i expect the output should have been 'result = 1'
+but the output always came out as 'result = 0'
+when i initialised res=1 the output came out as 'result = 1'
+
+could someone please help me understand what the program is all about
+and whether the output i got is valid and why??!
+
+Cheers!
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 15:05:20 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 11:05:20 -0400
+Subject: [ragel-users] another newbie question!!
+In-Reply-To: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+References: <1189650436.100399.28290@57g2000hsv.googlegroups.com>
+Message-ID: <46E951B0.7050608@cs.queensu.ca>
+
+Hi,
+
+This state machine is executed with the first argument string as input,
+not the contents of the file named by the first argument. Ragel does not
+open any files for you in case that's what you thought. You want to be
+executing the program with
+
+/ragel$ ./prog 'bar bar bar'
+
+-Adrian
+
+Sarkar wrote:
+> i went thru the earlier post on tryin to run c++ programs using
+> ragel..i tried it..
+> 
+> /ragel$ ragel -C prog.rl -o prog.rlo
+> /ragel$ rlgen prog.rlo -l -o prog.cpp
+> /ragel$ g++ prog.cpp -o prog
+> /ragel$ ./prog input.txt
+> 
+> the program i ran was
+> 
+> #include <string.h>
+> #include <stdio.h>
+> 
+> %%{
+>     machine foo;
+>     main := ('foo'|'bar') @{res = 1; };
+> }%%
+> 
+> %% write data;
+> 
+> int main( int argc, char **argv )
+> {
+> 	int cs, res = 0;
+> 	if ( argc > 0 ) {
+> 		char *p = argv[1];
+> 		char *pe = p + strlen(p) + 1;
+> 		%% write init;
+> 		%% write exec;
+> 	}
+> printf("result = %i\n", res );
+> return 0;
+> }
+> 
+> the input text file is gave was 'bar bar bar'
+> 
+> i expect the output should have been 'result = 1'
+> but the output always came out as 'result = 0'
+> when i initialised res=1 the output came out as 'result = 1'
+> 
+> could someone please help me understand what the program is all about
+> and whether the output i got is valid and why??!
+> 
+> Cheers!
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070913/cb8d15c3/attachment-0001.sig>
+
+From matty.no... at gmail.com  Thu Sep 13 06:34:21 2007
+From: matty.no... at gmail.com (Elmin)
+Date: Wed, 12 Sep 2007 23:34:21 -0700
+Subject: Problem with long alphabet type
+Message-ID: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+
+Hi,
+
+I'm working on a project where I need to run tests on Unicode code
+points -- my idea was to decode them from UTF-8 first, then store them
+in an array of long integers and run that array through the FSM to
+validate/parse it.  I'm using semantic conditions to check the
+categories of the symbols.  The problem is that when I set the
+alphabet type to "long" or "unsigned long" I get compiler warnings:
+
+longtest.c:109: warning: this decimal constant is unsigned only in ISO
+C90
+longtest.c:109: warning: this decimal constant is unsigned only in ISO
+C90
+longtest.rl:9: warning: integer constant is too large for 'long' type
+
+Also, the FSMs don't seem to work as expected.  Here's the sample
+program I wrote to isolate the issue somewhat, which is pretty similar
+to the semantic conditions example from the guide:
+
+#include <stdio.h>
+
+%%{
+  machine longtest;
+
+action rec_num { i = 0; n = fc-'0'; }
+action test_len { i++ < n }
+  main := (
+'d'
+[0-9] @rec_num
+':'
+( [a-z] when test_len )*
+)**;
+
+  write data;
+}%%
+
+int main(int argc, char *argv[])
+{
+  long data[] = {'d', '2', ':', 'c', 'z'};
+  long *p = data, *pe = data+5;
+  int cs, i, n;
+
+  %% write init;
+  %% write exec;
+
+  if (cs == longtest_error && *p != 0)
+    {
+      printf("Error: %i\n", (int)*p);
+    }
+  else
+    printf("No Error!\n");
+
+  return 0;
+}
+
+It should print "No Error!"  It does, if the alphabet type is set to
+anything smaller than "long", but in the form above it always prints
+"Error: 99" -- anyone have any ideas?  It almost seems like Ragel is
+using the wrong limits or something.  This is on OS X 10.4 on PPC, and
+I saw the same behavior with Ragel versions 5.19 and 5.23.  The
+compiler is GCC 4.0.1.
+
+Thanks,
+Elmin
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 15:19:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 11:19:16 -0400
+Subject: [ragel-users] Problem with long alphabet type
+In-Reply-To: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+Message-ID: <46E954F4.90209@cs.queensu.ca>
+
+Hi,
+
+Semantic conditions don't work with the long type. If this isn't already
+documented somewhere it should be. Also, there should be an error
+emitted. Sorry about that.
+
+The semantic condition feature requires that Ragel be able to allocate
+characters from the alphabet space. Ragel uses these allocated
+characters to express "character c with cond1 true" or "c with cond1
+false." But internally Ragel uses longs to store characters and so if
+your alphabet type is long there is no more room left in the alphabet
+space to allocate from.
+
+Adrian
+
+Elmin wrote:
+> Hi,
+> 
+> I'm working on a project where I need to run tests on Unicode code
+> points -- my idea was to decode them from UTF-8 first, then store them
+> in an array of long integers and run that array through the FSM to
+> validate/parse it.  I'm using semantic conditions to check the
+> categories of the symbols.  The problem is that when I set the
+> alphabet type to "long" or "unsigned long" I get compiler warnings:
+> 
+> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+> C90
+> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+> C90
+> longtest.rl:9: warning: integer constant is too large for 'long' type
+> 
+> Also, the FSMs don't seem to work as expected.  Here's the sample
+> program I wrote to isolate the issue somewhat, which is pretty similar
+> to the semantic conditions example from the guide:
+> 
+> #include <stdio.h>
+> 
+> %%{
+>   machine longtest;
+> 
+> action rec_num { i = 0; n = fc-'0'; }
+> action test_len { i++ < n }
+>   main := (
+> 'd'
+> [0-9] @rec_num
+> ':'
+> ( [a-z] when test_len )*
+> )**;
+> 
+>   write data;
+> }%%
+> 
+> int main(int argc, char *argv[])
+> {
+>   long data[] = {'d', '2', ':', 'c', 'z'};
+>   long *p = data, *pe = data+5;
+>   int cs, i, n;
+> 
+>   %% write init;
+>   %% write exec;
+> 
+>   if (cs == longtest_error && *p != 0)
+>     {
+>       printf("Error: %i\n", (int)*p);
+>     }
+>   else
+>     printf("No Error!\n");
+> 
+>   return 0;
+> }
+> 
+> It should print "No Error!"  It does, if the alphabet type is set to
+> anything smaller than "long", but in the form above it always prints
+> "Error: 99" -- anyone have any ideas?  It almost seems like Ragel is
+> using the wrong limits or something.  This is on OS X 10.4 on PPC, and
+> I saw the same behavior with Ragel versions 5.19 and 5.23.  The
+> compiler is GCC 4.0.1.
+> 
+> Thanks,
+> Elmin
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070913/c5c3971a/attachment-0001.sig>
+
+From cmantu... at gmail.com  Thu Sep 13 15:30:26 2007
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 13 Sep 2007 11:30:26 -0400
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <46E954F4.90...@cs.queensu.ca>
+References: <1189665261.744492.292...@57g2000hsv.googlegroups.com>
+	 <46E954F4.90...@cs.queensu.ca>
+Message-ID: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+
+On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> The semantic condition feature requires that Ragel be able to allocate
+> characters from the alphabet space. Ragel uses these allocated
+> characters to express "character c with cond1 true" or "c with cond1
+> false." But internally Ragel uses longs to store characters and so if
+> your alphabet type is long there is no more room left in the alphabet
+> space to allocate from.
+>
+
+Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+have a switch to turn on/off the use of longs/structs? Just a
+tought...
+
+
+From matty.no... at gmail.com  Thu Sep 13 17:49:31 2007
+From: matty.no... at gmail.com (Elmin)
+Date: Thu, 13 Sep 2007 10:49:31 -0700
+Subject: Problem with long alphabet type
+In-Reply-To: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+   <46E954F4.90209@cs.queensu.ca>
+   <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+Message-ID: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+
+Thanks for the quick answer!  I just compiled the newest version of
+the documentation and I didn't see anything about the long alphabet
+type in the section about semantic conditions.  Also, when I try to
+build a more complex machine, rlgen-cd crashes using the default code
+style -- strangely, it works with the goto style, but then the output
+is incorrect.
+
+I'd really appreciate this feature, since it would make it a lot
+easier to write scanners for Unicode-aware languages.  With the
+current tools, I pretty much have two options:
+
+1) Pretend Unicode is 16-bit, and risk offending those unfortunate
+ancient greeks who want to use musical notation in their identifiers,
+or
+
+2) Write the machine to deal with encoded streams (e.g. UTF-8) and
+hope that I never have to support multiple encodings.
+
+It occurs to me that since Unicode doesn't (for now) take up the full
+32-bit range, there might be an application for a kind of
+"intermediate" alphabet type between short and long -- that way the
+storage could still be long, and characters could be allocated in the
+range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+might work?
+
+On Sep 13, 8:30 am, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+> On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+>
+> > The semantic condition feature requires that Ragel be able to allocate
+> > characters from the alphabet space. Ragel uses these allocated
+> > characters to express "character c with cond1 true" or "c with cond1
+> > false." But internally Ragel uses longs to store characters and so if
+> > your alphabet type is long there is no more room left in the alphabet
+> > space to allocate from.
+>
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+
+From stephenhorne... at aol.com  Thu Sep 13 18:37:02 2007
+From: stephenhorne... at aol.com (Steve Horne)
+Date: Thu, 13 Sep 2007 11:37:02 -0700
+Subject: Problem with long alphabet type
+In-Reply-To: <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com>
+   <46E954F4.90209@cs.queensu.ca>
+   <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com>
+Message-ID: <1189708622.745109.282660@22g2000hsm.googlegroups.com>
+
+
+On Sep 13, 4:30 pm, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+Modern compilers support 64-bit integer types - they can be very
+useful at times. The only problem is that different compilers seem to
+give them different names, though that may change with the new C++
+standard soon.
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 18:46:19 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Thu, 13 Sep 2007 18:46:19 +0000
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com> <46E954F4.90209@cs.queensu.ca> <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com><1189705771.070012.81100@o80g2000hse.googlegroups.com>
+Message-ID: <915713817-1189709181-cardhu_decombobulator_blackberry.rim.net-1909415055-@bxe033.bisx.prod.on.blackberry>
+
+Hi I just committed the necessary changes. 
+
+Could you post the code which causes rlgen-cd to crash?
+
+There is a data structure in common.h called key which encapsulates the character type. The core of ragel uses this structure heavily so the interface to it can't really change, but the type inside it can. I once changed this to long long to get a bigger key but ragel slowed down considerably. Maybe a good bignum library would work well. But we also need to consider how the backend changes in response to a larger key type. Also, the abstraction may be bypassed at times. I would need to audit the code. 
+
+Adrian
+
+-----Original Message-----
+From: Elmin <matty.noble at gmail.com>
+
+Date: Thu, 13 Sep 2007 10:49:31 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Problem with long alphabet type
+
+
+
+Thanks for the quick answer!  I just compiled the newest version of
+the documentation and I didn't see anything about the long alphabet
+type in the section about semantic conditions.  Also, when I try to
+build a more complex machine, rlgen-cd crashes using the default code
+style -- strangely, it works with the goto style, but then the output
+is incorrect.
+
+I'd really appreciate this feature, since it would make it a lot
+easier to write scanners for Unicode-aware languages.  With the
+current tools, I pretty much have two options:
+
+1) Pretend Unicode is 16-bit, and risk offending those unfortunate
+ancient greeks who want to use musical notation in their identifiers,
+or
+
+2) Write the machine to deal with encoded streams (e.g. UTF-8) and
+hope that I never have to support multiple encodings.
+
+It occurs to me that since Unicode doesn't (for now) take up the full
+32-bit range, there might be an application for a kind of
+"intermediate" alphabet type between short and long -- that way the
+storage could still be long, and characters could be allocated in the
+range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+might work?
+
+On Sep 13, 8:30 am, "Carlos Antunes" <cmantu... at gmail.com> wrote:
+> On 9/13/07, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+>
+> > The semantic condition feature requires that Ragel be able to allocate
+> > characters from the alphabet space. Ragel uses these allocated
+> > characters to express "character c with cond1 true" or "c with cond1
+> > false." But internally Ragel uses longs to store characters and so if
+> > your alphabet type is long there is no more room left in the alphabet
+> > space to allocate from.
+>
+> Maybe ragel6 "needs" to work with structs as a datatype instead? Maybe
+> have a switch to turn on/off the use of longs/structs? Just a
+> tought...
+
+
+
+
+
+From thurs... at cs.queensu.ca  Thu Sep 13 19:46:13 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 13 Sep 2007 15:46:13 -0400
+Subject: [ragel-users] Re: Problem with long alphabet type
+In-Reply-To: <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+References: <1189665261.744492.292320@57g2000hsv.googlegroups.com> <46E954F4.90209@cs.queensu.ca> <cb2ad8b50709130830u5dbf1fe9i1f432bb649250aba@mail.gmail.com> <1189705771.070012.81100@o80g2000hse.googlegroups.com>
+Message-ID: <46E99385.5040809@cs.queensu.ca>
+
+
+Elmin wrote:
+> It occurs to me that since Unicode doesn't (for now) take up the full
+> 32-bit range, there might be an application for a kind of
+> "intermediate" alphabet type between short and long -- that way the
+> storage could still be long, and characters could be allocated in the
+> range 0x10FFFF..0x8FFFFFFF or something.  Does that sound like it
+> might work?
+
+There is a half-implemented feature called "range" which could support
+this. It allows you to define which characters in the input alphabet
+that the machine can expect to see. It is assumed that the user of the
+machine guarantees that no characters outside the range make it to the
+state machine. I started on this thinking it would be useful, but never
+had a use for it myself so it was not finished.
+
+Though I should say that such a feature may not help as conditions can
+eat up the remaining available characters pretty quickly. This is
+especially true if you embed multiple conditions in the same transition.
+In the end it depends on how you use them.
+
+By the way, in the last email when I said "necessary changes" I was
+referring to the warning about longs+conditions in the documentation and
+the appropriate error message when the available characters run out.
+
+-Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070913/7f95b422/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Sat Sep 15 19:55:44 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 15 Sep 2007 15:55:44 -0400
+Subject: dynamically resizable fcall/fret stack
+Message-ID: <46EC38C0.6050602@cs.queensu.ca>
+
+Hi,
+
+I just implemented the prepush and postpop ragel statements. These allow
+you to supply stack management code that is written out during the
+generation of fcall and fret. Prepush is executed immediately before
+pushing the current state to the state stack on a call. Postpop is
+executed imediately after popping the current state on a return. These
+can be used to implement a dynamically resizable stack. Test cases are
+in test/recdescent?.rl.
+
+The recdescent1.rl test case is attached.
+
+Cheers,
+ Adrian
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: recdescent1.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070915/cb97a56d/attachment-0001.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070915/cb97a56d/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Sun Sep 16 16:09:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 16 Sep 2007 12:09:18 -0400
+Subject: 5.24 released
+Message-ID: <46ED552E.4030501@cs.queensu.ca>
+
+Hi,
+
+I just released 5.24. A few backwards compatible changes popped up and I
+decided to do one more release before starting on 6.0. This release
+includes Victor Hugo Borja's ruby code generation patch and the new
+prepush and postpop statements.
+
+Cheers,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070916/64e7ee95/attachment-0001.sig>
+
+From jonathan.st... at gmail.com  Wed Sep 19 10:43:45 2007
+From: jonathan.st... at gmail.com (Jonathan Stott)
+Date: Wed, 19 Sep 2007 11:43:45 +0100
+Subject: Parsing an indented structure
+Message-ID: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+
+Hi
+
+I'm quite new to ragel, and I'm using it to parse some input files for
+a program, so I can have human readable files, but still parse them
+easily.
+
+I started with a syntax like:
+
+# some interesting conditions
+ina: 2.1
+ito: 0.4 #X et al, 2007
+
+with various tokens accepted, and the double stored in an appropriate
+variable. I'd now like to extend the syntax to allow some more
+varaibles to be set, and so for organisations sake (and to seperate
+things into logical divisions, I'd like to be able to support a syntax
+like:
+
+x: 10
+y: 15
+currents:
+ina: 2.1
+
+This works okay. I have the main scanner fcall the 'current' scanner
+when the currents token is parsed, and it starts to parse current
+tokens, which is fine until I follow the currents section with another
+token, which then causes problems.  So I'd like to indent the current
+tokens by two spaces, like:
+y: 15
+currents:
+  ina: 1.01
+  ito: 1.2
+
+But I'm unsure how how to handle the indent or snapping back from the
+indented scanner to the main scanner.  Advice and pointers would be
+appreciated.
+
+Regards,
+Jonathan
+
+
+From thurs... at cs.queensu.ca  Wed Sep 19 17:00:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 19 Sep 2007 13:00:16 -0400
+Subject: [ragel-users] Parsing an indented structure
+In-Reply-To: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+References: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+Message-ID: <46F155A0.8050406@cs.queensu.ca>
+
+Hi,
+
+If you mean an offside rule (like python has) then what you want to do
+is maintain a stack of indentation levels. At the beginning of every
+line you count the spaces/tabs to see if you have more/less whitespace
+than the head of the stack. If more you push and go in one level (you
+could fcall at this point). If less you go out one level (fret). See the
+python manual, it's got a pretty good description of the process.
+
+Doing this requires that you have a grammar that can distinguish between
+whitespace at the beginning of a line and whitespace elsewhere. This
+means a line-oriented grammar. The top level of your callable machines
+should look like:
+
+line = check_indent stuff '\n';
+process := line*;
+
+-Adrian
+
+Jonathan Stott wrote:
+> Hi
+> 
+> I'm quite new to ragel, and I'm using it to parse some input files for
+> a program, so I can have human readable files, but still parse them
+> easily.
+> 
+> I started with a syntax like:
+> 
+> # some interesting conditions
+> ina: 2.1
+> ito: 0.4 #X et al, 2007
+> 
+> with various tokens accepted, and the double stored in an appropriate
+> variable. I'd now like to extend the syntax to allow some more
+> varaibles to be set, and so for organisations sake (and to seperate
+> things into logical divisions, I'd like to be able to support a syntax
+> like:
+> 
+> x: 10
+> y: 15
+> currents:
+> ina: 2.1
+> 
+> This works okay. I have the main scanner fcall the 'current' scanner
+> when the currents token is parsed, and it starts to parse current
+> tokens, which is fine until I follow the currents section with another
+> token, which then causes problems.  So I'd like to indent the current
+> tokens by two spaces, like:
+> y: 15
+> currents:
+>   ina: 1.01
+>   ito: 1.2
+> 
+> But I'm unsure how how to handle the indent or snapping back from the
+> indented scanner to the main scanner.  Advice and pointers would be
+> appreciated.
+> 
+> Regards,
+> Jonathan
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070919/436923eb/attachment-0001.sig>
+
+From jonathan.st... at gmail.com  Thu Sep 20 13:00:06 2007
+From: jonathan.st... at gmail.com (namelessjon)
+Date: Thu, 20 Sep 2007 13:00:06 -0000
+Subject: Parsing an indented structure
+In-Reply-To: <46F155A0.8050406@cs.queensu.ca>
+References: <14cf210a0709190343l444872d2q5f76e7a230f63cc6@mail.gmail.com>
+   <46F155A0.8050406@cs.queensu.ca>
+Message-ID: <1190293206.233125.186950@d55g2000hsg.googlegroups.com>
+
+Hi
+
+Thanks for the quick reply. The offside rule, as I understand it from
+reading the python manual, is roughly what I want, yes.
+I will try and reimplement my scanner and see where that gets me.
+
+Regards,
+Jonathan.
+
+
+From w... at wincent.com  Thu Sep 20 18:01:04 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 20 Sep 2007 20:01:04 +0200
+Subject: Primitive lookahead question
+Message-ID: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+
+Hi,
+
+I'm trying to parse the output of "git diff" and in particular lines  
+which look like this:
+
+   diff --git a/my file b/my file
+
+Where "a/my file" is the "from file" and "b/my file" is the "to  
+file". This is slightly tricky because as you can see there are no  
+delimiters between the two paths other than a space, but spaces are  
+also allowed inside the paths (and Git only uses quotation marks here  
+when the filenames contain embedded tabs, newlines, double-quotes or  
+backslash charcters).
+
+This means that the only sign that the "from file" has ended and the  
+"to file" has begun is when you hit " b/", but by the time you see  
+that you're already inside the "to file" part. So I made rules to  
+capture the "from file" and the "to file", but my initial attempt at  
+a "from file" rule was broken:
+
+   from_file = "a/" (any+ -- " b/") ;
+
+The resulting state machine (quite correctly) takes input like:
+
+   a/hello b/world
+
+And identifies the "from file" as:
+
+   a/hello b
+
+Which is not what we want. One tactic is mash the "from_file" and  
+"to_file" rules into a single rule:
+
+   from_to_files = "a/" (any - linefeed)+ " b/" (any - linefeed)+ ;
+
+But that produces a fairly ugly DFA (especially when you add in rules  
+for parsing quotes filenames with embedded escape sequences). So I  
+tried to implement a primitive form of manual lookahead as follows:
+
+   from_file = "a/" (any - linefeed)+ %store " b/" @jumpback;
+
+Where "store" is an action which records the recognized file and  
+"jumpback" is just:
+
+   action jumpback { p -= 3; }
+
+The idea being that I have to "lookahead" and see the " b/" to know  
+that the "from file" has been scanned, but then bump the current  
+character pointer back by three so that the machine can resume  
+scanning and looking for the "to file".
+
+The generated DFA for the rule looks correct to me and isn't too ugly  
+(7 states, about 14 transitions). Is my approach ok, or is there a  
+better way?
+
+Apart from that the format I am trying to parse is totally regular,  
+unambiguous, and can be parsed without backtracking, which is nice  
+for a change!
+
+Cheers,
+Wincent
+
+
+From thurs... at cs.queensu.ca  Thu Sep 20 19:30:43 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 20 Sep 2007 15:30:43 -0400
+Subject: [ragel-users] Primitive lookahead question
+In-Reply-To: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+References: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com>
+Message-ID: <46F2CA63.9060205@cs.queensu.ca>
+
+Hi Wincent,
+
+I would suggesting using your first solution, then manually shorten the
+from_file by 2 characters. It's a simple solution which avoids more
+elaborate backtracking/scanning approaches.
+
+What does git produce if the from file contains " b/"?
+
+-Adrian
+
+Wincent Colaiuta wrote:
+> Hi,
+> 
+> I'm trying to parse the output of "git diff" and in particular lines  
+> which look like this:
+> 
+>    diff --git a/my file b/my file
+> 
+> Where "a/my file" is the "from file" and "b/my file" is the "to  
+> file". This is slightly tricky because as you can see there are no  
+> delimiters between the two paths other than a space, but spaces are  
+> also allowed inside the paths (and Git only uses quotation marks here  
+> when the filenames contain embedded tabs, newlines, double-quotes or  
+> backslash charcters).
+> 
+> This means that the only sign that the "from file" has ended and the  
+> "to file" has begun is when you hit " b/", but by the time you see  
+> that you're already inside the "to file" part. So I made rules to  
+> capture the "from file" and the "to file", but my initial attempt at  
+> a "from file" rule was broken:
+> 
+>    from_file = "a/" (any+ -- " b/") ;
+> 
+> The resulting state machine (quite correctly) takes input like:
+> 
+>    a/hello b/world
+> 
+> And identifies the "from file" as:
+> 
+>    a/hello b
+> 
+> Which is not what we want. One tactic is mash the "from_file" and  
+> "to_file" rules into a single rule:
+> 
+>    from_to_files = "a/" (any - linefeed)+ " b/" (any - linefeed)+ ;
+> 
+> But that produces a fairly ugly DFA (especially when you add in rules  
+> for parsing quotes filenames with embedded escape sequences). So I  
+> tried to implement a primitive form of manual lookahead as follows:
+> 
+>    from_file = "a/" (any - linefeed)+ %store " b/" @jumpback;
+> 
+> Where "store" is an action which records the recognized file and  
+> "jumpback" is just:
+> 
+>    action jumpback { p -= 3; }
+> 
+> The idea being that I have to "lookahead" and see the " b/" to know  
+> that the "from file" has been scanned, but then bump the current  
+> character pointer back by three so that the machine can resume  
+> scanning and looking for the "to file".
+> 
+> The generated DFA for the rule looks correct to me and isn't too ugly  
+> (7 states, about 14 transitions). Is my approach ok, or is there a  
+> better way?
+> 
+> Apart from that the format I am trying to parse is totally regular,  
+> unambiguous, and can be parsed without backtracking, which is nice  
+> for a change!
+> 
+> Cheers,
+> Wincent
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070920/0b139318/attachment-0001.sig>
+
+From w... at wincent.com  Thu Sep 20 19:57:28 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Thu, 20 Sep 2007 21:57:28 +0200
+Subject: [ragel-users] Re: Primitive lookahead question
+In-Reply-To: <46F2CA63.9060205@cs.queensu.ca>
+References: <EF11A3BC-912E-4128-A538-E68E3F5686AD@wincent.com> <46F2CA63.9060205@cs.queensu.ca>
+Message-ID: <E701A547-7246-4C8D-8FF5-BB0BA881A96F@wincent.com>
+
+El 20/9/2007, a las 21:30, Adrian Thurston escribió:
+
+> Hi Wincent,
+>
+> I would suggesting using your first solution, then manually shorten  
+> the
+> from_file by 2 characters. It's a simple solution which avoids more
+> elaborate backtracking/scanning approaches.
+>
+> What does git produce if the from file contains " b/"?
+
+Ah, excellent question... let's see...	
+
+$ mkdir test
+$ cd test
+$ git init
+Initialized empty Git repository in .git/
+$ mkdir "a b"
+$ echo "content" > "a b/file"
+$ git add "a b/file"
+$ git commit -m "Initial content"
+Created initial commit def76f9: Initial content
+  1 files changed, 1 insertions(+), 0 deletions(-)
+  create mode 100644 a b/file
+$ echo "more content" >> "a b/file"
+$ git diff
+diff --git a/a b/file b/a b/file
+index d95f3ad..86436d0 100644
+--- a/a b/file
++++ b/a b/file
+@@ -1 +1,2 @@
+  content
++more content
+
+Geez... couldn't be worse, could it? I can barely parse it myself and  
+I'm not even an automata. Hehe.
+
+I think that really makes this question about lookahead to be moot:  
+the simplest thing to do will be to just ignore everything from "diff  
+--git" up to the next newline, because the path information is  
+redundantly available further down anyway (in the lines starting with  
+"---" and "+++") where it is much less difficult to extract.
+
+Thanks a lot for the help, Adrian. Your question has short-circuited  
+a painful side trip.
+
+Cheers,
+Wincent
+
+
+
+From coldredle... at gmail.com  Sat Sep 22 15:28:50 2007
+From: coldredle... at gmail.com (ry)
+Date: Sat, 22 Sep 2007 15:28:50 -0000
+Subject: two newbie questions
+Message-ID: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+
+1. I find myself calling %action and %eof(action) a lot. for example:
+    string = ( any - pair_sep )* >string_mark %string_store
+%eof(string_store);
+ if I wanted to parse the string "hello".
+
+2. I want to change a machine slightly based on input to a program. I
+just would like to change one
+  sep = '&';
+to
+  sep = ',';
+
+Thanks
+ry
+
+
+From thurs... at cs.queensu.ca  Sun Sep 23 17:41:53 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 23 Sep 2007 13:41:53 -0400
+Subject: [ragel-users] two newbie questions
+In-Reply-To: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+References: <1190474930.062760.67500@57g2000hsv.googlegroups.com>
+Message-ID: <46F6A561.4040401@cs.queensu.ca>
+
+ry wrote:
+> 1. I find myself calling %action and %eof(action) a lot. for example:
+>     string = ( any - pair_sep )* >string_mark %string_store
+> %eof(string_store);
+>  if I wanted to parse the string "hello".
+
+In the current version there is no operator that does both at the same
+time because of the fact that transition actions and EOF actions are
+written using two different write commands. This would mean that a
+single action could get written out in two different surrounding
+contexts. This is something I will address in version 6. Both transition
+actions and EOF actions will get written out by write exec. This will
+open the door to defining embedding operators that are called on
+transitions and the EOF event.
+
+In the meantime you could send some EOF character (perhaps 0) and just
+use %action.
+
+> 2. I want to change a machine slightly based on input to a program. I
+> just would like to change one
+>   sep = '&';
+> to
+>   sep = ',';
+> 
+
+You can do this using conditions. See the attached example.
+
+Cheers,
+ Adrian
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: tmp.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070923/8574e77f/attachment-0001.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070923/8574e77f/attachment-0001.sig>
+
+From graceindustr... at gmail.com  Tue Sep 25 14:36:38 2007
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 25 Sep 2007 10:36:38 -0400
+Subject: IrDA IrPHY/Byte Stuffing  in Ragel?
+Message-ID: <op.ty7r7cpiocf...@grace002.graceinc.com>
+
+
+Before I go off an reinvent the wheel, I was wondering
+if anyone has done anything with IrDA or Byte Stuffing
+Protocols in Ragel?
+
+I need to write some code to handel the IrDA IrPHY (Physical)
+Layer.
+
+Anyone already have a State Chart already in Ragel?
+
+Frame Format:
+
+All payload data is packed into IrPHY frames where each frame consists of:
+
+XBOF (0xFF *or* 0xC0), typically ten, but can be more or less, transmitted,
+ignored by receiving end beyond getting the hardware synced up.
+0xC0 followed by 0xC0 is XBOF, 0xC0 followed by something else is BOF.
+
+BOF (0xC0), Beginning of Frame
+Data Payload data, variable length
+FCS 16 bit Frame Check Sequence (CITT-CRC)
+EOF (0xC1) End of Frame.
+
+Between the BOF and EOF flags, so that the receiver may easily determine
+the start and end of each frame, no payload data or
+FCS character may have the same value as the BOF,
+EOF or control escape (CE) flags.
+If so, these characters are escaped, ie byte-stuffed,
+using the CE character (0x7D):
+
+0xC0 -> (0x7D, 0xE0) [^Bit 5]
+0xC1 -> (0x7D, 0xE1) ..
+0x7D -> (0x7D, 0x5D) ..
+
+Receiving 0x7D 0x7D is an error and you start over.
+
+After the buffer is destuffed it needs parsed.
+
+
+
+
+
+
+
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 19:02:05 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 15:02:05 -0400
+Subject: Ruby and Java code generation
+Message-ID: <46FD4FAD.8040708@cs.queensu.ca>
+
+Hi,
+
+I'm having some trouble with Ruby and Java code generation as I
+implement 6.0 features. The main problem with targeting both of these
+languages is the lack of goto statement. This is problematic even for
+the table-driven machine. There are a number of places in the driver
+where a jump in or jump out of the processing loop is required. So far
+I've gotten away with using named loops in Java and control flow
+variables in Ruby, however with the latest changes things are getting
+really ugly. I don't have a solution yet. I'm not sure what to do right
+now, so for the time being I will continue ahead with the 6.0 features
+and stall work on Ruby and Java code generation.
+
+Adrian
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070928/ebd71a9e/attachment-0001.sig>
+
+From ryansk... at gmail.com  Fri Sep 28 19:41:27 2007
+From: ryansk... at gmail.com (Ryan King)
+Date: Fri, 28 Sep 2007 12:41:27 -0700
+Subject: [ragel-users] Ruby and Java code generation
+In-Reply-To: <46FD4FAD.8040708@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca>
+Message-ID: <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+
+On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+> Hi,
+>
+> I'm having some trouble with Ruby and Java code generation as I
+> implement 6.0 features. The main problem with targeting both of these
+> languages is the lack of goto statement. This is problematic even for
+> the table-driven machine. There are a number of places in the driver
+> where a jump in or jump out of the processing loop is required. So far
+> I've gotten away with using named loops in Java and control flow
+> variables in Ruby, however with the latest changes things are getting
+> really ugly. I don't have a solution yet. I'm not sure what to do  
+> right
+> now, so for the time being I will continue ahead with the 6.0 features
+> and stall work on Ruby and Java code generation.
+
+You can emulate GOTO-ish behavior in ruby with throw and catch:
+
+
+catch(:foo) do
+  ...
+  throw(:foo)
+  ...
+end
+
+There are limits to how the code can be structured in these cases (in  
+blocks).
+
+-ryan
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 20:04:06 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 16:04:06 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com>
+Message-ID: <46FD5E36.1090407@cs.queensu.ca>
+
+Before loop breaks and variables were used in Ruby code call/cc features
+were used. This was found to be very slow (about 10 times slower than
+the current). Do you think throw/catch would be any better than call/cc?
+
+Later today I'm going to commit my work on the C version. I'll highlight
+the part that is troublesome and maybe someone that knows Java and Ruby
+well can suggest something.
+
+Adrian
+
+Ryan King wrote:
+> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>> Hi,
+>>
+>> I'm having some trouble with Ruby and Java code generation as I
+>> implement 6.0 features. The main problem with targeting both of these
+>> languages is the lack of goto statement. This is problematic even for
+>> the table-driven machine. There are a number of places in the driver
+>> where a jump in or jump out of the processing loop is required. So far
+>> I've gotten away with using named loops in Java and control flow
+>> variables in Ruby, however with the latest changes things are getting
+>> really ugly. I don't have a solution yet. I'm not sure what to do  
+>> right
+>> now, so for the time being I will continue ahead with the 6.0 features
+>> and stall work on Ruby and Java code generation.
+> 
+> You can emulate GOTO-ish behavior in ruby with throw and catch:
+> 
+> 
+> catch(:foo) do
+>   ...
+>   throw(:foo)
+>   ...
+> end
+> 
+> There are limits to how the code can be structured in these cases (in  
+> blocks).
+> 
+> -ryan
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070928/efeb0232/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Fri Sep 28 22:23:12 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Sep 2007 18:23:12 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD5E36.1090407@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca>
+Message-ID: <46FD7ED0.7000101@cs.queensu.ca>
+
+Hi,
+
+What is now needed in Ruby and Java code is a jump back into the
+processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+
+-Adrian
+
+Adrian Thurston wrote:
+> Before loop breaks and variables were used in Ruby code call/cc features
+> were used. This was found to be very slow (about 10 times slower than
+> the current). Do you think throw/catch would be any better than call/cc?
+> 
+> Later today I'm going to commit my work on the C version. I'll highlight
+> the part that is troublesome and maybe someone that knows Java and Ruby
+> well can suggest something.
+> 
+> Adrian
+> 
+> Ryan King wrote:
+>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>> Hi,
+>>>
+>>> I'm having some trouble with Ruby and Java code generation as I
+>>> implement 6.0 features. The main problem with targeting both of these
+>>> languages is the lack of goto statement. This is problematic even for
+>>> the table-driven machine. There are a number of places in the driver
+>>> where a jump in or jump out of the processing loop is required. So far
+>>> I've gotten away with using named loops in Java and control flow
+>>> variables in Ruby, however with the latest changes things are getting
+>>> really ugly. I don't have a solution yet. I'm not sure what to do  
+>>> right
+>>> now, so for the time being I will continue ahead with the 6.0 features
+>>> and stall work on Ruby and Java code generation.
+>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>
+>>
+>> catch(:foo) do
+>>   ...
+>>   throw(:foo)
+>>   ...
+>> end
+>>
+>> There are limits to how the code can be structured in these cases (in  
+>> blocks).
+>>
+>> -ryan
+>>
+>> --~--~---------~--~----~------------~-------~--~----~
+>> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+>> To post to this group, send email to ragel-users at googlegroups.com
+>> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+>> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+>> -~----------~----~----~----~------~----~------~--~---
+>>
+>>
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070928/62d1aa9d/attachment-0001.sig>
+
+From er... at atlasocean.com  Fri Sep 28 22:29:14 2007
+From: er... at atlasocean.com (Erich Ocean)
+Date: Fri, 28 Sep 2007 15:29:14 -0700
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD7ED0.7000101@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca>
+Message-ID: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+
+Adrian,
+
+Duff's device can be used with Java, so you might be able to use that  
+technique to jump back into the middle of the processing loop.
+
+See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+an example.
+
+Best, Erich
+
+On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+
+> Hi,
+>
+> What is now needed in Ruby and Java code is a jump back into the
+> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>
+> -Adrian
+>
+> Adrian Thurston wrote:
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>
+>> Later today I'm going to commit my work on the C version. I'll  
+>> highlight
+>> the part that is troublesome and maybe someone that knows Java and  
+>> Ruby
+>> well can suggest something.
+>>
+>> Adrian
+>>
+>> Ryan King wrote:
+>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>> Hi,
+>>>>
+>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>> implement 6.0 features. The main problem with targeting both of  
+>>>> these
+>>>> languages is the lack of goto statement. This is problematic  
+>>>> even for
+>>>> the table-driven machine. There are a number of places in the  
+>>>> driver
+>>>> where a jump in or jump out of the processing loop is required.  
+>>>> So far
+>>>> I've gotten away with using named loops in Java and control flow
+>>>> variables in Ruby, however with the latest changes things are  
+>>>> getting
+>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>> right
+>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>> features
+>>>> and stall work on Ruby and Java code generation.
+>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>
+>>>
+>>> catch(:foo) do
+>>>   ...
+>>>   throw(:foo)
+>>>   ...
+>>> end
+>>>
+>>> There are limits to how the code can be structured in these cases  
+>>> (in
+>>> blocks).
+>>>
+>>> -ryan
+>>>
+>>> >>>
+>>>
+>>
+>
+
+
+From thurs... at cs.queensu.ca  Fri Sep 28 23:17:36 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Fri, 28 Sep 2007 23:17:36 +0000
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca><27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+Message-ID: <1612609378-1191021456-cardhu_decombobulator_blackberry.rim.net-529142882-@bxe033.bisx.prod.on.blackberry>
+
+Hi Erich,
+
+Thanks, that should work well. 
+
+Now we just need something for Ruby. I noticed that Ruby case statements don't fall through. 
+
+Adrian
+-----Original Message-----
+From: Erich Ocean <erich at atlasocean.com>
+
+Date: Fri, 28 Sep 2007 15:29:14 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: Ruby and Java code generation
+
+
+
+Adrian,
+
+Duff's device can be used with Java, so you might be able to use that  
+technique to jump back into the middle of the processing loop.
+
+See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+an example.
+
+Best, Erich
+
+On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+
+> Hi,
+>
+> What is now needed in Ruby and Java code is a jump back into the
+> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>
+> -Adrian
+>
+> Adrian Thurston wrote:
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>
+>> Later today I'm going to commit my work on the C version. I'll  
+>> highlight
+>> the part that is troublesome and maybe someone that knows Java and  
+>> Ruby
+>> well can suggest something.
+>>
+>> Adrian
+>>
+>> Ryan King wrote:
+>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>> Hi,
+>>>>
+>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>> implement 6.0 features. The main problem with targeting both of  
+>>>> these
+>>>> languages is the lack of goto statement. This is problematic  
+>>>> even for
+>>>> the table-driven machine. There are a number of places in the  
+>>>> driver
+>>>> where a jump in or jump out of the processing loop is required.  
+>>>> So far
+>>>> I've gotten away with using named loops in Java and control flow
+>>>> variables in Ruby, however with the latest changes things are  
+>>>> getting
+>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>> right
+>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>> features
+>>>> and stall work on Ruby and Java code generation.
+>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>
+>>>
+>>> catch(:foo) do
+>>>   ...
+>>>   throw(:foo)
+>>>   ...
+>>> end
+>>>
+>>> There are limits to how the code can be structured in these cases  
+>>> (in
+>>> blocks).
+>>>
+>>> -ryan
+>>>
+>>> >>>
+>>>
+>>
+>
+
+
+
+
+
+From thurs... at cs.queensu.ca  Sat Sep 29 18:59:46 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Sep 2007 14:59:46 -0400
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <46FD7ED0.7000101@cs.queensu.ca> <27BCED9F-A9B8-4948-A7BA-77010DB2600E@atlasocean.com>
+Message-ID: <46FEA0A2.1060802@cs.queensu.ca>
+
+I just checked-in a java driver that uses a switch statement in place of
+gotos. Indeed it works well. Java code generation is now current.
+
+-Adrian
+
+Erich Ocean wrote:
+> Adrian,
+> 
+> Duff's device can be used with Java, so you might be able to use that  
+> technique to jump back into the middle of the processing loop.
+> 
+> See http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html for  
+> an example.
+> 
+> Best, Erich
+> 
+> On Sep 28, 2007, at 3:23 PM, Adrian Thurston wrote:
+> 
+>> Hi,
+>>
+>> What is now needed in Ruby and Java code is a jump back into the
+>> processing loop just like that found at rlgen-cd/tabcodegen.cpp:1041.
+>>
+>> -Adrian
+>>
+>> Adrian Thurston wrote:
+>>> Before loop breaks and variables were used in Ruby code call/cc  
+>>> features
+>>> were used. This was found to be very slow (about 10 times slower than
+>>> the current). Do you think throw/catch would be any better than  
+>>> call/cc?
+>>>
+>>> Later today I'm going to commit my work on the C version. I'll  
+>>> highlight
+>>> the part that is troublesome and maybe someone that knows Java and  
+>>> Ruby
+>>> well can suggest something.
+>>>
+>>> Adrian
+>>>
+>>> Ryan King wrote:
+>>>> On Sep 28, 2007, at 12:02 PM, Adrian Thurston wrote:
+>>>>> Hi,
+>>>>>
+>>>>> I'm having some trouble with Ruby and Java code generation as I
+>>>>> implement 6.0 features. The main problem with targeting both of  
+>>>>> these
+>>>>> languages is the lack of goto statement. This is problematic  
+>>>>> even for
+>>>>> the table-driven machine. There are a number of places in the  
+>>>>> driver
+>>>>> where a jump in or jump out of the processing loop is required.  
+>>>>> So far
+>>>>> I've gotten away with using named loops in Java and control flow
+>>>>> variables in Ruby, however with the latest changes things are  
+>>>>> getting
+>>>>> really ugly. I don't have a solution yet. I'm not sure what to do
+>>>>> right
+>>>>> now, so for the time being I will continue ahead with the 6.0  
+>>>>> features
+>>>>> and stall work on Ruby and Java code generation.
+>>>> You can emulate GOTO-ish behavior in ruby with throw and catch:
+>>>>
+>>>>
+>>>> catch(:foo) do
+>>>>   ...
+>>>>   throw(:foo)
+>>>>   ...
+>>>> end
+>>>>
+>>>> There are limits to how the code can be structured in these cases  
+>>>> (in
+>>>> blocks).
+>>>>
+>>>> -ryan
+>>>>
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070929/82372347/attachment-0001.sig>
+
+From w... at wincent.com  Sun Sep 30 12:05:11 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 30 Sep 2007 14:05:11 +0200
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FD5E36.1090407@cs.queensu.ca>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca>
+Message-ID: <893307F7-CA10-466F-A1F3-3DA61C82AB9B@wincent.com>
+
+El 28/9/2007, a las 22:04, Adrian Thurston escribió:
+
+> Before loop breaks and variables were used in Ruby code call/cc  
+> features
+> were used. This was found to be very slow (about 10 times slower than
+> the current). Do you think throw/catch would be any better than  
+> call/cc?
+
+Yes, if for no other reason than the fact that Ruby 1.9 won't have  
+call/cc...
+
+Cheers,
+Wincent
+
+
+From ola.b... at gmail.com  Sun Sep 30 12:26:06 2007
+From: ola.b... at gmail.com (Ola Bini)
+Date: Sun, 30 Sep 2007 13:26:06 +0100
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <893307F7-CA10-466F-A1F3-3DA61C82A...@wincent.com>
+References: <46FD4FAD.8040...@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D87...@gmail.com> <46FD5E36.1090...@cs.queensu.ca> <893307F7-CA10-466F-A1F3-3DA61C82A...@wincent.com>
+Message-ID: <46FF95DE.8030...@gmail.com>
+
+Wincent Colaiuta wrote:
+> El 28/9/2007, a las 22:04, Adrian Thurston escribió:
+>
+>   
+>> Before loop breaks and variables were used in Ruby code call/cc  
+>> features
+>> were used. This was found to be very slow (about 10 times slower than
+>> the current). Do you think throw/catch would be any better than  
+>> call/cc?
+>>     
+>
+> Yes, if for no other reason than the fact that Ruby 1.9 won't have  
+> call/cc...
+>
+> Cheers,
+> Wincent
+>   
+Throw/catch will perform much better - the speed of call/cc is due to 
+saving and restoring the stack each time you use it - this won't happen 
+with throw/catch.
+
+But you're wrong about 1.9. Matz and Koichi added continuations again a 
+month or two back.
+
+Cheers
+
+-- 
+ Ola Bini (http://ola-bini.blogspot.com) 
+ JRuby Core Developer
+ Developer, ThoughtWorks Studios (http://studios.thoughtworks.com)
+ Practical JRuby on Rails (http://apress.com/book/view/9781590598818)
+
+ "Yields falsehood when quined" yields falsehood when quined.
+
+
+
+From w... at wincent.com  Sun Sep 30 14:28:05 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 30 Sep 2007 16:28:05 +0200
+Subject: [ragel-users] Re: Ruby and Java code generation
+In-Reply-To: <46FF95DE.8030505@gmail.com>
+References: <46FD4FAD.8040708@cs.queensu.ca> <D3E9C3CA-A822-4D6C-B758-885B27D8747C@gmail.com> <46FD5E36.1090407@cs.queensu.ca> <893307F7-CA10-466F-A1F3-3DA61C82AB9B@wincent.com> <46FF95DE.8030505@gmail.com>
+Message-ID: <B4ADD684-6559-40B8-BE4A-ABC96D6C21E2@wincent.com>
+
+El 30/9/2007, a las 14:26, Ola Bini escribió:
+
+> But you're wrong about 1.9. Matz and Koichi added continuations  
+> again a
+> month or two back.
+
+Ha! Really? That's great news. I have some good that uses them and  
+would require painful reworking to replace them.
+
+Cheers,
+Wincent
+
+

@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH] Fix generated code for Ruby 1.9	compatibility.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20Fix%20generated%20code%20for%20Ruby%201.9%0A%09compatibility.&In-Reply-To=%3C4D0A5ADB.1000904%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002970.html">
+   <LINK REL="Next"  HREF="002981.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH] Fix generated code for Ruby 1.9	compatibility.</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%5D%20Fix%20generated%20code%20for%20Ruby%201.9%0A%09compatibility.&In-Reply-To=%3C4D0A5ADB.1000904%40esentire.com%3E"
+       TITLE="[ragel-users] [PATCH] Fix generated code for Ruby 1.9	compatibility.">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Thu Dec 16 18:30:51 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002970.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.
+</A></li>
+        <LI>Next message: <A HREF="002981.html">[ragel-users] [PATCH] D2 support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2976">[ date ]</a>
+              <a href="thread.html#2976">[ thread ]</a>
+              <a href="subject.html#2976">[ subject ]</a>
+              <a href="author.html#2976">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks, in the queue for the next release.
+
+-Adrian
+
+On 10-12-15 10:52 PM, Diego Elio Pettenò wrote:
+&gt;<i> In Ruby 1.9, the String class no longer works as a C-style array of (8-bit)
+</I>&gt;<i> characters, but supports multiple encoding. While it is obviously a task
+</I>&gt;<i> for the developer to ensure that the data array passed to the
+</I>&gt;<i> Ragel-generated code is in a compatible encoding, this also means that the
+</I>&gt;<i> simple dereference is not going to work:
+</I>&gt;<i>
+</I>&gt;<i> % ruby18 -e 'puts &quot;foo&quot;[0].class'
+</I>&gt;<i> Fixnum
+</I>&gt;<i> % ruby19 -e 'puts &quot;foo&quot;[0].class'
+</I>&gt;<i> String
+</I>&gt;<i>
+</I>&gt;<i> This is easily fixed by calling the #ord method on the dereferenced data,
+</I>&gt;<i> which will provide the ASCII ordinal (or UNICODE codepoint) for the single
+</I>&gt;<i> character.
+</I>&gt;<i>
+</I>&gt;<i> The produced code works correctly both on Ruby 1.8 and 1.9.2.
+</I>&gt;<i> ---
+</I>&gt;<i>   ragel/rubycodegen.cpp |    7 +++++--
+</I>&gt;<i>   1 files changed, 5 insertions(+), 2 deletions(-)
+</I>&gt;<i>
+</I>&gt;<i> diff --git a/ragel/rubycodegen.cpp b/ragel/rubycodegen.cpp
+</I>&gt;<i> index 5117823..f329587 100644
+</I>&gt;<i> --- a/ragel/rubycodegen.cpp
+</I>&gt;<i> +++ b/ragel/rubycodegen.cpp
+</I>&gt;<i> @@ -307,8 +307,11 @@ string RubyCodeGen::GET_KEY()
+</I>&gt;<i>   		ret&lt;&lt;  &quot;)&quot;;
+</I>&gt;<i>   	}
+</I>&gt;<i>   	else {
+</I>&gt;<i> -		/* Expression for retrieving the key, use simple dereference. */
+</I>&gt;<i> -		ret&lt;&lt;  DATA()&lt;&lt;  &quot;[&quot;&lt;&lt;  P()&lt;&lt;  &quot;]&quot;;
+</I>&gt;<i> +		/* Expression for retrieving the key, use dereference
+</I>&gt;<i> +		 * and read ordinal, for compatibility with Ruby
+</I>&gt;<i> +		 * 1.9.
+</I>&gt;<i> +		 */
+</I>&gt;<i> +		ret&lt;&lt;  DATA()&lt;&lt;  &quot;[&quot;&lt;&lt;  P()&lt;&lt;  &quot;].ord&quot;;
+</I>&gt;<i>   	}
+</I>&gt;<i>   	return ret.str();
+</I>&gt;<i>   }
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002970.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.
+</A></li>
+	<LI>Next message: <A HREF="002981.html">[ragel-users] [PATCH] D2 support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2976">[ date ]</a>
+              <a href="thread.html#2976">[ thread ]</a>
+              <a href="subject.html#2976">[ subject ]</a>
+              <a href="author.html#2976">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

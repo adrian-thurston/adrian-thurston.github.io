@@ -1,0 +1,230 @@
+From samson.etienne at gmail.com  Sat Sep 14 13:44:17 2013
+From: samson.etienne at gmail.com (Etienne Samson)
+Date: Sat, 14 Sep 2013 15:44:17 +0200
+Subject: [ragel-users] Some clarifications needed
+Message-ID: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+
+Hello ragel-users !
+
+I'm trying to build a C parser for IMAP (RFC3501), but since I'm a complete beginner at ragel *and* I want to do it the best way I can think of, I'm having a hard time ;-). Please tell me what you think of the approach I'm aiming for, if I'm a little heavy-handed or whatever…
+
+So, I'm trying to split parts of the ABNF for IMAP in different ragel machines for easy reuse. I already have :
+- abnf.rl that contains machine definitions for basic ABNF tokens (ALPHA, BIT, …),
+- rfc3501.rl which contains basic "common" things between what will become my different machines (tag, address, …),
+- rfc3501_response.rl which contains stuff relating to server replies, (response, response_tagged, …)
+- imap_parser.rl that is supposed to be in charge of parsing a server's response into my own "message" C structure. This is the only one I'm "write"ing directly.
+
+My previous attempt was to copy/paste the whole ABNF from the RFC, convert it to ragel syntax and pray that it works. Luckily, it didn't, and since I ended up as the happy owner of a ragel state machine that has 3070 transitions and that I couldn't understand why it fails and where, I'm scaling back, and switching to divide-and-conquer (the only thing gained is that I can now look up a rule in my old file and integrate it pretty quickly after more thorough testing).
+
+So, here's a list of the questions I have :
+
+- I feel a little lost at the difference between a machine definition and a machine instantiation. It seems it works like C functions, definition = prototype and instantiation = actual function ? But even though they're different, you can attach actions to both of them. I understand that you can use definition to have a single place to tell ragel what actual syntax to parse (example from rfc3501_response, 'response_untagged = "tag SP resp_cond_state CRLF";'). But I can't use instantiations from one of my including files.
+
+- What does "main := |* stuff *|" mean ? I haven't been able to grasp what ragel does with it, I've seen no explanation in the user guide, and quite a few examples I found use that. In fact, I was thinking it was part of the instantiation syntax until I found examples that weren't using that (like mailbox.rl).
+
+Cordialement, 
+Etienne Samson
+--
+samson.etienne at gmail.com
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jkt at flaska.net  Wed Sep 18 14:05:39 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Wed, 18 Sep 2013 16:05:39 +0200
+Subject: [ragel-users] C++11, new narrowing rules and unsigned char on ARM
+Message-ID: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+
+Hi Adrian,
+I'm using Ragel for parsing of e-mail headers as per RFC5322. When porting 
+this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed that it fails 
+to build after I enable C++11 features using clang 3.3. Here is the error 
+message:
+
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+error: constant expression evaluates to -128 which cannot be narrowed to 
+type 'char' [-Wc++11-narrowing]
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+note: override this message by inserting an explicit cast
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+                                static_cast<char>( )
+
+So the problem is that the signedness rules for the host (machine running 
+ragel producing the .cpp file with parser) and target (the target platform 
+of the C++ compiler which is producing Ragel's output) do not match. That's 
+a big problem, and it isn't limited just to chars, actually -- because 
+Ragel's code uses platform's native types instead of the portable ones, 
+there's no guarantee that ragel's int can fit the data of the target's 
+size, etc. I've solved this by patching ragel to use C's int<num>_t types, 
+please see the commit at [1]. That patch fixes my problem.
+
+In addition, before I realized that I'm actually looking for the ragel-6 
+branch, I spent some time playing with master before I finding out that 
+it's some kind of a rewrite. The same bug applies there as well. Before I 
+was able to get the master branch to build on my system, I had to make the 
+following changes:
+
+* Fixing a build failure due to a bug in colm's headers [2]. I see you're 
+upstream for that project, too, perhaps you can fix it in there as well.
+
+* Making sure that version.h is generated [3].
+
+After that, I simply added a rule to always treat chars as signed [4]. 
+That's arguably a wrong change; the code shall probably do the same thing 
+as [1]. I don't have time for this now.
+
+And finally, when I tried the patched master, I found out that my ragel 
+parser won't compile anymore -- please see the file at [5]. The error 
+message I get is that it cannot find the "CRLF" symbol which is defined in 
+the included .rl file [6]. That looks like a regression in the rewrite.
+
+Thanks for a cool software -- I hope these patches are OK and that you'll 
+merge them.
+
+Cheers,
+Jan
+
+[1]  
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+[2] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+[3] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+[4] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+[5] 
+http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+[6] 
+http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From samson.etienne at gmail.com  Sat Sep 14 13:44:17 2013
+From: samson.etienne at gmail.com (Etienne Samson)
+Date: Sat, 14 Sep 2013 15:44:17 +0200
+Subject: [ragel-users] Some clarifications needed
+Message-ID: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+
+Hello ragel-users !
+
+I'm trying to build a C parser for IMAP (RFC3501), but since I'm a complete beginner at ragel *and* I want to do it the best way I can think of, I'm having a hard time ;-). Please tell me what you think of the approach I'm aiming for, if I'm a little heavy-handed or whatever…
+
+So, I'm trying to split parts of the ABNF for IMAP in different ragel machines for easy reuse. I already have :
+- abnf.rl that contains machine definitions for basic ABNF tokens (ALPHA, BIT, …),
+- rfc3501.rl which contains basic "common" things between what will become my different machines (tag, address, …),
+- rfc3501_response.rl which contains stuff relating to server replies, (response, response_tagged, …)
+- imap_parser.rl that is supposed to be in charge of parsing a server's response into my own "message" C structure. This is the only one I'm "write"ing directly.
+
+My previous attempt was to copy/paste the whole ABNF from the RFC, convert it to ragel syntax and pray that it works. Luckily, it didn't, and since I ended up as the happy owner of a ragel state machine that has 3070 transitions and that I couldn't understand why it fails and where, I'm scaling back, and switching to divide-and-conquer (the only thing gained is that I can now look up a rule in my old file and integrate it pretty quickly after more thorough testing).
+
+So, here's a list of the questions I have :
+
+- I feel a little lost at the difference between a machine definition and a machine instantiation. It seems it works like C functions, definition = prototype and instantiation = actual function ? But even though they're different, you can attach actions to both of them. I understand that you can use definition to have a single place to tell ragel what actual syntax to parse (example from rfc3501_response, 'response_untagged = "tag SP resp_cond_state CRLF";'). But I can't use instantiations from one of my including files.
+
+- What does "main := |* stuff *|" mean ? I haven't been able to grasp what ragel does with it, I've seen no explanation in the user guide, and quite a few examples I found use that. In fact, I was thinking it was part of the instantiation syntax until I found examples that weren't using that (like mailbox.rl).
+
+Cordialement, 
+Etienne Samson
+--
+samson.etienne at gmail.com
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jkt at flaska.net  Wed Sep 18 14:05:39 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Wed, 18 Sep 2013 16:05:39 +0200
+Subject: [ragel-users] C++11, new narrowing rules and unsigned char on ARM
+Message-ID: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+
+Hi Adrian,
+I'm using Ragel for parsing of e-mail headers as per RFC5322. When porting 
+this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed that it fails 
+to build after I enable C++11 features using clang 3.3. Here is the error 
+message:
+
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+error: constant expression evaluates to -128 which cannot be narrowed to 
+type 'char' [-Wc++11-narrowing]
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+note: override this message by inserting an explicit cast
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+                                static_cast<char>( )
+
+So the problem is that the signedness rules for the host (machine running 
+ragel producing the .cpp file with parser) and target (the target platform 
+of the C++ compiler which is producing Ragel's output) do not match. That's 
+a big problem, and it isn't limited just to chars, actually -- because 
+Ragel's code uses platform's native types instead of the portable ones, 
+there's no guarantee that ragel's int can fit the data of the target's 
+size, etc. I've solved this by patching ragel to use C's int<num>_t types, 
+please see the commit at [1]. That patch fixes my problem.
+
+In addition, before I realized that I'm actually looking for the ragel-6 
+branch, I spent some time playing with master before I finding out that 
+it's some kind of a rewrite. The same bug applies there as well. Before I 
+was able to get the master branch to build on my system, I had to make the 
+following changes:
+
+* Fixing a build failure due to a bug in colm's headers [2]. I see you're 
+upstream for that project, too, perhaps you can fix it in there as well.
+
+* Making sure that version.h is generated [3].
+
+After that, I simply added a rule to always treat chars as signed [4]. 
+That's arguably a wrong change; the code shall probably do the same thing 
+as [1]. I don't have time for this now.
+
+And finally, when I tried the patched master, I found out that my ragel 
+parser won't compile anymore -- please see the file at [5]. The error 
+message I get is that it cannot find the "CRLF" symbol which is defined in 
+the included .rl file [6]. That looks like a regression in the rewrite.
+
+Thanks for a cool software -- I hope these patches are OK and that you'll 
+merge them.
+
+Cheers,
+Jan
+
+[1]  
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+[2] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+[3] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+[4] 
+http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+[5] 
+http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+[6] 
+http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

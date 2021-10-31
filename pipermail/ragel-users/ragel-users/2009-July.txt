@@ -1,0 +1,356 @@
+From cesar at mifprojects.com  Fri Jul  3 15:44:01 2009
+From: cesar at mifprojects.com (Ihor Kaharlichenko)
+Date: Fri, 03 Jul 2009 18:44:01 +0300
+Subject: [ragel-users] Problem consuming whitespaces
+Message-ID: <4A4E2741.4020003@mifprojects.com>
+
+Hi, all.
+
+I'm very new to ragel and the solution to my problem may seem obvious, but I googled a lot and could not find a solution to it.
+
+I need to parse simplified mental ray shader declarations <http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59>.
+
+In general input looks like this:
+
+declare shader
+    [/type/] "/shader_name/" (
+        /type/ "/parameter_name/",
+        /type/ "/parameter_name/",
+              ...
+        /type/ "/parameter_name/"
+    )
+    [version /version/_int ]
+end declare
+
+
+My problem is that mental ray files are not restrictive to spaces and newlines, so two following declarations should be considered the same:
+
+   1. declare shader "myShader" ( int "param1", boolean "param2" ) 
+      version 12 end declare
+   2.
+
+      declare              shader      "myShader" (
+          int     "param1"   ,
+          boolean "param2"
+          )
+          version 12
+      end declare
+
+Here's my machine declaration:
+
+%%{
+    machine shader;
+   
+    sep = space+;
+   
+    shader_start = 'declare' . sep . 'shader' . sep;
+    shader_end = 'end' . sep . 'declare' . sep;
+   
+    string = '"' . (alnum | '_')+ . '"' . sep;
+   
+    type = ('boolean' | 'integer' | 'scalar') . sep;
+    version = 'version' . sep . digit+ . sep;
+   
+    parameter = string . type;
+   
+    parameter_block = parameter . (',' . sep . parameter)*;
+    shader =
+        shader_start .
+        type? . string .
+        '(' . sep? . parameter_block? . ')' . sep .
+        version? .
+        shader_end;
+   
+    main := shader;
+}%%
+
+As you can see there are too many "sep"s used in the declaration. They 
+seem to be a total mess to me, as I don't cannot even match the 
+following with my machine: *int "qwe" ,* (note the space between a quote 
+and a coma)
+
+Can anybody suggest a better way to define my machine in order to parse 
+such this kind of declarations? Maybe scanners could help me, but I'm 
+not sure whether they are capable to detect format errors or not.
+
+Thanks, Ihor
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090703/27814e38/attachment.html>
+
+From adrian.thurston at esentire.com  Tue Jul  7 14:37:30 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 07 Jul 2009 10:37:30 -0400
+Subject: [ragel-users] Problem consuming whitespaces
+In-Reply-To: <4A4E2741.4020003@mifprojects.com>
+References: <4A4E2741.4020003@mifprojects.com>
+Message-ID: <4A535DAA.1080902@esentire.com>
+
+Hi Ihor,
+
+Unless you require the speed of an integrated lexer and parser I would 
+suggest using the traditional lexing then parsing approach. That would 
+avoid having to put whitespace the grammar.
+
+-Adrian
+
+Ihor Kaharlichenko wrote:
+> Hi, all.
+> 
+> I'm very new to ragel and the solution to my problem may seem obvious, but I googled a lot and could not find a solution to it.
+> 
+> I need to parse simplified mental ray shader declarations <http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59>.
+> 
+> In general input looks like this:
+> 
+> declare shader
+>     [/type/] "/shader_name/" (
+>         /type/ "/parameter_name/",
+>         /type/ "/parameter_name/",
+>               ...
+>         /type/ "/parameter_name/"
+>     )
+>     [version /version/_int ]
+> end declare
+> 
+> 
+> My problem is that mental ray files are not restrictive to spaces and newlines, so two following declarations should be considered the same:
+> 
+>    1. declare shader "myShader" ( int "param1", boolean "param2" ) 
+>       version 12 end declare
+>    2.
+> 
+>       declare              shader      "myShader" (
+>           int     "param1"   ,
+>           boolean "param2"
+>           )
+>           version 12
+>       end declare
+> 
+> Here's my machine declaration:
+> 
+> %%{
+>     machine shader;
+>    
+>     sep = space+;
+>    
+>     shader_start = 'declare' . sep . 'shader' . sep;
+>     shader_end = 'end' . sep . 'declare' . sep;
+>    
+>     string = '"' . (alnum | '_')+ . '"' . sep;
+>    
+>     type = ('boolean' | 'integer' | 'scalar') . sep;
+>     version = 'version' . sep . digit+ . sep;
+>    
+>     parameter = string . type;
+>    
+>     parameter_block = parameter . (',' . sep . parameter)*;
+>     shader =
+>         shader_start .
+>         type? . string .
+>         '(' . sep? . parameter_block? . ')' . sep .
+>         version? .
+>         shader_end;
+>    
+>     main := shader;
+> }%%
+> 
+> As you can see there are too many "sep"s used in the declaration. They 
+> seem to be a total mess to me, as I don't cannot even match the 
+> following with my machine: *int "qwe" ,* (note the space between a quote 
+> and a coma)
+> 
+> Can anybody suggest a better way to define my machine in order to parse 
+> such this kind of declarations? Maybe scanners could help me, but I'm 
+> not sure whether they are capable to detect format errors or not.
+> 
+> Thanks, Ihor
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From cesar at mifprojects.com  Fri Jul  3 15:44:01 2009
+From: cesar at mifprojects.com (Ihor Kaharlichenko)
+Date: Fri, 03 Jul 2009 18:44:01 +0300
+Subject: [ragel-users] Problem consuming whitespaces
+Message-ID: <4A4E2741.4020003@mifprojects.com>
+
+Hi, all.
+
+I'm very new to ragel and the solution to my problem may seem obvious, but I googled a lot and could not find a solution to it.
+
+I need to parse simplified mental ray shader declarations <http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59>.
+
+In general input looks like this:
+
+declare shader
+    [/type/] "/shader_name/" (
+        /type/ "/parameter_name/",
+        /type/ "/parameter_name/",
+              ...
+        /type/ "/parameter_name/"
+    )
+    [version /version/_int ]
+end declare
+
+
+My problem is that mental ray files are not restrictive to spaces and newlines, so two following declarations should be considered the same:
+
+   1. declare shader "myShader" ( int "param1", boolean "param2" ) 
+      version 12 end declare
+   2.
+
+      declare              shader      "myShader" (
+          int     "param1"   ,
+          boolean "param2"
+          )
+          version 12
+      end declare
+
+Here's my machine declaration:
+
+%%{
+    machine shader;
+   
+    sep = space+;
+   
+    shader_start = 'declare' . sep . 'shader' . sep;
+    shader_end = 'end' . sep . 'declare' . sep;
+   
+    string = '"' . (alnum | '_')+ . '"' . sep;
+   
+    type = ('boolean' | 'integer' | 'scalar') . sep;
+    version = 'version' . sep . digit+ . sep;
+   
+    parameter = string . type;
+   
+    parameter_block = parameter . (',' . sep . parameter)*;
+    shader =
+        shader_start .
+        type? . string .
+        '(' . sep? . parameter_block? . ')' . sep .
+        version? .
+        shader_end;
+   
+    main := shader;
+}%%
+
+As you can see there are too many "sep"s used in the declaration. They 
+seem to be a total mess to me, as I don't cannot even match the 
+following with my machine: *int "qwe" ,* (note the space between a quote 
+and a coma)
+
+Can anybody suggest a better way to define my machine in order to parse 
+such this kind of declarations? Maybe scanners could help me, but I'm 
+not sure whether they are capable to detect format errors or not.
+
+Thanks, Ihor
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090703/27814e38/attachment-0001.html>
+
+From adrian.thurston at esentire.com  Tue Jul  7 14:37:30 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 07 Jul 2009 10:37:30 -0400
+Subject: [ragel-users] Problem consuming whitespaces
+In-Reply-To: <4A4E2741.4020003@mifprojects.com>
+References: <4A4E2741.4020003@mifprojects.com>
+Message-ID: <4A535DAA.1080902@esentire.com>
+
+Hi Ihor,
+
+Unless you require the speed of an integrated lexer and parser I would 
+suggest using the traditional lexing then parsing approach. That would 
+avoid having to put whitespace the grammar.
+
+-Adrian
+
+Ihor Kaharlichenko wrote:
+> Hi, all.
+> 
+> I'm very new to ragel and the solution to my problem may seem obvious, but I googled a lot and could not find a solution to it.
+> 
+> I need to parse simplified mental ray shader declarations <http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59>.
+> 
+> In general input looks like this:
+> 
+> declare shader
+>     [/type/] "/shader_name/" (
+>         /type/ "/parameter_name/",
+>         /type/ "/parameter_name/",
+>               ...
+>         /type/ "/parameter_name/"
+>     )
+>     [version /version/_int ]
+> end declare
+> 
+> 
+> My problem is that mental ray files are not restrictive to spaces and newlines, so two following declarations should be considered the same:
+> 
+>    1. declare shader "myShader" ( int "param1", boolean "param2" ) 
+>       version 12 end declare
+>    2.
+> 
+>       declare              shader      "myShader" (
+>           int     "param1"   ,
+>           boolean "param2"
+>           )
+>           version 12
+>       end declare
+> 
+> Here's my machine declaration:
+> 
+> %%{
+>     machine shader;
+>    
+>     sep = space+;
+>    
+>     shader_start = 'declare' . sep . 'shader' . sep;
+>     shader_end = 'end' . sep . 'declare' . sep;
+>    
+>     string = '"' . (alnum | '_')+ . '"' . sep;
+>    
+>     type = ('boolean' | 'integer' | 'scalar') . sep;
+>     version = 'version' . sep . digit+ . sep;
+>    
+>     parameter = string . type;
+>    
+>     parameter_block = parameter . (',' . sep . parameter)*;
+>     shader =
+>         shader_start .
+>         type? . string .
+>         '(' . sep? . parameter_block? . ')' . sep .
+>         version? .
+>         shader_end;
+>    
+>     main := shader;
+> }%%
+> 
+> As you can see there are too many "sep"s used in the declaration. They 
+> seem to be a total mess to me, as I don't cannot even match the 
+> following with my machine: *int "qwe" ,* (note the space between a quote 
+> and a coma)
+> 
+> Can anybody suggest a better way to define my machine in order to parse 
+> such this kind of declarations? Maybe scanners could help me, but I'm 
+> not sure whether they are capable to detect format errors or not.
+> 
+> Thanks, Ihor
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+

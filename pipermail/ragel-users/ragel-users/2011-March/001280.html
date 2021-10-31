@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Bug? Backslash-escapes not escaped enough in	.dotfiles?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Bug%3F%20Backslash-escapes%20not%20escaped%20enough%20in%0A%09.dotfiles%3F&In-Reply-To=%3C4D8F2257.4080101%40yahoo.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001279.html">
+   <LINK REL="Next"  HREF="001281.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Bug? Backslash-escapes not escaped enough in	.dotfiles?</H1>
+    <B>Austin Hastings</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Bug%3F%20Backslash-escapes%20not%20escaped%20enough%20in%0A%09.dotfiles%3F&In-Reply-To=%3C4D8F2257.4080101%40yahoo.com%3E"
+       TITLE="[ragel-users] Bug? Backslash-escapes not escaped enough in	.dotfiles?">ah08010-ragel at yahoo.com
+       </A><BR>
+    <I>Sun Mar 27 11:41:11 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001279.html">[ragel-users] Bug? Backslash-escapes not escaped enough in .dot	files?
+</A></li>
+        <LI>Next message: <A HREF="001281.html">[ragel-users] Bug? Backslash-escapes not escaped enough	in	.dotfiles?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1280">[ date ]</a>
+              <a href="thread.html#1280">[ thread ]</a>
+              <a href="subject.html#1280">[ subject ]</a>
+              <a href="author.html#1280">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sure. I think this is a &quot;dotty&quot; bug, though.
+
+I start with this .ragel file:
+
+%%{
+     machine test;
+     ws = 0x20 | 0x09 | 0x0A ;
+     action ws_act { }
+     main := ( ws @ws_act )+;
+}%%
+
+Which produces this .dot file:
+
+digraph test {
+         rankdir=LR;
+         node [ shape = point ];
+         ENTRY;
+         en_1;
+         node [ shape = circle, height = 0.2 ];
+         node [ fixedsize = true, height = 0.65, shape = doublecircle ];
+         2;
+         node [ shape = circle ];
+         1 -&gt; 2 [ label = &quot;'\\t'..'\\n', SP / ws_act&quot; ];
+         2 -&gt; 2 [ label = &quot;'\\t'..'\\n', SP / ws_act&quot; ];
+         ENTRY -&gt; 1 [ label = &quot;IN&quot; ];
+         en_1 -&gt; 1 [ label = &quot;main&quot; ];
+}
+
+I was then viewing it with the &quot;dotty&quot; tool, part of Graphviz. I got the 
+image captured in the attached file (ragel-dotty.png). You'll notice 
+there are no backslashes before 't'.
+
+Next I tried to generate the png directly with:
+
+     dot -Tpng -o ragel-dot.png ragel.dot
+
+But that png file, also attached (ragel-dot.png), contains backslashes. 
+Apparently, this is a &quot;dotty&quot; bug, since two of their tools are 
+producing different results. It's definitely not a ragel issue.
+
+=Austin
+
+
+On 3/27/2011 7:14 AM, Josef Göttgens wrote:
+&gt;<i> Hi Austin,
+</I>&gt;<i>
+</I>&gt;<i> I guess your example shows part of a .dot file. Backslashes are 
+</I>&gt;<i> regarded by dot and friends as escape chars, i.e. in order to print \t 
+</I>&gt;<i> you need to have \\t in your dot file. Whether you surround \\t with 
+</I>&gt;<i> single quotes or not doesn't matter.
+</I>&gt;<i>
+</I>&gt;<i> I am not sure whether you need to be concerned about this because 
+</I>&gt;<i> calling Ragel with the option -Vp takes care of proper escaping when 
+</I>&gt;<i> needed.  Could you publish you .rl file to see what you are trying to do?
+</I>&gt;<i>
+</I>&gt;<i> jg
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> -----Ursprüngliche Nachricht----- From: Austin Hastings
+</I>&gt;<i> Sent: Sunday, March 27, 2011 12:04 PM
+</I>&gt;<i> To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in 
+</I>&gt;<i> .dotfiles?
+</I>&gt;<i>
+</I>&gt;<i> Howdy,
+</I>&gt;<i>
+</I>&gt;<i> I'm poring over some .dot files, trying to understand what's wrong with
+</I>&gt;<i> my tokenizer. And I'm on Windows (XPpro, sp3, en-us), which means that
+</I>&gt;<i> my stuff probably doesn't work like anyone else's.
+</I>&gt;<i>
+</I>&gt;<i> I can see the .dot file contains labels generated like '\\t'  (that's
+</I>&gt;<i> apos-backslash-backslash-tee-apos).
+</I>&gt;<i>
+</I>&gt;<i> But dotty is suppressing the backslash, for some reason.
+</I>&gt;<i>
+</I>&gt;<i> If I change them to 4 slashes:  '\\\\t' then I see one slash in the
+</I>&gt;<i> dotty window.
+</I>&gt;<i>
+</I>&gt;<i> Is this a ragel bug (not generating the right number of slashes) or a
+</I>&gt;<i> dotty bug (ignoring too many slashes) ?
+</I>&gt;<i>
+</I>&gt;<i> For example:
+</I>&gt;<i>
+</I>&gt;<i>     2 -&gt; 2 [ label = &quot;'\\t', '\\f'..'\\r', SP / whitespace_act,
+</I>&gt;<i> buffer_input&quot; ];
+</I>&gt;<i>     2 -&gt; 2 [ label = &quot;'\\n' / newline_act, whitespace_act, 
+</I>&gt;<i> buffer_input&quot; ];
+</I>&gt;<i>
+</I>&gt;<i> =Austin
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dotty.png
+Type: image/png
+Size: 13767 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment.png">http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dot.png
+Type: image/png
+Size: 14523 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment-0001.png">http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment-0001.png</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001279.html">[ragel-users] Bug? Backslash-escapes not escaped enough in .dot	files?
+</A></li>
+	<LI>Next message: <A HREF="001281.html">[ragel-users] Bug? Backslash-escapes not escaped enough	in	.dotfiles?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1280">[ date ]</a>
+              <a href="thread.html#1280">[ thread ]</a>
+              <a href="subject.html#1280">[ subject ]</a>
+              <a href="author.html#1280">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

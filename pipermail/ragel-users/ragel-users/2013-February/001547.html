@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] A generic eof action from a ragel scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20generic%20eof%20action%20from%20a%20ragel%20scanner&In-Reply-To=%3C4F4FDE116B345144A888AD9C186FE3128AF69B%40aowmail1.dcv.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001548.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] A generic eof action from a ragel scanner</H1>
+    <B>gonzalo diethelm</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20A%20generic%20eof%20action%20from%20a%20ragel%20scanner&In-Reply-To=%3C4F4FDE116B345144A888AD9C186FE3128AF69B%40aowmail1.dcv.net%3E"
+       TITLE="[ragel-users] A generic eof action from a ragel scanner">gdiethelm at dcv.cl
+       </A><BR>
+    <I>Tue Feb 19 15:14:02 UTC 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001548.html">[ragel-users] ragel 6.8 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1547">[ date ]</a>
+              <a href="thread.html#1547">[ thread ]</a>
+              <a href="subject.html#1547">[ subject ]</a>
+              <a href="author.html#1547">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I am playing with a typical toy calculator written with ragel and lemon, in C. The scanner is defined like this:
+
+  main := |*
+    number =&gt; num_tok;
+    '('    =&gt; lparen_tok;
+    ')'    =&gt; rparen_tok;
+    '+'    =&gt; plus_tok;
+    '-'    =&gt; minus_tok;
+    '*'    =&gt; mul_tok;
+    '/'    =&gt; div_tok;
+    '^'    =&gt; pow_tok;
+    ws;
+  *|;
+
+Each of the *_tok actions calls the lemon-generated parser. For example:
+
+  action pow_tok    { CalcParser(parser, TOKEN_POW, 0); }
+  action num_tok    { CalcParser(parser, TOKEN_NUM, get_num(ts, te)); }
+
+The idea is to pass each argv[] character as a separate expression to compute. So this execution:
+
+./calc 2+3*4 7-5 &quot;2   +    4&quot;
+
+Should output three lines:
+14
+2
+6
+
+Since the lemon parser has to be informed about the EOF condition, what I am doing is manually informing the parser of this condition right when I have finished processing each one of the argv[] arguments:
+
+calc_exec(argv[i], strlen(argv[i]));
+...
+void calc_exec (const char* data, int len)
+{
+    const char* p = data;
+    const char* pe = data + len;  // Should this be len+1?
+    const char* eof = pe;
+
+    %% write exec;
+
+    /* Make sure we inform the parser we saw the whole input */
+    CalcParser(parser, 0, 0);
+}
+
+But what I would really like to do is to add a &quot;generic EOF action&quot; to the scanner, that issued this final call to the parser:
+
+  ??? %eof(CalcParser(parser, 0, 0);)
+
+I have not been able to found how to specify this &quot;generic EOF action&quot; to my ragel scanner. Is this even possible? Is it the right approach?
+
+Thanks for any help. And thanks for the great tool that ragel is.
+
+--
+Gonzalo Diethelm
+DCV Chile
+
+
+
+
+
+----------------------------------------- 
+Declaración de confidencialidad: Este Mensaje esta destinado para
+el uso de la o las personas o entidades a quien ha sido dirigido y
+puede contener información reservada y confidencial que no puede
+ser divulgada, difundida, ni aprovechada en forma alguna. El uso no
+autorizado de la información contenida en este correo podrá ser
+sancionado de conformidad con la ley chilena. 
+Si usted ha recibido este correo electrónico por error, le pedimos
+eliminarlo junto con los archivos adjuntos y avisar inmediatamente
+al remitente, respondiendo este mensaje. 
+
+&quot;Before printing this e-mail think if is really necesary&quot;.
+Disclosure: This Message is to be used by the individual,
+individuals or entities that it is addressed to and may include
+private and confidential information that may not be disclosed,
+made public nor used in any way at all. Unauthorized use of the
+information in this electronic mail message may be subject to the
+penalties set forth by Chilean law. 
+If you have received this electronic mail message in error, we ask
+you to destroy the message and its attached file(s) and to
+immediately notify the sender by answering this message. 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20130219/65caeb39/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20130219/65caeb39/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001548.html">[ragel-users] ragel 6.8 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1547">[ date ]</a>
+              <a href="thread.html#1547">[ thread ]</a>
+              <a href="subject.html#1547">[ subject ]</a>
+              <a href="author.html#1547">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

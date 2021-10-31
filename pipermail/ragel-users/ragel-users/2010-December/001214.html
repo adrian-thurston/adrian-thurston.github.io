@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Work On Binary datagrams
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Work%20On%20Binary%20datagrams&In-Reply-To=%3C4D0A5B9E.3080802%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001209.html">
+   <LINK REL="Next"  HREF="001216.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Work On Binary datagrams</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Work%20On%20Binary%20datagrams&In-Reply-To=%3C4D0A5B9E.3080802%40esentire.com%3E"
+       TITLE="[ragel-users] Work On Binary datagrams">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Thu Dec 16 18:34:06 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001209.html">[ragel-users] Work On Binary datagrams
+</A></li>
+        <LI>Next message: <A HREF="001216.html">[ragel-users] Work On Binary datagrams
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1214">[ date ]</a>
+              <a href="thread.html#1214">[ thread ]</a>
+              <a href="subject.html#1214">[ subject ]</a>
+              <a href="author.html#1214">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Right now there is no 'right' way. There are actually are many different 
+ways each with their own ups and downs. There is some work I want to do 
+on conditions to ease length processing (comes up at work a lot) and I'm 
+hoping to soon be able to prescribe a recommended way of dealing with 
+lengths that is general enough to apply to the majority of cases that I see.
+
+On 10-12-16 06:24 AM, Joseph Stewart wrote:
+&gt;<i> Adrian,
+</I>&gt;<i>
+</I>&gt;<i> Do you have any tips or small examples for dealing with lengths? While I
+</I>&gt;<i> have something that works, it doesn't feel right and I don't have the
+</I>&gt;<i> experience with Ragel to know if I'm doing this right.
+</I>&gt;<i>
+</I>&gt;<i> Below is a shell I've started to parse/validate binary chunks out of
+</I>&gt;<i> XML-like tags (BTW, I did not create the format... I'm just the victim).
+</I>&gt;<i> Eventually I need to parse data inside the Bin chunks.
+</I>&gt;<i>
+</I>&gt;<i> The graphviz output for this is so gigantic that I think I'm doing
+</I>&gt;<i> something fundamentally wrong.
+</I>&gt;<i>
+</I>&gt;<i> Suggestions are greatly appreciated!
+</I>&gt;<i>
+</I>&gt;<i> -joe
+</I>&gt;<i>
+</I>&gt;<i> --- code follows ---
+</I>&gt;<i>
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> /*
+</I>&gt;<i>
+</I>&gt;<i> chunks in file look like
+</I>&gt;<i>
+</I>&gt;<i> &lt;XRNDATA08192020001&gt;LenData&lt;/XRNDATA&gt;
+</I>&gt;<i> where &quot;08192&quot; is an ASCII type designator (can expect other types)
+</I>&gt;<i> where &quot;020001&quot; is an ASCII information field
+</I>&gt;<i> where Len is a 4-byte little endian length designator
+</I>&gt;<i> where Data is binary data of Len length
+</I>&gt;<i>
+</I>&gt;<i> */
+</I>&gt;<i>
+</I>&gt;<i> #define XRN 'X', 'R', 'N', 'D', 'A', 'T', 'A'
+</I>&gt;<i> #define T1 '0', '8', '1', '9', '2'
+</I>&gt;<i> #define T2 '0', '0', '0', '1', '6'
+</I>&gt;<i> #define T3 '0', '0', '0', '0', '8'
+</I>&gt;<i> #define T4 '0', '0', '0', '0', '1'
+</I>&gt;<i> #define I1 '0', '2', '0', '0', '0', '1'
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i> machine tds;
+</I>&gt;<i> write data;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> int main() {
+</I>&gt;<i> int len = 0;
+</I>&gt;<i> unsigned char buf[] = {
+</I>&gt;<i> '&lt;', XRN, T1, I1, '&gt;', 0, 0, 0, 5, 48,49,50,51,52, '&lt;', '/', XRN, '&gt;',
+</I>&gt;<i> '&lt;', XRN, T2, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+</I>&gt;<i> '&lt;', XRN, T3, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+</I>&gt;<i> '&lt;', XRN, T4, I1, '&gt;', 0, 0, 0, 1, 10, '&lt;', '/', XRN, '&gt;',
+</I>&gt;<i> '&lt;', XRN, T1, I1, '&gt;', 0, 0, 0, 0, '&lt;', '/', XRN, '&gt;',
+</I>&gt;<i> };
+</I>&gt;<i> int cs, r = 0;
+</I>&gt;<i> unsigned char *p = (unsigned char *)&buf;
+</I>&gt;<i> unsigned char *pe = p + sizeof(buf);
+</I>&gt;<i> printf(&quot;len=%d\n&quot;, len);
+</I>&gt;<i> %%{
+</I>&gt;<i> t1 = '08192' @{ printf(&quot;t1\n&quot;); };
+</I>&gt;<i> t2 = '00016' @{ printf(&quot;t2\n&quot;); };
+</I>&gt;<i> t3 = '00008' @{ printf(&quot;t3\n&quot;); };
+</I>&gt;<i> t4 = '00001' @{ printf(&quot;t4\n&quot;); };
+</I>&gt;<i> type = (t1 | t2 | t3 | t4);
+</I>&gt;<i> info = '020001';
+</I>&gt;<i> open = '&lt;XRNDATA' type info '&gt;' @{ printf(&quot;begin XRNDATA\n&quot;); len = 0; };
+</I>&gt;<i> len = extend{4} @{ printf(&quot;len = %d\n&quot;, (int)*p); len = (len*256) + (*p); };
+</I>&gt;<i> buffer = (extend when {len--})* @{ printf(&quot;[%d]:%d\n&quot;, len, *p); };
+</I>&gt;<i> close = '&lt;/XRNDATA&gt;' @{ printf(&quot;end XRNDATA\n&quot;); };
+</I>&gt;<i> expr = open len buffer close;
+</I>&gt;<i> main := expr*;
+</I>&gt;<i> write init;
+</I>&gt;<i> write exec;
+</I>&gt;<i> }%%
+</I>&gt;<i> return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Mon, Dec 6, 2010 at 1:16 PM, Adrian Thurston
+</I>&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">adrian.thurston at esentire.com</A> &lt;mailto:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">adrian.thurston at esentire.com</A>&gt;&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i>     I use ragel to parse binary protocols at work. Often, the most
+</I>&gt;<i>     difficult part is dealing with lengths, or counts of things. A good
+</I>&gt;<i>     example is the DNS protocol. There are several sections of N blocks
+</I>&gt;<i>     of questions and resource records items. Inside the blocks you must
+</I>&gt;<i>     also deal with lengths in names.
+</I>&gt;<i>
+</I>&gt;<i>     Unfortunately, there are not many open examples of parsing this way.
+</I>&gt;<i>     Start by looking in the manual. I would like to improve Ragel's
+</I>&gt;<i>     support for this kind of parsing.
+</I>&gt;<i>
+</I>&gt;<i>     -Adrian
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>     On 10-12-03 02:53 AM, Vitaly V. Ch wrote:
+</I>&gt;<i>
+</I>&gt;<i>         Hi!
+</I>&gt;<i>
+</I>&gt;<i>         I'm interested in any tips or examples of using ragel on binary
+</I>&gt;<i>         datagrams.
+</I>&gt;<i>
+</I>&gt;<i>         \\wbr Vitaly Chernooky
+</I>&gt;<i>
+</I>&gt;<i>         _______________________________________________
+</I>&gt;<i>         ragel-users mailing list
+</I>&gt;<i>         <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A> &lt;mailto:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>&gt;
+</I>&gt;<i>         <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>     _______________________________________________
+</I>&gt;<i>     ragel-users mailing list
+</I>&gt;<i>     <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A> &lt;mailto:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>&gt;
+</I>&gt;<i>     <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001209.html">[ragel-users] Work On Binary datagrams
+</A></li>
+	<LI>Next message: <A HREF="001216.html">[ragel-users] Work On Binary datagrams
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1214">[ date ]</a>
+              <a href="thread.html#1214">[ thread ]</a>
+              <a href="subject.html#1214">[ subject ]</a>
+              <a href="author.html#1214">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

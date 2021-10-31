@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Intermediate match wrongly assumed as valid
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Intermediate%20match%20wrongly%20assumed%20as%20valid&In-Reply-To=%3CCALiegf%3DOfWmDat1eiCq_CKQ6e5r%2BnC-FjR2yUCcLSuAPdPRncg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003651.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Intermediate match wrongly assumed as valid</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Intermediate%20match%20wrongly%20assumed%20as%20valid&In-Reply-To=%3CCALiegf%3DOfWmDat1eiCq_CKQ6e5r%2BnC-FjR2yUCcLSuAPdPRncg%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Intermediate match wrongly assumed as valid">ibc at aliax.net
+       </A><BR>
+    <I>Sun Mar  1 17:01:34 EST 2020</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="003651.html">[ragel-users] Intermediate match wrongly assumed as valid
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3652">[ date ]</a>
+              <a href="thread.html#3652">[ thread ]</a>
+              <a href="subject.html#3652">[ subject ]</a>
+              <a href="author.html#3652">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks a lot, Daniel. Very useful and nicely explained.
+
+On Sun, 1 Mar 2020 at 10:59, Daniel Beecham &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">daniel at beecham.se</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> The problem is that a finite state machine, having read the &quot;3&quot;, cannot know if the parser is &quot;done&quot; or not - only that it in a certain state. You have a couple of options that I know:
+</I>&gt;<i>
+</I>&gt;<i> * Add some &quot;end-of-string&quot; sentinel value (like a null terminator)
+</I>&gt;<i> * Use first_final instead of state transition actions
+</I>&gt;<i> * Use EOF actions
+</I>&gt;<i>
+</I>&gt;<i> For the 'first_final' method, you would essentially do something like what is described in the ragel guide:
+</I>&gt;<i>
+</I>&gt;<i> parser_parse(&amp;parser, str, strlen(str));
+</I>&gt;<i> if ( parser.cs &lt; %%{ write first_final; }%% ) {
+</I>&gt;<i>   printf(&quot;parsing failed\n&quot;);
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> The downside with this is that partial reads are no longer supported, e.g. when
+</I>&gt;<i> * reading larger data sets, like reading network logs from a file
+</I>&gt;<i> * reading data over a network or some serial communication
+</I>&gt;<i>
+</I>&gt;<i> a normal loop over these might look like
+</I>&gt;<i>
+</I>&gt;<i> char buf[BUFLEN];
+</I>&gt;<i> bytes_read = read(fd, &amp;buf, BUFLEN);
+</I>&gt;<i> while (bytes_read &gt; 0) {
+</I>&gt;<i>   parser_parse(&amp;parser, buf, bytes_read);
+</I>&gt;<i>   bytes_read = read(fd, &amp;buf, BUFLEN);
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> and a certain read might have read exactly 3 characters, &quot;123&quot;, but you don't know if the next read will get you &quot;456789&quot; or EOF - but &quot;cs&quot; is in a final state.
+</I>&gt;<i>
+</I>&gt;<i> In the first method, you would define a parser like
+</I>&gt;<i>
+</I>&gt;<i> foo = ('123' 0) | ('12345' 0)
+</I>&gt;<i>
+</I>&gt;<i> then the finishing state action would occur on the null terminator. You would call your parser like
+</I>&gt;<i>
+</I>&gt;<i> parser_parse(&amp;parser, str, strlen(str)+1);
+</I>&gt;<i>
+</I>&gt;<i> or, while over a network, you could do
+</I>&gt;<i>
+</I>&gt;<i> char buf[BUFLEN];
+</I>&gt;<i> bytes_read = read(fd, &amp;buf, BUFLEN);
+</I>&gt;<i> while (bytes_read &gt; 0) {
+</I>&gt;<i>   parser_parse(&amp;parser, buf, bytes_read);
+</I>&gt;<i>   bytes_read = read(fd, &amp;buf, BUFLEN):
+</I>&gt;<i> }
+</I>&gt;<i> if (0 == bytes_read) {
+</I>&gt;<i>   // read EOF
+</I>&gt;<i>   parser_parse(&amp;parser, (char[]){0}, 1);
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> the downside is that adding null terminators to the parser reduces the extensibility of the parser; it's harder to add the parser as a &quot;sub parser&quot; of another parser.
+</I>&gt;<i>
+</I>&gt;<i> EOF actions are run when 'p == pe == eof'. These are essentially the same as adding a null terminator to the parser since you need to know in advance that you've hit the EOF - but you move the action from a final state transition to an EOF action. I've not really used eof actions that much because I find them slightly wierd to use, but someone can fill in on the details.
+</I>&gt;<i>
+</I>&gt;<i> On Sat, Feb 29, 2020 at 1:05 AM Iñaki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ibc at aliax.net</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> After many years using my Ragel based IPv6 parser, I've found a bug. I
+</I>&gt;&gt;<i> think I've also understood the problem and simplified the code as much
+</I>&gt;&gt;<i> as possible.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Let's assume this simple grammar:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --------------------
+</I>&gt;&gt;<i> foo = &quot;12345&quot; | &quot;123&quot;;
+</I>&gt;&gt;<i> -------------------
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The parser.rl has a function that receives a char* data pointer and a
+</I>&gt;&gt;<i> size_t len. It includes the Ragel %% lines as usual. At the end of the
+</I>&gt;&gt;<i> function it checks:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --------------------
+</I>&gt;&gt;<i> // Ensure that the parsing has consumed all the given length.
+</I>&gt;&gt;<i> if (len == p - data)
+</I>&gt;&gt;<i>   return true;
+</I>&gt;&gt;<i> else
+</I>&gt;&gt;<i>   return false;
+</I>&gt;&gt;<i> --------------------
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The problem is that, when the input is &quot;1234&quot;, the parser returns true.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I think I understand the problem:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - The parser first matches &quot;123&quot; which is valid.
+</I>&gt;&gt;<i> - It continues and matches &quot;1234&quot;.
+</I>&gt;&gt;<i> - At this time it has consumed 4 chars.
+</I>&gt;&gt;<i> - It exits now because there is no more chars in the input.
+</I>&gt;&gt;<i> - However it did match &quot;123&quot; so the Ragel action was executed.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> May I know how to avoid this problem and make the parser function
+</I>&gt;&gt;<i> return false in this case?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks a lot.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i> Iñaki Baz Castillo
+</I>&gt;&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ibc at aliax.net</A>&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+
+
+-- 
+Iñaki Baz Castillo
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ibc at aliax.net</A>&gt;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="003651.html">[ragel-users] Intermediate match wrongly assumed as valid
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3652">[ date ]</a>
+              <a href="thread.html#3652">[ thread ]</a>
+              <a href="subject.html#3652">[ subject ]</a>
+              <a href="author.html#3652">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

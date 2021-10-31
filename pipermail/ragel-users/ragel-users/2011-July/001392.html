@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Detect keywords with a ragel scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Detect%20keywords%20with%20a%20ragel%20scanner&In-Reply-To=%3CCA%2B5xd7DZcpUHHXVvC_RvWBXzdiHmAxxQd1cixFF3OLrc5bT6NQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001388.html">
+   <LINK REL="Next"  HREF="001386.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Detect keywords with a ragel scanner</H1>
+    <B>Alec Tica</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Detect%20keywords%20with%20a%20ragel%20scanner&In-Reply-To=%3CCA%2B5xd7DZcpUHHXVvC_RvWBXzdiHmAxxQd1cixFF3OLrc5bT6NQ%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Detect keywords with a ragel scanner">alexandru.tica at gmail.com
+       </A><BR>
+    <I>Mon Jul 18 18:16:37 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001388.html">[ragel-users] Detect keywords with a ragel scanner
+</A></li>
+        <LI>Next message: <A HREF="001386.html">[ragel-users] Go code generations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1392">[ date ]</a>
+              <a href="thread.html#1392">[ thread ]</a>
+              <a href="subject.html#1392">[ subject ]</a>
+              <a href="author.html#1392">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks a lot Adrian! It's working beautifully!
+
+On Mon, Jul 18, 2011 at 4:49 AM,  &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurston at complang.org</A>&gt; wrote:
+&gt;<i> Hi Talek, what you should do is include the tail items in the scanner and add a pattern that covers any word that is not 'select'. If you specify  'select' ahead of the generic pattern it will be matched in favour of the generic pattern on only that word.
+</I>&gt;<i>
+</I>&gt;<i> Adrian
+</I>&gt;<i> -----Original Message-----
+</I>&gt;<i> From: Alec Tica &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">alexandru.tica at gmail.com</A>&gt;
+</I>&gt;<i> Sender: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-bounces at complang.org</A>
+</I>&gt;<i> Date: Fri, 15 Jul 2011 00:20:42
+</I>&gt;<i> To: &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>&gt;
+</I>&gt;<i> Reply-To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> Subject: [ragel-users] Detect keywords with a ragel scanner
+</I>&gt;<i>
+</I>&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I'm new to Ragel and I'm trying to figure out how to solve,
+</I>&gt;<i> apparently, a very simple problem. Let's say I have the following
+</I>&gt;<i> text:
+</I>&gt;<i>
+</I>&gt;<i> &quot;select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select&quot;
+</I>&gt;<i>
+</I>&gt;<i> I want to detect all &quot;select&quot; keywords using a scanner but taking into
+</I>&gt;<i> consideration the word boundaries. &quot;select&quot; is a keyword only if:
+</I>&gt;<i>
+</I>&gt;<i> 1. starts at: the very beginning of the text or it has a whitespace
+</I>&gt;<i> before or a comment or a statement separator (;)
+</I>&gt;<i> 2. ends at: the very end of the text or it has a whitespace after or a
+</I>&gt;<i> comment or a statement separator (;)
+</I>&gt;<i> 3. is not within quotes
+</I>&gt;<i> 4. is not part of a comment
+</I>&gt;<i>
+</I>&gt;<i> Till now I have:
+</I>&gt;<i>
+</I>&gt;<i> &lt;code&gt;
+</I>&gt;<i> %%{
+</I>&gt;<i>  machine example;
+</I>&gt;<i>
+</I>&gt;<i>  action is_eof {
+</I>&gt;<i>    true if p == eof - 1
+</I>&gt;<i>  }
+</I>&gt;<i>
+</I>&gt;<i>  # eof
+</I>&gt;<i>  EOF = zlen when is_eof;
+</I>&gt;<i>
+</I>&gt;<i>  # strings
+</I>&gt;<i>  squoted_string = ['] ( (any - [''])** ) ['];
+</I>&gt;<i>  dquoted_string = '&quot;' ( any )* :&gt;&gt; '&quot;';
+</I>&gt;<i>
+</I>&gt;<i>  # comments
+</I>&gt;<i>  ml_comment = '/*' ( any )* :&gt;&gt; '*/';
+</I>&gt;<i>  sl_comment = '--' ( any )* :&gt;&gt; ('\n' | EOF);
+</I>&gt;<i>  comment = ml_comment | sl_comment;
+</I>&gt;<i>
+</I>&gt;<i>  tail = space | comment | ';' | EOF;
+</I>&gt;<i>
+</I>&gt;<i>  # keyword
+</I>&gt;<i>  select = 'select' . tail;
+</I>&gt;<i>
+</I>&gt;<i>  main := |*
+</I>&gt;<i>    squoted_string;
+</I>&gt;<i>    dquoted_string;
+</I>&gt;<i>    comment;
+</I>&gt;<i>    select =&gt; { puts &quot;found at #{ts}-#{te}&quot; };
+</I>&gt;<i>    any;
+</I>&gt;<i>  *|;
+</I>&gt;<i>
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> %% write data;
+</I>&gt;<i>
+</I>&gt;<i> data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+</I>&gt;<i> from dual;select'
+</I>&gt;<i> # convert the provided string in a stream of chars
+</I>&gt;<i> stream_data = data.unpack(&quot;c*&quot;) if(data.is_a?(String))
+</I>&gt;<i> eof = stream_data.length
+</I>&gt;<i>
+</I>&gt;<i> %% write init;
+</I>&gt;<i> %% write exec;
+</I>&gt;<i> &lt;/code&gt;
+</I>&gt;<i>
+</I>&gt;<i> Of course, the above scanner incorrectly matches the &quot;unselect&quot; word
+</I>&gt;<i> from the data. Anyway, I feel that I'm not on the right track
+</I>&gt;<i> therefore I'd like to ask for your advice.
+</I>&gt;<i>
+</I>&gt;<i> Many thanks in advance!
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> talek
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001388.html">[ragel-users] Detect keywords with a ragel scanner
+</A></li>
+	<LI>Next message: <A HREF="001386.html">[ragel-users] Go code generations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1392">[ date ]</a>
+              <a href="thread.html#1392">[ thread ]</a>
+              <a href="subject.html#1392">[ subject ]</a>
+              <a href="author.html#1392">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

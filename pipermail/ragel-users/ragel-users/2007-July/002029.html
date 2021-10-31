@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707042008g19ed44daq7b3174cca9972243%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002028.html">
+   <LINK REL="Next"  HREF="002030.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707042008g19ed44daq7b3174cca9972243%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Inline scanner">cmantu... at gmail.com
+       </A><BR>
+    <I>Thu Jul  5 03:08:36 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002028.html">[ragel-users] Re: Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="002030.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2029">[ date ]</a>
+              <a href="thread.html#2029">[ thread ]</a>
+              <a href="subject.html#2029">[ subject ]</a>
+              <a href="author.html#2029">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian!
+
+Thanks for the idea and code!
+
+I was now able to reduce ragel's memory usage to 330Mbytes with 24212
+states. Compilation time is now roughly 2m45s. I'm still adding stuff
+so I don't know how things will progress.
+
+In any case, is there any particular reason you resist the
+implementation of a &quot;longest match with backtracking&quot; feature? I am
+asking because this feature, as you know, is the default in pretty
+much any regex lib/app out there. I still think it would be useful in
+ragel, without the need to match and call &quot;external&quot; scanners (which
+tends to break the continuity of the grammar.)
+
+Thanks!
+
+Carlos
+
+On 7/4/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hey Carlos, I think this does what you want. It moves the processing of
+</I>&gt;<i> whitespace out of the main machine and should reduce the number of states.
+</I>&gt;<i>
+</I>&gt;<i> When a whitespace character is seen there is a call to a scanner which
+</I>&gt;<i> consumes whitespace. When the whitespace scanner sees non-whitespace it
+</I>&gt;<i> holds it and returns. When it sees the end-of-header pattern ('\n' with
+</I>&gt;<i> no continuation) it holds the '\n' and returns. This held '\n' is then
+</I>&gt;<i> read by the end of header string and the header terminates.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i>  Adrian
+</I>&gt;<i>
+</I>&gt;<i> #include &lt;iostream&gt;
+</I>&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> using namespace std;
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i>         machine sipws;
+</I>&gt;<i>         write data;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> void sipws( char *str )
+</I>&gt;<i> {
+</I>&gt;<i>         char *p = str, *pe = str + strlen(str) + 1;
+</I>&gt;<i>         int cs;
+</I>&gt;<i>         int stack[1];
+</I>&gt;<i>         int top, act;
+</I>&gt;<i>         char *tokstart, *tokend;
+</I>&gt;<i>
+</I>&gt;<i>         %%{
+</I>&gt;<i>                 ws_scan := |*
+</I>&gt;<i>                         # Consume spaces.
+</I>&gt;<i>                         [ \t]+;
+</I>&gt;<i>
+</I>&gt;<i>                         # Consume line continuations
+</I>&gt;<i>                         '\r'? '\n' [ \t]+;
+</I>&gt;<i>
+</I>&gt;<i>                         # An end of header. Holds the \n so the end pattern can match.
+</I>&gt;<i>                         '\r'? '\n' =&gt; {
+</I>&gt;<i>                                 cerr &lt;&lt; &quot;returning from ws (done) &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;<i>                                 fhold; fret;
+</I>&gt;<i>                         };
+</I>&gt;<i>
+</I>&gt;<i>                         # Any other character, hold it and return. */
+</I>&gt;<i>                         any =&gt; {
+</I>&gt;<i>                                 cerr &lt;&lt; &quot;returning from ws (cont)&quot; &lt;&lt; endl;
+</I>&gt;<i>                                 fhold; fret;
+</I>&gt;<i>                         };
+</I>&gt;<i>                 *|;
+</I>&gt;<i>
+</I>&gt;<i>                 # A word is any non-whitespace.
+</I>&gt;<i>                 word = [^ \t\r\n]+;
+</I>&gt;<i>
+</I>&gt;<i>                 # Whitespace machine: holds the character and jumps to the whitespace
+</I>&gt;<i>                 # scanner for processing.
+</I>&gt;<i>                 ws = [ \t\r\n] @{
+</I>&gt;<i>                         cerr &lt;&lt; &quot;going to whitespace &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;<i>                         fhold; fcall ws_scan;
+</I>&gt;<i>                 };
+</I>&gt;<i>
+</I>&gt;<i>                 # A newline immediately after coming back from the whitespace scanner
+</I>&gt;<i>                 # signifies the end of a header.
+</I>&gt;<i>                 ws_end = ws '\n';
+</I>&gt;<i>
+</I>&gt;<i>                 header = [a-z]+ ':' ws? word (ws word)* ws_end;
+</I>&gt;<i>
+</I>&gt;<i>                 main := header+ 0;
+</I>&gt;<i>
+</I>&gt;<i>                 # Initialize and execute.
+</I>&gt;<i>                 write init;
+</I>&gt;<i>                 write exec;
+</I>&gt;<i>         }%%
+</I>&gt;<i>
+</I>&gt;<i>         if ( cs &lt; sipws_first_final )
+</I>&gt;<i>                 cerr &lt;&lt; &quot;sipws: there was an error at position &quot; &lt;&lt; (p-str) &lt;&lt; endl;
+</I>&gt;<i> };
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> #define BUFSIZE 1024
+</I>&gt;<i>
+</I>&gt;<i> int main()
+</I>&gt;<i> {
+</I>&gt;<i>         sipws(
+</I>&gt;<i>                 &quot;hr: asdf ljfa ljd\n&quot;
+</I>&gt;<i>                 &quot;       cont\n&quot;
+</I>&gt;<i>                 &quot;new:asiei\n&quot;
+</I>&gt;<i>         );
+</I>&gt;<i>         return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002028.html">[ragel-users] Re: Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="002030.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2029">[ date ]</a>
+              <a href="thread.html#2029">[ thread ]</a>
+              <a href="subject.html#2029">[ subject ]</a>
+              <a href="author.html#2029">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

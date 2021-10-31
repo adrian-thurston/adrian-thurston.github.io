@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Nested machines to make a HSM?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Nested%20machines%20to%20make%20a%20HSM%3F&In-Reply-To=%3C95049573-B3A4-42BF-8FD3-EDD46AFB87D1%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002450.html">
+   <LINK REL="Next"  HREF="002452.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Nested machines to make a HSM?</H1>
+    <B>Chuck Remes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Nested%20machines%20to%20make%20a%20HSM%3F&In-Reply-To=%3C95049573-B3A4-42BF-8FD3-EDD46AFB87D1%40mac.com%3E"
+       TITLE="[ragel-users] Re: Nested machines to make a HSM?">cremes.devl... at mac.com
+       </A><BR>
+    <I>Sat Jul 12 10:42:57 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002450.html">[ragel-users] Nested machines to make a HSM?
+</A></li>
+        <LI>Next message: <A HREF="002452.html">[ragel-users] Nested machines to make a HSM?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2451">[ date ]</a>
+              <a href="thread.html#2451">[ thread ]</a>
+              <a href="subject.html#2451">[ subject ]</a>
+              <a href="author.html#2451">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On Jul 11, 2008, at 1:08 PM, B. Estrade wrote:
+
+&gt;<i>
+</I>&gt;<i> On Fri, Jul 11, 2008 at 12:16:26PM -0500, Chuck Remes wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm currently reading &quot;Practical Statecharts in C/C++&quot; by Miro Samek
+</I>&gt;&gt;<i> which was suggested on this list some months ago. It is blowing my  
+</I>&gt;&gt;<i> mind.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm curious to know if it is possible to use ragel to nest multiple
+</I>&gt;&gt;<i> machines so that behavior is inherited as described in that book.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> If you haven't read the book, I'll give a quickie explanation.  
+</I>&gt;&gt;<i> Imagine
+</I>&gt;&gt;<i> an oven that has 4 states:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Heating
+</I>&gt;&gt;<i> 	Baking
+</I>&gt;&gt;<i> 	Toasting
+</I>&gt;&gt;<i> Door Open
+</I>&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The Baking and Toasting states are substates of the Heating  
+</I>&gt;&gt;<i> superstate
+</I>&gt;&gt;<i> because they exhibit different behavior though both require the
+</I>&gt;&gt;<i> heating element to be on. If the machine is in the Toasting state and
+</I>&gt;&gt;<i> it receives a door opened event, it transitions to Door Open.  
+</I>&gt;&gt;<i> Toasting
+</I>&gt;&gt;<i> has no exit action of its own; it inherits an exit action
+</I>&gt;&gt;<i> (TurnOffHeatingElement) from its superstate, Heating.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So, much like we have encapsulation and inheritance in OOP, a
+</I>&gt;&gt;<i> hierarchical state machine allows substates to inherit behavior from
+</I>&gt;&gt;<i> superstates. Here endeth the quickie overview. I hope it made some
+</I>&gt;&gt;<i> sense.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Is this kind of inheritance (or chain of responsibility-ish) behavior
+</I>&gt;&gt;<i> possible in ragel? If so, how would one achieve it?
+</I>&gt;<i>
+</I>&gt;<i> I admittedly don't know how to do this in Ragel (it's been a while  
+</I>&gt;<i> since I played with it), but you can set up the heirarchy from a  
+</I>&gt;<i> symbol/transition view using a regular expression.
+</I>&gt;<i>
+</I>&gt;<i> So, if you look at it as a regex, it is something like:
+</I>&gt;<i>
+</I>&gt;<i> H(B+T)D + D
+</I>&gt;<i>
+</I>&gt;<i> This accepts:
+</I>&gt;<i>
+</I>&gt;<i> HBD
+</I>&gt;<i> HTD
+</I>&gt;<i> D
+</I>&gt;<i>
+</I>&gt;<i> Of course, you have to define what the valid order of things might  
+</I>&gt;<i> be, otherwise you could get something super general like:
+</I>&gt;<i>
+</I>&gt;<i> ((H(B+T))*D)*
+</I>
+That's an interesting idea. I've played with it a bit but can't seem  
+to get it to work in anything other than the simplest cases. Plus, the  
+regex syntax isn't well suited for doing this kind of state chart  
+translation. Using the state chart syntax with epsilon transitions  
+would be ideal.
+
+It looks like the fundamental issue with ragel is its inability for a  
+nested state chart block to transition to an outer/parent label; it  
+can only reference labels in its own scope or lower.
+
+No big deal. I'm going to take some time today to hack out a ruby  
+version of Samek's behavioral inheritance meta-pattern. Ruby's (or  
+python's or javascript's or ...) dynamic typing will clean up a lot of  
+the nasty &amp; ugly casting he did in the C and C++ versions. If anyone  
+is interested I could post some code here (or release a gem if it  
+works well).
+
+cr
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002450.html">[ragel-users] Nested machines to make a HSM?
+</A></li>
+	<LI>Next message: <A HREF="002452.html">[ragel-users] Nested machines to make a HSM?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2451">[ date ]</a>
+              <a href="thread.html#2451">[ thread ]</a>
+              <a href="subject.html#2451">[ subject ]</a>
+              <a href="author.html#2451">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

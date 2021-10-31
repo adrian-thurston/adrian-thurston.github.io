@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Scanners%20inside%20of%20scanners%3F%20%20A%20better%20way%20to%20avoid%20conflicts%3F&In-Reply-To=%3C33313B35-28EF-4210-8A7A-0762654B9F10%40atlasocean.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000654.html">
+   <LINK REL="Next"  HREF="002419.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?</H1>
+    <B>Erich Ocean</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Scanners%20inside%20of%20scanners%3F%20%20A%20better%20way%20to%20avoid%20conflicts%3F&In-Reply-To=%3C33313B35-28EF-4210-8A7A-0762654B9F10%40atlasocean.com%3E"
+       TITLE="[ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?">er... at atlasocean.com
+       </A><BR>
+    <I>Tue Jun 17 05:04:31 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000654.html">Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+        <LI>Next message: <A HREF="002419.html">[ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2418">[ date ]</a>
+              <a href="thread.html#2418">[ thread ]</a>
+              <a href="subject.html#2418">[ subject ]</a>
+              <a href="author.html#2418">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jason,
+
+Basically, you need one-token lookahead for that, which a straight  
+regex can't do. You might be able to use manual state transitions, but  
+it's easier to just separate the logic out into another function.
+
+For example, you could capture the inner contents of the emphasized  
+string into a buffer and then call into a C function where you can run  
+the three (Ragel) machines in sequence, in the priority order you've  
+set. Use the first one that works and return into your original  
+scanner machine/function. Order them longest-match-first. :-)
+
+Best, Erich
+
+On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+
+&gt;<i> In RedCloth, we have a problem where an _emphasized_ bit of text can  
+</I>&gt;<i> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a  
+</I>&gt;<i> class or id if the whole emphasis is in parentheses _(practically  
+</I>&gt;<i> speaking)_.  Consider this example (simplified):
+</I>&gt;<i>
+</I>&gt;<i> in: &quot;before _(in parens)_ after&quot;
+</I>&gt;<i> expected: &quot;&lt;p&gt;before &lt;em&gt;(in parens)&lt;/em&gt; after&lt;/p&gt;&quot;
+</I>&gt;<i> but was: &quot;&lt;p&gt;before &lt;em class=\&quot;in parens\&quot;&gt;in parens)&lt;/em&gt; after&lt;/p&gt;&quot;
+</I>&gt;<i> It simultaneously pursues the possibilities that the parenthesized  
+</I>&gt;<i> text is the class and that it's just regular parenthesized text  
+</I>&gt;<i> inside the em.  When the class possibility doesn't work out, the  
+</I>&gt;<i> final state is the regular text part but the class has already been  
+</I>&gt;<i> captured.
+</I>&gt;<i>
+</I>&gt;<i> C = &quot;(&quot; ( [^)#]+ &gt;A %{ STORE(class) } )? (&quot;#&quot; [^)]+ &gt;A % 
+</I>&gt;<i> {STORE(id)} )? &quot;)&quot;
+</I>&gt;<i> mtext = ( chars (mspace chars)* ) ;
+</I>&gt;<i> em = &quot;_&quot; &gt;X C? mtext &gt;A %T :&gt; &quot;_&quot; ;
+</I>&gt;<i> # The &gt;X resets the register from the last match, &gt;A registers the  
+</I>&gt;<i> beginning of a string and the STORE saves it away.
+</I>&gt;<i>
+</I>&gt;<i> I tried having the class info get written to a buffer that was then  
+</I>&gt;<i> captured with a leaving action, which works for the class part, but  
+</I>&gt;<i> I again run into the same problem with capturing the text because  
+</I>&gt;<i> the right side of the union matches also, so it captures too much  
+</I>&gt;<i> text.  Whichever side of the vertical pipe writes last, wins.
+</I>&gt;<i>
+</I>&gt;<i> C = &quot;(&quot; ( [^)#]+ &gt;A %{ STORE(class_buf) } )? (&quot;#&quot; [^)]+ &gt;A % 
+</I>&gt;<i> {STORE(id_buf)} )? &quot;)&quot;
+</I>&gt;<i> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext &gt;A %{STORE(text)} |  
+</I>&gt;<i> mtext &gt;B %{ STORE_B(text); });
+</I>&gt;<i> # SET_ATTRIBUTES copies the attributes from their buffers and stores  
+</I>&gt;<i> them where they belong.
+</I>&gt;<i>
+</I>&gt;<i> results in...
+</I>&gt;<i> expected: &quot;&lt;p&gt;&lt;span class=\&quot;myclass\&quot;&gt;SPAN&lt;/span&gt;&lt;/p&gt;&quot;
+</I>&gt;<i> but was: &quot;&lt;p&gt;&lt;span class=\&quot;myclass\&quot;&gt;(myclass)SPAN&lt;/span&gt;&lt;/p&gt;&quot;
+</I>&gt;<i>
+</I>&gt;<i> Really what I want is for it to try the first pattern (with the C)  
+</I>&gt;<i> and, if that fails, try the second (the plain ol' mtext).  Sounds  
+</I>&gt;<i> like a scanner to me.  Problem is, I'm already inside a scanner, so  
+</I>&gt;<i> it won't let me call a scanner from within a pattern.
+</I>&gt;<i>
+</I>&gt;<i> Got any ideas?
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000654.html">Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+	<LI>Next message: <A HREF="002419.html">[ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2418">[ date ]</a>
+              <a href="thread.html#2418">[ thread ]</a>
+              <a href="subject.html#2418">[ subject ]</a>
+              <a href="author.html#2418">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

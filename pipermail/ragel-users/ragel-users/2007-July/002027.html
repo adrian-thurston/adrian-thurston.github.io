@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707011317i603dd0d5rd63c024393ba56de%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002026.html">
+   <LINK REL="Next"  HREF="002028.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707011317i603dd0d5rd63c024393ba56de%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Inline scanner">cmantu... at gmail.com
+       </A><BR>
+    <I>Sun Jul  1 20:17:52 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002026.html">[ragel-users] Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="002028.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2027">[ date ]</a>
+              <a href="thread.html#2027">[ thread ]</a>
+              <a href="subject.html#2027">[ subject ]</a>
+              <a href="author.html#2027">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Adrian,
+
+I have been doing a SIP parser using ragel. The main practical problem
+I encountered, when using ragel to ijmplement the SIP parser, has to
+do with spaces.
+
+In SIP, a space can be defined as:
+
+sp = ( ( &quot;\r&quot;? &quot;\n&quot; )? [ \t] )+;
+
+On the other hand, a CRLF can be defined as
+
+crlf = &quot;\r&quot;? &quot;\n&quot;;
+
+In many case, we have lines that may end up as:
+
+line = &quot;start&quot; whatever sp? crlf;
+
+with:
+
+whatever = ( sp? something)*
+
+Now, without priorities, the thing just don't work because of the
+bactracking necessary to resolve between a sp and a crlf. Also,
+without priorities, whatever ends up being evaluated several times
+because something might start with spaces (or not). With priorities, I
+was able to make many of these things work but the numbers of states
+just explodes beyond belief. The problem is that is takes 30 minutes
+to compile each time I make a modification and I am not done with all
+the SIP rules yet.
+
+The bottom line is that the SIP grammar is tough. Ragel has a good
+shot at implementing the thing but the pure FSM approach just doesn't
+cut it. On the other hand, because inline longest match scanners
+aren't available, one has to resort to ugly tricks to call external
+scanners.
+
+How would one do the above example with an inline scanner?
+
+sp_optional = |*
+
+  ( ( &quot;\r&quot;? &quot;\n&quot; )? [ \t] )* { fret; };
+
+*|;
+
+line = &quot;start&quot; whatever sp_optional crlf;
+
+whatever = ( sp_optional something)*
+
+The obvious advantage in this case is that the longest match feature
+of the scanner will eliminate the need for priorities and FSM
+backtracking; therefore, I posit, the FSM would be simpler and it
+wouldn't take 30 minutes to compile as of now! :)
+
+I'll leave the capture feature for a subsequent email.
+
+Thanks!
+
+Carlos
+
+
+
+On 7/1/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hi Carlos,
+</I>&gt;<i>
+</I>&gt;<i> Yeah, I remember that conversation. I thought about those issues and a
+</I>&gt;<i> clear design with good value and a nice implementation never became
+</I>&gt;<i> apparent to me. Since discussions didn't prove fruitful last time I
+</I>&gt;<i> think a mockup would be really helpful to hash out the idea. An example
+</I>&gt;<i> of the new syntax used to solve a real problem paired with the an
+</I>&gt;<i> implementation using the existing syntax (the classic before and after)
+</I>&gt;<i> would really make things clear.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i>  Adrian
+</I>&gt;<i>
+</I>&gt;<i> Carlos Antunes wrote:
+</I>&gt;<i> &gt; Hi Adrian,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; It's been a while...
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; It's good to know you are still supporting Ragel. With that being
+</I>&gt;<i> &gt; said, is there any chance of having &quot;inline scanner&quot; functionality
+</I>&gt;<i> &gt; added? We discussed this quite some time ago. The idea is to be have a
+</I>&gt;<i> &gt; &quot;longest match with capture&quot; of start and stop of the match inline
+</I>&gt;<i> &gt; instead of having to rely on external scanners.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Alternatively, what about the ability to automatically jump from a
+</I>&gt;<i> &gt; state to a scanner without needing a match followed by an fcall?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thanks!
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Carlos
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002026.html">[ragel-users] Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="002028.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2027">[ date ]</a>
+              <a href="thread.html#2027">[ thread ]</a>
+              <a href="subject.html#2027">[ subject ]</a>
+              <a href="author.html#2027">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

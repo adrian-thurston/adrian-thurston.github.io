@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] What is a good pattern for reentering parser and	limiting repetitions?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20What%20is%20a%20good%20pattern%20for%20reentering%20parser%20and%0A%09limiting%20repetitions%3F&In-Reply-To=%3CCAAGHsvAe3878WKEjy0LUdiiQ5Vr7E9fJ%3D3mFvCqg4sRXh5yfhQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001539.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] What is a good pattern for reentering parser and	limiting repetitions?</H1>
+    <B>Daniel Janzon</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20What%20is%20a%20good%20pattern%20for%20reentering%20parser%20and%0A%09limiting%20repetitions%3F&In-Reply-To=%3CCAAGHsvAe3878WKEjy0LUdiiQ5Vr7E9fJ%3D3mFvCqg4sRXh5yfhQ%40mail.gmail.com%3E"
+       TITLE="[ragel-users] What is a good pattern for reentering parser and	limiting repetitions?">janzon at gmail.com
+       </A><BR>
+    <I>Tue May  1 21:07:00 UTC 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001539.html">[ragel-users] Problem building Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1538">[ date ]</a>
+              <a href="thread.html#1538">[ thread ]</a>
+              <a href="subject.html#1538">[ subject ]</a>
+              <a href="author.html#1538">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Guys,
+
+I'd like to write a parser that can advance a little bit at a time as
+input becomes available, with no need to look back. I came up
+with the code below to test that. It's just a machine that must
+read at least on 'a' and then at least one 'b'. Does it look like a
+good pattern for this? I just save cs and set it againt when I come
+back the next time. I guess the &quot;nocs&quot; option is not needed,
+but does no harm either.
+
+I also wonder what's a good way to limit repetitions. In the code
+below, the buffer &quot;result&quot; could be overflowed. Either I build it
+into the machine somehow (how?) or I need to check the buffer
+limit for each byte in the action. I assume there must be a
+standard way to do it but I couldn't find anything useful in the
+manual.
+
+All the best,
+Daniel Janzon
+
+
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+%%{
+  machine testreenter;
+  write data;
+}%%
+
+struct parser
+{
+  char result[1024];
+  int offset;
+  int state;
+};
+
+int parse(char *str, int len, struct parser *parser)
+{
+  char *p=str, *pe=str+len;
+  int cs;
+
+  %%{
+    action character { parser-&gt;result[parser-&gt;offset++] = *fpc; }
+    main := (('a'+ 'b'+) $character);
+    write init nocs;
+  }%%
+
+  cs = parser-&gt;state;
+
+  %%{
+    write exec;
+  }%%
+  parser-&gt;state = cs;
+}
+
+int main()
+{
+  char str1[] = &quot;aaa&quot;;
+  char str2[] = &quot;bbb&quot;;
+  struct parser parser;
+  memset(&amp;parser, 0, sizeof(struct parser));
+  parser.state = testreenter_start;
+
+  parse(str1, strlen(str1), &amp;parser);
+  parse(str2, strlen(str2), &amp;parser);
+
+  printf(&quot;result is '%s'\n&quot;, parser.result);
+}
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001539.html">[ragel-users] Problem building Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1538">[ date ]</a>
+              <a href="thread.html#1538">[ thread ]</a>
+              <a href="subject.html#1538">[ subject ]</a>
+              <a href="author.html#1538">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

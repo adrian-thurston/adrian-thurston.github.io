@@ -1,0 +1,81 @@
+<tt>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;Now&nbsp;I’m&nbsp;using&nbsp;ragel&nbsp;to&nbsp;build&nbsp;a&nbsp;http&nbsp;parser.&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;One&nbsp;requirement&nbsp;of&nbsp;the&nbsp;parser&nbsp;is&nbsp;to&nbsp;parse<br>
+all&nbsp;the&nbsp;http&nbsp;headers,&nbsp;which&nbsp;would&nbsp;be&nbsp;used&nbsp;by&nbsp;another&nbsp;module.&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;For&nbsp;some&nbsp;common&nbsp;headers,&nbsp;the&nbsp;header&nbsp;value<br>
+would&nbsp;be&nbsp;parsed&nbsp;directly&nbsp;by&nbsp;ragel.&nbsp;&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;For&nbsp;other&nbsp;headers,&nbsp;only&nbsp;mark&nbsp;the&nbsp;header<br>
+name&nbsp;and&nbsp;value.&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;Here&nbsp;is&nbsp;my&nbsp;ragel&nbsp;script:&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt; &lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;message_header&nbsp;=(&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;                 <br>
+(&quot;Content-Length&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;digit+&nbsp;$on_content_length)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Transfer-Encoding&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;(&quot;Chunked&quot;i&nbsp;%<br>
+{request-&gt;transfer_encoding&nbsp;=&nbsp;HTTP_TE_CHUNKED;}&nbsp;|&nbsp;any*&nbsp;&gt;&nbsp;start_TE&nbsp;%<br>
+finish_TE))&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Connection&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;(&quot;Keep-alive&quot;i&nbsp;%<br>
+{request-&gt;connection&nbsp;=&nbsp;HTTP_CONNECTION_KEEP_ALIVE;}&nbsp;|&nbsp;&quot;Close&quot;i&nbsp;%<br>
+{request-&gt;connection&nbsp;=&nbsp;HTTP_CONNECTION_CLOSE;}))&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Host&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_host&nbsp;%&lt;b&gt;finish_host&lt;/b&gt;<br>
+%/break_host)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Accept&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_accept&nbsp;%<br>
+finish_accept&nbsp;%/break_accept)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Accept-Charset&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content<br>
+&gt;start_accept_charset&nbsp;%&nbsp;finish_accept_charset&nbsp;%/break_accept_charset)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Accept-Encoding&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content<br>
+&gt;start_accept_encoding&nbsp;%&nbsp;finish_accept_encoding&nbsp;%/break_accept_encoding)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Accept-Language&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content<br>
+&gt;start_accept_language&nbsp;%&nbsp;finish_accept_language&nbsp;%/break_accept_language)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;User-Agent&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content<br>
+&gt;start_user_agent&nbsp;%&nbsp;finish_user_agent&nbsp;%/break_user_agent)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;Referer&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_referer&nbsp;%<br>
+finish_referer&nbsp;%/break_referer)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;(&quot;X-Forward-For&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content<br>
+&gt;start_x_forward_for&nbsp;%&nbsp;finish_x_forward_for&nbsp;%/break_x_forward_for)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;               <br>
+|&nbsp;((token)&nbsp;&gt;start_header_name&nbsp;%finish_header_name<br>
+%/break_header_name&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;%&nbsp;&lt;b&gt;header_end&lt;/b&gt;)&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;           <br>
+)&nbsp;:&gt;CRLF;&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;Here&nbsp;there&nbsp;is&nbsp;a&nbsp;nondeterminism&nbsp;between<br>
+token&nbsp;and&nbsp;the&nbsp;common&nbsp;header&nbsp;names.&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;For&nbsp;example,&nbsp;when&nbsp;a&nbsp;Host&nbsp;header&nbsp;value<br>
+finished,&nbsp;the&nbsp;header’s&nbsp;action&nbsp;finish_host&nbsp;and&nbsp;the&nbsp;“token”&nbsp;action&nbsp;header_end<br>
+will&nbsp;be&nbsp;triggered.&lt;/span&gt;&lt;/p&gt;<br>
+<br>
+&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;How&nbsp;can&nbsp;I&nbsp;resolve&nbsp;this&nbsp;kind&nbsp;of&nbsp;problem?&lt;/span&gt;&lt;/p&gt;&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;Thanks.&lt;/span&gt;&lt;/p&gt;&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;<br>
+&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;Hongbin.&lt;/span&gt;&lt;/p&gt;&lt;p&nbsp;class=&quot;MsoNormal&quot;&gt;&lt;span&nbsp;lang=&quot;EN-US&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt;<br>
+
+</tt>

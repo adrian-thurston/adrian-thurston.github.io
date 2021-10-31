@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Fixing an edge case
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3C45AD0385.7040602%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000108.html">
+   <LINK REL="Next"  HREF="000110.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Fixing an edge case</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3C45AD0385.7040602%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Fixing an edge case">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Tue Jan 16 16:55:33 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000108.html">[ragel-users] Fixing an edge case
+</A></li>
+        <LI>Next message: <A HREF="000110.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#109">[ date ]</a>
+              <a href="thread.html#109">[ thread ]</a>
+              <a href="subject.html#109">[ subject ]</a>
+              <a href="author.html#109">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sorry, this was sloppy ... the question mark in the diff machine can be removed.
+
+-Adrian
+
+Adrian Thurston wrote:
+&gt;<i> Hi Matt, try the attached file. The important part is in diff machine. The
+</I>&gt;<i> first alternative handles the edge case of an empty diff. The second part
+</I>&gt;<i> handles the regular case.
+</I>&gt;<i> 
+</I>&gt;<i> -Adrian
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>&gt;<i> jinclude &lt;stdio.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine diff;
+</I>&gt;<i>     action count_line {}
+</I>&gt;<i>     action mark {}
+</I>&gt;<i>     action add_line {}
+</I>&gt;<i>     action push {}
+</I>&gt;<i>     action push_zero {}
+</I>&gt;<i>     action pop_hunk_spec {}
+</I>&gt;<i>     action copy_to_filespec {}
+</I>&gt;<i>     action enter_hunk { printf(&quot;  enter_hunk\n&quot;); }
+</I>&gt;<i>     action exit_hunk {  printf(&quot;  exit_hunk\n&quot;); }
+</I>&gt;<i>     action enter_diff { printf(&quot;enter_diff\n&quot;); }
+</I>&gt;<i>     action exit_diff { printf(&quot;exit_diff\n&quot;); }
+</I>&gt;<i>     action empty_diff { printf(&quot;  this diff is empty\n&quot;); }
+</I>&gt;<i>     action binary_diff {}
+</I>&gt;<i>     action error {}
+</I>&gt;<i> 
+</I>&gt;<i>     nbsp = space - '\n' %count_line;
+</I>&gt;<i>     lineChar = extend - '\n';
+</I>&gt;<i>     
+</I>&gt;<i>     diffLine =         ( '\\' lineChar* '\n' %count_line ) |
+</I>&gt;<i>         ( ' ' | '-' | '+' ) &gt;mark         lineChar* '\n' @add_line
+</I>&gt;<i> %count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     separator = '='+ '\n' %count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     oldFile = '---' lineChar+ '\n' %count_line;
+</I>&gt;<i>     newFile = '+++' lineChar+ '\n' %count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     range = ( '-' | '+' ) ( digit+ &gt;mark %push ) ( ' ' %push_zero
+</I>&gt;<i>             @{ fhold; }  | ',' ( digit+ &gt;mark %push ) );
+</I>&gt;<i>     
+</I>&gt;<i>     hunkHeader = '@@' nbsp* range nbsp+ range nbsp* '@@' '\n'
+</I>&gt;<i>         @pop_hunk_spec %count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     hunkBody = diffLine+;
+</I>&gt;<i>     
+</I>&gt;<i>     hunk = hunkHeader &gt;enter_hunk hunkBody %exit_hunk %/exit_hunk;
+</I>&gt;<i>     
+</I>&gt;<i>     fileName = ( lineChar+ ) &gt;mark %copy_to_filespec;
+</I>&gt;<i>     
+</I>&gt;<i>     fileSpec = &quot;Index:&quot; nbsp+ fileName '\n'+ @count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     diffHeader = fileSpec separator;
+</I>&gt;<i>     
+</I>&gt;<i>     diffBody = hunk*;
+</I>&gt;<i>     
+</I>&gt;<i>     binaryDiff = 'C' lineChar+ '\n' %count_line lineChar+ '\n'
+</I>&gt;<i>         %binary_diff %count_line;
+</I>&gt;<i>     
+</I>&gt;<i>     textDiff = oldFile newFile diffBody;
+</I>&gt;<i>     
+</I>&gt;<i>     diff = (
+</I>&gt;<i>         diffHeader %empty_diff %/empty_diff |
+</I>&gt;<i>         diffHeader ( binaryDiff | textDiff ) ?
+</I>&gt;<i>     )
+</I>&gt;<i>     &gt;enter_diff    %exit_diff %/exit_diff;
+</I>&gt;<i>     
+</I>&gt;<i>     main := diff* $!error;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> %% write data;
+</I>&gt;<i> 
+</I>&gt;<i> int main()
+</I>&gt;<i> {
+</I>&gt;<i>     static char buf[2000000];
+</I>&gt;<i>     int len = fread( buf, 1, sizeof(buf), stdin );
+</I>&gt;<i>     printf( &quot;%i\n&quot;, len );
+</I>&gt;<i> 
+</I>&gt;<i>     int cs;
+</I>&gt;<i>     char *p = buf, *pe = buf+len;
+</I>&gt;<i>     %%{
+</I>&gt;<i>         write init;
+</I>&gt;<i>         write exec;
+</I>&gt;<i>     }%%
+</I>&gt;<i> 
+</I>&gt;<i>     if ( cs &lt; diff_first_final )
+</I>&gt;<i>         printf(&quot; ERROR \n&quot; );
+</I>&gt;<i>     else {
+</I>&gt;<i>         %% write eof;
+</I>&gt;<i>     }
+</I>&gt;<i>     return 0;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000108.html">[ragel-users] Fixing an edge case
+</A></li>
+	<LI>Next message: <A HREF="000110.html">[ragel-users] Re: Fixing an edge case
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#109">[ date ]</a>
+              <a href="thread.html#109">[ thread ]</a>
+              <a href="subject.html#109">[ subject ]</a>
+              <a href="author.html#109">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,2132 @@
+From rustompmody at gmail.com  Thu Jan  1 14:04:50 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Thu, 1 Jan 2009 19:34:50 +0530
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+	<50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+Message-ID: <f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+
+Thanks Adrian.
+
+I had not noticed the -p addition to the -V flag -- that shows the
+characters in printable form.
+
+But I still find one thing on the transitions indecipherable --
+'\r'(18:46)
+or
+'|'(!63:66)
+
+Sorry if I am missing something in the manual. Just a pointer will be helpful
+
+Thanks again and a very happy new year
+
+Rustom
+On Wed, Dec 31, 2008 at 10:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi Rustom,
+>
+> When the alphabet type is a signed value like char, the values with high
+> bit set are displayed as negative. If you change the alphabet type to
+> unsigned char they'll show up as > 127.
+>
+> The values inside parens are references to conditions. If a named action
+> is used a name shows up there. Otherwise you get line;col. The bang means
+> that the transition is taken only when the condition fails (returns
+> false).
+>
+> Happy New Year!
+>
+> Adrian
+
+
+
+From thurston at complang.org  Fri Jan  2 17:34:30 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 02 Jan 2009 12:34:30 -0500
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>	<50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+	<f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+Message-ID: <495E5026.3080708@complang.org>
+
+Those are the conditions. 18 is the line of the literal text of the 
+condition in the source ragel file. 46 is the column. The bang means the 
+condition must fail. See the section in the manual on conditions and the 
+convention should come through (it is not explicitly specified).
+
+Cheers,
+  Adrian
+
+Rustom Mody wrote:
+> Thanks Adrian.
+> 
+> I had not noticed the -p addition to the -V flag -- that shows the
+> characters in printable form.
+> 
+> But I still find one thing on the transitions indecipherable --
+> '\r'(18:46)
+> or
+> '|'(!63:66)
+> 
+> Sorry if I am missing something in the manual. Just a pointer will be helpful
+> 
+> Thanks again and a very happy new year
+> 
+> Rustom
+> On Wed, Dec 31, 2008 at 10:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+>> Hi Rustom,
+>>
+>> When the alphabet type is a signed value like char, the values with high
+>> bit set are displayed as negative. If you change the alphabet type to
+>> unsigned char they'll show up as > 127.
+>>
+>> The values inside parens are references to conditions. If a named action
+>> is used a name shows up there. Otherwise you get line;col. The bang means
+>> that the transition is taken only when the condition fails (returns
+>> false).
+>>
+>> Happy New Year!
+>>
+>> Adrian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From why at whytheluckystiff.net  Fri Jan 16 19:03:22 2009
+From: why at whytheluckystiff.net (_why)
+Date: Fri, 16 Jan 2009 13:03:22 -0600
+Subject: [ragel-users] ragel hex codes on x86_64
+Message-ID: <20090116190322.GK67343@orleans.hobix.com>
+
+Hello, Adrian and fellow accomplices.
+
+I've been doing some UTF-8 scanning with Ragel, using hex codes (as
+previously recommended on this list.) This works fine if I compile
+the state machine on 32-bit architecture. I can then build on either
+32-bit or 64-bit without trouble.
+
+However, on x86_64 (Ubuntu 8.10,) multi-byte UTF-8 characters aren't
+accepted by my expression. Again, this isn't too alarming since I'm
+able to produce a working machine by generating everything using the
+32-bit executable, but I figured you'd want to hear about this.
+
+I'm attaching a simple test case. If you want to see the full thing
+in context: <http://github.com/why/potion>.
+
+With fond feelings in the extreme,
+
+_why
+-------------- next part --------------
+#include <stdio.h>
+#include <string.h>
+
+%%{
+  machine utf8;
+  utf8        = 0x09 | 0x0a | 0x0d | (0x20..0x7e) |
+                (0xc2..0xdf) (0x80..0xbf) |
+                (0xe0..0xef 0x80..0xbf 0x80..0xbf) |
+                (0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf);
+
+  main := |*
+    utf8 => { printf("TOKEN: %.*s\n", (int)(te - ts), ts); };
+  *|;
+
+  write data nofinal;
+}%%
+
+int main()
+{
+  int cs, act;
+  char str[] = "naïve";
+  char *p = str, *pe = str + strlen(str);
+  char *ts, *te, *eof = 0;
+
+  %% write init;
+  %% write exec;
+
+  return 0;
+}
+
+From wmorgan-ragel at masanjin.net  Sat Jan 17 00:50:05 2009
+From: wmorgan-ragel at masanjin.net (William Morgan)
+Date: Fri, 16 Jan 2009 16:50:05 -0800
+Subject: [ragel-users] ragel hex codes on x86_64
+Message-ID: <1232153389-sup-6546@entry>
+
+This patch fixes it for me:
+
+--- ragel/parsedata.cpp (revision 660)
++++ ragel/parsedata.cpp (working copy)
+@@ -116,7 +116,7 @@
+  }
+ 
+  if ( unusedBits && keyOps->alphType->isSigned && ul >> (size * 8 - 1) )
+-       ul |= (0xffffffff >> (size*8 ) ) << (size*8);
++       ul |= (-1L >> (size*8 ) ) << (size*8);
+ 
+  return Key( (long)ul );
+ }
+
+Apologies for the lack of proper threading on this message.
+-- 
+William <wmorgan-ragel at masanjin.net>
+
+
+
+From julian.morrison at gmail.com  Fri Jan 23 11:53:03 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Fri, 23 Jan 2009 11:53:03 +0000
+Subject: [ragel-users] Anchoring to the EOF
+Message-ID: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+
+Hii, could somebody help me figure out what's the Ragel equivalent of regex
+"$"?
+
+I'd like to be able to specify that the machine demands the whole input
+match and then that's EOF.
+
+Doing "main := header (line*) footer ;" doesn't seem to work - it's happy to
+quit without seeing the footer.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090123/45170e6f/attachment.html>
+
+From thurston at complang.org  Fri Jan 23 17:28:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 12:28:39 -0500
+Subject: [ragel-users] ragel hex codes on x86_64
+In-Reply-To: <1232153389-sup-6546@entry>
+References: <1232153389-sup-6546@entry>
+Message-ID: <4979FE47.2060603@complang.org>
+
+That's the fix. I just verified it. Thanks _why and William!
+
+Adrian
+
+William Morgan wrote:
+> This patch fixes it for me:
+> 
+> --- ragel/parsedata.cpp (revision 660)
+> +++ ragel/parsedata.cpp (working copy)
+> @@ -116,7 +116,7 @@
+>   }
+>  
+>   if ( unusedBits && keyOps->alphType->isSigned && ul >> (size * 8 - 1) )
+> -       ul |= (0xffffffff >> (size*8 ) ) << (size*8);
+> +       ul |= (-1L >> (size*8 ) ) << (size*8);
+>  
+>   return Key( (long)ul );
+>  }
+> 
+> Apologies for the lack of proper threading on this message.
+
+
+
+From amdmi3 at amdmi3.ru  Fri Jan 23 22:02:20 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Sat, 24 Jan 2009 01:02:20 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+Message-ID: <20090123220220.GA30982@deprived.panopticon>
+
+Hi!
+
+I have a question about transition action embedding. It behaves
+not the way I expect, so I'm obviously missing something. Here's
+a simple example:
+
+%%{
+    machine foo;
+    write data nofinal;
+
+    a = 'a'+
+        > { printf("> a\n"); }
+        % { printf("< a\n"); }
+    ;
+
+    b = a 'b'+
+        > { printf("> b\n"); }
+        % { printf("< b\n"); }
+    ;
+
+    main := b+;
+}%%
+
+When I run it on a string 'aabbaabb', it prints
+
+> a
+< a
+> b
+< b
+> a
+< a
+> b
+
+While I obviously expect
+
+> b
+> a
+< a
+< b
+> b
+> a
+< a
+< b
+
+because you can't enter 'a' rules not entering 'b' rule. Missing
+last transition is not a huge problem, but the order is essential.
+
+Is there a trick to make it behave the way I want, or I do I not
+understand something fundamental?
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Fri Jan 23 22:07:03 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 17:07:03 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090123220220.GA30982@deprived.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>
+Message-ID: <497A3F87.5050404@complang.org>
+
+Hi Dmitry,
+
+This is a common mistake when people start with Ragel. Leaving actions 
+require one character of lookahead, or, if they should be executed at 
+the end of the input, for you to tell the machine that there is no more 
+input by setting eof = pe.
+
+Adrian
+
+Dmitry Marakasov wrote:
+> Hi!
+> 
+> I have a question about transition action embedding. It behaves
+> not the way I expect, so I'm obviously missing something. Here's
+> a simple example:
+> 
+> %%{
+>     machine foo;
+>     write data nofinal;
+> 
+>     a = 'a'+
+>         > { printf("> a\n"); }
+>         % { printf("< a\n"); }
+>     ;
+> 
+>     b = a 'b'+
+>         > { printf("> b\n"); }
+>         % { printf("< b\n"); }
+>     ;
+> 
+>     main := b+;
+> }%%
+> 
+> When I run it on a string 'aabbaabb', it prints
+> 
+>> a
+> < a
+>> b
+> < b
+>> a
+> < a
+>> b
+> 
+> While I obviously expect
+> 
+>> b
+>> a
+> < a
+> < b
+>> b
+>> a
+> < a
+> < b
+> 
+> because you can't enter 'a' rules not entering 'b' rule. Missing
+> last transition is not a huge problem, but the order is essential.
+> 
+> Is there a trick to make it behave the way I want, or I do I not
+> understand something fundamental?
+> 
+
+
+
+From alexis.letessier at gmail.com  Fri Jan 23 23:24:38 2009
+From: alexis.letessier at gmail.com (Alexis Letessier)
+Date: Sat, 24 Jan 2009 00:24:38 +0100
+Subject: [ragel-users] Ragel and protocol analysis
+Message-ID: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+
+Hello,
+
+I am new to this mailing list and i am also discovering ragel.
+
+I would like to know if protocol analysis is possible with ragel?
+
+For example, would it be possible to feed ragel with tcpdump or tshark ouput
+and validate it against a tcp state diagram ?
+http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+
+Regards
+
+Alexis
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090124/e14c45f9/attachment.html>
+
+From thurston at complang.org  Fri Jan 23 23:30:54 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 18:30:54 -0500
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+Message-ID: <497A532E.5020604@complang.org>
+
+It's certainly possible:
+
+http://www.zedshaw.com/tips/ragel_state_charts.html
+
+Keep in mind though that this is not what ragel was designed for. It was 
+made for compiling regular languages with embedded actions to C code.
+
+-Adrian
+
+Alexis Letessier wrote:
+> Hello,
+> 
+> I am new to this mailing list and i am also discovering ragel.
+> 
+> I would like to know if protocol analysis is possible with ragel?
+> 
+> For example, would it be possible to feed ragel with tcpdump or tshark 
+> ouput and validate it against a tcp state diagram ?
+> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+> 
+> Regards
+> 
+> Alexis
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Fri Jan 23 23:35:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 18:35:25 -0500
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+Message-ID: <497A543D.8030101@complang.org>
+
+In short, there isn't!
+
+Ragel does not make any assumption about the input, and this includes 
+not assuming line-based input. If you want to anchor to something you 
+just put that something into the grammar at the end. If you want to see 
+if the machine finished in a final state (and thus consumed that 
+something) you test cs against machine_first_final.
+
+Hope this helps,
+  Adrian
+
+Julian Morrison wrote:
+> Hii, could somebody help me figure out what's the Ragel equivalent of 
+> regex "$"?
+> 
+> I'd like to be able to specify that the machine demands the whole input 
+> match and then that's EOF.
+> 
+> Doing "main := header (line*) footer ;" doesn't seem to work - it's 
+> happy to quit without seeing the footer.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From julian.morrison at gmail.com  Fri Jan 23 23:59:52 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Fri, 23 Jan 2009 23:59:52 +0000
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <497A543D.8030101@complang.org>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+	<497A543D.8030101@complang.org>
+Message-ID: <995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+
+It certainly does help, thanks.
+
+OK, next, I wasn't able to figure out how to do an error recovery. That is,
+when one of the (line*) starts to match, then fails, the error action should
+log the error, jump to another regex that matches (any*) :>> '\n', jump back
+and pick right back up trying to match more lines. It's plainly obvious that
+Ragel can do that, but the wizardry level is a bit above me. Please
+elucidate?
+
+2009/1/23 Adrian Thurston <thurston at complang.org>
+
+> In short, there isn't!
+>
+> Ragel does not make any assumption about the input, and this includes
+> not assuming line-based input. If you want to anchor to something you
+> just put that something into the grammar at the end. If you want to see
+> if the machine finished in a final state (and thus consumed that
+> something) you test cs against machine_first_final.
+>
+> Hope this helps,
+>  Adrian
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090123/249e7c6f/attachment.html>
+
+From amdmi3 at amdmi3.ru  Sat Jan 24 04:27:47 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Sat, 24 Jan 2009 07:27:47 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <497A3F87.5050404@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+Message-ID: <20090124042747.GD30982@deprived.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> This is a common mistake when people start with Ragel. Leaving actions 
+> require one character of lookahead, or, if they should be executed at 
+> the end of the input, for you to tell the machine that there is no more 
+> input by setting eof = pe.
+
+Yeah, regarding missing leaving actions I thought it was something
+like that. But what's more interesting for me is why's enter actions
+execution order like this.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Sun Jan 25 00:59:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 24 Jan 2009 19:59:39 -0500
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>	<497A543D.8030101@complang.org>
+	<995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+Message-ID: <497BB97B.80207@complang.org>
+
+Like this:
+
+error_handler := any* :>> '\n' @{fgoto main;};
+
+main := whatever $!{fgoto error_handler;};
+
+-Adrian
+
+Julian Morrison wrote:
+> It certainly does help, thanks.
+> 
+> OK, next, I wasn't able to figure out how to do an error recovery. That 
+> is, when one of the (line*) starts to match, then fails, the error 
+> action should log the error, jump to another regex that matches (any*) 
+> :>> '\n', jump back and pick right back up trying to match more lines. 
+> It's plainly obvious that Ragel can do that, but the wizardry level is a 
+> bit above me. Please elucidate?
+> 
+> 2009/1/23 Adrian Thurston <thurston at complang.org 
+> <mailto:thurston at complang.org>>
+> 
+>     In short, there isn't!
+> 
+>     Ragel does not make any assumption about the input, and this includes
+>     not assuming line-based input. If you want to anchor to something you
+>     just put that something into the grammar at the end. If you want to see
+>     if the machine finished in a final state (and thus consumed that
+>     something) you test cs against machine_first_final.
+> 
+>     Hope this helps,
+>      Adrian
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sun Jan 25 01:11:42 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 24 Jan 2009 20:11:42 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090124042747.GD30982@deprived.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+Message-ID: <497BBC4E.5080100@complang.org>
+
+Sorry I went to fast and didn't see your problem. My mail program was 
+highlighting the lines beginning with ">", causing some confusion for me.
+
+The bit of info that you're missing is that action embedding operators 
+bind more tightly than concatenation. Use:
+
+b := ( a 'b'+ ) >{print} %{print};
+
+and I think you'll get what you want.
+
+-Adrian
+
+Dmitry Marakasov wrote:
+> * Adrian Thurston (thurston at complang.org) wrote:
+> 
+>> This is a common mistake when people start with Ragel. Leaving actions 
+>> require one character of lookahead, or, if they should be executed at 
+>> the end of the input, for you to tell the machine that there is no more 
+>> input by setting eof = pe.
+> 
+> Yeah, regarding missing leaving actions I thought it was something
+> like that. But what's more interesting for me is why's enter actions
+> execution order like this.
+> 
+
+
+
+From julian.morrison at gmail.com  Sun Jan 25 01:24:53 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Sun, 25 Jan 2009 01:24:53 +0000
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <497BB97B.80207@complang.org>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+	<497A543D.8030101@complang.org>
+	<995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+	<497BB97B.80207@complang.org>
+Message-ID: <995d8b750901241724v3703831fv98da69f84a3bbd3b@mail.gmail.com>
+
+Easy when you know how. Thanks :-)
+
+2009/1/25 Adrian Thurston <thurston at complang.org>
+
+> Like this:
+>
+> error_handler := any* :>> '\n' @{fgoto main;};
+>
+> main := whatever $!{fgoto error_handler;};
+>
+> -Adrian
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090125/8a86af0e/attachment.html>
+
+From ibc at aliax.net  Mon Jan 26 22:34:42 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 26 Jan 2009 23:34:42 +0100
+Subject: [ragel-users] Help beginning with Ragel
+Message-ID: <200901262334.42190.ibc@aliax.net>
+
+Hi, I'm beginning with Ragel. For now I've readed the documentation and try to 
+do some easy examples with Ruby host language (no C extensions for now).
+
+I just want to parse a SIP URI like this:
+
+  sip:alice at mydomain.org
+
+and extract the following data into a Ruby SIP_URI class instance:
+
+  @protocol => "sip"
+  @user => "alice"
+  @host => "mydomain.org"
+
+I've already done this easy parser but I don't know how to extract the parsed 
+data into the Ruby attributes. The code I've done for now is:
+
+----------------------------------------------------------
+class SIP_URI
+
+	attr_accessor :protocol, :user, :host
+
+	def initialize
+		@protocol = ""
+		@user = ""
+		@host = ""
+	end
+
+	def to_s
+		#puts @protocol.to_s + ':' + @user.to_s + '@' + @host.to_s
+		# puts "Not implemented yet..."
+	end
+	
+end
+
+@my_sip_uri = SIP_URI.new
+
+
+%%{
+	machine sip_uri;
+
+	protocol = ('sip'|'sips');
+	user = [a-zA-Z0-9]+;
+	host = [a-zA-Z0-9]+;
+
+	main := protocol ':' user '@' host;
+}%%
+
+%% write data;
+
+def run_machine(data)
+	puts "Running Ragel the state machine with input #{data}..."
+
+	# Initialization
+	data = data.unpack("c*") if data.is_a?(String)
+	p = 0
+	pe = data.length
+	tag = nil
+
+	%% write init;
+	%% write exec;
+
+	puts "Finished. The state of the machine is: #{cs}"
+	puts "p: #{p} pe: #{pe}"
+end
+
+run_machine ARGV[0]
+
+puts @my_sip_uri
+----------------------------------------------------------
+
+It works, of course, but it's not very useful as it is now :)
+
+To get the parsed data fragments I've readed about the usage of:
+
+%%{
+	action _tag { mark_tag = p }
+	action tag { tag = data[mark_tag..p-1] }
+	
+	machine sip_uri;
+
+	protocol = ('sip'|'sips') >_tag %tag ;
+	user = [a-zA-Z0-9]+ >_tag %tag ;
+	host = [a-zA-Z0-9]+ >_tag %tag ;
+
+	main := protocol ':' user '@' host;
+}%%
+
+
+I understand that "tag" will be a data array fragment starting by "p" and 
+finishing in each found expression. But I have no idea (and have found no 
+doc) about how to get that info into Ruby variables.
+
+If I compile the above code with the new block I get an error anyway:
+
+  example02.rl:21:2: there is no previous specification name
+  example02.rl:28: action lookup of "_tag" failed
+  example02.rl:28: action lookup of "tag" failed
+
+In the documentation I read about a variable "ts":
+  ts - This must be a pointer to character data. In Java and Ruby code 
+       this must be an integer.
+
+but have no idea of how to use it.
+
+Any help or explanation please? Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Mon Jan 26 22:52:22 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 26 Jan 2009 23:52:22 +0100
+Subject: [ragel-users] Help beginning with Ragel
+In-Reply-To: <200901262334.42190.ibc@aliax.net>
+References: <200901262334.42190.ibc@aliax.net>
+Message-ID: <200901262352.22737.ibc@aliax.net>
+
+El Lunes, 26 de Enero de 2009, Iñaki Baz Castillo escribió:
+> If I compile the above code with the new block I get an error anyway:
+>
+>   example02.rl:21:2: there is no previous specification name
+>   example02.rl:28: action lookup of "_tag" failed
+>   example02.rl:28: action lookup of "tag" failed
+
+Ok, this error is due the wrong position of "action" staments before the 
+machine declaration :)
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Tue Jan 27 10:40:09 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 27 Jan 2009 11:40:09 +0100
+Subject: [ragel-users] Acting when EOF
+Message-ID: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+
+Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+but I can't get the last field ("host"):
+
+--------------------------------------------------------
+%%{
+	machine sip_uri;
+	
+	action _tag { mark_tag = p }
+	action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+	action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+	action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+	
+	protocol = ('sip'i|'sips'i) >_tag %protocol ;
+	user = [a-zA-Z0-9]+ >_tag %user ;
+	host = [.a-zA-Z0-9]+ >_tag %host ;
+
+	main := protocol ':' user '@' host ;
+}%%
+
+run_machine "sip:user at domain.org"
+-------------------------------------------------------
+
+The actions "protocol" and "user" are executed, storing the parsed
+data into a Ruby attribute, but the action "host" is not executed. I
+assume this occurs because leaving action (%) doesn't take place but
+EOF action. So I try to use a EOF action:
+
+	host = [.a-zA-Z0-9]+ >_tag %/host ;
+
+But it doesn't work. I can't imagine how to get this "host" field, any
+help please?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Tue Jan 27 23:20:49 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Wed, 28 Jan 2009 00:20:49 +0100
+Subject: [ragel-users] hsm with statecharts
+Message-ID: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+
+Dear ML,
+
+again with hsm (hierarchical state machine) question. I had a look
+around but I cannot find any clue.I'm trying to post my question on
+this subject.
+
+Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+for more infos). I would like to express state hierarchy with ragel
+statechart but I cannot find a comfortable solution. One way is to
+convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+define the latter in ragel, this step could be automated but I wonder
+if there is a straight way.
+
+Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+
+With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+transition):
+
+S1 {s0/action_s0_S1}
+S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+
+For the signal 's0' I would like to have in S12 the action
+'action_s0_S12' but in S1 the action defined by the super-state S1,
+action_s0_S1.
+
+Thank you in advance for your help!
+
+pazzodalegare
+
+
+
+From ibc at aliax.net  Thu Jan 29 19:28:03 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 29 Jan 2009 20:28:03 +0100
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <200901292028.03991.ibc@aliax.net>
+
+Hi, is it possible to parse a subcomponent of a machine specification? I mean:
+
+
+	alphanum = [a-zA-Z0-9]
+	protocol = ('sip'i|'sips'i)
+	user = alphanum+
+	host = ( '.' | alphanum )+
+	
+	main := protocol ':' user '@' host ;
+
+
+This code allow me to parse a complete SIP uri using "%% write exec;", but 
+what about if I also want to parse a single "user" component? must I to 
+duplicate the code creating a new machine just for "user"?:
+
+	alphanum = [a-zA-Z0-9]
+	main := alphanum+
+
+Since "user" is already defined in the above machine, couldn't I use that 
+machine to parse a string just containing a "user" text?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From amdmi3 at amdmi3.ru  Thu Jan 29 21:36:49 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Thu, 29 Jan 2009 21:36:49 +0000
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <497BBC4E.5080100@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+	<497BBC4E.5080100@complang.org>
+Message-ID: <20090129213649.GD51435@hades.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> Sorry I went to fast and didn't see your problem. My mail program was 
+> highlighting the lines beginning with ">", causing some confusion for me.
+> 
+> The bit of info that you're missing is that action embedding operators 
+> bind more tightly than concatenation. Use:
+> 
+> b := ( a 'b'+ ) >{print} %{print};
+> 
+> and I think you'll get what you want.
+
+That would be too easy :)
+
+Actually that was just an example, the real cause is more complex,
+and my goal is to save all informaion encountered while parsing
+subexpression amd process it as a whole when it's finished. Like
+that:
+
+char *a_start;
+char *a_end;
+
+a = 'a'+
+    > { a_start = p; }
+    % { a_end = p; }
+;
+
+b = a 'b'+
+    > { a_start = a_end = 0; /* reset state */ }
+    % { printf("subexpr finished, there were %d a's\n", a_end-a_start); }
+;
+
+main := b+;
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From ibc at aliax.net  Fri Jan 30 12:08:20 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 30 Jan 2009 13:08:20 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+References: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+Message-ID: <cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+
+2009/1/27 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+> but I can't get the last field ("host"):
+>
+> --------------------------------------------------------
+> %%{
+>        machine sip_uri;
+>
+>        action _tag { mark_tag = p }
+>        action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+>        action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+>        action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+>
+>        protocol = ('sip'i|'sips'i) >_tag %protocol ;
+>        user = [a-zA-Z0-9]+ >_tag %user ;
+>        host = [.a-zA-Z0-9]+ >_tag %host ;
+>
+>        main := protocol ':' user '@' host ;
+> }%%
+>
+> run_machine "sip:user at domain.org"
+> -------------------------------------------------------
+>
+> The actions "protocol" and "user" are executed, storing the parsed
+> data into a Ruby attribute, but the action "host" is not executed. I
+> assume this occurs because leaving action (%) doesn't take place but
+> EOF action. So I try to use a EOF action:
+>
+>        host = [.a-zA-Z0-9]+ >_tag %/host ;
+>
+> But it doesn't work. I can't imagine how to get this "host" field, any
+> help please?
+
+I can solve it by adding '\0' and the end of the Ruby String acting as
+"run_machine" argument, and also adding the following to the machine
+"main":
+
+   main := protocol ':' user '@' host '\0' ;
+
+Not sure, however, if this is the cleaner solution.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Fri Jan 30 21:33:09 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Fri, 30 Jan 2009 22:33:09 +0100
+Subject: [ragel-users] hsm with statecharts
+In-Reply-To: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+References: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+Message-ID: <1a26b4920901301333h473d74c5h3a506f23963b6bc8@mail.gmail.com>
+
+Dear All,
+
+I will try again and I hope someone could help me.
+I would like to know if with ragel statechart one can have state
+hierarchy, states and substates; with substates inheriting actions
+from their parent state.
+
+TIA,
+
+pazzo
+
+
+2009/1/28 Pazzo Da Legare <pazzodalegare at gmail.com>:
+> Dear ML,
+>
+> again with hsm (hierarchical state machine) question. I had a look
+> around but I cannot find any clue.I'm trying to post my question on
+> this subject.
+>
+> Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+> http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+> for more infos). I would like to express state hierarchy with ragel
+> statechart but I cannot find a comfortable solution. One way is to
+> convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+> define the latter in ragel, this step could be automated but I wonder
+> if there is a straight way.
+>
+> Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+> S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+> only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+>
+> With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+> transition):
+>
+> S1 {s0/action_s0_S1}
+> S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+> S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+>
+> For the signal 's0' I would like to have in S12 the action
+> 'action_s0_S12' but in S1 the action defined by the super-state S1,
+> action_s0_S1.
+>
+> Thank you in advance for your help!
+>
+> pazzodalegare
+>
+
+
+
+From rustompmody at gmail.com  Thu Jan  1 14:04:50 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Thu, 1 Jan 2009 19:34:50 +0530
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>
+	<50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+Message-ID: <f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+
+Thanks Adrian.
+
+I had not noticed the -p addition to the -V flag -- that shows the
+characters in printable form.
+
+But I still find one thing on the transitions indecipherable --
+'\r'(18:46)
+or
+'|'(!63:66)
+
+Sorry if I am missing something in the manual. Just a pointer will be helpful
+
+Thanks again and a very happy new year
+
+Rustom
+On Wed, Dec 31, 2008 at 10:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi Rustom,
+>
+> When the alphabet type is a signed value like char, the values with high
+> bit set are displayed as negative. If you change the alphabet type to
+> unsigned char they'll show up as > 127.
+>
+> The values inside parens are references to conditions. If a named action
+> is used a name shows up there. Otherwise you get line;col. The bang means
+> that the transition is taken only when the condition fails (returns
+> false).
+>
+> Happy New Year!
+>
+> Adrian
+
+
+
+From thurston at complang.org  Fri Jan  2 17:34:30 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 02 Jan 2009 12:34:30 -0500
+Subject: [ragel-users] interpreting ragel visualization
+In-Reply-To: <f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+References: <f46c52560812302302r3cf1960dhe6f980692d97dc4b@mail.gmail.com>	<50732.75.157.173.156.1230743602.squirrel@www.complang.org>
+	<f46c52560901010604y271bcbf4qb2a0c798ad2c293c@mail.gmail.com>
+Message-ID: <495E5026.3080708@complang.org>
+
+Those are the conditions. 18 is the line of the literal text of the 
+condition in the source ragel file. 46 is the column. The bang means the 
+condition must fail. See the section in the manual on conditions and the 
+convention should come through (it is not explicitly specified).
+
+Cheers,
+  Adrian
+
+Rustom Mody wrote:
+> Thanks Adrian.
+> 
+> I had not noticed the -p addition to the -V flag -- that shows the
+> characters in printable form.
+> 
+> But I still find one thing on the transitions indecipherable --
+> '\r'(18:46)
+> or
+> '|'(!63:66)
+> 
+> Sorry if I am missing something in the manual. Just a pointer will be helpful
+> 
+> Thanks again and a very happy new year
+> 
+> Rustom
+> On Wed, Dec 31, 2008 at 10:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+>> Hi Rustom,
+>>
+>> When the alphabet type is a signed value like char, the values with high
+>> bit set are displayed as negative. If you change the alphabet type to
+>> unsigned char they'll show up as > 127.
+>>
+>> The values inside parens are references to conditions. If a named action
+>> is used a name shows up there. Otherwise you get line;col. The bang means
+>> that the transition is taken only when the condition fails (returns
+>> false).
+>>
+>> Happy New Year!
+>>
+>> Adrian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From why at whytheluckystiff.net  Fri Jan 16 19:03:22 2009
+From: why at whytheluckystiff.net (_why)
+Date: Fri, 16 Jan 2009 13:03:22 -0600
+Subject: [ragel-users] ragel hex codes on x86_64
+Message-ID: <20090116190322.GK67343@orleans.hobix.com>
+
+Hello, Adrian and fellow accomplices.
+
+I've been doing some UTF-8 scanning with Ragel, using hex codes (as
+previously recommended on this list.) This works fine if I compile
+the state machine on 32-bit architecture. I can then build on either
+32-bit or 64-bit without trouble.
+
+However, on x86_64 (Ubuntu 8.10,) multi-byte UTF-8 characters aren't
+accepted by my expression. Again, this isn't too alarming since I'm
+able to produce a working machine by generating everything using the
+32-bit executable, but I figured you'd want to hear about this.
+
+I'm attaching a simple test case. If you want to see the full thing
+in context: <http://github.com/why/potion>.
+
+With fond feelings in the extreme,
+
+_why
+-------------- next part --------------
+#include <stdio.h>
+#include <string.h>
+
+%%{
+  machine utf8;
+  utf8        = 0x09 | 0x0a | 0x0d | (0x20..0x7e) |
+                (0xc2..0xdf) (0x80..0xbf) |
+                (0xe0..0xef 0x80..0xbf 0x80..0xbf) |
+                (0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf);
+
+  main := |*
+    utf8 => { printf("TOKEN: %.*s\n", (int)(te - ts), ts); };
+  *|;
+
+  write data nofinal;
+}%%
+
+int main()
+{
+  int cs, act;
+  char str[] = "naïve";
+  char *p = str, *pe = str + strlen(str);
+  char *ts, *te, *eof = 0;
+
+  %% write init;
+  %% write exec;
+
+  return 0;
+}
+
+From wmorgan-ragel at masanjin.net  Sat Jan 17 00:50:05 2009
+From: wmorgan-ragel at masanjin.net (William Morgan)
+Date: Fri, 16 Jan 2009 16:50:05 -0800
+Subject: [ragel-users] ragel hex codes on x86_64
+Message-ID: <1232153389-sup-6546@entry>
+
+This patch fixes it for me:
+
+--- ragel/parsedata.cpp (revision 660)
++++ ragel/parsedata.cpp (working copy)
+@@ -116,7 +116,7 @@
+  }
+ 
+  if ( unusedBits && keyOps->alphType->isSigned && ul >> (size * 8 - 1) )
+-       ul |= (0xffffffff >> (size*8 ) ) << (size*8);
++       ul |= (-1L >> (size*8 ) ) << (size*8);
+ 
+  return Key( (long)ul );
+ }
+
+Apologies for the lack of proper threading on this message.
+-- 
+William <wmorgan-ragel at masanjin.net>
+
+
+
+From julian.morrison at gmail.com  Fri Jan 23 11:53:03 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Fri, 23 Jan 2009 11:53:03 +0000
+Subject: [ragel-users] Anchoring to the EOF
+Message-ID: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+
+Hii, could somebody help me figure out what's the Ragel equivalent of regex
+"$"?
+
+I'd like to be able to specify that the machine demands the whole input
+match and then that's EOF.
+
+Doing "main := header (line*) footer ;" doesn't seem to work - it's happy to
+quit without seeing the footer.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090123/45170e6f/attachment-0001.html>
+
+From thurston at complang.org  Fri Jan 23 17:28:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 12:28:39 -0500
+Subject: [ragel-users] ragel hex codes on x86_64
+In-Reply-To: <1232153389-sup-6546@entry>
+References: <1232153389-sup-6546@entry>
+Message-ID: <4979FE47.2060603@complang.org>
+
+That's the fix. I just verified it. Thanks _why and William!
+
+Adrian
+
+William Morgan wrote:
+> This patch fixes it for me:
+> 
+> --- ragel/parsedata.cpp (revision 660)
+> +++ ragel/parsedata.cpp (working copy)
+> @@ -116,7 +116,7 @@
+>   }
+>  
+>   if ( unusedBits && keyOps->alphType->isSigned && ul >> (size * 8 - 1) )
+> -       ul |= (0xffffffff >> (size*8 ) ) << (size*8);
+> +       ul |= (-1L >> (size*8 ) ) << (size*8);
+>  
+>   return Key( (long)ul );
+>  }
+> 
+> Apologies for the lack of proper threading on this message.
+
+
+
+From amdmi3 at amdmi3.ru  Fri Jan 23 22:02:20 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Sat, 24 Jan 2009 01:02:20 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+Message-ID: <20090123220220.GA30982@deprived.panopticon>
+
+Hi!
+
+I have a question about transition action embedding. It behaves
+not the way I expect, so I'm obviously missing something. Here's
+a simple example:
+
+%%{
+    machine foo;
+    write data nofinal;
+
+    a = 'a'+
+        > { printf("> a\n"); }
+        % { printf("< a\n"); }
+    ;
+
+    b = a 'b'+
+        > { printf("> b\n"); }
+        % { printf("< b\n"); }
+    ;
+
+    main := b+;
+}%%
+
+When I run it on a string 'aabbaabb', it prints
+
+> a
+< a
+> b
+< b
+> a
+< a
+> b
+
+While I obviously expect
+
+> b
+> a
+< a
+< b
+> b
+> a
+< a
+< b
+
+because you can't enter 'a' rules not entering 'b' rule. Missing
+last transition is not a huge problem, but the order is essential.
+
+Is there a trick to make it behave the way I want, or I do I not
+understand something fundamental?
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Fri Jan 23 22:07:03 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 17:07:03 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090123220220.GA30982@deprived.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>
+Message-ID: <497A3F87.5050404@complang.org>
+
+Hi Dmitry,
+
+This is a common mistake when people start with Ragel. Leaving actions 
+require one character of lookahead, or, if they should be executed at 
+the end of the input, for you to tell the machine that there is no more 
+input by setting eof = pe.
+
+Adrian
+
+Dmitry Marakasov wrote:
+> Hi!
+> 
+> I have a question about transition action embedding. It behaves
+> not the way I expect, so I'm obviously missing something. Here's
+> a simple example:
+> 
+> %%{
+>     machine foo;
+>     write data nofinal;
+> 
+>     a = 'a'+
+>         > { printf("> a\n"); }
+>         % { printf("< a\n"); }
+>     ;
+> 
+>     b = a 'b'+
+>         > { printf("> b\n"); }
+>         % { printf("< b\n"); }
+>     ;
+> 
+>     main := b+;
+> }%%
+> 
+> When I run it on a string 'aabbaabb', it prints
+> 
+>> a
+> < a
+>> b
+> < b
+>> a
+> < a
+>> b
+> 
+> While I obviously expect
+> 
+>> b
+>> a
+> < a
+> < b
+>> b
+>> a
+> < a
+> < b
+> 
+> because you can't enter 'a' rules not entering 'b' rule. Missing
+> last transition is not a huge problem, but the order is essential.
+> 
+> Is there a trick to make it behave the way I want, or I do I not
+> understand something fundamental?
+> 
+
+
+
+From alexis.letessier at gmail.com  Fri Jan 23 23:24:38 2009
+From: alexis.letessier at gmail.com (Alexis Letessier)
+Date: Sat, 24 Jan 2009 00:24:38 +0100
+Subject: [ragel-users] Ragel and protocol analysis
+Message-ID: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+
+Hello,
+
+I am new to this mailing list and i am also discovering ragel.
+
+I would like to know if protocol analysis is possible with ragel?
+
+For example, would it be possible to feed ragel with tcpdump or tshark ouput
+and validate it against a tcp state diagram ?
+http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+
+Regards
+
+Alexis
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090124/e14c45f9/attachment-0001.html>
+
+From thurston at complang.org  Fri Jan 23 23:30:54 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 18:30:54 -0500
+Subject: [ragel-users] Ragel and protocol analysis
+In-Reply-To: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+References: <b5439cd70901231524w72ec476ahb861fc923aed2d0a@mail.gmail.com>
+Message-ID: <497A532E.5020604@complang.org>
+
+It's certainly possible:
+
+http://www.zedshaw.com/tips/ragel_state_charts.html
+
+Keep in mind though that this is not what ragel was designed for. It was 
+made for compiling regular languages with embedded actions to C code.
+
+-Adrian
+
+Alexis Letessier wrote:
+> Hello,
+> 
+> I am new to this mailing list and i am also discovering ragel.
+> 
+> I would like to know if protocol analysis is possible with ragel?
+> 
+> For example, would it be possible to feed ragel with tcpdump or tshark 
+> ouput and validate it against a tcp state diagram ?
+> http://www.andreadrian.de/c-workshop/tcp-state-diagram.gif
+> 
+> Regards
+> 
+> Alexis
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Fri Jan 23 23:35:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 23 Jan 2009 18:35:25 -0500
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+Message-ID: <497A543D.8030101@complang.org>
+
+In short, there isn't!
+
+Ragel does not make any assumption about the input, and this includes 
+not assuming line-based input. If you want to anchor to something you 
+just put that something into the grammar at the end. If you want to see 
+if the machine finished in a final state (and thus consumed that 
+something) you test cs against machine_first_final.
+
+Hope this helps,
+  Adrian
+
+Julian Morrison wrote:
+> Hii, could somebody help me figure out what's the Ragel equivalent of 
+> regex "$"?
+> 
+> I'd like to be able to specify that the machine demands the whole input 
+> match and then that's EOF.
+> 
+> Doing "main := header (line*) footer ;" doesn't seem to work - it's 
+> happy to quit without seeing the footer.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From julian.morrison at gmail.com  Fri Jan 23 23:59:52 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Fri, 23 Jan 2009 23:59:52 +0000
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <497A543D.8030101@complang.org>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+	<497A543D.8030101@complang.org>
+Message-ID: <995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+
+It certainly does help, thanks.
+
+OK, next, I wasn't able to figure out how to do an error recovery. That is,
+when one of the (line*) starts to match, then fails, the error action should
+log the error, jump to another regex that matches (any*) :>> '\n', jump back
+and pick right back up trying to match more lines. It's plainly obvious that
+Ragel can do that, but the wizardry level is a bit above me. Please
+elucidate?
+
+2009/1/23 Adrian Thurston <thurston at complang.org>
+
+> In short, there isn't!
+>
+> Ragel does not make any assumption about the input, and this includes
+> not assuming line-based input. If you want to anchor to something you
+> just put that something into the grammar at the end. If you want to see
+> if the machine finished in a final state (and thus consumed that
+> something) you test cs against machine_first_final.
+>
+> Hope this helps,
+>  Adrian
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090123/249e7c6f/attachment-0001.html>
+
+From amdmi3 at amdmi3.ru  Sat Jan 24 04:27:47 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Sat, 24 Jan 2009 07:27:47 +0300
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <497A3F87.5050404@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+Message-ID: <20090124042747.GD30982@deprived.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> This is a common mistake when people start with Ragel. Leaving actions 
+> require one character of lookahead, or, if they should be executed at 
+> the end of the input, for you to tell the machine that there is no more 
+> input by setting eof = pe.
+
+Yeah, regarding missing leaving actions I thought it was something
+like that. But what's more interesting for me is why's enter actions
+execution order like this.
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From thurston at complang.org  Sun Jan 25 00:59:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 24 Jan 2009 19:59:39 -0500
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>	<497A543D.8030101@complang.org>
+	<995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+Message-ID: <497BB97B.80207@complang.org>
+
+Like this:
+
+error_handler := any* :>> '\n' @{fgoto main;};
+
+main := whatever $!{fgoto error_handler;};
+
+-Adrian
+
+Julian Morrison wrote:
+> It certainly does help, thanks.
+> 
+> OK, next, I wasn't able to figure out how to do an error recovery. That 
+> is, when one of the (line*) starts to match, then fails, the error 
+> action should log the error, jump to another regex that matches (any*) 
+> :>> '\n', jump back and pick right back up trying to match more lines. 
+> It's plainly obvious that Ragel can do that, but the wizardry level is a 
+> bit above me. Please elucidate?
+> 
+> 2009/1/23 Adrian Thurston <thurston at complang.org 
+> <mailto:thurston at complang.org>>
+> 
+>     In short, there isn't!
+> 
+>     Ragel does not make any assumption about the input, and this includes
+>     not assuming line-based input. If you want to anchor to something you
+>     just put that something into the grammar at the end. If you want to see
+>     if the machine finished in a final state (and thus consumed that
+>     something) you test cs against machine_first_final.
+> 
+>     Hope this helps,
+>      Adrian
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sun Jan 25 01:11:42 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 24 Jan 2009 20:11:42 -0500
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <20090124042747.GD30982@deprived.panopticon>
+References: <20090123220220.GA30982@deprived.panopticon>	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+Message-ID: <497BBC4E.5080100@complang.org>
+
+Sorry I went to fast and didn't see your problem. My mail program was 
+highlighting the lines beginning with ">", causing some confusion for me.
+
+The bit of info that you're missing is that action embedding operators 
+bind more tightly than concatenation. Use:
+
+b := ( a 'b'+ ) >{print} %{print};
+
+and I think you'll get what you want.
+
+-Adrian
+
+Dmitry Marakasov wrote:
+> * Adrian Thurston (thurston at complang.org) wrote:
+> 
+>> This is a common mistake when people start with Ragel. Leaving actions 
+>> require one character of lookahead, or, if they should be executed at 
+>> the end of the input, for you to tell the machine that there is no more 
+>> input by setting eof = pe.
+> 
+> Yeah, regarding missing leaving actions I thought it was something
+> like that. But what's more interesting for me is why's enter actions
+> execution order like this.
+> 
+
+
+
+From julian.morrison at gmail.com  Sun Jan 25 01:24:53 2009
+From: julian.morrison at gmail.com (Julian Morrison)
+Date: Sun, 25 Jan 2009 01:24:53 +0000
+Subject: [ragel-users] Anchoring to the EOF
+In-Reply-To: <497BB97B.80207@complang.org>
+References: <995d8b750901230353r44bfe67qe26eafec820a46c@mail.gmail.com>
+	<497A543D.8030101@complang.org>
+	<995d8b750901231559m752f3e5vbc1ab355747f8a95@mail.gmail.com>
+	<497BB97B.80207@complang.org>
+Message-ID: <995d8b750901241724v3703831fv98da69f84a3bbd3b@mail.gmail.com>
+
+Easy when you know how. Thanks :-)
+
+2009/1/25 Adrian Thurston <thurston at complang.org>
+
+> Like this:
+>
+> error_handler := any* :>> '\n' @{fgoto main;};
+>
+> main := whatever $!{fgoto error_handler;};
+>
+> -Adrian
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090125/8a86af0e/attachment-0001.html>
+
+From ibc at aliax.net  Mon Jan 26 22:34:42 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 26 Jan 2009 23:34:42 +0100
+Subject: [ragel-users] Help beginning with Ragel
+Message-ID: <200901262334.42190.ibc@aliax.net>
+
+Hi, I'm beginning with Ragel. For now I've readed the documentation and try to 
+do some easy examples with Ruby host language (no C extensions for now).
+
+I just want to parse a SIP URI like this:
+
+  sip:alice at mydomain.org
+
+and extract the following data into a Ruby SIP_URI class instance:
+
+  @protocol => "sip"
+  @user => "alice"
+  @host => "mydomain.org"
+
+I've already done this easy parser but I don't know how to extract the parsed 
+data into the Ruby attributes. The code I've done for now is:
+
+----------------------------------------------------------
+class SIP_URI
+
+	attr_accessor :protocol, :user, :host
+
+	def initialize
+		@protocol = ""
+		@user = ""
+		@host = ""
+	end
+
+	def to_s
+		#puts @protocol.to_s + ':' + @user.to_s + '@' + @host.to_s
+		# puts "Not implemented yet..."
+	end
+	
+end
+
+@my_sip_uri = SIP_URI.new
+
+
+%%{
+	machine sip_uri;
+
+	protocol = ('sip'|'sips');
+	user = [a-zA-Z0-9]+;
+	host = [a-zA-Z0-9]+;
+
+	main := protocol ':' user '@' host;
+}%%
+
+%% write data;
+
+def run_machine(data)
+	puts "Running Ragel the state machine with input #{data}..."
+
+	# Initialization
+	data = data.unpack("c*") if data.is_a?(String)
+	p = 0
+	pe = data.length
+	tag = nil
+
+	%% write init;
+	%% write exec;
+
+	puts "Finished. The state of the machine is: #{cs}"
+	puts "p: #{p} pe: #{pe}"
+end
+
+run_machine ARGV[0]
+
+puts @my_sip_uri
+----------------------------------------------------------
+
+It works, of course, but it's not very useful as it is now :)
+
+To get the parsed data fragments I've readed about the usage of:
+
+%%{
+	action _tag { mark_tag = p }
+	action tag { tag = data[mark_tag..p-1] }
+	
+	machine sip_uri;
+
+	protocol = ('sip'|'sips') >_tag %tag ;
+	user = [a-zA-Z0-9]+ >_tag %tag ;
+	host = [a-zA-Z0-9]+ >_tag %tag ;
+
+	main := protocol ':' user '@' host;
+}%%
+
+
+I understand that "tag" will be a data array fragment starting by "p" and 
+finishing in each found expression. But I have no idea (and have found no 
+doc) about how to get that info into Ruby variables.
+
+If I compile the above code with the new block I get an error anyway:
+
+  example02.rl:21:2: there is no previous specification name
+  example02.rl:28: action lookup of "_tag" failed
+  example02.rl:28: action lookup of "tag" failed
+
+In the documentation I read about a variable "ts":
+  ts - This must be a pointer to character data. In Java and Ruby code 
+       this must be an integer.
+
+but have no idea of how to use it.
+
+Any help or explanation please? Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Mon Jan 26 22:52:22 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 26 Jan 2009 23:52:22 +0100
+Subject: [ragel-users] Help beginning with Ragel
+In-Reply-To: <200901262334.42190.ibc@aliax.net>
+References: <200901262334.42190.ibc@aliax.net>
+Message-ID: <200901262352.22737.ibc@aliax.net>
+
+El Lunes, 26 de Enero de 2009, Iñaki Baz Castillo escribió:
+> If I compile the above code with the new block I get an error anyway:
+>
+>   example02.rl:21:2: there is no previous specification name
+>   example02.rl:28: action lookup of "_tag" failed
+>   example02.rl:28: action lookup of "tag" failed
+
+Ok, this error is due the wrong position of "action" staments before the 
+machine declaration :)
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From ibc at aliax.net  Tue Jan 27 10:40:09 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 27 Jan 2009 11:40:09 +0100
+Subject: [ragel-users] Acting when EOF
+Message-ID: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+
+Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+but I can't get the last field ("host"):
+
+--------------------------------------------------------
+%%{
+	machine sip_uri;
+	
+	action _tag { mark_tag = p }
+	action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+	action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+	action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+	
+	protocol = ('sip'i|'sips'i) >_tag %protocol ;
+	user = [a-zA-Z0-9]+ >_tag %user ;
+	host = [.a-zA-Z0-9]+ >_tag %host ;
+
+	main := protocol ':' user '@' host ;
+}%%
+
+run_machine "sip:user at domain.org"
+-------------------------------------------------------
+
+The actions "protocol" and "user" are executed, storing the parsed
+data into a Ruby attribute, but the action "host" is not executed. I
+assume this occurs because leaving action (%) doesn't take place but
+EOF action. So I try to use a EOF action:
+
+	host = [.a-zA-Z0-9]+ >_tag %/host ;
+
+But it doesn't work. I can't imagine how to get this "host" field, any
+help please?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Tue Jan 27 23:20:49 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Wed, 28 Jan 2009 00:20:49 +0100
+Subject: [ragel-users] hsm with statecharts
+Message-ID: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+
+Dear ML,
+
+again with hsm (hierarchical state machine) question. I had a look
+around but I cannot find any clue.I'm trying to post my question on
+this subject.
+
+Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+for more infos). I would like to express state hierarchy with ragel
+statechart but I cannot find a comfortable solution. One way is to
+convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+define the latter in ragel, this step could be automated but I wonder
+if there is a straight way.
+
+Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+
+With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+transition):
+
+S1 {s0/action_s0_S1}
+S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+
+For the signal 's0' I would like to have in S12 the action
+'action_s0_S12' but in S1 the action defined by the super-state S1,
+action_s0_S1.
+
+Thank you in advance for your help!
+
+pazzodalegare
+
+
+
+From ibc at aliax.net  Thu Jan 29 19:28:03 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Thu, 29 Jan 2009 20:28:03 +0100
+Subject: [ragel-users] Parsing a component of a machine
+Message-ID: <200901292028.03991.ibc@aliax.net>
+
+Hi, is it possible to parse a subcomponent of a machine specification? I mean:
+
+
+	alphanum = [a-zA-Z0-9]
+	protocol = ('sip'i|'sips'i)
+	user = alphanum+
+	host = ( '.' | alphanum )+
+	
+	main := protocol ':' user '@' host ;
+
+
+This code allow me to parse a complete SIP uri using "%% write exec;", but 
+what about if I also want to parse a single "user" component? must I to 
+duplicate the code creating a new machine just for "user"?:
+
+	alphanum = [a-zA-Z0-9]
+	main := alphanum+
+
+Since "user" is already defined in the above machine, couldn't I use that 
+machine to parse a string just containing a "user" text?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From amdmi3 at amdmi3.ru  Thu Jan 29 21:36:49 2009
+From: amdmi3 at amdmi3.ru (Dmitry Marakasov)
+Date: Thu, 29 Jan 2009 21:36:49 +0000
+Subject: [ragel-users] Actions embedded into unexpected transitions?
+In-Reply-To: <497BBC4E.5080100@complang.org>
+References: <20090123220220.GA30982@deprived.panopticon>
+	<497A3F87.5050404@complang.org>
+	<20090124042747.GD30982@deprived.panopticon>
+	<497BBC4E.5080100@complang.org>
+Message-ID: <20090129213649.GD51435@hades.panopticon>
+
+* Adrian Thurston (thurston at complang.org) wrote:
+
+> Sorry I went to fast and didn't see your problem. My mail program was 
+> highlighting the lines beginning with ">", causing some confusion for me.
+> 
+> The bit of info that you're missing is that action embedding operators 
+> bind more tightly than concatenation. Use:
+> 
+> b := ( a 'b'+ ) >{print} %{print};
+> 
+> and I think you'll get what you want.
+
+That would be too easy :)
+
+Actually that was just an example, the real cause is more complex,
+and my goal is to save all informaion encountered while parsing
+subexpression amd process it as a whole when it's finished. Like
+that:
+
+char *a_start;
+char *a_end;
+
+a = 'a'+
+    > { a_start = p; }
+    % { a_end = p; }
+;
+
+b = a 'b'+
+    > { a_start = a_end = 0; /* reset state */ }
+    % { printf("subexpr finished, there were %d a's\n", a_end-a_start); }
+;
+
+main := b+;
+
+-- 
+Dmitry Marakasov   .   55B5 0596 FF1E 8D84 5F56  9510 D35A 80DD F9D2 F77D
+amdmi3 at amdmi3.ru  ..:  jabber: amdmi3 at jabber.ru    http://www.amdmi3.ru
+
+
+
+From ibc at aliax.net  Fri Jan 30 12:08:20 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 30 Jan 2009 13:08:20 +0100
+Subject: [ragel-users] Acting when EOF
+In-Reply-To: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+References: <cc1f582e0901270240o328f32afr6d7bb9e77323b4b7@mail.gmail.com>
+Message-ID: <cc1f582e0901300408j137e72bbiac2102ae9ee03613@mail.gmail.com>
+
+2009/1/27 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, I've done a simple parser for a SIP URI ("sip:user at domain.org")
+> but I can't get the last field ("host"):
+>
+> --------------------------------------------------------
+> %%{
+>        machine sip_uri;
+>
+>        action _tag { mark_tag = p }
+>        action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+>        action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+>        action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+>
+>        protocol = ('sip'i|'sips'i) >_tag %protocol ;
+>        user = [a-zA-Z0-9]+ >_tag %user ;
+>        host = [.a-zA-Z0-9]+ >_tag %host ;
+>
+>        main := protocol ':' user '@' host ;
+> }%%
+>
+> run_machine "sip:user at domain.org"
+> -------------------------------------------------------
+>
+> The actions "protocol" and "user" are executed, storing the parsed
+> data into a Ruby attribute, but the action "host" is not executed. I
+> assume this occurs because leaving action (%) doesn't take place but
+> EOF action. So I try to use a EOF action:
+>
+>        host = [.a-zA-Z0-9]+ >_tag %/host ;
+>
+> But it doesn't work. I can't imagine how to get this "host" field, any
+> help please?
+
+I can solve it by adding '\0' and the end of the Ruby String acting as
+"run_machine" argument, and also adding the following to the machine
+"main":
+
+   main := protocol ':' user '@' host '\0' ;
+
+Not sure, however, if this is the cleaner solution.
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From pazzodalegare at gmail.com  Fri Jan 30 21:33:09 2009
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Fri, 30 Jan 2009 22:33:09 +0100
+Subject: [ragel-users] hsm with statecharts
+In-Reply-To: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+References: <1a26b4920901271520h69ac4ca6p7ffcca9603c8dbf0@mail.gmail.com>
+Message-ID: <1a26b4920901301333h473d74c5h3a506f23963b6bc8@mail.gmail.com>
+
+Dear All,
+
+I will try again and I hope someone could help me.
+I would like to know if with ragel statechart one can have state
+hierarchy, states and substates; with substates inheriting actions
+from their parent state.
+
+TIA,
+
+pazzo
+
+
+2009/1/28 Pazzo Da Legare <pazzodalegare at gmail.com>:
+> Dear ML,
+>
+> again with hsm (hierarchical state machine) question. I had a look
+> around but I cannot find any clue.I'm trying to post my question on
+> this subject.
+>
+> Hsm, defined by David Harel, introduced a state hierarchy (see i.e.
+> http://www.state-machine.com/resources/glossary.htm#Harel_statecharts
+> for more infos). I would like to express state hierarchy with ragel
+> statechart but I cannot find a comfortable solution. One way is to
+> convert Hsm machine in a flat Fsm (with no state hierarchy) and then
+> define the latter in ragel, this step could be automated but I wonder
+> if there is a straight way.
+>
+> Simple example: suppose we have 3 state S1, S11 and S12, with S12 and
+> S11 are substate of S1, and 3 signal s0, s1, s2 where s0 is handled
+> only by S1 and, say S12; s1 and s2 are handled by S12 and S11.
+>
+> With a "pseudo notation" like signal/action -> <newstate> (-> indicate
+> transition):
+>
+> S1 {s0/action_s0_S1}
+> S11 {s1/action_s1_S11 , s2/action_s2_S11 -> S12}
+> S12 {s1/action_s1_S12 -> S11, s2/action_s2_S12, s0/action_s0_S12}
+>
+> For the signal 's0' I would like to have in S12 the action
+> 'action_s0_S12' but in S1 the action defined by the super-state S1,
+> action_s0_S1.
+>
+> Thank you in advance for your help!
+>
+> pazzodalegare
+>
+
+
+

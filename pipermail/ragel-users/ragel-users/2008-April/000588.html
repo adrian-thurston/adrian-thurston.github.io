@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: State Chart Finishing Actions?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20State%20Chart%20Finishing%20Actions%3F&In-Reply-To=%3C480511ED.2060000%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000587.html">
+   <LINK REL="Next"  HREF="000589.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: State Chart Finishing Actions?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20State%20Chart%20Finishing%20Actions%3F&In-Reply-To=%3C480511ED.2060000%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: State Chart Finishing Actions?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Tue Apr 15 20:37:01 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000587.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+        <LI>Next message: <A HREF="000589.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Bob,
+
+I think what you want instead of any* is [^&gt;]. The any* will forever
+remain active as a thread through the machine, which is why the Starting
+action is propagated to every state.
+
+-Adrian
+
+Bob Paddock wrote:
+&gt;<i> 
+</I>&gt;<i> Am I not understanding something here, or is there
+</I>&gt;<i> a bug with State Charts in 6.1?
+</I>&gt;<i> 
+</I>&gt;<i> I'm dealing with a serial protocol.  I want to stay
+</I>&gt;<i> in the starting state until I receive a &quot;&gt;&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> Here is a snippet of have I have:
+</I>&gt;<i> 
+</I>&gt;<i> action Starting {
+</I>&gt;<i>  wxLogVerbose( _(&quot;Starting [State{%d}]&quot;) , cs );
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> bootloader = (
+</I>&gt;<i>  start: (
+</I>&gt;<i>   '&gt;' @start_signal_received -&gt; UnitID
+</I>&gt;<i>   any*                       -&gt; start # Only a '&gt;' means anything to us
+</I>&gt;<i> in the starting state
+</I>&gt;<i>  )@Starting,
+</I>&gt;<i> 
+</I>&gt;<i>  UnitID: (
+</I>&gt;<i>   '&gt;' @start_signal_received   -&gt; UnitID         |
+</I>&gt;<i> 
+</I>&gt;<i>  'A' @{ DeviceID_u16 = 1; }    -&gt; FlashSize      |
+</I>&gt;<i>  ...
+</I>&gt;<i> 
+</I>&gt;<i> Everything seems to work but the action 'Starting' is called for
+</I>&gt;<i> *EVERY* state in the chart.  If this is what any* does, this
+</I>&gt;<i> isn't what I want.  I only want 'Starting' called when I
+</I>&gt;<i> transition from 'start' to 'UnitID'.  Once I leave 'start'
+</I>&gt;<i> I don't want to see any more 'Starting' message.
+</I>&gt;<i> 
+</I>&gt;<i> ?
+</I>&gt;<i> 
+</I>&gt;<i> Example output:
+</I>&gt;<i> 13:22:49: &gt;
+</I>&gt;<i> 13:22:49: Execute[0x3E]  {Byte passed to write exec}
+</I>&gt;<i> 13:22:49: Begin
+</I>&gt;<i> 13:22:49: Synchronization Signal Received.
+</I>&gt;<i> 13:22:49: Starting [State{2}]  {This is good, it belongs here}
+</I>&gt;<i> 
+</I>&gt;<i> 13:22:49: [Not printable]
+</I>&gt;<i> 13:22:49: Execute[0x95]
+</I>&gt;<i> 13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+</I>&gt;<i> 13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+</I>&gt;<i> 
+</I>&gt;<i> 13:22:49: o
+</I>&gt;<i> 13:22:49: Execute[0x6F]
+</I>&gt;<i> 13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+</I>&gt;<i> 13:22:49: DeviceFlashSize = 65536
+</I>&gt;<i> 
+</I>&gt;<i> If I use *any in other states then they show up in the list when
+</I>&gt;<i> then should not as well.
+</I>&gt;<i> 
+</I>&gt;<i> Compiled on  Windows with Digital Mars Compiler with:
+</I>&gt;<i> 
+</I>&gt;<i> BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+</I>&gt;<i>  G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+</I>&gt;<i> BootLoaderStateChart.cpp
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000587.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+	<LI>Next message: <A HREF="000589.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

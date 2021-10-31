@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: parsing a netstring
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20parsing%20a%20netstring&In-Reply-To=%3C470CFB7F.7050209%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000399.html">
+   <LINK REL="Next"  HREF="000401.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: parsing a netstring</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20parsing%20a%20netstring&In-Reply-To=%3C470CFB7F.7050209%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: parsing a netstring">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Oct 10 16:19:11 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000399.html">[ragel-users] Re: parsing a netstring
+</A></li>
+        <LI>Next message: <A HREF="000401.html">for 6.0: going back to 3.X semantics for &gt;, %, err
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#400">[ date ]</a>
+              <a href="thread.html#400">[ thread ]</a>
+              <a href="subject.html#400">[ subject ]</a>
+              <a href="author.html#400">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Chuck,
+
+That's right, I should just point out a subtlety. With error actions
+&quot;inputs not handled&quot; is computed when the final machine is complete. If
+get_size is just on its own in main then this will be non-digits. If
+get_size were unioned with something else then this would be non-digits
+and non-something else (for the start state at least).
+
+If you use local error actions instead @lerr(...) then the &quot;inputs not
+handled&quot; are computed when the get_size machine is constructed. In this
+case any non-digit.
+
+So global error actions are executed when the whole machine fails and
+local error actions are executed when the current definition fails.
+
+-Adrian
+
+Chuck Remes wrote:
+&gt;<i> Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> thanks for the reply. It's encouraging to have my guesses confirmed.
+</I>&gt;<i> 
+</I>&gt;<i> I'm still a bit fuzzy on the last piece regarding error actions.
+</I>&gt;<i> 
+</I>&gt;<i> Let's use the example I contrived from the original email:
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;&gt;<i> get_size = ( digit @store_size @err(size_error) )+;
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> I'm interpreting your comment to mean that @err(size_error) will  
+</I>&gt;<i> *only* get called if the get_size machine receives an input it isn't  
+</I>&gt;<i> configured to handle. For example, if it receives an alphanumeric  
+</I>&gt;<i> then action size_error will be called to handle it.
+</I>&gt;<i> 
+</I>&gt;<i> cr
+</I>&gt;<i> 
+</I>&gt;<i> On Oct 9, 2007, at 4:10 PM, Adrian Thurston wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> Hi Chuck,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Yes, using fnext to call out of the string consuming machine is one  
+</I>&gt;&gt;<i> way
+</I>&gt;&gt;<i> to do it. The code looks good to me.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> As you said you can use conditions as well. I think one of the  
+</I>&gt;&gt;<i> examples
+</I>&gt;&gt;<i> in the manual deals with variable length fields. So there is that  
+</I>&gt;&gt;<i> route.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> And also yes, you can modify p to jump ahead of the area. Just be
+</I>&gt;&gt;<i> mindful of jumping past pe. If you have all the data at once this  
+</I>&gt;&gt;<i> isn't
+</I>&gt;&gt;<i> a problem, but if you get your data in blocks then you have to  
+</I>&gt;&gt;<i> watch out
+</I>&gt;&gt;<i> and hack in some solution.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> With error actions you have to keep in mind that the operators have
+</I>&gt;&gt;<i> slightly different meanings because they select states as opposed to
+</I>&gt;&gt;<i> transitions. The error action embedding operators let you handle the
+</I>&gt;&gt;<i> case of 'no transition' in the states they select.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Chuck Remes wrote:
+</I>&gt;&gt;&gt;<i> I'm suddenly finding all sorts of uses for ragel!
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I want to write a parser for netstrings. The definition of a
+</I>&gt;&gt;&gt;<i> netstring is pretty simple. It comes in the following format:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> size_in_decimal':''string array size_in_decimal bytes long'','
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I wrote a machine to parse through this and capture every byte, but
+</I>&gt;&gt;&gt;<i> I'm unclear how to terminate my get_string machine. Right now I have
+</I>&gt;&gt;&gt;<i> it call the action store_string as a finishing action for each byte
+</I>&gt;&gt;&gt;<i> processed. The action stores the byte and increments a counter
+</I>&gt;&gt;&gt;<i> variable. When the counter variable exceeds the number of bytes to be
+</I>&gt;&gt;&gt;<i> processed, I want to advance out of that machine and move to the next
+</I>&gt;&gt;&gt;<i> machine to confirm the byte array was terminated properly.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I'm not sure I'm doing this correctly. From the docs (section 6.5) it
+</I>&gt;&gt;&gt;<i> appears using a 'semantic condition' would make sense here, but that
+</I>&gt;&gt;&gt;<i> part of the documentation is unclear to me so I'm using this
+</I>&gt;&gt;&gt;<i> alternate methodology. Am I on the right track? Also, is there a way
+</I>&gt;&gt;&gt;<i> to skip 'N' bytes forward instead of copying them one by one into a
+</I>&gt;&gt;&gt;<i> new array (super slow!)? I'm thinking I can directly modify the 'p'
+</I>&gt;&gt;&gt;<i> variable but I'm not sure this is the right way.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Secondly, I'm not sure how to capture errors. I'm already using the
+</I>&gt;&gt;&gt;<i> form '@action' to do some work in a machine. Can I specify an error
+</I>&gt;&gt;&gt;<i> action using the same operator in the same machine? E.g - get_size =
+</I>&gt;&gt;&gt;<i> ( digit @store_size @err(size_error) )+;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Thanks for any input. My sample machine is listed below.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> %%{
+</I>&gt;&gt;&gt;<i> 	machine parse_netstring;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	# snipped out some actions for the sake of brevity
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	action store_size {
+</I>&gt;&gt;&gt;<i> 		size = ( size * 10 ) + fc; # accumulate string length
+</I>&gt;&gt;&gt;<i> 	};
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	action alloc_buffer {
+</I>&gt;&gt;&gt;<i> 		buffer = Array.new(size);
+</I>&gt;&gt;&gt;<i> 		i = 0;
+</I>&gt;&gt;&gt;<i> 	};
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	action store_string {
+</I>&gt;&gt;&gt;<i> 		buffer[i] = fc;
+</I>&gt;&gt;&gt;<i> 		i = i + 1;
+</I>&gt;&gt;&gt;<i> 		fnext get_string_terminator if i &gt; size;
+</I>&gt;&gt;&gt;<i> 	};
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	get_size = ( digit &gt;validate_not_zero ) . ( digit @store_size )*;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	get_delimeter = ( ':' @alloc_buffer );
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	get_string = ( any @store_string )*;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	get_netstring_terminator = ',' @finalize;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 	main := get_size . get_delimeter . get_string;
+</I>&gt;&gt;&gt;<i> }%%
+</I>&gt;&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20071010/5846bc0f/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20071010/5846bc0f/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000399.html">[ragel-users] Re: parsing a netstring
+</A></li>
+	<LI>Next message: <A HREF="000401.html">for 6.0: going back to 3.X semantics for &gt;, %, err
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#400">[ date ]</a>
+              <a href="thread.html#400">[ thread ]</a>
+              <a href="subject.html#400">[ subject ]</a>
+              <a href="author.html#400">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

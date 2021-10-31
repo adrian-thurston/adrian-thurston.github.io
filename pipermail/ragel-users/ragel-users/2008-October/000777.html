@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Small help with RTSP + SDP parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Small%20help%20with%20RTSP%20%2B%20SDP%20parser&In-Reply-To=%3C4900B113.6090008%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000775.html">
+   <LINK REL="Next"  HREF="000778.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Small help with RTSP + SDP parser</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Small%20help%20with%20RTSP%20%2B%20SDP%20parser&In-Reply-To=%3C4900B113.6090008%40complang.org%3E"
+       TITLE="[ragel-users] Small help with RTSP + SDP parser">thurston at complang.org
+       </A><BR>
+    <I>Thu Oct 23 17:14:59 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000775.html">[ragel-users] Small help with RTSP + SDP parser
+</A></li>
+        <LI>Next message: <A HREF="000778.html">[ragel-users] access variable in expression?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>You could put %body_read at the end of the final CRLF. It seems you're
+parsing only a single request/response at once and you don't need to
+separate them. That means that when the input buffer is fully consumed
+you're at the end.
+
+Adrian
+
+Horacio Sanson wrote:
+&gt;<i> Here is part of my parser that deals with RTSP response body part. As
+</I>&gt;<i> you can see the message_body is delimited by CRLF that is a simle
+</I>&gt;<i> (&quot;\n&quot;? &quot;\r&quot;) expression.
+</I>&gt;<i> My problem is when the response has a SDP message as part of the
+</I>&gt;<i> response body. This is because SDP fields are also delimited with CRLF
+</I>&gt;<i> (see example at the end). In this case the body_read action is called
+</I>&gt;<i> for each SDP field instead of only once at the end of the body. In
+</I>&gt;<i> consequence I get several calls to memcpy when in fact I only expect
+</I>&gt;<i> one at the end of the message body (i.e. 27 times in the example
+</I>&gt;<i> below).
+</I>&gt;<i> 
+</I>&gt;<i> The end result is still correct, the SDP is completely copied inside
+</I>&gt;<i> the msg-&gt;body buffer, but calling memcpy per SDP field is undesired
+</I>&gt;<i> for performance reasons. What rule/tip/trick/hack can I use to make
+</I>&gt;<i> the body_read action be executed only once at the end of the RTSP
+</I>&gt;<i> message body??
+</I>&gt;<i> 
+</I>&gt;<i> thanks
+</I>&gt;<i> Horacio
+</I>&gt;<i> 
+</I>&gt;<i> ################################################################################
+</I>&gt;<i> #        Ragel rules
+</I>&gt;<i> ################################################################################
+</I>&gt;<i> 
+</I>&gt;<i> action body_test  { body_offset++ &lt; msg-&gt;body_len }
+</I>&gt;<i> action body_start { body_start = fpc; body_offset = 0 }
+</I>&gt;<i> action body_end   {body_end = fpc;}
+</I>&gt;<i> action body_read {
+</I>&gt;<i>     tmpbuf_len = body_end - body_start;
+</I>&gt;<i>     memcpy(msg-&gt;body, body_start, tmpbuf_len);
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> message_body = any+ &gt;body_start @body_end when body_test %body_read;
+</I>&gt;<i> 
+</I>&gt;<i> Response = (                            # Section 7
+</I>&gt;<i>      Status_Line
+</I>&gt;<i>      (
+</I>&gt;<i>          general_header                 # Section 5
+</I>&gt;<i>          | response_header              # Section 6.2
+</I>&gt;<i>          | entity_header                # Section 8.1
+</I>&gt;<i>          | CSeq                        # Section 12.17
+</I>&gt;<i>          | Session                       # Section 12.37
+</I>&gt;<i>          | Transport                     # Section 12.39
+</I>&gt;<i>          | darwin_header                 # Darwin SS proprietary
+</I>&gt;<i>      )*
+</I>&gt;<i>      CRLF
+</I>&gt;<i>      message_body?                       # Section 4.3
+</I>&gt;<i>      CRLF %{ msg-&gt;finished = 1; SUJMSG(&quot;RTSP Finish\n&quot;); }
+</I>&gt;<i>  );
+</I>&gt;<i> 
+</I>&gt;<i> main := (Request | Response);
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ################################################################################
+</I>&gt;<i> # Example RTSP response:
+</I>&gt;<i> ################################################################################
+</I>&gt;<i> RTSP/1.0 200 OK
+</I>&gt;<i> Server: DSS/5.5.5 (Build/489.16; Platform/Linux; Release/Darwin;
+</I>&gt;<i> state/beta; )
+</I>&gt;<i> Cseq: 411
+</I>&gt;<i> Last-Modified: Thu, 16 Oct 2008 00:21:52 GMT
+</I>&gt;<i> Cache-Control: must-revalidate
+</I>&gt;<i> Content-length: 741
+</I>&gt;<i> Date: Thu, 23 Oct 2008 02:30:28 GMT
+</I>&gt;<i> Expires: Thu, 23 Oct 2008 02:30:28 GMT
+</I>&gt;<i> Content-Type: application/sdp
+</I>&gt;<i> x-Accept-Retransmit: our-retransmit
+</I>&gt;<i> x-Accept-Dynamic-Rate: 1
+</I>&gt;<i> Content-Base: <A HREF="rtsp://www.fake.com:554/BBB.mp4/">rtsp://www.fake.com:554/BBB.mp4/</A>
+</I>&gt;<i> 
+</I>&gt;<i> v=0
+</I>&gt;<i> o=StreamingServer 3433717827 1224116512000 IN IP4 218.45.218.150
+</I>&gt;<i> s=/BBB.mp4
+</I>&gt;<i> u=<A HREF="http:///">http:///</A>
+</I>&gt;<i> e=admin@
+</I>&gt;<i> c=IN IP4 0.0.0.0
+</I>&gt;<i> b=AS:500
+</I>&gt;<i> t=0 0
+</I>&gt;<i> a=control:*
+</I>&gt;<i> a=x-copyright: MP4/3GP File hinted with GPAC 0.4.4 (C)2000-2005 -
+</I>&gt;<i> <A HREF="http://gpac.sourceforge.net">http://gpac.sourceforge.net</A>
+</I>&gt;<i> a=range:npt=0- 596.45800
+</I>&gt;<i> m=video 0 RTP/AVP 96
+</I>&gt;<i> b=AS:400
+</I>&gt;<i> a=rtpmap:96 H264/90000
+</I>&gt;<i> a=control:trackID=65536
+</I>&gt;<i> a=fmtp:96 profile-level-id=42C01E; packetization-mode=1;
+</I>&gt;<i> sprop-parameter-sets=Z0LAHppzgUBf8sIAAAMAAgAAAwBhHixc8A==,aM4yyA==
+</I>&gt;<i> a=framesize:96 640-360
+</I>&gt;<i> m=audio 0 RTP/AVP 97
+</I>&gt;<i> b=AS:100
+</I>&gt;<i> a=rtpmap:97 mpeg4-generic/48000/2
+</I>&gt;<i> a=control:trackID=65537
+</I>&gt;<i> a=fmtp:97 profile-level-id=41; config=1190; streamType=5;
+</I>&gt;<i> mode=AAC-hbr; objectType=64; sizeLength=13; indexLength=3;
+</I>&gt;<i> indexDeltaLength=3
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000775.html">[ragel-users] Small help with RTSP + SDP parser
+</A></li>
+	<LI>Next message: <A HREF="000778.html">[ragel-users] access variable in expression?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

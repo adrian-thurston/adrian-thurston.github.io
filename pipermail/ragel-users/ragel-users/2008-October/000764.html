@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] fcall/fret operator error?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20fcall/fret%20operator%20error%3F&In-Reply-To=%3C2df568dc0810101415gec6a2dbh7faf2daac163d386%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000760.html">
+   <LINK REL="Next"  HREF="002526.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] fcall/fret operator error?</H1>
+    <B>Gordon Smith</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20fcall/fret%20operator%20error%3F&In-Reply-To=%3C2df568dc0810101415gec6a2dbh7faf2daac163d386%40mail.gmail.com%3E"
+       TITLE="[ragel-users] fcall/fret operator error?">spiderkarma at gmail.com
+       </A><BR>
+    <I>Fri Oct 10 21:15:25 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000760.html">new mailing list
+</A></li>
+        <LI>Next message: <A HREF="002526.html">[ragel-users] fcall/fret operator error?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#764">[ date ]</a>
+              <a href="thread.html#764">[ thread ]</a>
+              <a href="subject.html#764">[ subject ]</a>
+              <a href="author.html#764">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello all -
+
+Having a bit of trouble with fcall/fret.
+
+I need to read a number in a string that indicates the number of bytes to
+follow. I do this correctly with a complete string, but also reach a final
+state with an incomplete string that includes some of the binary data. I'm
+using fcall into another machine to read the binary data.
+
+Have I missed something obvious?
+
+Thanks,
+Gordon
+
+%%{
+    machine TEST;
+    alphtype char;
+
+    action binary_data_length_check {
+        fsm.binary_data_count++;
+        if ( fsm.binary_data_count &gt;= fsm.byte_count ) {
+            //fhold;
+            fret;
+        }
+    }
+
+    action binary_data_init { fsm.binary_data_count = 0; }
+
+    binary_data_machine := any+ $binary_data_length_check &gt;binary_data_init;
+
+    # We're trying to do this:
+    # any{fsm.byte_count}
+    action binary_data_action {
+        fcall binary_data_machine;
+    }
+
+    binary_payload = 'r.' @binary_data_action;
+
+    # b:&lt;NumBytes&gt;:&lt;NumBytes of chars&gt;:&lt;CRC&gt;&lt;CR&gt;
+    bridge_packet =
+        'b:'
+        ( xdigit @{ AddXDigit( fsm.byte_count, * p ); } )+
+        ':'
+        binary_payload
+        ':'
+        xdigit+
+        '\r';
+
+    main := bridge_packet;
+}%%
+
+%% write data;
+
+void init() {
+    %% write init;
+    fsm.byte_count = 0;
+}
+
+void parse(char * payload, char * payloadEnd) {
+    const char * p = payload;
+    const char * pe = payloadEnd;
+
+    %% access fsm.;
+    %% write exec;
+
+    if ( fsm.cs == TEST_error ) {
+        std::cout &lt;&lt; &quot;FINISH_ERROR\n&quot;;
+    } else if ( fsm.cs &gt;= TEST_first_final ) {
+        std::cout &lt;&lt; &quot;FINISH_FINAL\n&quot;;
+    } else {
+        std::cout &lt;&lt; &quot;FINISH_NOT_FINAL\n&quot;;
+    }
+}
+
+int main() {
+    init();
+    {
+        // Complete
+        char * t1 = &quot;b:0004:r.abcd:a0\r&quot;;
+        parse(t1, t1 + strlen( t1 ) );
+    }
+
+    init();
+    {
+        // Incomplete
+        char * t1 = &quot;b:0004:r.ab&quot;;
+        parse(t1, t1 + strlen( t1 ) );
+    }
+
+    return 0;
+}
+
+----------
+Output is:
+{{{
+FINISH_FINAL
+FINISH_FINAL
+}}}
+
+and I expect
+{{{
+FINISH_FINAL
+FINISH_NOT_FINAL
+}}}
+
+AddXDigit( unsigned target, char c ) adds value of hexadecimal digit to
+target.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20081010/74e63ad8/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20081010/74e63ad8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000760.html">new mailing list
+</A></li>
+	<LI>Next message: <A HREF="002526.html">[ragel-users] fcall/fret operator error?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#764">[ date ]</a>
+              <a href="thread.html#764">[ thread ]</a>
+              <a href="subject.html#764">[ subject ]</a>
+              <a href="author.html#764">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

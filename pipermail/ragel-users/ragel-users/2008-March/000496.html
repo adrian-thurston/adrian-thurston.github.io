@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Possible bug in Ragel 6.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Possible%20bug%20in%20Ragel%206.0&In-Reply-To=%3C47CEE448.1030600%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="000511.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Possible bug in Ragel 6.0</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Possible%20bug%20in%20Ragel%206.0&In-Reply-To=%3C47CEE448.1030600%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Possible bug in Ragel 6.0">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Mar  5 18:19:52 UTC 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000511.html">[ragel-users] Re: % Leaving Action Questions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#496">[ date ]</a>
+              <a href="thread.html#496">[ thread ]</a>
+              <a href="subject.html#496">[ subject ]</a>
+              <a href="author.html#496">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Manoj,
+
+Applying kleene star to a machine that accepts the zero length word (has
+a start state that is final) requires some special care in the kleene
+star operator due to leaving actions. It is this special case that is
+failing.
+
+I never really put much effort into solving this because applying kleene
+star to something that already accepts nothing is not a great idea. It's
+ambiguous and in the presence of leaving actions it's not clear how it
+should work. That's why the warning is there. It's better to refactor
+your grammar. You could probably take out the optional operation
+immediately before the kleene star.
+
+To prevent crashing in the future I'll have to do something here. I
+might just remove final state status from the start state before doing a
+star operation. The warning will stay in.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+&gt;<i> Hi all,
+</I>&gt;<i> 
+</I>&gt;<i>    Ragel has been crashing with non-descript errors and I've spent a lot 
+</I>&gt;<i> of time trying to find out the cause of the crash. I've made partial 
+</I>&gt;<i> progress and would like to inform you about this and could benefit from 
+</I>&gt;<i> an expert's help.
+</I>&gt;<i> 
+</I>&gt;<i>   I'm attaching a ragel file that I'm trying to compile with the command:
+</I>&gt;<i> 
+</I>&gt;<i>    ragel -C mmp-parser.rl -o mmp-parser.cpp
+</I>&gt;<i> 
+</I>&gt;<i> The crash is in the front-end and the segfault can be seen with
+</I>&gt;<i> 
+</I>&gt;<i>    ragel -x mmp-parser.rl
+</I>&gt;<i> 
+</I>&gt;<i>  From the backtrace, I've been able to see that in the following lines 
+</I>&gt;<i> (ragel/fsmgraph.cpp: 226-229)
+</I>&gt;<i> 
+</I>&gt;<i>      for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+</I>&gt;<i>          if ( *st != startState )
+</I>&gt;<i>              mergeStatesLeaving( md, *st, startState );
+</I>&gt;<i>      }
+</I>&gt;<i> 
+</I>&gt;<i> the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+</I>&gt;<i> is causing the segfault.
+</I>&gt;<i> 
+</I>&gt;<i> So StateSet is a container (a Vector&lt;StateAp*&gt;) with one entry being a 
+</I>&gt;<i> NULL pointer. Does someone know how this could creep in?
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Manoj
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000511.html">[ragel-users] Re: % Leaving Action Questions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#496">[ date ]</a>
+              <a href="thread.html#496">[ thread ]</a>
+              <a href="subject.html#496">[ subject ]</a>
+              <a href="author.html#496">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

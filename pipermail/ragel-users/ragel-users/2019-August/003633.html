@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] combining ragel and lemon
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20combining%20ragel%20and%20lemon&In-Reply-To=%3C0cb0b286-ec43-6a25-7a71-6be537c91bed%40esi-group.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003632.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] combining ragel and lemon</H1>
+    <B>Mark Olesen</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20combining%20ragel%20and%20lemon&In-Reply-To=%3C0cb0b286-ec43-6a25-7a71-6be537c91bed%40esi-group.com%3E"
+       TITLE="[ragel-users] combining ragel and lemon">Mark.Olesen at esi-group.com
+       </A><BR>
+    <I>Wed Aug 21 13:16:57 EDT 2019</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003632.html">[ragel-users] combining ragel and lemon
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3633">[ date ]</a>
+              <a href="thread.html#3633">[ thread ]</a>
+              <a href="subject.html#3633">[ subject ]</a>
+              <a href="author.html#3633">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+Thanks for the feedback. After some more digging, it seems it won't make 
+much difference between having a push or pull model for a simple syntax. 
+The ragel potion of the code is fairly simple: just emit a token type or 
+a number - not much else.
+
+
+As my initial go, I'm trying to extend the simple calculator model with 
+some functions etc.  To ship around the longest match issue, it seems 
+okay to simply bind in the opening '(' into the token. Eg,
+
+   'log' space* '('         { EMIT_TOKEN(EXP); };
+
+And on the lemon side, accept that with a closing condition.
+
+exp(lhs) ::= LOG exp(a) RPAREN.
+{
+     lhs = std:log(a);
+}
+
+This deals adequately with incomplete content such as these
+     &quot; log( &quot;  and  &quot; log(10&quot;
+
+This disambiguation crutch fails when supplying some predefined 
+constants such as pi and M_PI. If I use a simple match,
+
+     'pi'  @{ EMIT_NUMBER(M_PI); };
+
+It fails with things like &quot;2*pie&quot; and &quot;pi2&quot;. Here I can only resort to 
+either having a lex failure (ie, pe != eof afterwards) or let lemon 
+notice the syntax error.
+Neither feels particularly right. I started trying to add in additional 
+constraints. Eg,
+
+     ('pi' | 'M_PI') :&gt; (delim | ')') @{ EMIT_NUMBER(M_PI); };
+
+but that eats the next character instead of doing a lookahead (can't 
+figure how to manage that) and falls apart for the eof case.  Do I 
+somehow need to push the parse point before the delimiters and pop it 
+again (and handle eof too)?
+
+If I can get this stage worked out, I might be able to move to the next 
+phase with different parse states. The code that I am attempting to port 
+is currently flex/bison (not particularly pretty) and I would like to 
+avoid a bison build dependency.
+
+<A HREF="https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionLexer.ll">https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionLexer.ll</A>
+
+<A HREF="https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionParser.yy">https://github.com/Unofficial-Extend-Project-Mirror/openfoam-extend-swak4Foam-dev/blob/master/Libraries/swak4FoamParsers/FieldValueExpressionParser.yy</A>
+
+
+Perhaps I'm attempting too much and it's not really possible with 
+ragel/lemon.
+
+Thanks for any hints.
+
+Cheers,
+/mark
+
+
+On 8/16/19 9:57 PM, Adrian Thurston wrote:
+&gt;<i> Hi Mark,
+</I>&gt;<i> 
+</I>&gt;<i> You can return from the scanner pattern action if you like. You can also 
+</I>&gt;<i> craft a machine that that just attempts to match one token, then return 
+</I>&gt;<i> the token. If you want to stay faithful to lex semantics, you have to 
+</I>&gt;<i> take some care to implement the &quot;longest-match&quot; characteristic yourself.
+</I>&gt;<i> 
+</I>&gt;<i> But from what I've seen, lemon lets you pass in one token at a time. 
+</I>&gt;<i> This is just one example I found, but there seems to be more.
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="https://github.com/eloraiby/rl-json-parser/blob/master/json-parser/lexer.rl">https://github.com/eloraiby/rl-json-parser/blob/master/json-parser/lexer.rl</A>
+</I>&gt;<i> 
+</I>&gt;<i> Adrian
+</I>&gt;<i> 
+</I>&gt;<i> On 2019-08-16 11:07, Mark Olesen wrote:
+</I>&gt;&gt;<i> I've use ragel in a few places already for parsing, but now I'm looking
+</I>&gt;&gt;<i> to port over a medium sized chunk of flex/bison. Perhaps going for a
+</I>&gt;&gt;<i> ragel/lemon combination.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> According to the lemon docs (<A HREF="https://www.hwaci.com/sw/lemon/lemon.html">https://www.hwaci.com/sw/lemon/lemon.html</A>)
+</I>&gt;&gt;<i> the parser is the one calling the lexer. But this seems to be the same
+</I>&gt;&gt;<i> as ragel would like to be doing: match a pattern, call an action.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The few examples of ragel/lemon that I've found (the classic calculator,
+</I>&gt;&gt;<i> or a json parser) seem to be handling this by running ragel as the
+</I>&gt;&gt;<i> scanner, and calling the lemon parser in its actions.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Some other examples I've seen use re2c for the lexing part. This appears
+</I>&gt;&gt;<i> to fit better with what lemon expects, but there must be some way to lex
+</I>&gt;&gt;<i> a single token and return from ragel I suspect.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I would be thankful for ideas.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Cheers,
+</I>&gt;&gt;<i> /mark
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+-- 
+Dr Mark OLESEN
+Principal Engineer, ESI-OpenCFD
+Engineering System International GmbH | Einsteinring 24 | 85609 Munich
+Mob. +49 171 9710 149
+www.openfoam.com | www.esi-group.com | <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">mark.olesen at esi-group.com</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003632.html">[ragel-users] combining ragel and lemon
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3633">[ date ]</a>
+              <a href="thread.html#3633">[ thread ]</a>
+              <a href="subject.html#3633">[ subject ]</a>
+              <a href="author.html#3633">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Bug or feature?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Bug%20or%20feature%3F&In-Reply-To=%3Ccb2ad8b50707200800g3a31eaf9nf54eff12e757469d%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000297.html">
+   <LINK REL="Next"  HREF="000299.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Bug or feature?</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Bug%20or%20feature%3F&In-Reply-To=%3Ccb2ad8b50707200800g3a31eaf9nf54eff12e757469d%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Bug or feature?">cmantu... at gmail.com
+       </A><BR>
+    <I>Fri Jul 20 15:00:29 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000297.html">[ragel-users] Re: Bug or feature?
+</A></li>
+        <LI>Next message: <A HREF="000299.html">[ragel-users] Re: Bug or feature?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#298">[ date ]</a>
+              <a href="thread.html#298">[ thread ]</a>
+              <a href="subject.html#298">[ subject ]</a>
+              <a href="author.html#298">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 7/20/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Carlos Antunes wrote:
+</I>&gt;<i> &gt; machine_a = machine_b %action_b machine_c
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Now, this is semantically equivalent to (assuming that &quot;&gt;&quot; is really
+</I>&gt;<i> &gt; associated with the start state:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; machine_a = machine_b  machine_c &gt;action_b
+</I>&gt;<i>
+</I>&gt;<i> They are not quite equivalent. Consider the case of machine_c accepting
+</I>&gt;<i> the zero-length word (start state is final). Then action_b will be a
+</I>&gt;<i> pending out action of machine_a.
+</I>&gt;<i>
+</I>
+Adrian, my point is that when the start and final states are one and
+the same, there is no difference between &quot;pending in&quot; and &quot;pending
+out&quot;. In the example above, and using the old semantics, &quot;&gt;action_b&quot;
+may indeed represent a &quot;pending out&quot;. But this is consistent with what
+I've said: there is no semantic difference between &quot;pending_in&quot; and
+&quot;pending_out&quot; when start and final states are one and the same. And
+the empty machine just so happens to have a start state
+indistinguishable from a final one, no?
+
+&gt;<i>
+</I>&gt;<i> One thing I don't like about the syntax you propose is that it creates
+</I>&gt;<i> an ambiguity in the ragel language itself. When you parse % is it
+</I>&gt;<i> associated with the tree on the left or the tree on the right?
+</I>&gt;<i>
+</I>
+At the end of the day, I don't think it matters. The end result, from
+a semantic point of view, is the same. After all, from a semantic
+point of view &quot;(expr1 %action) expr2&quot; is the same as &quot;expr1 (%action
+expr2)&quot;.
+
+&gt;<i>
+</I>&gt;<i>Right now all embedding operators are currently of this form:
+</I>&gt;<i>
+</I>&gt;<i> &lt;expr&gt; &lt;op&gt; &lt;action&gt;
+</I>&gt;<i>
+</I>&gt;<i> and this syntax changes that.
+</I>&gt;<i>
+</I>
+Yes, you are right.
+
+&gt;<i>
+</I>&gt;<i> Also note that you can achieve the same thing using the existing
+</I>&gt;<i> language by putting &quot;&quot; in front of %. Like this:
+</I>&gt;<i>
+</I>&gt;<i> machine_a = machine_b ( &quot;&quot;%action_b machine_c );
+</I>&gt;<i>
+</I>&gt;<i> So that brings up an interesting point. The line directly above is
+</I>&gt;<i> another way to emulate the old semantics of &gt;.
+</I>&gt;<i>
+</I>
+Indeed and that is, right now, the best practical way to recover the
+old semantics.
+
+However, allow me to be mathematical one more time:
+
+machine_a = machine_b ( &quot;&quot;%action_b machine_c )
+
+&lt;=&gt; machine_a = ( machine_b &quot;&quot;%action_b ) machine_c
+
+&lt;=&gt; machine_a = ( machine_b &quot;&quot; ) %action_b machine_c
+
+&lt;=&gt; machine_a = ( machine_b ) %action_b machine_c
+
+&lt;=&gt; machine_a = machine_b ( %action_b machine_c)
+
+Obviously, &quot;&lt;=&gt;&quot; refers to semantic rather than syntactic equivalence.
+But the end result is always the same: no difference in the way the
+FSM &quot;sees&quot; the &quot;%&quot; operator. In reality, I guess one could call it
+simply the &quot;transition between machines&quot; operator because that's the
+way a FSM sees it. The &quot;&gt;&quot; in the old semantics would simply be a
+redundant beast.
+
+However, I understand the syntactic simplicity of &quot;&lt;expr&gt; &lt;op&gt;
+&lt;action&gt;&quot; and, as much as I think it would be cool, it is not that
+important from a practical point of view. Maybe, as a suggestion, you
+could mention the ( &quot;&quot; %action ) trick in the documentation?
+
+Thanks!
+
+Carlos
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000297.html">[ragel-users] Re: Bug or feature?
+</A></li>
+	<LI>Next message: <A HREF="000299.html">[ragel-users] Re: Bug or feature?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#298">[ date ]</a>
+              <a href="thread.html#298">[ thread ]</a>
+              <a href="subject.html#298">[ subject ]</a>
+              <a href="author.html#298">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

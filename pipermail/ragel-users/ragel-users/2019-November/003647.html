@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] -G2 -Z generating an incorrect FSM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20-G2%20-Z%20generating%20an%20incorrect%20FSM&In-Reply-To=%3CCAKDanEBqS04TiSFOmRAQdj799o3k4%2B4sTsuxWWUL%3DtUzbGAqYg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="003648.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] -G2 -Z generating an incorrect FSM</H1>
+    <B>Karl Stenerud</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20-G2%20-Z%20generating%20an%20incorrect%20FSM&In-Reply-To=%3CCAKDanEBqS04TiSFOmRAQdj799o3k4%2B4sTsuxWWUL%3DtUzbGAqYg%40mail.gmail.com%3E"
+       TITLE="[ragel-users] -G2 -Z generating an incorrect FSM">kstenerud at gmail.com
+       </A><BR>
+    <I>Fri Nov  8 00:04:03 EST 2019</I>
+    <P><UL>
+        
+        <LI>Next message (by thread): <A HREF="003648.html">[ragel-users] -G2 -Z generating an incorrect FSM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3647">[ date ]</a>
+              <a href="thread.html#3647">[ thread ]</a>
+              <a href="subject.html#3647">[ subject ]</a>
+              <a href="author.html#3647">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have a ragel machine that generates passing Go code when built with -G1,
+but failing code when built with -G2 (using ragel 6.10 on ubuntu).
+
+Given the following machine definition:
+
+-------------------------------------------------------------------------
+package safe16l
+
+import (
+    &quot;fmt&quot;
+)
+
+%%{
+    machine safe16;
+    access this.;
+
+    numeric_hi = [0-9] @{
+        accumulator = (fc - '0') &lt;&lt; 4
+    };
+    af_hi = [a-f] @{
+        accumulator = (fc - 'a' + 10) &lt;&lt; 4
+    };
+    AF_hi = [A-F] @{
+        accumulator = (fc - 'A' + 10) &lt;&lt; 4
+    };
+    numeric_lo = [0-9] @{
+        accumulator |= fc - '0'
+    };
+    af_lo = [a-f] @{
+        accumulator |= fc - 'a' + 10
+    };
+    AF_lo = [A-F] @{
+        accumulator |= fc - 'A' + 10
+    };
+
+    sequence = space* (numeric_hi | af_hi | AF_hi) space* (numeric_lo |
+af_lo | AF_lo) %{
+        dst[dstIndex] = accumulator
+        dstIndex++
+    };
+
+
+    length_nocontinue = [0-7] @{
+        this.length = this.length &lt;&lt; 3 + int(fc - '0')
+    };
+    length_numeric = [8-9] @{
+        this.length = this.length &lt;&lt; 3 + int(fc - '0')
+    };
+    length_af = [a-f] @{
+        this.length = this.length &lt;&lt; 3 + int(fc - 'a' + 10 - 8)
+    };
+    length_AF = [A-F] @{
+        this.length = this.length &lt;&lt; 3 + int(fc - 'A' + 10 - 8)
+    };
+
+    length = (length_numeric | length_af | length_AF)* length_nocontinue;
+
+    sequence_counted = sequence %{
+        fmt.Printf(&quot;### End of sequence\n&quot;)
+        this.length--
+        if this.length == 0 {
+            this.isComplete = true
+            fbreak;
+        }
+    };
+
+    main := length sequence_counted* @/{
+        err = fmt.Errorf(&quot;Incomplete document&quot;)
+    };
+}%%
+
+
+%% write data;
+
+type Parser struct {
+    cs int // Current Ragel state
+    data []byte
+    length int
+    isComplete bool
+}
+
+func (this *Parser) Init() {
+}
+
+func NewParser() *Parser {
+    this := new(Parser)
+    return this
+}
+
+func (this *Parser) Parse(src []byte, dst []byte) (bytesWritten int,
+isComplete bool, err error) {
+    this.data = src
+    p := 0 // Position: current
+    pe := len(this.data) // Position: end of buffer
+    // TODO: Change to -1 and check for end of file
+    eof := pe // Position: end of file
+    accumulator := byte(0)
+    dstIndex := 0
+
+    _ = eof
+
+    %%{
+        write init;
+        write exec;
+    }%%
+
+    if this.cs == safe16_error {
+        err = fmt.Errorf(&quot;Parse error at %v&quot;, p)
+    }
+
+    return dstIndex, this.isComplete, err
+}
+-------------------------------------------------------------------------
+
+And the following test code:
+
+-------------------------------------------------------------------------
+package safe16l
+
+import (
+    &quot;bytes&quot;
+    &quot;testing&quot;
+)
+
+func testSafe16L(t *testing.T, src string, expected []byte) {
+    dst := make([]byte, len(src))
+    parser := NewParser()
+
+    bytesWritten, isComplete, err := parser.Parse([]byte(src), dst)
+    if err != nil {
+        t.Error(err)
+    }
+    if !isComplete {
+        t.Errorf(&quot;Sequence [%v]: Incomplete parse&quot;, src)
+    }
+
+    actual := dst[:bytesWritten]
+    if !bytes.Equal(actual, expected) {
+        t.Errorf(&quot;Sequence [%v]: Expected %v but got %v&quot;, src, expected,
+actual)
+    }
+}
+
+func TestSafe16L(t *testing.T) {
+    testSafe16L(t, &quot;100&quot;, []byte{0x00})
+}
+-------------------------------------------------------------------------
+
+With G1:
+
+$ ragel -Z -G1 safe16l.rl &amp;&amp; go test
+### End of sequence
+PASS
+ok   github.com/kstenerud/go-safe16 0.001s
+
+With G2:
+
+$ ragel -Z -G2 safe16l.rl &amp;&amp; go test
+### End of sequence
+--- FAIL: TestSafe16L (0.00s)
+    parser_test.go:14: Parse error at 4
+FAIL
+exit status 1
+FAIL github.com/kstenerud/go-safe16 0.001s
+
+-------------------------------------------------------------------------
+
+Looking at the generated code, I see this in the -G2 version:
+
+//line safe16l.rl:51
+
+        fmt.Printf(&quot;### End of sequence\n&quot;)
+        this.length--
+        if this.length == 0 {
+            this.isComplete = true
+            {p++;  this.cs = 0; goto _out }
+        }
+
+I'm not sure why cs would be set to 0 here. This isn't an error state as
+far as I can tell...
+
+
+Cheers,
+Karl
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20191108/53e2c0c6/attachment.html">http://www.colm.net/pipermail/ragel-users/attachments/20191108/53e2c0c6/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message (by thread): <A HREF="003648.html">[ragel-users] -G2 -Z generating an incorrect FSM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3647">[ date ]</a>
+              <a href="thread.html#3647">[ thread ]</a>
+              <a href="subject.html#3647">[ subject ]</a>
+              <a href="author.html#3647">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

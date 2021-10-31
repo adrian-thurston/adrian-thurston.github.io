@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Parsing a template language
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20a%20template%20language&In-Reply-To=%3CCB139CED0DA3B1459774AEB8842F78A702FE241B%40ATLVMX02.turner.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001139.html">
+   <LINK REL="Next"  HREF="001141.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Parsing a template language</H1>
+    <B>Laslavic, Alex</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20a%20template%20language&In-Reply-To=%3CCB139CED0DA3B1459774AEB8842F78A702FE241B%40ATLVMX02.turner.com%3E"
+       TITLE="[ragel-users] Parsing a template language">Alex.Laslavic at turner.com
+       </A><BR>
+    <I>Wed Jul 28 01:52:49 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001139.html">[ragel-users] Parsing a template language
+</A></li>
+        <LI>Next message: <A HREF="001141.html">[ragel-users] Parsing a template language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1140">[ date ]</a>
+              <a href="thread.html#1140">[ thread ]</a>
+              <a href="subject.html#1140">[ subject ]</a>
+              <a href="author.html#1140">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I'm actually working on a similar sounding task.  
+
+Try the strong subtraction operator
+Untested:
+
+main := |*
+  '[[' lower+ ']]' =&gt; action
+  ( any* -- '[[' ) =&gt; action
+*|;
+
+
+( any* -- '[[' ) will match the longest possible string that doesn't have '[[' as a substring.
+
+-----Original Message-----
+From: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-bounces at complang.org</A> on behalf of Tobias Lütke
+Sent: Tue 7/27/2010 6:54 PM
+To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+Subject: Re: [ragel-users] Parsing a template language
+ 
+Depends on the answers in this thread I suppose :-)
+
+
+
+On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">judofyr at gmail.com</A>&gt; wrote:
+&gt;<i> (A little off-topic, but whatever:
+</I>&gt;<i>
+</I>&gt;<i> So Liquid will finally get a proper parser? :-))
+</I>&gt;<i>
+</I>&gt;<i> // Magnus Holm
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">tobi at leetsoft.com</A>&gt; wrote:
+</I>&gt;&gt;<i> I've been working on a parser for simple template language. I'm using Ragel.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The requirements are modest. I'm trying to find [[tags]] that can be
+</I>&gt;&gt;<i> embedded anywhere in the input string.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm trying to parse a simple template language, something that can
+</I>&gt;&gt;<i> have tags such as {{foo}} embedded within HTML. I tried several
+</I>&gt;&gt;<i> approaches to parse this but had to resort to using a Ragel scanner
+</I>&gt;&gt;<i> and use the inefficient approach of only matching a single character
+</I>&gt;&gt;<i> as a &quot;catch all&quot;. I feel this is the wrong way to go about this. I'm
+</I>&gt;&gt;<i> essentially abusing the longest-match bias of the scanner to implement
+</I>&gt;&gt;<i> my default rule ( it can only be 1 char long, so it should always be
+</I>&gt;&gt;<i> the last resort ).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %%{
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  machine parser;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  action start      { tokstart = p; }
+</I>&gt;&gt;<i>  action on_tag      { results &lt;&lt; [:tag, data[tokstart..p]] }
+</I>&gt;&gt;<i>  action on_static  { results &lt;&lt; [:static, data[p..p]] }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  tag  = ('[[' lower+ ']]') &gt;start @on_tag;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  main := |*
+</I>&gt;&gt;<i>    tag;
+</I>&gt;&gt;<i>    any      =&gt; on_static;
+</I>&gt;&gt;<i>  *|;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> }%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ( actions written in ruby, but should be easy to understand ).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> How would you go about writing a parser for such a simple language? Is
+</I>&gt;&gt;<i> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+</I>&gt;&gt;<i> and nails if the syntax is unpredictable such as this.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Regards
+</I>&gt;&gt;<i> -- tobi
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20100727/673d0c7a/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20100727/673d0c7a/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001139.html">[ragel-users] Parsing a template language
+</A></li>
+	<LI>Next message: <A HREF="001141.html">[ragel-users] Parsing a template language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1140">[ date ]</a>
+              <a href="thread.html#1140">[ thread ]</a>
+              <a href="subject.html#1140">[ subject ]</a>
+              <a href="author.html#1140">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

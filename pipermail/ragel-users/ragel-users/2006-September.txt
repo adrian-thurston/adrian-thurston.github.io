@@ -1,0 +1,2262 @@
+From thurs... at cs.queensu.ca  Mon Sep 11 15:46:31 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 11 Sep 2006 11:46:31 -0400
+Subject: welcome to the mailing list
+Message-ID: <450584D7.1000103@cs.queensu.ca>
+
+Hi, welcome to the mailing list for Ragel. Please feel free to discuss 
+anything related to the project.
+
+Cheers,
+  Adrian
+
+
+From thurs... at cs.queensu.ca  Fri Sep 15 19:06:46 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 15:06:46 -0400
+Subject: Ragel issue tracker abandoned
+Message-ID: <450AF9C6.9070400@cs.queensu.ca>
+
+Hi, I've decided to eliminate the issue tracker. It seems to be overkill for 
+Ragel and is another page I need to check. Surprisingly, there is no 
+notification feature. Please post any deficiencies to the mailing list. It 
+goes right to my inbox.
+
+Cheers,
+  Adrian
+
+
+From colin.flem... at coreproc.com  Wed Sep 13 22:24:40 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Wed, 13 Sep 2006 18:24:40 -0400
+Subject: Minimisation question
+Message-ID: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+
+Hi all,
+
+I'm working on a grammar for parsing XML, according to the XML BNF
+here: http://www.jelks.nu/XML/xmlebnf.html. The grammar is obviously
+fairly complex, and when I tried to compile it Ragel would just keep
+allocating memory until it ran out. I figured it should be possible to
+keep the complexity of the machine low by minimising every time you
+join two machines, and lo and behold I noticed in the code that
+there's a minimizeEveryOp flag, set with the (hidden) -e command line
+flag. With this flag it seems to do a great job, and it seems to
+produce roughly the same machine for the part that I could actually
+compile without that flag. Is there any reason not to use it?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Wed Sep 13 23:04:37 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 13 Sep 2006 19:04:37 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+Message-ID: <45088E85.5020706@cs.queensu.ca>
+
+Hi Colin,
+
+The minimizeEveryOp flag was an experiment I did long ago. Before I had 
+Hopcroft's algorithm implemented, minimization was very slow and I wanted to 
+see if minimizing at every op would speed it up. I kept it in there for the 
+purpose of testing the minimization code. Thus far I haven't needed to use 
+it in order to compile a machine. Though I do tend to work with smaller 
+machines.
+
+There's no reason not to use it. Perhaps it should be exposed and 
+documented. What is the size of the final machine (ragel -s) that you are 
+compiling? There may be a state explosion that can be avoided.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> I'm working on a grammar for parsing XML, according to the XML BNF
+> here: http://www.jelks.nu/XML/xmlebnf.html. The grammar is obviously
+> fairly complex, and when I tried to compile it Ragel would just keep
+> allocating memory until it ran out. I figured it should be possible to
+> keep the complexity of the machine low by minimising every time you
+> join two machines, and lo and behold I noticed in the code that
+> there's a minimizeEveryOp flag, set with the (hidden) -e command line
+> flag. With this flag it seems to do a great job, and it seems to
+> produce roughly the same machine for the part that I could actually
+> compile without that flag. Is there any reason not to use it?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Wed Sep 13 23:48:49 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Wed, 13 Sep 2006 19:48:49 -0400
+Subject: Minimisation question
+In-Reply-To: <45088E85.5020706@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+Message-ID: <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+
+Hi Adrian,
+
+Ok, great that there's no downside to it. Here's some stats (I've
+attached the grammar in case you're interested, it's not finished but
+it's close):
+
+The part that gives the problem is the doctype. The smallest part I
+could get to compile was doctypedecl:
+
+No minimisation:
+
+time ragel asciixml.rl -s -n -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 1361
+
+real    1m58.401s
+user    1m56.850s
+sys     0m1.481s
+
+Memory use peaks at about 765MB. If I try and use the next largest
+production it allocates up to 1.8GB and then malloc fails.
+
+With minimisation:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    1m58.358s
+user    1m56.792s
+sys     0m1.453s
+
+More or less the same time and memory usage.
+
+However with incremental minimisation:
+
+time ragel asciixml.rl -s -e -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.076s
+user    0m0.069s
+sys     0m0.010s
+
+It's practically instantaneous and works a charm. It also easily
+allows me to compile the whole grammar, which is significantly more
+complex:
+
+time ragel asciixml.rl -s -e | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 445
+
+real    0m0.124s
+user    0m0.119s
+sys     0m0.010s
+
+This is a cut-down grammar that only uses ASCII characters, the full
+XML spec requires Unicode, this makes the machine much more complex
+because all the character ranges are treated properly (i.e. the same
+number of states but a lot more transitions). Using incremental
+minimisation allows that machine to be generated in 2.199s.
+
+Assuming it's reliable, I can't see a reason not to use it, or to have
+it turned on by default.
+
+Cheers,
+Colin
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: asciixml.rl
+Type: application/octet-stream
+Size: 6017 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20060913/e9e98fee/attachment.obj>
+
+From thurs... at cs.queensu.ca  Thu Sep 14 04:44:24 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 00:44:24 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+Message-ID: <4508DE28.70902@cs.queensu.ca>
+
+Colin, nice work with the XML grammar!
+
+When the kleene star on line 161 is run the machine has an unreachable 
+final state with < in its transition list. It's causing a state 
+explosion, a rather unnecessary one.
+
+Unreachable states are cleaned up on the fly but some slip through now 
+and then. These are reaped at the end of the machine compile and during 
+the after-op minimize. It's a mark and sweep operation. Usually 
+unreachable states don't cause problems, but you've just found a case 
+which proves they do. So in your case just run with -e.
+
+Unfortunately we can't do a full prune of unreachables after every 
+operation by default. When compiling machines with many unions or 
+concatenations (like test/strings2.rl), constant pruning causes Ragel to 
+grind to a halt. We need some kind of selective pruning. Either that or 
+I need to fix the on-the-fly cleanup. Needless to say I'll work on it.
+
+Thanks for your investigation!
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Hi Adrian,
+> 
+> Ok, great that there's no downside to it. Here's some stats (I've
+> attached the grammar in case you're interested, it's not finished but
+> it's close):
+> 
+> The part that gives the problem is the doctype. The smallest part I
+> could get to compile was doctypedecl:
+> 
+> No minimisation:
+> 
+> time ragel asciixml.rl -s -n -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 1361
+> 
+> real    1m58.401s
+> user    1m56.850s
+> sys     0m1.481s
+> 
+> Memory use peaks at about 765MB. If I try and use the next largest
+> production it allocates up to 1.8GB and then malloc fails.
+> 
+> With minimisation:
+> 
+> time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    1m58.358s
+> user    1m56.792s
+> sys     0m1.453s
+> 
+> More or less the same time and memory usage.
+> 
+> However with incremental minimisation:
+> 
+> time ragel asciixml.rl -s -e -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    0m0.076s
+> user    0m0.069s
+> sys     0m0.010s
+> 
+> It's practically instantaneous and works a charm. It also easily
+> allows me to compile the whole grammar, which is significantly more
+> complex:
+> 
+> time ragel asciixml.rl -s -e | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 445
+> 
+> real    0m0.124s
+> user    0m0.119s
+> sys     0m0.010s
+> 
+> This is a cut-down grammar that only uses ASCII characters, the full
+> XML spec requires Unicode, this makes the machine much more complex
+> because all the character ranges are treated properly (i.e. the same
+> number of states but a lot more transitions). Using incremental
+> minimisation allows that machine to be generated in 2.199s.
+> 
+> Assuming it's reliable, I can't see a reason not to use it, or to have
+> it turned on by default.
+> 
+> Cheers,
+> Colin
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Sep 14 13:37:39 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 09:37:39 -0400
+Subject: Minimisation question
+In-Reply-To: <4508DE28.70902@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+Message-ID: <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+
+Ok, thanks for the help! What causes unreachable states? Can I change
+something about the grammar to avoid them (apart from -e, of course)?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Thu Sep 14 16:46:42 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 12:46:42 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+Message-ID: <45098772.8080104@cs.queensu.ca>
+
+Pretty much every operation can cause unreachable states. For example, 
+during union a new start state is created with epsilon transitions drawn to 
+the old start states. The epsilon operation effectively copies transition 
+lists from the destination state to the source state. If the old start 
+states don't have any transitions in from elsewhere in the machine then they 
+become unreachable. The on-the-fly cleanup will reap states with no external 
+entry points. This gets most unreachables, but just like in garbage 
+collection, cycles cause problems.
+
+In your ragel file the subtraction operation is leaving behind unreachables. 
+Subtraction may in fact need a full mark and sweep (I had thought the 
+on-the-fly was sufficient). The attached patch will allow you to compile 
+without -e.
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Ok, thanks for the help! What causes unreachable states? Can I change
+> something about the grammar to avoid them (apart from -e, of course)?
+> 
+> Cheers,
+> Colin
+> 
+> 
+-------------- next part --------------
+Index: ragel/fsmgraph.cpp
+===================================================================
+--- ragel/fsmgraph.cpp	(revision 3586)
++++ ragel/fsmgraph.cpp	(working copy)
+@@ -496,6 +496,7 @@
+ 
+ 	/* Remove states that have no path to a final state. */
+ 	removeDeadEndStates();
++	removeUnreachableStates();
+ }
+ 
+ bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+
+From colin.flem... at coreproc.com  Thu Sep 14 19:49:59 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 15:49:59 -0400
+Subject: Minimisation question
+In-Reply-To: <45098772.8080104@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+	 <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+	 <45098772.8080104@cs.queensu.ca>
+Message-ID: <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+
+Great, thanks! The patch works well for the grammar I sent:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.087s
+user    0m0.079s
+sys     0m0.011s
+
+But the full Unicode grammar still takes a while:
+
+time ragel xml.rl -s | rlcodegen -V > test.dot
+fsm name  : Xml
+num states: 445
+
+real    0m43.829s
+user    0m43.293s
+sys     0m0.565s
+
+I guess there's another production creating unreachable states. It's a
+vast improvement though, it never even got close to compiling
+beforehand. Is there some way I can diagnose what's happening myself?
+
+On 9/14/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Pretty much every operation can cause unreachable states. For example,
+> during union a new start state is created with epsilon transitions drawn to
+> the old start states. The epsilon operation effectively copies transition
+> lists from the destination state to the source state. If the old start
+> states don't have any transitions in from elsewhere in the machine then they
+> become unreachable. The on-the-fly cleanup will reap states with no external
+> entry points. This gets most unreachables, but just like in garbage
+> collection, cycles cause problems.
+>
+> In your ragel file the subtraction operation is leaving behind unreachables.
+> Subtraction may in fact need a full mark and sweep (I had thought the
+> on-the-fly was sufficient). The attached patch will allow you to compile
+> without -e.
+>
+> Cheers,
+>   Adrian
+>
+> Colin Fleming wrote:
+> > Ok, thanks for the help! What causes unreachable states? Can I change
+> > something about the grammar to avoid them (apart from -e, of course)?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+> Index: ragel/fsmgraph.cpp
+> ===================================================================
+> --- ragel/fsmgraph.cpp  (revision 3586)
+> +++ ragel/fsmgraph.cpp  (working copy)
+> @@ -496,6 +496,7 @@
+>
+>         /* Remove states that have no path to a final state. */
+>         removeDeadEndStates();
+> +       removeUnreachableStates();
+>  }
+>
+>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+>
+>
+>
+
+
+From thurs... at cs.queensu.ca  Thu Sep 14 21:45:33 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 17:45:33 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com> <45098772.8080104@cs.queensu.ca> <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+Message-ID: <4509CD7D.9010109@cs.queensu.ca>
+
+I've been using gdb and hitting ctrl-c when it explodes. From there I 
+explore the data to see what's going on. But if it terminates I would use 
+gprof to get a sense of what's happening. Once I have an idea of where the 
+problem might be I make the smallest ragel spec I can which reproduces the 
+problem and explore using gdb or sometimes print statements.
+
+If you want to send me the full spec I'd love to look into why it's taking 
+so long. Ragel should be able to process it faster.
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Great, thanks! The patch works well for the grammar I sent:
+> 
+> time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    0m0.087s
+> user    0m0.079s
+> sys     0m0.011s
+> 
+> But the full Unicode grammar still takes a while:
+> 
+> time ragel xml.rl -s | rlcodegen -V > test.dot
+> fsm name  : Xml
+> num states: 445
+> 
+> real    0m43.829s
+> user    0m43.293s
+> sys     0m0.565s
+> 
+> I guess there's another production creating unreachable states. It's a
+> vast improvement though, it never even got close to compiling
+> beforehand. Is there some way I can diagnose what's happening myself?
+> 
+> On 9/14/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Pretty much every operation can cause unreachable states. For example,
+>> during union a new start state is created with epsilon transitions drawn to
+>> the old start states. The epsilon operation effectively copies transition
+>> lists from the destination state to the source state. If the old start
+>> states don't have any transitions in from elsewhere in the machine then they
+>> become unreachable. The on-the-fly cleanup will reap states with no external
+>> entry points. This gets most unreachables, but just like in garbage
+>> collection, cycles cause problems.
+>>
+>> In your ragel file the subtraction operation is leaving behind unreachables.
+>> Subtraction may in fact need a full mark and sweep (I had thought the
+>> on-the-fly was sufficient). The attached patch will allow you to compile
+>> without -e.
+>>
+>> Cheers,
+>>   Adrian
+>>
+>> Colin Fleming wrote:
+>>> Ok, thanks for the help! What causes unreachable states? Can I change
+>>> something about the grammar to avoid them (apart from -e, of course)?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+>> Index: ragel/fsmgraph.cpp
+>> ===================================================================
+>> --- ragel/fsmgraph.cpp  (revision 3586)
+>> +++ ragel/fsmgraph.cpp  (working copy)
+>> @@ -496,6 +496,7 @@
+>>
+>>         /* Remove states that have no path to a final state. */
+>>         removeDeadEndStates();
+>> +       removeUnreachableStates();
+>>  }
+>>
+>>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+>>
+>>
+>>
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Sep 14 22:20:30 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 18:20:30 -0400
+Subject: Minimisation question
+In-Reply-To: <4509CD7D.9010109@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+	 <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+	 <45098772.8080104@cs.queensu.ca>
+	 <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+	 <4509CD7D.9010109@cs.queensu.ca>
+Message-ID: <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+
+Sure, I've factored out the common rules, so I've attached a tar with
+the ASCII only and Unicode versions.
+
+BTW I'd also be interested in any suggestions you can give me for
+replacing part of the grammar. Obviously XML is context free, mostly
+this is OK (I'm going to use the tag stack we discussed) but there's
+one section which is still giving me a headache.
+
+It was like this (line 73 in xmlcommon.rl) :
+
+cp = (Name | choice | seq) ('?' | '*' | '+')?;
+
+seq = '(' S? cp ( S? ',' S? cp )* S? ')';
+
+choice = '(' S? cp ( S? '|' S? cp )* S? ')';
+
+children = (choice | seq) ('?' | '*' | '+')?;
+
+I've just put in a dirty hack for now that will hopefully at least lex
+the construct more or less, but won't enforce any of the original
+grammar constraints. Any suggestions about how to do this gracefully
+would be great. I thought about using fcall but seq and choice are
+ambiguous after the opening parenthesis. I also thought about using
+the conditional trick in test/cond6.rl, but then it gets tricky making
+sure that it enforces sequences of only alternations or only
+concatenations (i.e. preventing ( a | b , c ). I really do need a
+stack of which symbol is used at what indentation level I think, but
+it's going to get a bit hairy.
+
+Cheers,
+Colin
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: xml.tar
+Type: application/x-tar
+Size: 20480 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20060914/0f1380af/attachment.tar>
+
+From thurs... at cs.queensu.ca  Fri Sep 15 19:27:48 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 15:27:48 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com> <45098772.8080104@cs.queensu.ca> <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com> <4509CD7D.9010109@cs.queensu.ca> <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+Message-ID: <450AFEB4.7090602@cs.queensu.ca>
+
+Hi Colin, thanks again for the grammar, it will be useful for optimizing Ragel.
+
+This might be what you want:
+
+action call_list {fcall list;}
+action return {fret;}
+
+item = word | '(' @call_list;
+
+list := item (
+             ( ',' item )* |
+             ( '|' item )* )?
+         ')' @return;
+	
+main := item;
+
+
+Colin Fleming wrote:
+> Sure, I've factored out the common rules, so I've attached a tar with
+> the ASCII only and Unicode versions.
+> 
+> BTW I'd also be interested in any suggestions you can give me for
+> replacing part of the grammar. Obviously XML is context free, mostly
+> this is OK (I'm going to use the tag stack we discussed) but there's
+> one section which is still giving me a headache.
+> 
+> It was like this (line 73 in xmlcommon.rl) :
+> 
+> cp = (Name | choice | seq) ('?' | '*' | '+')?;
+> 
+> seq = '(' S? cp ( S? ',' S? cp )* S? ')';
+> 
+> choice = '(' S? cp ( S? '|' S? cp )* S? ')';
+> 
+> children = (choice | seq) ('?' | '*' | '+')?;
+> 
+> I've just put in a dirty hack for now that will hopefully at least lex
+> the construct more or less, but won't enforce any of the original
+> grammar constraints. Any suggestions about how to do this gracefully
+> would be great. I thought about using fcall but seq and choice are
+> ambiguous after the opening parenthesis. I also thought about using
+> the conditional trick in test/cond6.rl, but then it gets tricky making
+> sure that it enforces sequences of only alternations or only
+> concatenations (i.e. preventing ( a | b , c ). I really do need a
+> stack of which symbol is used at what indentation level I think, but
+> it's going to get a bit hairy.
+> 
+> Cheers,
+> Colin
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Fri Sep 15 15:18:50 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Fri, 15 Sep 2006 11:18:50 -0400
+Subject: Grammar testing proposal
+Message-ID: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+
+Hi all,
+
+I've been thinking about various ways to test Ragel and the generated
+grammars, here's what I've come up with. I'm really interested in any
+feedback. I'm currently developing a couple of grammars that I'm
+primarily interested in using with Java. The Java generation is still
+a bit experimental, so I'd like to be able to use acceptance tests
+that confirm that a) the grammar works as expected, b) the results are
+consistent across Java/C++/whatever, and c) that the results are also
+consistent across different code generation strategies.
+
+This last one is probably currently more useful to Adrian than anyone,
+but I'm probably going to reimplement rlcodegen in Java shortly, so it
+will be great for testing that as well as testing code generation
+implementations for any new languages, or new code generation
+strategies.
+
+So, I propose a parser class generator that will take a raw Ragel
+grammar and generate an rl file for whichever of the supported
+languages the user requests. This rl file will generate a basic
+parsing class, with the standard methods: init, execute, finish. The
+Ragel syntax would be slightly extended to specify features of the
+generated class, and these extensions stripped out when the rl file is
+written. This would actually probably be pretty generally useful too,
+a lot of people just want a support class that they can integrate into
+a larger project, I imagine.
+
+The whole point of this thing is testing, so unit test data and
+expected values would be encoded in the source file. Either a test
+class or just the parser could be generated, or both.
+
+An example is worth a thousand words, so here goes:
+
+%%{
+  # Variables for the generated class, initialised in init() method
+  # public vars generate getters
+  public int val = 0;
+  private boolean neg = true;
+
+  action see_neg {
+    neg = true;
+  }
+
+  action add_digit {
+    val = val * 10 + (fc - '0');
+  }
+
+  main :=
+    ( '-'@see_neg | '+' )? ( digit @add_digit )+
+    '\n' @{ fbreak; };
+
+  test {
+    input "1\n";
+    output "1";
+  }
+
+  test {
+    input "213 3213\n";
+    output "unexpected char ' ' in input";
+    failure;
+  }
+}%%
+
+Obviously one concern here is overloading the Ragel syntax, maybe a
+prefix would be good to highlight the new keywords as preprocessor
+directives.
+
+A few more thoughts:
+
+It would be good to be able to specify variables of the alphabet type:
+public alphtype character;
+
+It would also be interesting to track the states the machine moves
+through on each run, they could be compared to ensure that the
+different strategies are behaving equally.
+
+I'm also not sure about having the test code in with the actual
+grammar, but I guess an include directive would make that easier.
+
+Any thoughts or ideas?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Fri Sep 15 20:06:09 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 16:06:09 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+Message-ID: <450B07B1.4030803@cs.queensu.ca>
+
+Colin, great idea. One issue might be specifying language independent 
+actions. This could get tough if in the future we support non c-like 
+languages. For example, there was mention of supporting Ruby.
+
+Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define 
+a mini toy language and to write transformations to the host languages. 
+Though I'm connected to that project so I'm biased in regard to it being 
+appropriate :)
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> I've been thinking about various ways to test Ragel and the generated
+> grammars, here's what I've come up with. I'm really interested in any
+> feedback. I'm currently developing a couple of grammars that I'm
+> primarily interested in using with Java. The Java generation is still
+> a bit experimental, so I'd like to be able to use acceptance tests
+> that confirm that a) the grammar works as expected, b) the results are
+> consistent across Java/C++/whatever, and c) that the results are also
+> consistent across different code generation strategies.
+> 
+> This last one is probably currently more useful to Adrian than anyone,
+> but I'm probably going to reimplement rlcodegen in Java shortly, so it
+> will be great for testing that as well as testing code generation
+> implementations for any new languages, or new code generation
+> strategies.
+> 
+> So, I propose a parser class generator that will take a raw Ragel
+> grammar and generate an rl file for whichever of the supported
+> languages the user requests. This rl file will generate a basic
+> parsing class, with the standard methods: init, execute, finish. The
+> Ragel syntax would be slightly extended to specify features of the
+> generated class, and these extensions stripped out when the rl file is
+> written. This would actually probably be pretty generally useful too,
+> a lot of people just want a support class that they can integrate into
+> a larger project, I imagine.
+> 
+> The whole point of this thing is testing, so unit test data and
+> expected values would be encoded in the source file. Either a test
+> class or just the parser could be generated, or both.
+> 
+> An example is worth a thousand words, so here goes:
+> 
+> %%{
+>   # Variables for the generated class, initialised in init() method
+>   # public vars generate getters
+>   public int val = 0;
+>   private boolean neg = true;
+> 
+>   action see_neg {
+>     neg = true;
+>   }
+> 
+>   action add_digit {
+>     val = val * 10 + (fc - '0');
+>   }
+> 
+>   main :=
+>     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+>     '\n' @{ fbreak; };
+> 
+>   test {
+>     input "1\n";
+>     output "1";
+>   }
+> 
+>   test {
+>     input "213 3213\n";
+>     output "unexpected char ' ' in input";
+>     failure;
+>   }
+> }%%
+> 
+> Obviously one concern here is overloading the Ragel syntax, maybe a
+> prefix would be good to highlight the new keywords as preprocessor
+> directives.
+> 
+> A few more thoughts:
+> 
+> It would be good to be able to specify variables of the alphabet type:
+> public alphtype character;
+> 
+> It would also be interesting to track the states the machine moves
+> through on each run, they could be compared to ensure that the
+> different strategies are behaving equally.
+> 
+> I'm also not sure about having the test code in with the actual
+> grammar, but I guess an include directive would make that easier.
+> 
+> Any thoughts or ideas?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Sat Sep 16 15:53:01 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Sat, 16 Sep 2006 11:53:01 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <450B07B1.4030803@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+	 <450B07B1.4030803@cs.queensu.ca>
+Message-ID: <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+
+Hehe, TXL does actually look really interesting -  and potentially
+appropriate! I'd be worried about raising the bar to Ragel though, it
+looks like TXL might take some time to wrap your head round.
+
+BTW do you have a grammar spec for Ragel?
+
+On 9/15/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Colin, great idea. One issue might be specifying language independent
+> actions. This could get tough if in the future we support non c-like
+> languages. For example, there was mention of supporting Ruby.
+>
+> Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define
+> a mini toy language and to write transformations to the host languages.
+> Though I'm connected to that project so I'm biased in regard to it being
+> appropriate :)
+>
+> -Adrian
+>
+> Colin Fleming wrote:
+> > Hi all,
+> >
+> > I've been thinking about various ways to test Ragel and the generated
+> > grammars, here's what I've come up with. I'm really interested in any
+> > feedback. I'm currently developing a couple of grammars that I'm
+> > primarily interested in using with Java. The Java generation is still
+> > a bit experimental, so I'd like to be able to use acceptance tests
+> > that confirm that a) the grammar works as expected, b) the results are
+> > consistent across Java/C++/whatever, and c) that the results are also
+> > consistent across different code generation strategies.
+> >
+> > This last one is probably currently more useful to Adrian than anyone,
+> > but I'm probably going to reimplement rlcodegen in Java shortly, so it
+> > will be great for testing that as well as testing code generation
+> > implementations for any new languages, or new code generation
+> > strategies.
+> >
+> > So, I propose a parser class generator that will take a raw Ragel
+> > grammar and generate an rl file for whichever of the supported
+> > languages the user requests. This rl file will generate a basic
+> > parsing class, with the standard methods: init, execute, finish. The
+> > Ragel syntax would be slightly extended to specify features of the
+> > generated class, and these extensions stripped out when the rl file is
+> > written. This would actually probably be pretty generally useful too,
+> > a lot of people just want a support class that they can integrate into
+> > a larger project, I imagine.
+> >
+> > The whole point of this thing is testing, so unit test data and
+> > expected values would be encoded in the source file. Either a test
+> > class or just the parser could be generated, or both.
+> >
+> > An example is worth a thousand words, so here goes:
+> >
+> > %%{
+> >   # Variables for the generated class, initialised in init() method
+> >   # public vars generate getters
+> >   public int val = 0;
+> >   private boolean neg = true;
+> >
+> >   action see_neg {
+> >     neg = true;
+> >   }
+> >
+> >   action add_digit {
+> >     val = val * 10 + (fc - '0');
+> >   }
+> >
+> >   main :=
+> >     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+> >     '\n' @{ fbreak; };
+> >
+> >   test {
+> >     input "1\n";
+> >     output "1";
+> >   }
+> >
+> >   test {
+> >     input "213 3213\n";
+> >     output "unexpected char ' ' in input";
+> >     failure;
+> >   }
+> > }%%
+> >
+> > Obviously one concern here is overloading the Ragel syntax, maybe a
+> > prefix would be good to highlight the new keywords as preprocessor
+> > directives.
+> >
+> > A few more thoughts:
+> >
+> > It would be good to be able to specify variables of the alphabet type:
+> > public alphtype character;
+> >
+> > It would also be interesting to track the states the machine moves
+> > through on each run, they could be compared to ensure that the
+> > different strategies are behaving equally.
+> >
+> > I'm also not sure about having the test code in with the actual
+> > grammar, but I guess an include directive would make that easier.
+> >
+> > Any thoughts or ideas?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+
+
+From thurs... at cs.queensu.ca  Tue Sep 19 02:13:17 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 18 Sep 2006 22:13:17 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+Message-ID: <450F523D.2040303@cs.queensu.ca>
+
+Hi Colin,
+
+I don't have a TXL grammar for Ragel. You could get by with a minimal 
+one which captured the regular language as simply a list. But I agree, 
+TXL might be too much for merely testing Ragel. You'd need a (partial) 
+grammar for all the host languages. Some exist already, but future 
+languages supported might need to have grammars made.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hehe, TXL does actually look really interesting -  and potentially
+> appropriate! I'd be worried about raising the bar to Ragel though, it
+> looks like TXL might take some time to wrap your head round.
+> 
+> BTW do you have a grammar spec for Ragel?
+> 
+> On 9/15/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Colin, great idea. One issue might be specifying language independent
+>> actions. This could get tough if in the future we support non c-like
+>> languages. For example, there was mention of supporting Ruby.
+>>
+>> Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define
+>> a mini toy language and to write transformations to the host languages.
+>> Though I'm connected to that project so I'm biased in regard to it being
+>> appropriate :)
+>>
+>> -Adrian
+>>
+>> Colin Fleming wrote:
+>>> Hi all,
+>>>
+>>> I've been thinking about various ways to test Ragel and the generated
+>>> grammars, here's what I've come up with. I'm really interested in any
+>>> feedback. I'm currently developing a couple of grammars that I'm
+>>> primarily interested in using with Java. The Java generation is still
+>>> a bit experimental, so I'd like to be able to use acceptance tests
+>>> that confirm that a) the grammar works as expected, b) the results are
+>>> consistent across Java/C++/whatever, and c) that the results are also
+>>> consistent across different code generation strategies.
+>>>
+>>> This last one is probably currently more useful to Adrian than anyone,
+>>> but I'm probably going to reimplement rlcodegen in Java shortly, so it
+>>> will be great for testing that as well as testing code generation
+>>> implementations for any new languages, or new code generation
+>>> strategies.
+>>>
+>>> So, I propose a parser class generator that will take a raw Ragel
+>>> grammar and generate an rl file for whichever of the supported
+>>> languages the user requests. This rl file will generate a basic
+>>> parsing class, with the standard methods: init, execute, finish. The
+>>> Ragel syntax would be slightly extended to specify features of the
+>>> generated class, and these extensions stripped out when the rl file is
+>>> written. This would actually probably be pretty generally useful too,
+>>> a lot of people just want a support class that they can integrate into
+>>> a larger project, I imagine.
+>>>
+>>> The whole point of this thing is testing, so unit test data and
+>>> expected values would be encoded in the source file. Either a test
+>>> class or just the parser could be generated, or both.
+>>>
+>>> An example is worth a thousand words, so here goes:
+>>>
+>>> %%{
+>>>   # Variables for the generated class, initialised in init() method
+>>>   # public vars generate getters
+>>>   public int val = 0;
+>>>   private boolean neg = true;
+>>>
+>>>   action see_neg {
+>>>     neg = true;
+>>>   }
+>>>
+>>>   action add_digit {
+>>>     val = val * 10 + (fc - '0');
+>>>   }
+>>>
+>>>   main :=
+>>>     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+>>>     '\n' @{ fbreak; };
+>>>
+>>>   test {
+>>>     input "1\n";
+>>>     output "1";
+>>>   }
+>>>
+>>>   test {
+>>>     input "213 3213\n";
+>>>     output "unexpected char ' ' in input";
+>>>     failure;
+>>>   }
+>>> }%%
+>>>
+>>> Obviously one concern here is overloading the Ragel syntax, maybe a
+>>> prefix would be good to highlight the new keywords as preprocessor
+>>> directives.
+>>>
+>>> A few more thoughts:
+>>>
+>>> It would be good to be able to specify variables of the alphabet type:
+>>> public alphtype character;
+>>>
+>>> It would also be interesting to track the states the machine moves
+>>> through on each run, they could be compared to ensure that the
+>>> different strategies are behaving equally.
+>>>
+>>> I'm also not sure about having the test code in with the actual
+>>> grammar, but I guess an include directive would make that easier.
+>>>
+>>> Any thoughts or ideas?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Tue Sep 19 02:44:15 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Mon, 18 Sep 2006 22:44:15 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <450F523D.2040303@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+	 <450B07B1.4030803@cs.queensu.ca>
+	 <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+	 <450F523D.2040303@cs.queensu.ca>
+Message-ID: <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+
+Ok, I agree - for now, a simple pre-processor should be sufficient,
+since the languages currently are all more or less c-like.
+
+BTW do you have a general BNF for the Ragel language? How up to date
+is examples/rlscan.rl?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Wed Sep 20 20:09:21 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 20 Sep 2006 16:09:21 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com> <450F523D.2040303@cs.queensu.ca> <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+Message-ID: <45119FF1.5010803@cs.queensu.ca>
+
+Hi Colin,
+
+Sorry, there is no BNF, just the bison grammar. The rlscan example is up to 
+date for what it covers. Some things like regex details and keywords have 
+been left out.
+
+Regards,
+  Adrian
+
+Colin Fleming wrote:
+> Ok, I agree - for now, a simple pre-processor should be sufficient,
+> since the languages currently are all more or less c-like.
+> 
+> BTW do you have a general BNF for the Ragel language? How up to date
+> is examples/rlscan.rl?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Sep 11 15:46:31 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 11 Sep 2006 11:46:31 -0400
+Subject: welcome to the mailing list
+Message-ID: <450584D7.1000103@cs.queensu.ca>
+
+Hi, welcome to the mailing list for Ragel. Please feel free to discuss 
+anything related to the project.
+
+Cheers,
+  Adrian
+
+
+From thurs... at cs.queensu.ca  Fri Sep 15 19:06:46 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 15:06:46 -0400
+Subject: Ragel issue tracker abandoned
+Message-ID: <450AF9C6.9070400@cs.queensu.ca>
+
+Hi, I've decided to eliminate the issue tracker. It seems to be overkill for 
+Ragel and is another page I need to check. Surprisingly, there is no 
+notification feature. Please post any deficiencies to the mailing list. It 
+goes right to my inbox.
+
+Cheers,
+  Adrian
+
+
+From colin.flem... at coreproc.com  Wed Sep 13 22:24:40 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Wed, 13 Sep 2006 18:24:40 -0400
+Subject: Minimisation question
+Message-ID: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+
+Hi all,
+
+I'm working on a grammar for parsing XML, according to the XML BNF
+here: http://www.jelks.nu/XML/xmlebnf.html. The grammar is obviously
+fairly complex, and when I tried to compile it Ragel would just keep
+allocating memory until it ran out. I figured it should be possible to
+keep the complexity of the machine low by minimising every time you
+join two machines, and lo and behold I noticed in the code that
+there's a minimizeEveryOp flag, set with the (hidden) -e command line
+flag. With this flag it seems to do a great job, and it seems to
+produce roughly the same machine for the part that I could actually
+compile without that flag. Is there any reason not to use it?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Wed Sep 13 23:04:37 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 13 Sep 2006 19:04:37 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+Message-ID: <45088E85.5020706@cs.queensu.ca>
+
+Hi Colin,
+
+The minimizeEveryOp flag was an experiment I did long ago. Before I had 
+Hopcroft's algorithm implemented, minimization was very slow and I wanted to 
+see if minimizing at every op would speed it up. I kept it in there for the 
+purpose of testing the minimization code. Thus far I haven't needed to use 
+it in order to compile a machine. Though I do tend to work with smaller 
+machines.
+
+There's no reason not to use it. Perhaps it should be exposed and 
+documented. What is the size of the final machine (ragel -s) that you are 
+compiling? There may be a state explosion that can be avoided.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> I'm working on a grammar for parsing XML, according to the XML BNF
+> here: http://www.jelks.nu/XML/xmlebnf.html. The grammar is obviously
+> fairly complex, and when I tried to compile it Ragel would just keep
+> allocating memory until it ran out. I figured it should be possible to
+> keep the complexity of the machine low by minimising every time you
+> join two machines, and lo and behold I noticed in the code that
+> there's a minimizeEveryOp flag, set with the (hidden) -e command line
+> flag. With this flag it seems to do a great job, and it seems to
+> produce roughly the same machine for the part that I could actually
+> compile without that flag. Is there any reason not to use it?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Wed Sep 13 23:48:49 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Wed, 13 Sep 2006 19:48:49 -0400
+Subject: Minimisation question
+In-Reply-To: <45088E85.5020706@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+Message-ID: <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+
+Hi Adrian,
+
+Ok, great that there's no downside to it. Here's some stats (I've
+attached the grammar in case you're interested, it's not finished but
+it's close):
+
+The part that gives the problem is the doctype. The smallest part I
+could get to compile was doctypedecl:
+
+No minimisation:
+
+time ragel asciixml.rl -s -n -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 1361
+
+real    1m58.401s
+user    1m56.850s
+sys     0m1.481s
+
+Memory use peaks at about 765MB. If I try and use the next largest
+production it allocates up to 1.8GB and then malloc fails.
+
+With minimisation:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    1m58.358s
+user    1m56.792s
+sys     0m1.453s
+
+More or less the same time and memory usage.
+
+However with incremental minimisation:
+
+time ragel asciixml.rl -s -e -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.076s
+user    0m0.069s
+sys     0m0.010s
+
+It's practically instantaneous and works a charm. It also easily
+allows me to compile the whole grammar, which is significantly more
+complex:
+
+time ragel asciixml.rl -s -e | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 445
+
+real    0m0.124s
+user    0m0.119s
+sys     0m0.010s
+
+This is a cut-down grammar that only uses ASCII characters, the full
+XML spec requires Unicode, this makes the machine much more complex
+because all the character ranges are treated properly (i.e. the same
+number of states but a lot more transitions). Using incremental
+minimisation allows that machine to be generated in 2.199s.
+
+Assuming it's reliable, I can't see a reason not to use it, or to have
+it turned on by default.
+
+Cheers,
+Colin
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: asciixml.rl
+Type: application/octet-stream
+Size: 6017 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20060913/e9e98fee/attachment-0001.obj>
+
+From thurs... at cs.queensu.ca  Thu Sep 14 04:44:24 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 00:44:24 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+Message-ID: <4508DE28.70902@cs.queensu.ca>
+
+Colin, nice work with the XML grammar!
+
+When the kleene star on line 161 is run the machine has an unreachable 
+final state with < in its transition list. It's causing a state 
+explosion, a rather unnecessary one.
+
+Unreachable states are cleaned up on the fly but some slip through now 
+and then. These are reaped at the end of the machine compile and during 
+the after-op minimize. It's a mark and sweep operation. Usually 
+unreachable states don't cause problems, but you've just found a case 
+which proves they do. So in your case just run with -e.
+
+Unfortunately we can't do a full prune of unreachables after every 
+operation by default. When compiling machines with many unions or 
+concatenations (like test/strings2.rl), constant pruning causes Ragel to 
+grind to a halt. We need some kind of selective pruning. Either that or 
+I need to fix the on-the-fly cleanup. Needless to say I'll work on it.
+
+Thanks for your investigation!
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Hi Adrian,
+> 
+> Ok, great that there's no downside to it. Here's some stats (I've
+> attached the grammar in case you're interested, it's not finished but
+> it's close):
+> 
+> The part that gives the problem is the doctype. The smallest part I
+> could get to compile was doctypedecl:
+> 
+> No minimisation:
+> 
+> time ragel asciixml.rl -s -n -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 1361
+> 
+> real    1m58.401s
+> user    1m56.850s
+> sys     0m1.481s
+> 
+> Memory use peaks at about 765MB. If I try and use the next largest
+> production it allocates up to 1.8GB and then malloc fails.
+> 
+> With minimisation:
+> 
+> time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    1m58.358s
+> user    1m56.792s
+> sys     0m1.453s
+> 
+> More or less the same time and memory usage.
+> 
+> However with incremental minimisation:
+> 
+> time ragel asciixml.rl -s -e -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    0m0.076s
+> user    0m0.069s
+> sys     0m0.010s
+> 
+> It's practically instantaneous and works a charm. It also easily
+> allows me to compile the whole grammar, which is significantly more
+> complex:
+> 
+> time ragel asciixml.rl -s -e | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 445
+> 
+> real    0m0.124s
+> user    0m0.119s
+> sys     0m0.010s
+> 
+> This is a cut-down grammar that only uses ASCII characters, the full
+> XML spec requires Unicode, this makes the machine much more complex
+> because all the character ranges are treated properly (i.e. the same
+> number of states but a lot more transitions). Using incremental
+> minimisation allows that machine to be generated in 2.199s.
+> 
+> Assuming it's reliable, I can't see a reason not to use it, or to have
+> it turned on by default.
+> 
+> Cheers,
+> Colin
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Sep 14 13:37:39 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 09:37:39 -0400
+Subject: Minimisation question
+In-Reply-To: <4508DE28.70902@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+Message-ID: <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+
+Ok, thanks for the help! What causes unreachable states? Can I change
+something about the grammar to avoid them (apart from -e, of course)?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Thu Sep 14 16:46:42 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 12:46:42 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+Message-ID: <45098772.8080104@cs.queensu.ca>
+
+Pretty much every operation can cause unreachable states. For example, 
+during union a new start state is created with epsilon transitions drawn to 
+the old start states. The epsilon operation effectively copies transition 
+lists from the destination state to the source state. If the old start 
+states don't have any transitions in from elsewhere in the machine then they 
+become unreachable. The on-the-fly cleanup will reap states with no external 
+entry points. This gets most unreachables, but just like in garbage 
+collection, cycles cause problems.
+
+In your ragel file the subtraction operation is leaving behind unreachables. 
+Subtraction may in fact need a full mark and sweep (I had thought the 
+on-the-fly was sufficient). The attached patch will allow you to compile 
+without -e.
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Ok, thanks for the help! What causes unreachable states? Can I change
+> something about the grammar to avoid them (apart from -e, of course)?
+> 
+> Cheers,
+> Colin
+> 
+> 
+-------------- next part --------------
+Index: ragel/fsmgraph.cpp
+===================================================================
+--- ragel/fsmgraph.cpp	(revision 3586)
++++ ragel/fsmgraph.cpp	(working copy)
+@@ -496,6 +496,7 @@
+ 
+ 	/* Remove states that have no path to a final state. */
+ 	removeDeadEndStates();
++	removeUnreachableStates();
+ }
+ 
+ bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+
+From colin.flem... at coreproc.com  Thu Sep 14 19:49:59 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 15:49:59 -0400
+Subject: Minimisation question
+In-Reply-To: <45098772.8080104@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+	 <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+	 <45098772.8080104@cs.queensu.ca>
+Message-ID: <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+
+Great, thanks! The patch works well for the grammar I sent:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.087s
+user    0m0.079s
+sys     0m0.011s
+
+But the full Unicode grammar still takes a while:
+
+time ragel xml.rl -s | rlcodegen -V > test.dot
+fsm name  : Xml
+num states: 445
+
+real    0m43.829s
+user    0m43.293s
+sys     0m0.565s
+
+I guess there's another production creating unreachable states. It's a
+vast improvement though, it never even got close to compiling
+beforehand. Is there some way I can diagnose what's happening myself?
+
+On 9/14/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Pretty much every operation can cause unreachable states. For example,
+> during union a new start state is created with epsilon transitions drawn to
+> the old start states. The epsilon operation effectively copies transition
+> lists from the destination state to the source state. If the old start
+> states don't have any transitions in from elsewhere in the machine then they
+> become unreachable. The on-the-fly cleanup will reap states with no external
+> entry points. This gets most unreachables, but just like in garbage
+> collection, cycles cause problems.
+>
+> In your ragel file the subtraction operation is leaving behind unreachables.
+> Subtraction may in fact need a full mark and sweep (I had thought the
+> on-the-fly was sufficient). The attached patch will allow you to compile
+> without -e.
+>
+> Cheers,
+>   Adrian
+>
+> Colin Fleming wrote:
+> > Ok, thanks for the help! What causes unreachable states? Can I change
+> > something about the grammar to avoid them (apart from -e, of course)?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+> Index: ragel/fsmgraph.cpp
+> ===================================================================
+> --- ragel/fsmgraph.cpp  (revision 3586)
+> +++ ragel/fsmgraph.cpp  (working copy)
+> @@ -496,6 +496,7 @@
+>
+>         /* Remove states that have no path to a final state. */
+>         removeDeadEndStates();
+> +       removeUnreachableStates();
+>  }
+>
+>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+>
+>
+>
+
+
+From thurs... at cs.queensu.ca  Thu Sep 14 21:45:33 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 14 Sep 2006 17:45:33 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com> <45098772.8080104@cs.queensu.ca> <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+Message-ID: <4509CD7D.9010109@cs.queensu.ca>
+
+I've been using gdb and hitting ctrl-c when it explodes. From there I 
+explore the data to see what's going on. But if it terminates I would use 
+gprof to get a sense of what's happening. Once I have an idea of where the 
+problem might be I make the smallest ragel spec I can which reproduces the 
+problem and explore using gdb or sometimes print statements.
+
+If you want to send me the full spec I'd love to look into why it's taking 
+so long. Ragel should be able to process it faster.
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+> Great, thanks! The patch works well for the grammar I sent:
+> 
+> time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V > test.dot
+> fsm name  : AsciiXml
+> num states: 269
+> 
+> real    0m0.087s
+> user    0m0.079s
+> sys     0m0.011s
+> 
+> But the full Unicode grammar still takes a while:
+> 
+> time ragel xml.rl -s | rlcodegen -V > test.dot
+> fsm name  : Xml
+> num states: 445
+> 
+> real    0m43.829s
+> user    0m43.293s
+> sys     0m0.565s
+> 
+> I guess there's another production creating unreachable states. It's a
+> vast improvement though, it never even got close to compiling
+> beforehand. Is there some way I can diagnose what's happening myself?
+> 
+> On 9/14/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Pretty much every operation can cause unreachable states. For example,
+>> during union a new start state is created with epsilon transitions drawn to
+>> the old start states. The epsilon operation effectively copies transition
+>> lists from the destination state to the source state. If the old start
+>> states don't have any transitions in from elsewhere in the machine then they
+>> become unreachable. The on-the-fly cleanup will reap states with no external
+>> entry points. This gets most unreachables, but just like in garbage
+>> collection, cycles cause problems.
+>>
+>> In your ragel file the subtraction operation is leaving behind unreachables.
+>> Subtraction may in fact need a full mark and sweep (I had thought the
+>> on-the-fly was sufficient). The attached patch will allow you to compile
+>> without -e.
+>>
+>> Cheers,
+>>   Adrian
+>>
+>> Colin Fleming wrote:
+>>> Ok, thanks for the help! What causes unreachable states? Can I change
+>>> something about the grammar to avoid them (apart from -e, of course)?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+>> Index: ragel/fsmgraph.cpp
+>> ===================================================================
+>> --- ragel/fsmgraph.cpp  (revision 3586)
+>> +++ ragel/fsmgraph.cpp  (working copy)
+>> @@ -496,6 +496,7 @@
+>>
+>>         /* Remove states that have no path to a final state. */
+>>         removeDeadEndStates();
+>> +       removeUnreachableStates();
+>>  }
+>>
+>>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+>>
+>>
+>>
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Sep 14 22:20:30 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 14 Sep 2006 18:20:30 -0400
+Subject: Minimisation question
+In-Reply-To: <4509CD7D.9010109@cs.queensu.ca>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com>
+	 <45088E85.5020706@cs.queensu.ca>
+	 <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com>
+	 <4508DE28.70902@cs.queensu.ca>
+	 <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com>
+	 <45098772.8080104@cs.queensu.ca>
+	 <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com>
+	 <4509CD7D.9010109@cs.queensu.ca>
+Message-ID: <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+
+Sure, I've factored out the common rules, so I've attached a tar with
+the ASCII only and Unicode versions.
+
+BTW I'd also be interested in any suggestions you can give me for
+replacing part of the grammar. Obviously XML is context free, mostly
+this is OK (I'm going to use the tag stack we discussed) but there's
+one section which is still giving me a headache.
+
+It was like this (line 73 in xmlcommon.rl) :
+
+cp = (Name | choice | seq) ('?' | '*' | '+')?;
+
+seq = '(' S? cp ( S? ',' S? cp )* S? ')';
+
+choice = '(' S? cp ( S? '|' S? cp )* S? ')';
+
+children = (choice | seq) ('?' | '*' | '+')?;
+
+I've just put in a dirty hack for now that will hopefully at least lex
+the construct more or less, but won't enforce any of the original
+grammar constraints. Any suggestions about how to do this gracefully
+would be great. I thought about using fcall but seq and choice are
+ambiguous after the opening parenthesis. I also thought about using
+the conditional trick in test/cond6.rl, but then it gets tricky making
+sure that it enforces sequences of only alternations or only
+concatenations (i.e. preventing ( a | b , c ). I really do need a
+stack of which symbol is used at what indentation level I think, but
+it's going to get a bit hairy.
+
+Cheers,
+Colin
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: xml.tar
+Type: application/x-tar
+Size: 20480 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20060914/0f1380af/attachment-0001.tar>
+
+From thurs... at cs.queensu.ca  Fri Sep 15 19:27:48 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 15:27:48 -0400
+Subject: Minimisation question
+In-Reply-To: <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+References: <2d4d6bd0609131524x4b9c84afm81dab06bbc0a4425@mail.gmail.com> <45088E85.5020706@cs.queensu.ca> <2d4d6bd0609131648gd98700erd85868bcd51d60a2@mail.gmail.com> <4508DE28.70902@cs.queensu.ca> <2d4d6bd0609140637uc192e3coaf9a2de726c64f37@mail.gmail.com> <45098772.8080104@cs.queensu.ca> <2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e@mail.gmail.com> <4509CD7D.9010109@cs.queensu.ca> <2d4d6bd0609141520v28509c22g4da49bc1d2ef5b50@mail.gmail.com>
+Message-ID: <450AFEB4.7090602@cs.queensu.ca>
+
+Hi Colin, thanks again for the grammar, it will be useful for optimizing Ragel.
+
+This might be what you want:
+
+action call_list {fcall list;}
+action return {fret;}
+
+item = word | '(' @call_list;
+
+list := item (
+             ( ',' item )* |
+             ( '|' item )* )?
+         ')' @return;
+	
+main := item;
+
+
+Colin Fleming wrote:
+> Sure, I've factored out the common rules, so I've attached a tar with
+> the ASCII only and Unicode versions.
+> 
+> BTW I'd also be interested in any suggestions you can give me for
+> replacing part of the grammar. Obviously XML is context free, mostly
+> this is OK (I'm going to use the tag stack we discussed) but there's
+> one section which is still giving me a headache.
+> 
+> It was like this (line 73 in xmlcommon.rl) :
+> 
+> cp = (Name | choice | seq) ('?' | '*' | '+')?;
+> 
+> seq = '(' S? cp ( S? ',' S? cp )* S? ')';
+> 
+> choice = '(' S? cp ( S? '|' S? cp )* S? ')';
+> 
+> children = (choice | seq) ('?' | '*' | '+')?;
+> 
+> I've just put in a dirty hack for now that will hopefully at least lex
+> the construct more or less, but won't enforce any of the original
+> grammar constraints. Any suggestions about how to do this gracefully
+> would be great. I thought about using fcall but seq and choice are
+> ambiguous after the opening parenthesis. I also thought about using
+> the conditional trick in test/cond6.rl, but then it gets tricky making
+> sure that it enforces sequences of only alternations or only
+> concatenations (i.e. preventing ( a | b , c ). I really do need a
+> stack of which symbol is used at what indentation level I think, but
+> it's going to get a bit hairy.
+> 
+> Cheers,
+> Colin
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Fri Sep 15 15:18:50 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Fri, 15 Sep 2006 11:18:50 -0400
+Subject: Grammar testing proposal
+Message-ID: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+
+Hi all,
+
+I've been thinking about various ways to test Ragel and the generated
+grammars, here's what I've come up with. I'm really interested in any
+feedback. I'm currently developing a couple of grammars that I'm
+primarily interested in using with Java. The Java generation is still
+a bit experimental, so I'd like to be able to use acceptance tests
+that confirm that a) the grammar works as expected, b) the results are
+consistent across Java/C++/whatever, and c) that the results are also
+consistent across different code generation strategies.
+
+This last one is probably currently more useful to Adrian than anyone,
+but I'm probably going to reimplement rlcodegen in Java shortly, so it
+will be great for testing that as well as testing code generation
+implementations for any new languages, or new code generation
+strategies.
+
+So, I propose a parser class generator that will take a raw Ragel
+grammar and generate an rl file for whichever of the supported
+languages the user requests. This rl file will generate a basic
+parsing class, with the standard methods: init, execute, finish. The
+Ragel syntax would be slightly extended to specify features of the
+generated class, and these extensions stripped out when the rl file is
+written. This would actually probably be pretty generally useful too,
+a lot of people just want a support class that they can integrate into
+a larger project, I imagine.
+
+The whole point of this thing is testing, so unit test data and
+expected values would be encoded in the source file. Either a test
+class or just the parser could be generated, or both.
+
+An example is worth a thousand words, so here goes:
+
+%%{
+  # Variables for the generated class, initialised in init() method
+  # public vars generate getters
+  public int val = 0;
+  private boolean neg = true;
+
+  action see_neg {
+    neg = true;
+  }
+
+  action add_digit {
+    val = val * 10 + (fc - '0');
+  }
+
+  main :=
+    ( '-'@see_neg | '+' )? ( digit @add_digit )+
+    '\n' @{ fbreak; };
+
+  test {
+    input "1\n";
+    output "1";
+  }
+
+  test {
+    input "213 3213\n";
+    output "unexpected char ' ' in input";
+    failure;
+  }
+}%%
+
+Obviously one concern here is overloading the Ragel syntax, maybe a
+prefix would be good to highlight the new keywords as preprocessor
+directives.
+
+A few more thoughts:
+
+It would be good to be able to specify variables of the alphabet type:
+public alphtype character;
+
+It would also be interesting to track the states the machine moves
+through on each run, they could be compared to ensure that the
+different strategies are behaving equally.
+
+I'm also not sure about having the test code in with the actual
+grammar, but I guess an include directive would make that easier.
+
+Any thoughts or ideas?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Fri Sep 15 20:06:09 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 15 Sep 2006 16:06:09 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+Message-ID: <450B07B1.4030803@cs.queensu.ca>
+
+Colin, great idea. One issue might be specifying language independent 
+actions. This could get tough if in the future we support non c-like 
+languages. For example, there was mention of supporting Ruby.
+
+Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define 
+a mini toy language and to write transformations to the host languages. 
+Though I'm connected to that project so I'm biased in regard to it being 
+appropriate :)
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> I've been thinking about various ways to test Ragel and the generated
+> grammars, here's what I've come up with. I'm really interested in any
+> feedback. I'm currently developing a couple of grammars that I'm
+> primarily interested in using with Java. The Java generation is still
+> a bit experimental, so I'd like to be able to use acceptance tests
+> that confirm that a) the grammar works as expected, b) the results are
+> consistent across Java/C++/whatever, and c) that the results are also
+> consistent across different code generation strategies.
+> 
+> This last one is probably currently more useful to Adrian than anyone,
+> but I'm probably going to reimplement rlcodegen in Java shortly, so it
+> will be great for testing that as well as testing code generation
+> implementations for any new languages, or new code generation
+> strategies.
+> 
+> So, I propose a parser class generator that will take a raw Ragel
+> grammar and generate an rl file for whichever of the supported
+> languages the user requests. This rl file will generate a basic
+> parsing class, with the standard methods: init, execute, finish. The
+> Ragel syntax would be slightly extended to specify features of the
+> generated class, and these extensions stripped out when the rl file is
+> written. This would actually probably be pretty generally useful too,
+> a lot of people just want a support class that they can integrate into
+> a larger project, I imagine.
+> 
+> The whole point of this thing is testing, so unit test data and
+> expected values would be encoded in the source file. Either a test
+> class or just the parser could be generated, or both.
+> 
+> An example is worth a thousand words, so here goes:
+> 
+> %%{
+>   # Variables for the generated class, initialised in init() method
+>   # public vars generate getters
+>   public int val = 0;
+>   private boolean neg = true;
+> 
+>   action see_neg {
+>     neg = true;
+>   }
+> 
+>   action add_digit {
+>     val = val * 10 + (fc - '0');
+>   }
+> 
+>   main :=
+>     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+>     '\n' @{ fbreak; };
+> 
+>   test {
+>     input "1\n";
+>     output "1";
+>   }
+> 
+>   test {
+>     input "213 3213\n";
+>     output "unexpected char ' ' in input";
+>     failure;
+>   }
+> }%%
+> 
+> Obviously one concern here is overloading the Ragel syntax, maybe a
+> prefix would be good to highlight the new keywords as preprocessor
+> directives.
+> 
+> A few more thoughts:
+> 
+> It would be good to be able to specify variables of the alphabet type:
+> public alphtype character;
+> 
+> It would also be interesting to track the states the machine moves
+> through on each run, they could be compared to ensure that the
+> different strategies are behaving equally.
+> 
+> I'm also not sure about having the test code in with the actual
+> grammar, but I guess an include directive would make that easier.
+> 
+> Any thoughts or ideas?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Sat Sep 16 15:53:01 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Sat, 16 Sep 2006 11:53:01 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <450B07B1.4030803@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+	 <450B07B1.4030803@cs.queensu.ca>
+Message-ID: <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+
+Hehe, TXL does actually look really interesting -  and potentially
+appropriate! I'd be worried about raising the bar to Ragel though, it
+looks like TXL might take some time to wrap your head round.
+
+BTW do you have a grammar spec for Ragel?
+
+On 9/15/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Colin, great idea. One issue might be specifying language independent
+> actions. This could get tough if in the future we support non c-like
+> languages. For example, there was mention of supporting Ruby.
+>
+> Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define
+> a mini toy language and to write transformations to the host languages.
+> Though I'm connected to that project so I'm biased in regard to it being
+> appropriate :)
+>
+> -Adrian
+>
+> Colin Fleming wrote:
+> > Hi all,
+> >
+> > I've been thinking about various ways to test Ragel and the generated
+> > grammars, here's what I've come up with. I'm really interested in any
+> > feedback. I'm currently developing a couple of grammars that I'm
+> > primarily interested in using with Java. The Java generation is still
+> > a bit experimental, so I'd like to be able to use acceptance tests
+> > that confirm that a) the grammar works as expected, b) the results are
+> > consistent across Java/C++/whatever, and c) that the results are also
+> > consistent across different code generation strategies.
+> >
+> > This last one is probably currently more useful to Adrian than anyone,
+> > but I'm probably going to reimplement rlcodegen in Java shortly, so it
+> > will be great for testing that as well as testing code generation
+> > implementations for any new languages, or new code generation
+> > strategies.
+> >
+> > So, I propose a parser class generator that will take a raw Ragel
+> > grammar and generate an rl file for whichever of the supported
+> > languages the user requests. This rl file will generate a basic
+> > parsing class, with the standard methods: init, execute, finish. The
+> > Ragel syntax would be slightly extended to specify features of the
+> > generated class, and these extensions stripped out when the rl file is
+> > written. This would actually probably be pretty generally useful too,
+> > a lot of people just want a support class that they can integrate into
+> > a larger project, I imagine.
+> >
+> > The whole point of this thing is testing, so unit test data and
+> > expected values would be encoded in the source file. Either a test
+> > class or just the parser could be generated, or both.
+> >
+> > An example is worth a thousand words, so here goes:
+> >
+> > %%{
+> >   # Variables for the generated class, initialised in init() method
+> >   # public vars generate getters
+> >   public int val = 0;
+> >   private boolean neg = true;
+> >
+> >   action see_neg {
+> >     neg = true;
+> >   }
+> >
+> >   action add_digit {
+> >     val = val * 10 + (fc - '0');
+> >   }
+> >
+> >   main :=
+> >     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+> >     '\n' @{ fbreak; };
+> >
+> >   test {
+> >     input "1\n";
+> >     output "1";
+> >   }
+> >
+> >   test {
+> >     input "213 3213\n";
+> >     output "unexpected char ' ' in input";
+> >     failure;
+> >   }
+> > }%%
+> >
+> > Obviously one concern here is overloading the Ragel syntax, maybe a
+> > prefix would be good to highlight the new keywords as preprocessor
+> > directives.
+> >
+> > A few more thoughts:
+> >
+> > It would be good to be able to specify variables of the alphabet type:
+> > public alphtype character;
+> >
+> > It would also be interesting to track the states the machine moves
+> > through on each run, they could be compared to ensure that the
+> > different strategies are behaving equally.
+> >
+> > I'm also not sure about having the test code in with the actual
+> > grammar, but I guess an include directive would make that easier.
+> >
+> > Any thoughts or ideas?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+
+
+From thurs... at cs.queensu.ca  Tue Sep 19 02:13:17 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 18 Sep 2006 22:13:17 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+Message-ID: <450F523D.2040303@cs.queensu.ca>
+
+Hi Colin,
+
+I don't have a TXL grammar for Ragel. You could get by with a minimal 
+one which captured the regular language as simply a list. But I agree, 
+TXL might be too much for merely testing Ragel. You'd need a (partial) 
+grammar for all the host languages. Some exist already, but future 
+languages supported might need to have grammars made.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hehe, TXL does actually look really interesting -  and potentially
+> appropriate! I'd be worried about raising the bar to Ragel though, it
+> looks like TXL might take some time to wrap your head round.
+> 
+> BTW do you have a grammar spec for Ragel?
+> 
+> On 9/15/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Colin, great idea. One issue might be specifying language independent
+>> actions. This could get tough if in the future we support non c-like
+>> languages. For example, there was mention of supporting Ruby.
+>>
+>> Perhaps TXL (http://www.txl.ca/) might be useful. It could be used to define
+>> a mini toy language and to write transformations to the host languages.
+>> Though I'm connected to that project so I'm biased in regard to it being
+>> appropriate :)
+>>
+>> -Adrian
+>>
+>> Colin Fleming wrote:
+>>> Hi all,
+>>>
+>>> I've been thinking about various ways to test Ragel and the generated
+>>> grammars, here's what I've come up with. I'm really interested in any
+>>> feedback. I'm currently developing a couple of grammars that I'm
+>>> primarily interested in using with Java. The Java generation is still
+>>> a bit experimental, so I'd like to be able to use acceptance tests
+>>> that confirm that a) the grammar works as expected, b) the results are
+>>> consistent across Java/C++/whatever, and c) that the results are also
+>>> consistent across different code generation strategies.
+>>>
+>>> This last one is probably currently more useful to Adrian than anyone,
+>>> but I'm probably going to reimplement rlcodegen in Java shortly, so it
+>>> will be great for testing that as well as testing code generation
+>>> implementations for any new languages, or new code generation
+>>> strategies.
+>>>
+>>> So, I propose a parser class generator that will take a raw Ragel
+>>> grammar and generate an rl file for whichever of the supported
+>>> languages the user requests. This rl file will generate a basic
+>>> parsing class, with the standard methods: init, execute, finish. The
+>>> Ragel syntax would be slightly extended to specify features of the
+>>> generated class, and these extensions stripped out when the rl file is
+>>> written. This would actually probably be pretty generally useful too,
+>>> a lot of people just want a support class that they can integrate into
+>>> a larger project, I imagine.
+>>>
+>>> The whole point of this thing is testing, so unit test data and
+>>> expected values would be encoded in the source file. Either a test
+>>> class or just the parser could be generated, or both.
+>>>
+>>> An example is worth a thousand words, so here goes:
+>>>
+>>> %%{
+>>>   # Variables for the generated class, initialised in init() method
+>>>   # public vars generate getters
+>>>   public int val = 0;
+>>>   private boolean neg = true;
+>>>
+>>>   action see_neg {
+>>>     neg = true;
+>>>   }
+>>>
+>>>   action add_digit {
+>>>     val = val * 10 + (fc - '0');
+>>>   }
+>>>
+>>>   main :=
+>>>     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+>>>     '\n' @{ fbreak; };
+>>>
+>>>   test {
+>>>     input "1\n";
+>>>     output "1";
+>>>   }
+>>>
+>>>   test {
+>>>     input "213 3213\n";
+>>>     output "unexpected char ' ' in input";
+>>>     failure;
+>>>   }
+>>> }%%
+>>>
+>>> Obviously one concern here is overloading the Ragel syntax, maybe a
+>>> prefix would be good to highlight the new keywords as preprocessor
+>>> directives.
+>>>
+>>> A few more thoughts:
+>>>
+>>> It would be good to be able to specify variables of the alphabet type:
+>>> public alphtype character;
+>>>
+>>> It would also be interesting to track the states the machine moves
+>>> through on each run, they could be compared to ensure that the
+>>> different strategies are behaving equally.
+>>>
+>>> I'm also not sure about having the test code in with the actual
+>>> grammar, but I guess an include directive would make that easier.
+>>>
+>>> Any thoughts or ideas?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Tue Sep 19 02:44:15 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Mon, 18 Sep 2006 22:44:15 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <450F523D.2040303@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com>
+	 <450B07B1.4030803@cs.queensu.ca>
+	 <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com>
+	 <450F523D.2040303@cs.queensu.ca>
+Message-ID: <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+
+Ok, I agree - for now, a simple pre-processor should be sufficient,
+since the languages currently are all more or less c-like.
+
+BTW do you have a general BNF for the Ragel language? How up to date
+is examples/rlscan.rl?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Wed Sep 20 20:09:21 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 20 Sep 2006 16:09:21 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com> <450F523D.2040303@cs.queensu.ca> <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com>
+Message-ID: <45119FF1.5010803@cs.queensu.ca>
+
+Hi Colin,
+
+Sorry, there is no BNF, just the bison grammar. The rlscan example is up to 
+date for what it covers. Some things like regex details and keywords have 
+been left out.
+
+Regards,
+  Adrian
+
+Colin Fleming wrote:
+> Ok, I agree - for now, a simple pre-processor should be sufficient,
+> since the languages currently are all more or less c-like.
+> 
+> BTW do you have a general BNF for the Ragel language? How up to date
+> is examples/rlscan.rl?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+

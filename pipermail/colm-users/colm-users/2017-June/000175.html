@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm] colm-0.13.0.5 fails to build on IA32
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20colm-0.13.0.5%20fails%20to%20build%20on%20IA32&In-Reply-To=%3Cnycvar.YFH.7.76.1706132307540.7801%40n3.vanv.qr%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000174.html">
+   <LINK REL="Next"  HREF="000176.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm] colm-0.13.0.5 fails to build on IA32</H1>
+    <B>Jan Engelhardt</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20colm-0.13.0.5%20fails%20to%20build%20on%20IA32&In-Reply-To=%3Cnycvar.YFH.7.76.1706132307540.7801%40n3.vanv.qr%3E"
+       TITLE="[colm] colm-0.13.0.5 fails to build on IA32">jengelh at inai.de
+       </A><BR>
+    <I>Tue Jun 13 21:24:57 UTC 2017</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000174.html">[colm] colm-0.13.0.5 fails to build on IA32
+</A></li>
+        <LI>Next message: <A HREF="000176.html">[colm] colm-0.13.0.5 fails to build on IA32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On Tuesday 2017-06-13 00:58, Adrian Thurston wrote:
+
+&gt;<i>Hmm I tried to reproduce this the other day on a fresh Ubuntu VM but couldn't.  Can you give more
+</I>&gt;<i>platform information?
+</I>
+It seems to only happen within KVM. I have a image files ready if you
+want to try. These are image extracts from the OBS (which means they
+don't have all the software). These may be found at
+<A HREF="http://inai.de/files/colm/">http://inai.de/files/colm/</A> .
+
+
+$ ./COLM-start 
+[    1.206078] dracut-pre-udev[175]: modprobe: FATAL: Module kqemu not found in directory /lib/modules/4.11.3-1-default
+[    1.213907] dracut-pre-udev[175]: modprobe: FATAL: Module ext2 not found in directory /lib/modules/4.11.3-1-default
+[    1.217805] dracut-pre-udev[175]: modprobe: FATAL: Module ext3 not found in directory /lib/modules/4.11.3-1-default
+[    2.051420] dracut-pre-udev[175]: modprobe: FATAL: Module virtio_mmio not found in directory /lib/modules/4.11.3-1-default
+[    2.065650] dracut-pre-udev[175]: modprobe: FATAL: Module ibmvscsi not found in directory /lib/modules/4.11.3-1-default
+[    2.421544] dracut-pre-udev[175]: modprobe: FATAL: Module ibmveth not found in directory /lib/modules/4.11.3-1-default
+sh-4.4# su - abuild
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">abuild at localhost</A>:~&gt; cd rpmbuild/BUILD/colm-0.13.0.5/src/
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">abuild at localhost</A>:~/rpmbuild/BUILD/colm-0.13.0.5/src&gt; make
+make  all-am
+make[1]: Entering directory '/home/abuild/rpmbuild/BUILD/colm-0.13.0.5/src'
+mkdir -p gen
+./bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+bootstrap1: tree.c:953: colm_tree_downref: Assertion `tree-&gt;refs &gt; 0' failed.
+make[1]: *** [Makefile:1568: gen/parse2.c] Aborted (core dumped)
+
+
+Running the same bootstrap1 command from the host system completes
+fine.
+
+# mount COLM-img /mnt
+# cd /mnt/home/abuild/rpmbuild/BUILD/colm-0.13.0.5/src
+# LD_LIBRARY_PATH=/mnt/lib:/mnt/usr/lib:$PWD/.libs /mnt/lib/ld-linux.so.2 .libs/bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+
+It really starts to smell like a KVM issue, but I hope that that is
+not off-putting to debugging efforts. It does come a bit strange that
+it &quot;only&quot; affects colm out of all the other things people do in KVM.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000174.html">[colm] colm-0.13.0.5 fails to build on IA32
+</A></li>
+	<LI>Next message: <A HREF="000176.html">[colm] colm-0.13.0.5 fails to build on IA32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

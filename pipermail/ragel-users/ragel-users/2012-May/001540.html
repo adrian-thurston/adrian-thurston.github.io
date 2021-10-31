@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] MSVC-friendly -GT2 mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20MSVC-friendly%20-GT2%20mode&In-Reply-To=%3CCABLBYvSavdDY8UGfSPRXp1nb9buoVAi%2BqvEhLpzjrY0eSzJr4Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001539.html">
+   <LINK REL="Next"  HREF="001541.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] MSVC-friendly -GT2 mode</H1>
+    <B>Victor Khimenko</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20MSVC-friendly%20-GT2%20mode&In-Reply-To=%3CCABLBYvSavdDY8UGfSPRXp1nb9buoVAi%2BqvEhLpzjrY0eSzJr4Q%40mail.gmail.com%3E"
+       TITLE="[ragel-users] MSVC-friendly -GT2 mode">khim at chromium.org
+       </A><BR>
+    <I>Sun May 13 12:35:35 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001539.html">[ragel-users] Problem building Ragel
+</A></li>
+        <LI>Next message: <A HREF="001541.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1540">[ date ]</a>
+              <a href="thread.html#1540">[ thread ]</a>
+              <a href="subject.html#1540">[ subject ]</a>
+              <a href="author.html#1540">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello.
+
+I want to propose yet-another mode for ragel: -GT2. This is goto-driven fsm
+which sometimes uses tables.
+
+A bit of background. We've tried to use ragel to process x86 instructions
+stream. This produces large FSM (about thousand states and similar number
+of actions) which works fine with GCC, but which works much less fine with
+MSVC.
+
+Initially we've used MSVC 2008 and the main problem was slow compilation
+(where GCC required about minute to compile the G2-mode FSM with full
+optimization MSVC took half-hour to hour depending on what exactly we've
+tried to do with a stream) and slow execution (code produced by MSVC 2008
+was about 45% slower then code produced by GCC). But when we've tried to
+switch to MSVC 2010 we've hit worse problem: now compilation is instant
+(about 4-5 seconds), but execution speed is awful (almost three times
+slower then what GCC is producing). Looks like MSVC 2010 stops optimization
+attempts if it sees too many basic blocks and gotos. We've played a bit
+with different options and they all produce much slower code. Thus we've
+tried to take -G2 mode and &quot;fix it&quot;: if the state has too many different
+transitions then we are using cs-dispatch table and _again switch. This
+produces version which is slower by about 20% on GCC but is faster then
+what MSVC 2008 produced by about the same 20% (MSVC 2008, MSVC 2010 and GCC
+have about the same speed in this case). And the compilation now takes 2-3
+minutes instead of hour. What do you think about it?
+
+Patch is attached. Note: the threshold (32 comparisons) is picked to make
+-G2 and -GT2 FSMs similar in size. On x86 comparison takes three bytes,
+jump takes six bytes, but you need about 1.5-2 times as much comparisons as
+you have final outcomes to guarantee there are O(log k) compleity, not O(k)
+complexity (compiler ensures this... if number of basic blocks as
+reasonable, that is). The exact number varies depending on options of the
+compiler and the exact nature of FSM and usually lies between 30 and 35
+thus 32 looks like good round number (minor variations produce tiny changes
+in speed and size as you can guess).
+
+P.S. Patch must probably be cleaned up a bit, but I wanted to discuss the
+feasibility of said mode first.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-6.7.patch
+Type: application/octet-stream
+Size: 8324 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.obj">http://www.colm.net/pipermail/ragel/attachments/20120513/fb76b799/attachment.obj</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001539.html">[ragel-users] Problem building Ragel
+</A></li>
+	<LI>Next message: <A HREF="001541.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1540">[ date ]</a>
+              <a href="thread.html#1540">[ thread ]</a>
+              <a href="subject.html#1540">[ subject ]</a>
+              <a href="author.html#1540">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

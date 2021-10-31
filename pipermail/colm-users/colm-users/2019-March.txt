@@ -1,0 +1,62 @@
+From wlund at iki.fi  Fri Mar  1 02:46:20 2019
+From: wlund at iki.fi (Wictor Lund)
+Date: Fri, 1 Mar 2019 09:46:20 +0200
+Subject: [colm-users] Off by one error in pdarun.c
+In-Reply-To: <5301adb09ce25c8653c37142ca8d88e4@mail.colm.net>
+References: <20190227125842.sf2l3hllnethdidk@klein.local>
+ <5301adb09ce25c8653c37142ca8d88e4@mail.colm.net>
+Message-ID: <20190301074620.tqazbat7y4bvm5ll@klein.local>
+
+On Thu, Feb 28, 2019 at 06:28:54PM +0200, Adrian Thurston wrote:
+> Hi Wictor,
+> 
+> Strings in colm are not normally null terminated. Probably the error you're
+> seeing originates from when the string is printed. Can you share some code
+> that exhibits the problem?
+> 
+
+Ok, I didn't know this. However, the string in question is being printed as
+C string here:
+         src/compiler.cc    void Compiler::parsePatterns()
+ 1014                 if ( pdaRun->parse_error_text != 0 ) {
+ 1015                         cerr << ": relative error: " << 
+ 1016                                         pdaRun->parse_error_text->tokdata->data;
+ 1017                 }
+ 1018                 else {
+ 1019                         cerr << ": parse error";
+ 1020                 }
+
+--
+Wictor Lund
+
+> On 2019-02-27 14:58, Wictor Lund wrote:
+> > diff --git a/src/pdarun.c b/src/pdarun.c
+> > index ab0de7eb..3914bc65 100644
+> > --- a/src/pdarun.c
+> > +++ b/src/pdarun.c
+> > @@ -436,9 +436,15 @@ static void report_parse_error( program_t *prg,
+> > tree_t **sp, struct pda_run *pda
+> > 
+> > 
+> >                 if ( name == 0 )
+> >                         name = "<input>";
+> > -               char *formatted = malloc( strlen( name ) + 128 );
+> > -               sprintf( formatted, "%s:%ld:%ld: parse error", name,
+> > line, column );
+> > -               error_head = string_alloc_full( prg, formatted,
+> > strlen(formatted) );
+> > +               size_t formatted_s = strlen( name ) + 128;
+> > +               char *formatted = malloc( formatted_s );
+> > +               size_t fmt_s = snprintf( formatted, formatted_s,
+> > +                                        "%s:%ld:%ld: parse error",
+> > +                                        name, line, column );
+> > +               if ( fmt_s >= formatted_s ) {
+> > +                       fmt_s = formatted_s - 1;
+> > +               }
+> > +               error_head = string_alloc_full( prg, formatted, fmt_s +
+> > 1 );
+> >                 free( formatted );
+> > 
+> >                 error_head->location = location_allocate( prg );
+
+

@@ -1,0 +1,1856 @@
+From rmphe... at gmail.com  Mon Dec 17 18:37:24 2007
+From: rmphe... at gmail.com (Ryan Phelps)
+Date: Mon, 17 Dec 2007 10:37:24 -0800 (PST)
+Subject: Segmentation Fault
+Message-ID: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+
+rlgen-java gives me a segmentation fault when run on the XML generated
+by the following code:
+
+public class SegFault {
+  %%{
+    machine A;
+    write data;
+    main := space* '=' [WHAT?!] @{} space*;
+  }%%
+
+  private void foo() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+
+  %%{
+    machine B;
+    write data;
+    main := 'blah';
+  }%%
+
+  private void bar() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+}
+
+This is the most simplified reproduction of the problem that I could
+create after discovering it while trying to implement a configuration
+file parser. The strange part is that the smallest changes to the
+above code will fix it. For example, if I change anything at all with
+'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+instead of "space*", or getting rid of the empty action), rlgen-java
+will work fine. If I rename machine A to machine S it works fine. If I
+get rid of machine B it works fine.
+
+
+From thurs... at cs.queensu.ca  Mon Dec 17 19:03:58 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 17 Dec 2007 19:03:58 +0000
+Subject: [ragel-users] Segmentation Fault
+In-Reply-To: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+Message-ID: <1924174201-1197918237-cardhu_decombobulator_blackberry.rim.net-866137105-@bxe115.bisx.prod.on.blackberry>
+
+I just confirmed it. Will fix it later today.
+
+Adrian
+
+-----Original Message-----
+From: Ryan Phelps <rmphelps at gmail.com>
+
+Date: Mon, 17 Dec 2007 10:37:24 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Segmentation Fault
+
+
+
+rlgen-java gives me a segmentation fault when run on the XML generated
+by the following code:
+
+public class SegFault {
+  %%{
+    machine A;
+    write data;
+    main := space* '=' [WHAT?!] @{} space*;
+  }%%
+
+  private void foo() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+
+  %%{
+    machine B;
+    write data;
+    main := 'blah';
+  }%%
+
+  private void bar() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+}
+
+This is the most simplified reproduction of the problem that I could
+create after discovering it while trying to implement a configuration
+file parser. The strange part is that the smallest changes to the
+above code will fix it. For example, if I change anything at all with
+'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+instead of "space*", or getting rid of the empty action), rlgen-java
+will work fine. If I rename machine A to machine S it works fine. If I
+get rid of machine B it works fine.
+
+Can anyone else verify this or is it just my machine?
+
+
+
+From thurs... at cs.queensu.ca  Mon Dec 17 20:22:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 17 Dec 2007 15:22:08 -0500
+Subject: [ragel-users] Segmentation Fault
+In-Reply-To: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+Message-ID: <4766DA70.9050909@cs.queensu.ca>
+
+Hi, here is a patch that fixes the problem. This seems like an important
+fix so I'm debating whether or not I should do a 5.25 release instead of
+just fixing it 6.0, which is due out soonish.
+
+-Adrian
+
+Ryan Phelps wrote:
+> rlgen-java gives me a segmentation fault when run on the XML generated
+> by the following code:
+> 
+> public class SegFault {
+>   %%{
+>     machine A;
+>     write data;
+>     main := space* '=' [WHAT?!] @{} space*;
+>   }%%
+> 
+>   private void foo() {
+>     int cs, p = 0, pe = 0;
+>     char[] data = null;
+>     %% write init;
+>     %% write exec;
+>   }
+> 
+>   %%{
+>     machine B;
+>     write data;
+>     main := 'blah';
+>   }%%
+> 
+>   private void bar() {
+>     int cs, p = 0, pe = 0;
+>     char[] data = null;
+>     %% write init;
+>     %% write exec;
+>   }
+> }
+> 
+> This is the most simplified reproduction of the problem that I could
+> create after discovering it while trying to implement a configuration
+> file parser. The strange part is that the smallest changes to the
+> above code will fix it. For example, if I change anything at all with
+> 'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+> instead of "space*", or getting rid of the empty action), rlgen-java
+> will work fine. If I rename machine A to machine S it works fine. If I
+> get rid of machine B it works fine.
+> 
+> Can anyone else verify this or is it just my machine?
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-5.24-phelps-segfault.diff
+Type: text/x-diff
+Size: 314 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071217/8174807b/attachment.diff>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071217/8174807b/attachment.sig>
+
+From rmphe... at gmail.com  Mon Dec 17 21:18:28 2007
+From: rmphe... at gmail.com (Ryan Phelps)
+Date: Mon, 17 Dec 2007 13:18:28 -0800 (PST)
+Subject: Segmentation Fault
+In-Reply-To: <4766DA70.9050909@cs.queensu.ca>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com> 
+	<4766DA70.9050909@cs.queensu.ca>
+Message-ID: <f529829e-f3f3-4f94-a768-08a496ce9e26@f3g2000hsg.googlegroups.com>
+
+Excellent! Thanks for that!
+
+-Ryan-
+
+On Dec 17, 3:22 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi, here is a patch that fixes the problem. This seems like an important
+> fix so I'm debating whether or not I should do a 5.25 release instead of
+> just fixing it 6.0, which is due out soonish.
+>
+> -Adrian
+>
+> Ryan Phelps wrote:
+> > rlgen-java gives me a segmentation fault when run on the XML generated
+> > by the following code:
+>
+> > public class SegFault {
+> >   %%{
+> >     machine A;
+> >     write data;
+> >     main := space* '=' [WHAT?!] @{} space*;
+> >   }%%
+>
+> >   private void foo() {
+> >     int cs, p = 0, pe = 0;
+> >     char[] data = null;
+> >     %% write init;
+> >     %% write exec;
+> >   }
+>
+> >   %%{
+> >     machine B;
+> >     write data;
+> >     main := 'blah';
+> >   }%%
+>
+> >   private void bar() {
+> >     int cs, p = 0, pe = 0;
+> >     char[] data = null;
+> >     %% write init;
+> >     %% write exec;
+> >   }
+> > }
+>
+> > This is the most simplified reproduction of the problem that I could
+> > create after discovering it while trying to implement a configuration
+> > file parser. The strange part is that the smallest changes to the
+> > above code will fix it. For example, if I change anything at all with
+> > 'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+> > instead of "space*", or getting rid of the empty action), rlgen-java
+> > will work fine. If I rename machine A to machine S it works fine. If I
+> > get rid of machine B it works fine.
+>
+> > Can anyone else verify this or is it just my machine?
+> > >
+>
+>
+>  ragel-5.24-phelps-segfault.diff
+> 1KDownload
+>
+>  signature.asc
+> 1KDownload
+
+
+From thurs... at cs.queensu.ca  Mon Dec 24 21:59:00 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Dec 2007 16:59:00 -0500
+Subject: ragel 5.25 released
+Message-ID: <47702BA4.6060809@cs.queensu.ca>
+
+Hi, I just released 5.25, the NEW last of the 5.X series. It fixes the
+missing initialization behind the segfault reported by Ryan Phelps. This
+issue affected Java and Ruby code generation.
+
+Cheers,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071224/46a2812a/attachment.sig>
+
+From dwa... at gmail.com  Wed Dec 26 20:32:50 2007
+From: dwa... at gmail.com (David Waite)
+Date: Wed, 26 Dec 2007 12:32:50 -0800 (PST)
+Subject: [PATCH]: improvements to rlgen-java
+Message-ID: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+
+The following patch changes the Java generation a bit:
+
+- Array row/max are changed slightly to 12/8184 based on 80 column
+display. This was just my own preference (some might prefer 10
+columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+it if desired.
+
+- Arrays are generated with an array constructor rather than a large
+block of statement constructors. This reduced my packaged JAR size by
+14k for a relatively simple JSON vocabulary with 68 states.
+- Arrays are generated with whitespace padding in code for
+readability.
+- Array overflow (over the SAIIC limit) is done by creating multiple
+functions with numbered prefixes, then generating a combine_<name>
+function which builds a new array using new and arraycopy over all the
+previous init_<name>_<number> functions.
+
+-David Waite
+
+Index: rlgen-java/javacodegen.cpp
+===================================================================
+--- rlgen-java/javacodegen.cpp	(revision 346)
++++ rlgen-java/javacodegen.cpp	(working copy)
+@@ -28,11 +28,11 @@
+ #include <sstream>
+
+ /* Integer array line length. */
+-#define IALL 8
++#define IALL 12
+
+ /* Static array initialization item count
+  * (should be multiple of IALL). */
+-#define SAIIC 8192
++#define SAIIC 8184
+
+ #define _resume    1
+ #define _again     2
+@@ -40,11 +40,11 @@
+ #define _test_eof  4
+ #define _out       5
+
+-using std::ostream;
++using std::setw;
++using std::ios;
+ using std::ostringstream;
+ using std::string;
+ using std::cerr;
+-using std::endl;
+
+ void lineDirective( ostream &out, char *fileName, int line )
+ {
+@@ -1125,54 +1125,59 @@
+ 	item_count = 0;
+ 	div_count = 1;
+
+-	out <<
+-		"private static void init_" << name << "_0( " << type << "[] r )\n"
+-		"{\n\t";
+-
++	out <<  "private static " << type << "[] init_" << name << "_0( )\n"
++		"{\n\t"
++		"return new " << type << " [] {\n\t";
+ 	return out;
+ }
+
+ std::ostream &JavaTabCodeGen::ARRAY_ITEM( string item, bool last )
+ {
+-	out << "r[" << item_count << "]=" << item << "; ";
++	item_count++;
+
+-	item_count += 1;
++	out << setw(5) << setiosflags(ios::right) << item;
+
+ 	if ( !last ) {
+ 		if ( item_count % SAIIC == 0 ) {
+-			out << "\n}\n\n";
+-			out << "private static void init_" << array_name << "_" <<
+div_count <<
+-					"( " << array_type << "[] r )\n{\n\t";
+-			div_count += 1;
++			out << "\n\t};\n};\n"
++				"private static "<< array_type << "[] init_" <<
++				array_name << "_" << div_count << "( )\n"
++				"{\n\t"
++				"return new " << array_type << " [] {\n\t";
++			div_count++;
++		} else if (item_count % IALL == 0) {
++			out << ",\n\t";
++		} else {
++			out << ",";
+ 		}
+-		else if ( item_count % IALL == 0 )
+-			out << "\n\t";
+ 	}
+-
+ 	return out;
+ }
+
+ std::ostream &JavaTabCodeGen::CLOSE_ARRAY()
+ {
+-	out << "\n}\n\n";
++	out << "\n\t};\n}\n\n";
+
+-	out <<
+-		"private static " << array_type << "[] create_" << array_name <<
+"( )\n"
+-		"{\n"
+-		"	" << array_type << "[] r = new " << array_type << "[" <<
+item_count << "];\n";
+-
+-	for ( int i = 0; i < div_count; i++ )
+-		out << "	init_" << array_name << "_" << i << "( r );\n";
+-
+-	out <<
+-		"	return r;\n"
+-		"}\n"
+-		"\n";
+-
+-	out <<
+-		"private static final " << array_type << " " << array_name <<
+-				"[] = create_" << array_name << "();\n\n";
+-
++	if (item_count < SAIIC) {
++		out << "private static final " << array_type << " " << array_name
+<<
++			"[] = init_" << array_name << "_0();\n\n";
++	} else {
++		out << "private static final " << array_type << " [] combine_" <<
+array_name
++			<< " () {\n\t"
++			<< array_type << " [] combined = new " << array_type <<
++			" [ " << item_count << " ];\n\t";
++		int block = 0;
++		int max_block = item_count / SAIIC;
++		for (;block < max_block; ++block) {
++			out << "System.arraycopy ( init_" << array_name << "_" << block
+<<
++				" ( ), 0, combined, " << SAIIC * block << ", " << SAIIC << " );\n
+\t";
++		}
++		out << "System.arraycopy ( init_" << array_name << "_" << block <<
++			" ( ), 0, combined, " << SAIIC * block << ", " << (item_count %
+SAIIC) << " );\n\t";
++		out << "return combined;\n}\n";
++		out << "private static final " << array_type << " [] " <<
+array_name <<
++			" = combine_" << array_name << "();";
++	}
+ 	return out;
+ }
+
+
+
+From thurs... at cs.queensu.ca  Wed Dec 26 21:44:28 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 26 Dec 2007 16:44:28 -0500
+Subject: [ragel-users] [PATCH]: improvements to rlgen-java
+In-Reply-To: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+References: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+Message-ID: <4772CB3C.9050304@cs.queensu.ca>
+
+Hi David, could you resend as an attachment? Some lines wrapped. I tried
+to fix them but the whitespace must have gone off. The patch still fails.
+
+Thanks,
+ Adrian
+
+David Waite wrote:
+> The following patch changes the Java generation a bit:
+> 
+> - Array row/max are changed slightly to 12/8184 based on 80 column
+> display. This was just my own preference (some might prefer 10
+> columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+> it if desired.
+> 
+> - Arrays are generated with an array constructor rather than a large
+> block of statement constructors. This reduced my packaged JAR size by
+> 14k for a relatively simple JSON vocabulary with 68 states.
+> - Arrays are generated with whitespace padding in code for
+> readability.
+> - Array overflow (over the SAIIC limit) is done by creating multiple
+> functions with numbered prefixes, then generating a combine_<name>
+> function which builds a new array using new and arraycopy over all the
+> previous init_<name>_<number> functions.
+> 
+> -David Waite
+> 
+> Index: rlgen-java/javacodegen.cpp
+> ===================================================================
+> --- rlgen-java/javacodegen.cpp	(revision 346)
+> +++ rlgen-java/javacodegen.cpp	(working copy)
+> @@ -28,11 +28,11 @@
+>  #include <sstream>
+> 
+>  /* Integer array line length. */
+> -#define IALL 8
+> +#define IALL 12
+> 
+>  /* Static array initialization item count
+>   * (should be multiple of IALL). */
+> -#define SAIIC 8192
+> +#define SAIIC 8184
+> 
+>  #define _resume    1
+>  #define _again     2
+> @@ -40,11 +40,11 @@
+>  #define _test_eof  4
+>  #define _out       5
+> 
+> -using std::ostream;
+> +using std::setw;
+> +using std::ios;
+>  using std::ostringstream;
+>  using std::string;
+>  using std::cerr;
+> -using std::endl;
+> 
+>  void lineDirective( ostream &out, char *fileName, int line )
+>  {
+> @@ -1125,54 +1125,59 @@
+>  	item_count = 0;
+>  	div_count = 1;
+> 
+> -	out <<
+> -		"private static void init_" << name << "_0( " << type << "[] r )\n"
+> -		"{\n\t";
+> -
+> +	out <<  "private static " << type << "[] init_" << name << "_0( )\n"
+> +		"{\n\t"
+> +		"return new " << type << " [] {\n\t";
+>  	return out;
+>  }
+> 
+>  std::ostream &JavaTabCodeGen::ARRAY_ITEM( string item, bool last )
+>  {
+> -	out << "r[" << item_count << "]=" << item << "; ";
+> +	item_count++;
+> 
+> -	item_count += 1;
+> +	out << setw(5) << setiosflags(ios::right) << item;
+> 
+>  	if ( !last ) {
+>  		if ( item_count % SAIIC == 0 ) {
+> -			out << "\n}\n\n";
+> -			out << "private static void init_" << array_name << "_" <<
+> div_count <<
+> -					"( " << array_type << "[] r )\n{\n\t";
+> -			div_count += 1;
+> +			out << "\n\t};\n};\n"
+> +				"private static "<< array_type << "[] init_" <<
+> +				array_name << "_" << div_count << "( )\n"
+> +				"{\n\t"
+> +				"return new " << array_type << " [] {\n\t";
+> +			div_count++;
+> +		} else if (item_count % IALL == 0) {
+> +			out << ",\n\t";
+> +		} else {
+> +			out << ",";
+>  		}
+> -		else if ( item_count % IALL == 0 )
+> -			out << "\n\t";
+>  	}
+> -
+>  	return out;
+>  }
+> 
+>  std::ostream &JavaTabCodeGen::CLOSE_ARRAY()
+>  {
+> -	out << "\n}\n\n";
+> +	out << "\n\t};\n}\n\n";
+> 
+> -	out <<
+> -		"private static " << array_type << "[] create_" << array_name <<
+> "( )\n"
+> -		"{\n"
+> -		"	" << array_type << "[] r = new " << array_type << "[" <<
+> item_count << "];\n";
+> -
+> -	for ( int i = 0; i < div_count; i++ )
+> -		out << "	init_" << array_name << "_" << i << "( r );\n";
+> -
+> -	out <<
+> -		"	return r;\n"
+> -		"}\n"
+> -		"\n";
+> -
+> -	out <<
+> -		"private static final " << array_type << " " << array_name <<
+> -				"[] = create_" << array_name << "();\n\n";
+> -
+> +	if (item_count < SAIIC) {
+> +		out << "private static final " << array_type << " " << array_name
+> <<
+> +			"[] = init_" << array_name << "_0();\n\n";
+> +	} else {
+> +		out << "private static final " << array_type << " [] combine_" <<
+> array_name
+> +			<< " () {\n\t"
+> +			<< array_type << " [] combined = new " << array_type <<
+> +			" [ " << item_count << " ];\n\t";
+> +		int block = 0;
+> +		int max_block = item_count / SAIIC;
+> +		for (;block < max_block; ++block) {
+> +			out << "System.arraycopy ( init_" << array_name << "_" << block
+> <<
+> +				" ( ), 0, combined, " << SAIIC * block << ", " << SAIIC << " );\n
+> \t";
+> +		}
+> +		out << "System.arraycopy ( init_" << array_name << "_" << block <<
+> +			" ( ), 0, combined, " << SAIIC * block << ", " << (item_count %
+> SAIIC) << " );\n\t";
+> +		out << "return combined;\n}\n";
+> +		out << "private static final " << array_type << " [] " <<
+> array_name <<
+> +			" = combine_" << array_name << "();";
+> +	}
+>  	return out;
+>  }
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071226/3dc6156c/attachment.sig>
+
+From thurs... at cs.queensu.ca  Mon Dec 24 06:22:30 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Dec 2007 01:22:30 -0500
+Subject: sponsorship for a Ragel talk at CUSEC 2008
+Message-ID: <476F5026.8010109@cs.queensu.ca>
+
+Hi,
+
+I was invited to do a tutorial on Ragel at the Canadian University
+Software Engineering Conference (CUSEC) 2008 and I'm looking for
+sponsorship. CUSEC draws students that are very enthusiastic about
+software engineering. It is a great way to connect with the best and the
+brightest of Canadian undergrads who are just entering the profession.
+This year the conference lineup is quite stellar. Among the excellent
+keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+(automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+web server). You can find more information here:
+
+http://www.cusec.net/
+http://2008.cusec.net/en/index.php
+http://2008.cusec.net/files/CUSEC_2008_Sponsorship_Package.pdf (has some
+stats on the conference attendees)
+
+If you'd like visibility at this conference through my 45 min talk
+please contact me off list. I'm open to suggestions as to the nature of
+this visibility.
+
+Thanks,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071224/1072d1ab/attachment.sig>
+
+From zeds... at zedshaw.com  Mon Dec 24 07:00:49 2007
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Mon, 24 Dec 2007 02:00:49 -0500
+Subject: [ragel-users] sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <476F5026.8010109@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca>
+Message-ID: <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+
+On Mon, 24 Dec 2007 01:22:30 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> Hi,
+> 
+> I was invited to do a tutorial on Ragel at the Canadian University
+> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+> sponsorship. CUSEC draws students that are very enthusiastic about
+> software engineering. It is a great way to connect with the best and the
+> brightest of Canadian undergrads who are just entering the profession.
+> This year the conference lineup is quite stellar. Among the excellent
+> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+> web server). You can find more information here:
+
+Hey, did you manage to get what you needed?  Contact me off list and I
+might be able to help out.  Would love to see ya there.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From thurs... at cs.queensu.ca  Sat Dec 29 16:14:37 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Dec 2007 11:14:37 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+References: <476F5026.8010109@cs.queensu.ca> <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+Message-ID: <4776726D.7080505@cs.queensu.ca>
+
+Hey Zed,
+
+I got what I needed. Thanks for your offer. I understand you also
+suggested my name to them, thanks for doing that as well!
+
+Cheers,
+ Adrian
+
+Zed A. Shaw wrote:
+> On Mon, 24 Dec 2007 01:22:30 -0500
+> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> 
+>> Hi,
+>>
+>> I was invited to do a tutorial on Ragel at the Canadian University
+>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+>> sponsorship. CUSEC draws students that are very enthusiastic about
+>> software engineering. It is a great way to connect with the best and the
+>> brightest of Canadian undergrads who are just entering the profession.
+>> This year the conference lineup is quite stellar. Among the excellent
+>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+>> web server). You can find more information here:
+> 
+> Hey, did you manage to get what you needed?  Contact me off list and I
+> might be able to help out.  Would love to see ya there.
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071229/f6c4d74d/attachment.sig>
+
+From thurs... at cs.queensu.ca  Sat Dec 29 16:44:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Dec 2007 11:44:08 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <4776726D.7080505@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca> <20071224020049.893fa7dd.zedshaw@zedshaw.com> <4776726D.7080505@cs.queensu.ca>
+Message-ID: <47767958.90701@cs.queensu.ca>
+
+Just to be clear for anyone following this thread. My attendance at the
+conference is guaranteed, but I would still accept sponsorship for
+anyone interested in reaching eager Canadian students.
+
+Cheers,
+ Adrian
+
+Adrian Thurston wrote:
+> Hey Zed,
+> 
+> I got what I needed. Thanks for your offer. I understand you also
+> suggested my name to them, thanks for doing that as well!
+> 
+> Cheers,
+>  Adrian
+> 
+> Zed A. Shaw wrote:
+>> On Mon, 24 Dec 2007 01:22:30 -0500
+>> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>
+>>> Hi,
+>>>
+>>> I was invited to do a tutorial on Ragel at the Canadian University
+>>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+>>> sponsorship. CUSEC draws students that are very enthusiastic about
+>>> software engineering. It is a great way to connect with the best and the
+>>> brightest of Canadian undergrads who are just entering the profession.
+>>> This year the conference lineup is quite stellar. Among the excellent
+>>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+>>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+>>> web server). You can find more information here:
+>> Hey, did you manage to get what you needed?  Contact me off list and I
+>> might be able to help out.  Would love to see ya there.
+>>
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071229/8316e52a/attachment.sig>
+
+From pat.ey... at gmail.com  Sat Dec 29 17:57:17 2007
+From: pat.ey... at gmail.com (pat eyler)
+Date: Sat, 29 Dec 2007 10:57:17 -0700
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <47767958.90...@cs.queensu.ca>
+References: <476F5026.8010...@cs.queensu.ca>
+	 <20071224020049.893fa7dd.zeds...@zedshaw.com>
+	 <4776726D.7080...@cs.queensu.ca> <47767958.90...@cs.queensu.ca>
+Message-ID: <6fd0654b0712290957g20028a2cn2edf020d9b9a9e35@mail.gmail.com>
+
+Well, in in a semi-related note, if anyone is interested, we've got a couple
+more days before the window closes to submit a talk proposal for the
+MountainWest RubyConf 2008, to be held Mar 28 and 29, 2008 in Salt
+Lake City Utah.  (I'm not kidding about the couple of days thing, the window
+closes at midnight on Dec 31st.
+
+
+
+On Dec 29, 2007 9:44 AM, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Just to be clear for anyone following this thread. My attendance at the
+> conference is guaranteed, but I would still accept sponsorship for
+> anyone interested in reaching eager Canadian students.
+>
+> Cheers,
+>  Adrian
+>
+>
+> Adrian Thurston wrote:
+> > Hey Zed,
+> >
+> > I got what I needed. Thanks for your offer. I understand you also
+> > suggested my name to them, thanks for doing that as well!
+> >
+> > Cheers,
+> >  Adrian
+> >
+> > Zed A. Shaw wrote:
+> >> On Mon, 24 Dec 2007 01:22:30 -0500
+> >> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >>
+> >>> Hi,
+> >>>
+> >>> I was invited to do a tutorial on Ragel at the Canadian University
+> >>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+> >>> sponsorship. CUSEC draws students that are very enthusiastic about
+> >>> software engineering. It is a great way to connect with the best and the
+> >>> brightest of Canadian undergrads who are just entering the profession.
+> >>> This year the conference lineup is quite stellar. Among the excellent
+> >>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+> >>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+> >>> web server). You can find more information here:
+> >> Hey, did you manage to get what you needed?  Contact me off list and I
+> >> might be able to help out.  Would love to see ya there.
+> >>
+> >
+>
+>
+
+
+
+-- 
+thanks,
+-pate
+-------------------------
+   Duty makes us do things, Love make us do things well.
+http://on-ruby.blogspot.com       http://on-erlang.blogspot.com
+          http://on-soccer.blogspot.com
+
+
+From zeds... at zedshaw.com  Sat Dec 29 19:09:44 2007
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Sat, 29 Dec 2007 14:09:44 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <4776726D.7080505@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca>
+	<20071224020049.893fa7dd.zedshaw@zedshaw.com>
+	<4776726D.7080505@cs.queensu.ca>
+Message-ID: <20071229140944.29e94885.zedshaw@zedshaw.com>
+
+On Sat, 29 Dec 2007 11:14:37 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> Hey Zed,
+> 
+> I got what I needed. Thanks for your offer. I understand you also
+> suggested my name to them, thanks for doing that as well!
+
+Awesome Adrian, sorry I didn't get back to you in time but let me know
+if you need anything else.  I probably can't offer much but I'll see
+what I can do.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From dwa... at gmail.com  Mon Dec 31 14:56:18 2007
+From: dwa... at gmail.com (David Waite)
+Date: Mon, 31 Dec 2007 09:56:18 -0500
+Subject: [PATCH] repost: improvements to rlgen-java
+Message-ID: <3eb0429d0712310656u7e709cbdp613b1e07f2f27fc5@mail.gmail.com>
+
+The following patch changes the Java generation a bit:
+
+- Array row/max are changed slightly to 12/8184 based on 80 column
+display. This was just my own preference (some might prefer 10
+columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+it if desired.
+
+- Arrays are generated with an array constructor rather than a large
+block of statement constructors. This reduced my packaged JAR size by
+14k for a relatively simple JSON vocabulary with 68 states.
+- Arrays are generated with whitespace padding in code for
+readability.
+- Array overflow (over the SAIIC limit) is done by creating multiple
+functions with numbered prefixes, then generating a combine_<name>
+function which builds a new array using new and arraycopy over all the
+previous init_<name>_<number> functions.
+
+-David Waite
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071231/6a813891/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: rlgen-java_inline_arrays.patch
+Type: application/octet-stream
+Size: 3351 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20071231/6a813891/attachment.obj>
+
+From rmphe... at gmail.com  Mon Dec 17 18:37:24 2007
+From: rmphe... at gmail.com (Ryan Phelps)
+Date: Mon, 17 Dec 2007 10:37:24 -0800 (PST)
+Subject: Segmentation Fault
+Message-ID: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+
+rlgen-java gives me a segmentation fault when run on the XML generated
+by the following code:
+
+public class SegFault {
+  %%{
+    machine A;
+    write data;
+    main := space* '=' [WHAT?!] @{} space*;
+  }%%
+
+  private void foo() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+
+  %%{
+    machine B;
+    write data;
+    main := 'blah';
+  }%%
+
+  private void bar() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+}
+
+This is the most simplified reproduction of the problem that I could
+create after discovering it while trying to implement a configuration
+file parser. The strange part is that the smallest changes to the
+above code will fix it. For example, if I change anything at all with
+'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+instead of "space*", or getting rid of the empty action), rlgen-java
+will work fine. If I rename machine A to machine S it works fine. If I
+get rid of machine B it works fine.
+
+
+From thurs... at cs.queensu.ca  Mon Dec 17 19:03:58 2007
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 17 Dec 2007 19:03:58 +0000
+Subject: [ragel-users] Segmentation Fault
+In-Reply-To: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+Message-ID: <1924174201-1197918237-cardhu_decombobulator_blackberry.rim.net-866137105-@bxe115.bisx.prod.on.blackberry>
+
+I just confirmed it. Will fix it later today.
+
+Adrian
+
+-----Original Message-----
+From: Ryan Phelps <rmphelps at gmail.com>
+
+Date: Mon, 17 Dec 2007 10:37:24 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Segmentation Fault
+
+
+
+rlgen-java gives me a segmentation fault when run on the XML generated
+by the following code:
+
+public class SegFault {
+  %%{
+    machine A;
+    write data;
+    main := space* '=' [WHAT?!] @{} space*;
+  }%%
+
+  private void foo() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+
+  %%{
+    machine B;
+    write data;
+    main := 'blah';
+  }%%
+
+  private void bar() {
+    int cs, p = 0, pe = 0;
+    char[] data = null;
+    %% write init;
+    %% write exec;
+  }
+}
+
+This is the most simplified reproduction of the problem that I could
+create after discovering it while trying to implement a configuration
+file parser. The strange part is that the smallest changes to the
+above code will fix it. For example, if I change anything at all with
+'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+instead of "space*", or getting rid of the empty action), rlgen-java
+will work fine. If I rename machine A to machine S it works fine. If I
+get rid of machine B it works fine.
+
+Can anyone else verify this or is it just my machine?
+
+
+
+From thurs... at cs.queensu.ca  Mon Dec 17 20:22:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 17 Dec 2007 15:22:08 -0500
+Subject: [ragel-users] Segmentation Fault
+In-Reply-To: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com>
+Message-ID: <4766DA70.9050909@cs.queensu.ca>
+
+Hi, here is a patch that fixes the problem. This seems like an important
+fix so I'm debating whether or not I should do a 5.25 release instead of
+just fixing it 6.0, which is due out soonish.
+
+-Adrian
+
+Ryan Phelps wrote:
+> rlgen-java gives me a segmentation fault when run on the XML generated
+> by the following code:
+> 
+> public class SegFault {
+>   %%{
+>     machine A;
+>     write data;
+>     main := space* '=' [WHAT?!] @{} space*;
+>   }%%
+> 
+>   private void foo() {
+>     int cs, p = 0, pe = 0;
+>     char[] data = null;
+>     %% write init;
+>     %% write exec;
+>   }
+> 
+>   %%{
+>     machine B;
+>     write data;
+>     main := 'blah';
+>   }%%
+> 
+>   private void bar() {
+>     int cs, p = 0, pe = 0;
+>     char[] data = null;
+>     %% write init;
+>     %% write exec;
+>   }
+> }
+> 
+> This is the most simplified reproduction of the problem that I could
+> create after discovering it while trying to implement a configuration
+> file parser. The strange part is that the smallest changes to the
+> above code will fix it. For example, if I change anything at all with
+> 'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+> instead of "space*", or getting rid of the empty action), rlgen-java
+> will work fine. If I rename machine A to machine S it works fine. If I
+> get rid of machine B it works fine.
+> 
+> Can anyone else verify this or is it just my machine?
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-5.24-phelps-segfault.diff
+Type: text/x-diff
+Size: 314 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071217/8174807b/attachment-0001.diff>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071217/8174807b/attachment-0001.sig>
+
+From rmphe... at gmail.com  Mon Dec 17 21:18:28 2007
+From: rmphe... at gmail.com (Ryan Phelps)
+Date: Mon, 17 Dec 2007 13:18:28 -0800 (PST)
+Subject: Segmentation Fault
+In-Reply-To: <4766DA70.9050909@cs.queensu.ca>
+References: <8de4cf29-0eee-481e-ab0d-845d59dd8b48@b40g2000prf.googlegroups.com> 
+	<4766DA70.9050909@cs.queensu.ca>
+Message-ID: <f529829e-f3f3-4f94-a768-08a496ce9e26@f3g2000hsg.googlegroups.com>
+
+Excellent! Thanks for that!
+
+-Ryan-
+
+On Dec 17, 3:22 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi, here is a patch that fixes the problem. This seems like an important
+> fix so I'm debating whether or not I should do a 5.25 release instead of
+> just fixing it 6.0, which is due out soonish.
+>
+> -Adrian
+>
+> Ryan Phelps wrote:
+> > rlgen-java gives me a segmentation fault when run on the XML generated
+> > by the following code:
+>
+> > public class SegFault {
+> >   %%{
+> >     machine A;
+> >     write data;
+> >     main := space* '=' [WHAT?!] @{} space*;
+> >   }%%
+>
+> >   private void foo() {
+> >     int cs, p = 0, pe = 0;
+> >     char[] data = null;
+> >     %% write init;
+> >     %% write exec;
+> >   }
+>
+> >   %%{
+> >     machine B;
+> >     write data;
+> >     main := 'blah';
+> >   }%%
+>
+> >   private void bar() {
+> >     int cs, p = 0, pe = 0;
+> >     char[] data = null;
+> >     %% write init;
+> >     %% write exec;
+> >   }
+> > }
+>
+> > This is the most simplified reproduction of the problem that I could
+> > create after discovering it while trying to implement a configuration
+> > file parser. The strange part is that the smallest changes to the
+> > above code will fix it. For example, if I change anything at all with
+> > 'main' of machine A (like changing [WHAT?!] to [WHA?!], using "space"
+> > instead of "space*", or getting rid of the empty action), rlgen-java
+> > will work fine. If I rename machine A to machine S it works fine. If I
+> > get rid of machine B it works fine.
+>
+> > Can anyone else verify this or is it just my machine?
+> > >
+>
+>
+>  ragel-5.24-phelps-segfault.diff
+> 1KDownload
+>
+>  signature.asc
+> 1KDownload
+
+
+From thurs... at cs.queensu.ca  Mon Dec 24 21:59:00 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Dec 2007 16:59:00 -0500
+Subject: ragel 5.25 released
+Message-ID: <47702BA4.6060809@cs.queensu.ca>
+
+Hi, I just released 5.25, the NEW last of the 5.X series. It fixes the
+missing initialization behind the segfault reported by Ryan Phelps. This
+issue affected Java and Ruby code generation.
+
+Cheers,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071224/46a2812a/attachment-0001.sig>
+
+From dwa... at gmail.com  Wed Dec 26 20:32:50 2007
+From: dwa... at gmail.com (David Waite)
+Date: Wed, 26 Dec 2007 12:32:50 -0800 (PST)
+Subject: [PATCH]: improvements to rlgen-java
+Message-ID: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+
+The following patch changes the Java generation a bit:
+
+- Array row/max are changed slightly to 12/8184 based on 80 column
+display. This was just my own preference (some might prefer 10
+columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+it if desired.
+
+- Arrays are generated with an array constructor rather than a large
+block of statement constructors. This reduced my packaged JAR size by
+14k for a relatively simple JSON vocabulary with 68 states.
+- Arrays are generated with whitespace padding in code for
+readability.
+- Array overflow (over the SAIIC limit) is done by creating multiple
+functions with numbered prefixes, then generating a combine_<name>
+function which builds a new array using new and arraycopy over all the
+previous init_<name>_<number> functions.
+
+-David Waite
+
+Index: rlgen-java/javacodegen.cpp
+===================================================================
+--- rlgen-java/javacodegen.cpp	(revision 346)
++++ rlgen-java/javacodegen.cpp	(working copy)
+@@ -28,11 +28,11 @@
+ #include <sstream>
+
+ /* Integer array line length. */
+-#define IALL 8
++#define IALL 12
+
+ /* Static array initialization item count
+  * (should be multiple of IALL). */
+-#define SAIIC 8192
++#define SAIIC 8184
+
+ #define _resume    1
+ #define _again     2
+@@ -40,11 +40,11 @@
+ #define _test_eof  4
+ #define _out       5
+
+-using std::ostream;
++using std::setw;
++using std::ios;
+ using std::ostringstream;
+ using std::string;
+ using std::cerr;
+-using std::endl;
+
+ void lineDirective( ostream &out, char *fileName, int line )
+ {
+@@ -1125,54 +1125,59 @@
+ 	item_count = 0;
+ 	div_count = 1;
+
+-	out <<
+-		"private static void init_" << name << "_0( " << type << "[] r )\n"
+-		"{\n\t";
+-
++	out <<  "private static " << type << "[] init_" << name << "_0( )\n"
++		"{\n\t"
++		"return new " << type << " [] {\n\t";
+ 	return out;
+ }
+
+ std::ostream &JavaTabCodeGen::ARRAY_ITEM( string item, bool last )
+ {
+-	out << "r[" << item_count << "]=" << item << "; ";
++	item_count++;
+
+-	item_count += 1;
++	out << setw(5) << setiosflags(ios::right) << item;
+
+ 	if ( !last ) {
+ 		if ( item_count % SAIIC == 0 ) {
+-			out << "\n}\n\n";
+-			out << "private static void init_" << array_name << "_" <<
+div_count <<
+-					"( " << array_type << "[] r )\n{\n\t";
+-			div_count += 1;
++			out << "\n\t};\n};\n"
++				"private static "<< array_type << "[] init_" <<
++				array_name << "_" << div_count << "( )\n"
++				"{\n\t"
++				"return new " << array_type << " [] {\n\t";
++			div_count++;
++		} else if (item_count % IALL == 0) {
++			out << ",\n\t";
++		} else {
++			out << ",";
+ 		}
+-		else if ( item_count % IALL == 0 )
+-			out << "\n\t";
+ 	}
+-
+ 	return out;
+ }
+
+ std::ostream &JavaTabCodeGen::CLOSE_ARRAY()
+ {
+-	out << "\n}\n\n";
++	out << "\n\t};\n}\n\n";
+
+-	out <<
+-		"private static " << array_type << "[] create_" << array_name <<
+"( )\n"
+-		"{\n"
+-		"	" << array_type << "[] r = new " << array_type << "[" <<
+item_count << "];\n";
+-
+-	for ( int i = 0; i < div_count; i++ )
+-		out << "	init_" << array_name << "_" << i << "( r );\n";
+-
+-	out <<
+-		"	return r;\n"
+-		"}\n"
+-		"\n";
+-
+-	out <<
+-		"private static final " << array_type << " " << array_name <<
+-				"[] = create_" << array_name << "();\n\n";
+-
++	if (item_count < SAIIC) {
++		out << "private static final " << array_type << " " << array_name
+<<
++			"[] = init_" << array_name << "_0();\n\n";
++	} else {
++		out << "private static final " << array_type << " [] combine_" <<
+array_name
++			<< " () {\n\t"
++			<< array_type << " [] combined = new " << array_type <<
++			" [ " << item_count << " ];\n\t";
++		int block = 0;
++		int max_block = item_count / SAIIC;
++		for (;block < max_block; ++block) {
++			out << "System.arraycopy ( init_" << array_name << "_" << block
+<<
++				" ( ), 0, combined, " << SAIIC * block << ", " << SAIIC << " );\n
+\t";
++		}
++		out << "System.arraycopy ( init_" << array_name << "_" << block <<
++			" ( ), 0, combined, " << SAIIC * block << ", " << (item_count %
+SAIIC) << " );\n\t";
++		out << "return combined;\n}\n";
++		out << "private static final " << array_type << " [] " <<
+array_name <<
++			" = combine_" << array_name << "();";
++	}
+ 	return out;
+ }
+
+
+
+From thurs... at cs.queensu.ca  Wed Dec 26 21:44:28 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 26 Dec 2007 16:44:28 -0500
+Subject: [ragel-users] [PATCH]: improvements to rlgen-java
+In-Reply-To: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+References: <50e51681-fa27-46d9-8756-80687a275ab7@d4g2000prg.googlegroups.com>
+Message-ID: <4772CB3C.9050304@cs.queensu.ca>
+
+Hi David, could you resend as an attachment? Some lines wrapped. I tried
+to fix them but the whitespace must have gone off. The patch still fails.
+
+Thanks,
+ Adrian
+
+David Waite wrote:
+> The following patch changes the Java generation a bit:
+> 
+> - Array row/max are changed slightly to 12/8184 based on 80 column
+> display. This was just my own preference (some might prefer 10
+> columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+> it if desired.
+> 
+> - Arrays are generated with an array constructor rather than a large
+> block of statement constructors. This reduced my packaged JAR size by
+> 14k for a relatively simple JSON vocabulary with 68 states.
+> - Arrays are generated with whitespace padding in code for
+> readability.
+> - Array overflow (over the SAIIC limit) is done by creating multiple
+> functions with numbered prefixes, then generating a combine_<name>
+> function which builds a new array using new and arraycopy over all the
+> previous init_<name>_<number> functions.
+> 
+> -David Waite
+> 
+> Index: rlgen-java/javacodegen.cpp
+> ===================================================================
+> --- rlgen-java/javacodegen.cpp	(revision 346)
+> +++ rlgen-java/javacodegen.cpp	(working copy)
+> @@ -28,11 +28,11 @@
+>  #include <sstream>
+> 
+>  /* Integer array line length. */
+> -#define IALL 8
+> +#define IALL 12
+> 
+>  /* Static array initialization item count
+>   * (should be multiple of IALL). */
+> -#define SAIIC 8192
+> +#define SAIIC 8184
+> 
+>  #define _resume    1
+>  #define _again     2
+> @@ -40,11 +40,11 @@
+>  #define _test_eof  4
+>  #define _out       5
+> 
+> -using std::ostream;
+> +using std::setw;
+> +using std::ios;
+>  using std::ostringstream;
+>  using std::string;
+>  using std::cerr;
+> -using std::endl;
+> 
+>  void lineDirective( ostream &out, char *fileName, int line )
+>  {
+> @@ -1125,54 +1125,59 @@
+>  	item_count = 0;
+>  	div_count = 1;
+> 
+> -	out <<
+> -		"private static void init_" << name << "_0( " << type << "[] r )\n"
+> -		"{\n\t";
+> -
+> +	out <<  "private static " << type << "[] init_" << name << "_0( )\n"
+> +		"{\n\t"
+> +		"return new " << type << " [] {\n\t";
+>  	return out;
+>  }
+> 
+>  std::ostream &JavaTabCodeGen::ARRAY_ITEM( string item, bool last )
+>  {
+> -	out << "r[" << item_count << "]=" << item << "; ";
+> +	item_count++;
+> 
+> -	item_count += 1;
+> +	out << setw(5) << setiosflags(ios::right) << item;
+> 
+>  	if ( !last ) {
+>  		if ( item_count % SAIIC == 0 ) {
+> -			out << "\n}\n\n";
+> -			out << "private static void init_" << array_name << "_" <<
+> div_count <<
+> -					"( " << array_type << "[] r )\n{\n\t";
+> -			div_count += 1;
+> +			out << "\n\t};\n};\n"
+> +				"private static "<< array_type << "[] init_" <<
+> +				array_name << "_" << div_count << "( )\n"
+> +				"{\n\t"
+> +				"return new " << array_type << " [] {\n\t";
+> +			div_count++;
+> +		} else if (item_count % IALL == 0) {
+> +			out << ",\n\t";
+> +		} else {
+> +			out << ",";
+>  		}
+> -		else if ( item_count % IALL == 0 )
+> -			out << "\n\t";
+>  	}
+> -
+>  	return out;
+>  }
+> 
+>  std::ostream &JavaTabCodeGen::CLOSE_ARRAY()
+>  {
+> -	out << "\n}\n\n";
+> +	out << "\n\t};\n}\n\n";
+> 
+> -	out <<
+> -		"private static " << array_type << "[] create_" << array_name <<
+> "( )\n"
+> -		"{\n"
+> -		"	" << array_type << "[] r = new " << array_type << "[" <<
+> item_count << "];\n";
+> -
+> -	for ( int i = 0; i < div_count; i++ )
+> -		out << "	init_" << array_name << "_" << i << "( r );\n";
+> -
+> -	out <<
+> -		"	return r;\n"
+> -		"}\n"
+> -		"\n";
+> -
+> -	out <<
+> -		"private static final " << array_type << " " << array_name <<
+> -				"[] = create_" << array_name << "();\n\n";
+> -
+> +	if (item_count < SAIIC) {
+> +		out << "private static final " << array_type << " " << array_name
+> <<
+> +			"[] = init_" << array_name << "_0();\n\n";
+> +	} else {
+> +		out << "private static final " << array_type << " [] combine_" <<
+> array_name
+> +			<< " () {\n\t"
+> +			<< array_type << " [] combined = new " << array_type <<
+> +			" [ " << item_count << " ];\n\t";
+> +		int block = 0;
+> +		int max_block = item_count / SAIIC;
+> +		for (;block < max_block; ++block) {
+> +			out << "System.arraycopy ( init_" << array_name << "_" << block
+> <<
+> +				" ( ), 0, combined, " << SAIIC * block << ", " << SAIIC << " );\n
+> \t";
+> +		}
+> +		out << "System.arraycopy ( init_" << array_name << "_" << block <<
+> +			" ( ), 0, combined, " << SAIIC * block << ", " << (item_count %
+> SAIIC) << " );\n\t";
+> +		out << "return combined;\n}\n";
+> +		out << "private static final " << array_type << " [] " <<
+> array_name <<
+> +			" = combine_" << array_name << "();";
+> +	}
+>  	return out;
+>  }
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+> 
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071226/3dc6156c/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Mon Dec 24 06:22:30 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Dec 2007 01:22:30 -0500
+Subject: sponsorship for a Ragel talk at CUSEC 2008
+Message-ID: <476F5026.8010109@cs.queensu.ca>
+
+Hi,
+
+I was invited to do a tutorial on Ragel at the Canadian University
+Software Engineering Conference (CUSEC) 2008 and I'm looking for
+sponsorship. CUSEC draws students that are very enthusiastic about
+software engineering. It is a great way to connect with the best and the
+brightest of Canadian undergrads who are just entering the profession.
+This year the conference lineup is quite stellar. Among the excellent
+keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+(automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+web server). You can find more information here:
+
+http://www.cusec.net/
+http://2008.cusec.net/en/index.php
+http://2008.cusec.net/files/CUSEC_2008_Sponsorship_Package.pdf (has some
+stats on the conference attendees)
+
+If you'd like visibility at this conference through my 45 min talk
+please contact me off list. I'm open to suggestions as to the nature of
+this visibility.
+
+Thanks,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071224/1072d1ab/attachment-0001.sig>
+
+From zeds... at zedshaw.com  Mon Dec 24 07:00:49 2007
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Mon, 24 Dec 2007 02:00:49 -0500
+Subject: [ragel-users] sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <476F5026.8010109@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca>
+Message-ID: <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+
+On Mon, 24 Dec 2007 01:22:30 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> Hi,
+> 
+> I was invited to do a tutorial on Ragel at the Canadian University
+> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+> sponsorship. CUSEC draws students that are very enthusiastic about
+> software engineering. It is a great way to connect with the best and the
+> brightest of Canadian undergrads who are just entering the profession.
+> This year the conference lineup is quite stellar. Among the excellent
+> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+> web server). You can find more information here:
+
+Hey, did you manage to get what you needed?  Contact me off list and I
+might be able to help out.  Would love to see ya there.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From thurs... at cs.queensu.ca  Sat Dec 29 16:14:37 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Dec 2007 11:14:37 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+References: <476F5026.8010109@cs.queensu.ca> <20071224020049.893fa7dd.zedshaw@zedshaw.com>
+Message-ID: <4776726D.7080505@cs.queensu.ca>
+
+Hey Zed,
+
+I got what I needed. Thanks for your offer. I understand you also
+suggested my name to them, thanks for doing that as well!
+
+Cheers,
+ Adrian
+
+Zed A. Shaw wrote:
+> On Mon, 24 Dec 2007 01:22:30 -0500
+> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> 
+>> Hi,
+>>
+>> I was invited to do a tutorial on Ragel at the Canadian University
+>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+>> sponsorship. CUSEC draws students that are very enthusiastic about
+>> software engineering. It is a great way to connect with the best and the
+>> brightest of Canadian undergrads who are just entering the profession.
+>> This year the conference lineup is quite stellar. Among the excellent
+>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+>> web server). You can find more information here:
+> 
+> Hey, did you manage to get what you needed?  Contact me off list and I
+> might be able to help out.  Would love to see ya there.
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071229/f6c4d74d/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Sat Dec 29 16:44:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 29 Dec 2007 11:44:08 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <4776726D.7080505@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca> <20071224020049.893fa7dd.zedshaw@zedshaw.com> <4776726D.7080505@cs.queensu.ca>
+Message-ID: <47767958.90701@cs.queensu.ca>
+
+Just to be clear for anyone following this thread. My attendance at the
+conference is guaranteed, but I would still accept sponsorship for
+anyone interested in reaching eager Canadian students.
+
+Cheers,
+ Adrian
+
+Adrian Thurston wrote:
+> Hey Zed,
+> 
+> I got what I needed. Thanks for your offer. I understand you also
+> suggested my name to them, thanks for doing that as well!
+> 
+> Cheers,
+>  Adrian
+> 
+> Zed A. Shaw wrote:
+>> On Mon, 24 Dec 2007 01:22:30 -0500
+>> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>
+>>> Hi,
+>>>
+>>> I was invited to do a tutorial on Ragel at the Canadian University
+>>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+>>> sponsorship. CUSEC draws students that are very enthusiastic about
+>>> software engineering. It is a great way to connect with the best and the
+>>> brightest of Canadian undergrads who are just entering the profession.
+>>> This year the conference lineup is quite stellar. Among the excellent
+>>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+>>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+>>> web server). You can find more information here:
+>> Hey, did you manage to get what you needed?  Contact me off list and I
+>> might be able to help out.  Would love to see ya there.
+>>
+> 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071229/8316e52a/attachment-0001.sig>
+
+From pat.ey... at gmail.com  Sat Dec 29 17:57:17 2007
+From: pat.ey... at gmail.com (pat eyler)
+Date: Sat, 29 Dec 2007 10:57:17 -0700
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <47767958.90...@cs.queensu.ca>
+References: <476F5026.8010...@cs.queensu.ca>
+	 <20071224020049.893fa7dd.zeds...@zedshaw.com>
+	 <4776726D.7080...@cs.queensu.ca> <47767958.90...@cs.queensu.ca>
+Message-ID: <6fd0654b0712290957g20028a2cn2edf020d9b9a9e35@mail.gmail.com>
+
+Well, in in a semi-related note, if anyone is interested, we've got a couple
+more days before the window closes to submit a talk proposal for the
+MountainWest RubyConf 2008, to be held Mar 28 and 29, 2008 in Salt
+Lake City Utah.  (I'm not kidding about the couple of days thing, the window
+closes at midnight on Dec 31st.
+
+
+
+On Dec 29, 2007 9:44 AM, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Just to be clear for anyone following this thread. My attendance at the
+> conference is guaranteed, but I would still accept sponsorship for
+> anyone interested in reaching eager Canadian students.
+>
+> Cheers,
+>  Adrian
+>
+>
+> Adrian Thurston wrote:
+> > Hey Zed,
+> >
+> > I got what I needed. Thanks for your offer. I understand you also
+> > suggested my name to them, thanks for doing that as well!
+> >
+> > Cheers,
+> >  Adrian
+> >
+> > Zed A. Shaw wrote:
+> >> On Mon, 24 Dec 2007 01:22:30 -0500
+> >> Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >>
+> >>> Hi,
+> >>>
+> >>> I was invited to do a tutorial on Ragel at the Canadian University
+> >>> Software Engineering Conference (CUSEC) 2008 and I'm looking for
+> >>> sponsorship. CUSEC draws students that are very enthusiastic about
+> >>> software engineering. It is a great way to connect with the best and the
+> >>> brightest of Canadian undergrads who are just entering the profession.
+> >>> This year the conference lineup is quite stellar. Among the excellent
+> >>> keynotes there are two that Ragel owes any success to: Jeffrey Ullman
+> >>> (automata theory, parsing, dragon book, databases) and Zed Shaw (mongrel
+> >>> web server). You can find more information here:
+> >> Hey, did you manage to get what you needed?  Contact me off list and I
+> >> might be able to help out.  Would love to see ya there.
+> >>
+> >
+>
+>
+
+
+
+-- 
+thanks,
+-pate
+-------------------------
+   Duty makes us do things, Love make us do things well.
+http://on-ruby.blogspot.com       http://on-erlang.blogspot.com
+          http://on-soccer.blogspot.com
+
+
+From zeds... at zedshaw.com  Sat Dec 29 19:09:44 2007
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Sat, 29 Dec 2007 14:09:44 -0500
+Subject: [ragel-users] Re: sponsorship for a Ragel talk at CUSEC 2008
+In-Reply-To: <4776726D.7080505@cs.queensu.ca>
+References: <476F5026.8010109@cs.queensu.ca>
+	<20071224020049.893fa7dd.zedshaw@zedshaw.com>
+	<4776726D.7080505@cs.queensu.ca>
+Message-ID: <20071229140944.29e94885.zedshaw@zedshaw.com>
+
+On Sat, 29 Dec 2007 11:14:37 -0500
+Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+
+> Hey Zed,
+> 
+> I got what I needed. Thanks for your offer. I understand you also
+> suggested my name to them, thanks for doing that as well!
+
+Awesome Adrian, sorry I didn't get back to you in time but let me know
+if you need anything else.  I probably can't offer much but I'll see
+what I can do.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From dwa... at gmail.com  Mon Dec 31 14:56:18 2007
+From: dwa... at gmail.com (David Waite)
+Date: Mon, 31 Dec 2007 09:56:18 -0500
+Subject: [PATCH] repost: improvements to rlgen-java
+Message-ID: <3eb0429d0712310656u7e709cbdp613b1e07f2f27fc5@mail.gmail.com>
+
+The following patch changes the Java generation a bit:
+
+- Array row/max are changed slightly to 12/8184 based on 80 column
+display. This was just my own preference (some might prefer 10
+columns, some would prefer the power-of-2-edness of 8 columns).  Toss
+it if desired.
+
+- Arrays are generated with an array constructor rather than a large
+block of statement constructors. This reduced my packaged JAR size by
+14k for a relatively simple JSON vocabulary with 68 states.
+- Arrays are generated with whitespace padding in code for
+readability.
+- Array overflow (over the SAIIC limit) is done by creating multiple
+functions with numbered prefixes, then generating a combine_<name>
+function which builds a new array using new and arraycopy over all the
+previous init_<name>_<number> functions.
+
+-David Waite
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071231/6a813891/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: rlgen-java_inline_arrays.patch
+Type: application/octet-stream
+Size: 3351 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20071231/6a813891/attachment-0001.obj>
+

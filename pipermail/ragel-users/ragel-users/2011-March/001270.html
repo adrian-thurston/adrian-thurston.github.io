@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%28resolved%3F%29%20Trouble%20referencing%20definitions%20from%0A%09included%20machines%20%286.6%29%20%28Austin%20Hastings%29&In-Reply-To=%3CDAC8149FC3B5400AA8965449AF56306E%40localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001274.html">
+   <LINK REL="Next"  HREF="001278.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)</H1>
+    <B>ragel-user at jgoettgens.de</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%28resolved%3F%29%20Trouble%20referencing%20definitions%20from%0A%09included%20machines%20%286.6%29%20%28Austin%20Hastings%29&In-Reply-To=%3CDAC8149FC3B5400AA8965449AF56306E%40localdomain%3E"
+       TITLE="[ragel-users] (resolved?) Trouble referencing definitions from	included machines (6.6) (Austin Hastings)">ragel-user at jgoettgens.de
+       </A><BR>
+    <I>Thu Mar 24 20:33:31 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001274.html">[ragel-users] Bad code generation for C# ?
+</A></li>
+        <LI>Next message: <A HREF="001278.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1270">[ date ]</a>
+              <a href="thread.html#1270">[ thread ]</a>
+              <a href="subject.html#1270">[ subject ]</a>
+              <a href="author.html#1270">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I can confirm the odd behavior as described, however
+
+include inner &quot;xdir/testinc.rl&quot;;  works, if xdir is a subdirectory, but it 
+shouldn't because of '/' (*)
+
+include inner &quot;xdir\testinc.rl&quot;;  fails, though it should work because '\' 
+is correct here
+
+In line 48 in rlscan.cpp there is a definition for the OS dependent path 
+separator, but there are only 2 references to it in rlscan (lines 838 and 
+857). I would have expected more occurences.
+
+My guess is that the problem is related to a possibly inconsistent handling 
+of the Windows path separator '\' in various parts of the code (mea culpa 
+verisimilis). I don't know much about mingw, but its older brother cygwin 
+handles path issues pretty much transparently inside its lib and allows '/' 
+and '\' as far as I remember.
+
+Since includes works on other platforms and partially on Windows boxes (see 
+*), the scanner with its basic include handling is very unlikely part of the 
+problem.
+
+I'll probably find some more time tomorrow to verify this and in case it is 
+the problem, there will be some design decisions to be made:
+
+(1) Use PATH_SEP and patch wherever necessary with a lot of #ifdefs: ugly 
+and then one could use only '\' on the VisualStudio build, i.e. one cannot 
+really move code between different platforms
+
+(2) Factor out path handling using a small number of support routines to 
+mimic the behavior of cygwin/mingw: looks good to me
+
+Actually, I'd prefer to allow any character on any platform like you can use 
+any delimiter for regular expressions. In this case there would be different 
+defaults for different platforms, but this could be changed with a command 
+line switch. It could even make sense to allow an array of path separators, 
+where '/' and '\' would be the default on Windows machines.
+
+jg 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20110324/f3bd1f71/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20110324/f3bd1f71/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001274.html">[ragel-users] Bad code generation for C# ?
+</A></li>
+	<LI>Next message: <A HREF="001278.html">[ragel-users] Path handling of the native Windows build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1270">[ date ]</a>
+              <a href="thread.html#1270">[ thread ]</a>
+              <a href="subject.html#1270">[ subject ]</a>
+              <a href="author.html#1270">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

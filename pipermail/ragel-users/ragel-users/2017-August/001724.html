@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel] &quot;including&quot; the same file multiple times (ragel 6 vs 7 / building rspamd)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%22including%22%20the%20same%20file%20multiple%20times%20%28ragel%206%20vs%207%20/%0A%20building%20rspamd%29&In-Reply-To=%3C6a8c23a4-f9e7-2947-f315-aee9f6fd61e4%40oss.schwarz.eu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001730.html">
+   <LINK REL="Next"  HREF="001725.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel] &quot;including&quot; the same file multiple times (ragel 6 vs 7 / building rspamd)</H1>
+    <B>Felix Schwarz</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%22including%22%20the%20same%20file%20multiple%20times%20%28ragel%206%20vs%207%20/%0A%20building%20rspamd%29&In-Reply-To=%3C6a8c23a4-f9e7-2947-f315-aee9f6fd61e4%40oss.schwarz.eu%3E"
+       TITLE="[ragel] &quot;including&quot; the same file multiple times (ragel 6 vs 7 / building rspamd)">felix.schwarz at oss.schwarz.eu
+       </A><BR>
+    <I>Sun Aug 20 20:40:46 UTC 2017</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001730.html">[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)
+</A></li>
+        <LI>Next message: <A HREF="001725.html">[ragel] [PATCH] document fall-through cases in a generated code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1724">[ date ]</a>
+              <a href="thread.html#1724">[ thread ]</a>
+              <a href="subject.html#1724">[ subject ]</a>
+              <a href="author.html#1724">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+still trying to compile rspamd with ragel 7.x. One important difference seems
+to be that rspamd tries to include the same .rl file multiple times.
+
+E.g. smtp_received.rl:
+  include smtp_whitespace &quot;smtp_whitespace.rl&quot;;
+  ...
+  include smtp_date &quot;smtp_date.rl&quot;;
+
+now &quot;smtp_date.rl&quot; contains:
+%%{
+  machine smtp_date;
+
+  include smtp_whitespace &quot;smtp_whitespace.rl&quot;;
+
+  # SMTP date spec
+  # Obtained from: <A HREF="http://tools.ietf.org/html/rfc5322#section_3.3">http://tools.ietf.org/html/rfc5322#section_3.3</A>
+
+
+So there is a &quot;duplicate&quot; declaration of &quot;smtp_whitespace&quot; which leads to
+errors in the compilation process:
+/foo/rspamd/src/ragel/smtp_whitespace.rl:4:3: fsm &quot;WSP&quot; previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:5:3: fsm &quot;CRLF&quot; previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:6:3: fsm &quot;DQUOTE&quot; previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:9:3: fsm &quot;atext&quot; previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:13:3: fsm &quot;dtext&quot; previously defined
+/foo/rspamd/src/ragel/smtp_whitespace.rl:15:3: fsm &quot;ctext&quot; previously defined
+...
+
+It seems that ragel 6 just includes the file once. Any idea why this changed
+and what should upstream projects do about this?
+
+thank you very much,
+Felix
+
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001730.html">[ragel] &quot;include&quot; does not check same directory in ragel 7? (trying to build rspamd)
+</A></li>
+	<LI>Next message: <A HREF="001725.html">[ragel] [PATCH] document fall-through cases in a generated code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1724">[ date ]</a>
+              <a href="thread.html#1724">[ thread ]</a>
+              <a href="subject.html#1724">[ subject ]</a>
+              <a href="author.html#1724">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

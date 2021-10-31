@@ -1,0 +1,2700 @@
+From thurs... at cs.queensu.ca  Sun Oct  1 19:57:55 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Oct 2006 15:57:55 -0400
+Subject: options changed in Ragel version 5.14 
+Message-ID: <45201DC3.2050302@cs.queensu.ca>
+
+Hi,
+
+I'm about to release version 5.14. This version contains a change to the 
+command line options which may break your build. The host language selection 
+options -C -D and -J have been moved to the frontend program (ragel). This 
+allows it to work with an alphabet type based on the host language's types, 
+rather than mapping everything to C's types. It will also permit the 
+frontend to handle future host languages with different lexical parsing rules.
+
+Cheers,
+  Adrian
+
+
+From jhaber... at gmail.com  Thu Oct  5 21:06:09 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 14:06:09 -0700
+Subject: speed vs. re2c?
+Message-ID: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+
+Hello, I just discovered Ragel and I'm very excited that it exists!
+I've used re2c and I like it, but re2c isn't as modularized as Ragel --
+the C-specific code generation isn't very well decoupled from the state
+machine code.
+
+One benefit of re2c is that the generated scanners are extremely fast.
+I'm wondering if anyone has compared Ragel's speed with flex, re2c, or
+runtime regular expression engines like PCRE.
+
+Josh
+
+
+From thurs... at cs.queensu.ca  Thu Oct  5 22:43:47 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 18:43:47 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+Message-ID: <45258AA3.1030902@cs.queensu.ca>
+
+Hi
+
+When you use -G2, Ragel generated scanners are very close in performance to 
+Re2c generated scanners.
+
+If you comment out the printf statements, make the buffers the same size, 
+and run the cppscan examples on 10 megabytes of code then you get something 
+like this:
+
+re2c:  0.090
+ragel: 0.093
+
+But of course this is just one program on one machine (~ 2GHz intel). 
+Personally I don't know how meaningful it is because I don't have any 
+estimation of the error. I don't even know if you could estimate the error. 
+And finally, it should be noted I did poorly in statistics class.
+
+Sometime in the future I'd like to experiment with optimizations like loop 
+unrolling and profiling to try to make Ragel code go faster.
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Hello, I just discovered Ragel and I'm very excited that it exists!
+> I've used re2c and I like it, but re2c isn't as modularized as Ragel --
+> the C-specific code generation isn't very well decoupled from the state
+> machine code.
+> 
+> One benefit of re2c is that the generated scanners are extremely fast.
+> I'm wondering if anyone has compared Ragel's speed with flex, re2c, or
+> runtime regular expression engines like PCRE.
+> 
+> Josh
+> 
+> 
+> 
+
+
+From jhaber... at gmail.com  Thu Oct  5 23:32:15 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 16:32:15 -0700
+Subject: speed vs. re2c?
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+   <45258AA3.1030902@cs.queensu.ca>
+Message-ID: <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+
+Cool -- I'm glad to know it's competetive with re2c.  When I went to
+look up what '-G' does, I was also happy to see that there are lots of
+options for how the code is generated.
+
+Let me explain why I was interested in re2c, and why I'm now interested
+in Ragel.  Many people I've talked to think this idea is crap, so I
+won't be offended if you do too, but I really believe in it.
+
+Text processing is one of the most common bottlenecks in high-level
+languages.  The regular expression engines that are built into
+languages like Perl, Ruby, Python, etc. are useful for pattern matching
+on isolated strings, but aren't optimal for the case where you want to
+want to parse a file in a known format, beginning to end.  If you
+designed a library specifically for this use case, you could get lots
+of nice benefits like:
+
+* its API could be more along the lines of what you want: set up a
+bunch of patterns and rules, then set the library in motion on an input
+stream.
+
+* you could write an optimized buffering layer that keeps a
+configurable number of trailing tokens in memory at once.
+
+* you could use a library like Ragel to generate goto-based scanners at
+runtime, so that you could get the performance improvements over the
+table-based scanners that existing regex engines use.  Basically I am
+proposing use Ragel as the backend for a regex JIT.
+
+You could compile to C and then use an embedded C compiler (like
+libtcc) to compile to machine code.  Personally I would be more
+interested in generating assembly code directly, since it wouldn't be
+as heavyweight a process and would give you the opportunity to optimize
+better than the C compiler, since you are working within a very narrow
+problem domain.
+
+I don't know when I'd actually get to this, but I'm very interested in
+seeing it done, and will probably try to use Ragel in this way at some
+point.  What do you think?
+
+Josh
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 00:45:59 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 20:45:59 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com> <45258AA3.1030902@cs.queensu.ca> <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+Message-ID: <4525A747.4040205@cs.queensu.ca>
+
+Hi Joshua,
+
+If I understand you right, then you'll be pleased to know that Ragel is 
+already one half of this. You can use it to make parsers which parse an 
+entire file in one shot, executing actions (or callbacks, or hooks) along 
+the way. See the Mongrel HTTP Server for an example.
+
+http://mongrel.rubyforge.org/
+
+The half that Ragel isn't is JIT. I need some clarification though: by JIT 
+regex compiling do you mean only synthesize a state when it is needed? This 
+is the only way I can see a possible benefit of doing JIT regex compiling. 
+If not, then exactly what part of the process do you envision to be done at 
+compile time?
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Cool -- I'm glad to know it's competetive with re2c.  When I went to
+> look up what '-G' does, I was also happy to see that there are lots of
+> options for how the code is generated.
+> 
+> Let me explain why I was interested in re2c, and why I'm now interested
+> in Ragel.  Many people I've talked to think this idea is crap, so I
+> won't be offended if you do too, but I really believe in it.
+> 
+> Text processing is one of the most common bottlenecks in high-level
+> languages.  The regular expression engines that are built into
+> languages like Perl, Ruby, Python, etc. are useful for pattern matching
+> on isolated strings, but aren't optimal for the case where you want to
+> want to parse a file in a known format, beginning to end.  If you
+> designed a library specifically for this use case, you could get lots
+> of nice benefits like:
+> 
+> * its API could be more along the lines of what you want: set up a
+> bunch of patterns and rules, then set the library in motion on an input
+> stream.
+> 
+> * you could write an optimized buffering layer that keeps a
+> configurable number of trailing tokens in memory at once.
+> 
+> * you could use a library like Ragel to generate goto-based scanners at
+> runtime, so that you could get the performance improvements over the
+> table-based scanners that existing regex engines use.  Basically I am
+> proposing use Ragel as the backend for a regex JIT.
+> 
+> You could compile to C and then use an embedded C compiler (like
+> libtcc) to compile to machine code.  Personally I would be more
+> interested in generating assembly code directly, since it wouldn't be
+> as heavyweight a process and would give you the opportunity to optimize
+> better than the C compiler, since you are working within a very narrow
+> problem domain.
+> 
+> I don't know when I'd actually get to this, but I'm very interested in
+> seeing it done, and will probably try to use Ragel in this way at some
+> point.  What do you think?
+> 
+> Josh
+> 
+> 
+> 
+
+
+From jhaber... at gmail.com  Fri Oct  6 01:02:15 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 18:02:15 -0700
+Subject: speed vs. re2c?
+In-Reply-To: <4525A747.4040205@cs.queensu.ca>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+   <45258AA3.1030902@cs.queensu.ca>
+   <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+   <4525A747.4040205@cs.queensu.ca>
+Message-ID: <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+
+Adrian,
+
+Let me try to clarify what I'm talking about.  The traditional use of
+re2c or Ragel is:
+
+COMPILE TIME: c-compiler(ragel(regex)) -> binary that can parse regex
+
+I am proposing:
+
+COMPILE TIME: c-compiler(ragel) -> library that can generate
+regex-parsing code
+RUN TIME: ragel-library(regex) -> machine code in memory I can jump to
+to parse regex
+
+An API for Ruby would look something like:
+
+myparser = Ragel::Machine.new("number = (
+    [0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+    ( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+   ) %number;")
+
+myparser.actions["dgt"] = Proc.new { |dgt| puts "DGT: #{dgt}" }
+
+myparser.run(File.open("foo.txt"))
+
+Specifically:
+
+- I can use Ragel from an interpreted language, without having to
+compile every pattern with a C compiler (like Mongrel does)
+
+- I can write my actions in the target language
+
+- it's faster than a table-based re engine, like what I would get by
+saying: file.read =~ /blah/
+
+Is this more clear?
+
+Thanks,
+Josh
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 03:06:08 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 23:06:08 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com> <45258AA3.1030902@cs.queensu.ca> <1160091135.289129.62360@k70g2000cwa.googlegroups.com> <4525A747.4040205@cs.queensu.ca> <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+Message-ID: <4525C820.7060003@cs.queensu.ca>
+
+Okay, I get it now. That seems like an interesting idea. From the point 
+of view of Ragel it's very doable. I can say that to make Ragel into a 
+library would expose my poor memory management discipline :) So far I've 
+enjoyed the luxury of program termination upon completion.
+
+Please do keep me posted on any developments.
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Adrian,
+> 
+> Let me try to clarify what I'm talking about.  The traditional use of
+> re2c or Ragel is:
+> 
+> COMPILE TIME: c-compiler(ragel(regex)) -> binary that can parse regex
+> 
+> I am proposing:
+> 
+> COMPILE TIME: c-compiler(ragel) -> library that can generate
+> regex-parsing code
+> RUN TIME: ragel-library(regex) -> machine code in memory I can jump to
+> to parse regex
+> 
+> An API for Ruby would look something like:
+> 
+> myparser = Ragel::Machine.new("number = (
+>     [0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+>     ( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+>    ) %number;")
+> 
+> myparser.actions["dgt"] = Proc.new { |dgt| puts "DGT: #{dgt}" }
+> 
+> myparser.run(File.open("foo.txt"))
+> 
+> Specifically:
+> 
+> - I can use Ragel from an interpreted language, without having to
+> compile every pattern with a C compiler (like Mongrel does)
+> 
+> - I can write my actions in the target language
+> 
+> - it's faster than a table-based re engine, like what I would get by
+> saying: file.read =~ /blah/
+> 
+> Is this more clear?
+> 
+> Thanks,
+> Josh
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Oct  5 19:58:05 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 5 Oct 2006 15:58:05 -0400
+Subject: Multi-char terminators
+Message-ID: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+
+Hi all,
+
+As part of parsing XML, I have the following rules for CData sections:
+
+CDStart = '<![CDATA[';
+
+CDEnd = ']]>';
+
+CData = (Char* -- CDEnd) $each_char;
+
+CDSect = CDStart CData CDEnd;
+
+where each_char is a simple action that stores fc in a buffer. The
+problem is that the last two characters in the buffer are always ]],
+because the machine doesn't know until it encounters the > if it
+should exit the CData machine. I work around this with the following:
+
+CDSect = CDStart CData CDEnd %trim_content;
+
+where trim_content strips the last two characters of the buffer, but
+it's a bit ugly. It also wouldn't work if the terminator were some
+variable-length production. Is there any general way to handle this
+case?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Thu Oct  5 22:24:00 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 18:24:00 -0400
+Subject: Multi-char terminators
+In-Reply-To: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+Message-ID: <45258600.20609@cs.queensu.ca>
+
+Hello,
+
+If you wanted to remove buffered items when the termination sequence was 
+variable length, you might be able to record the length of the buffer when 
+you start the termination sequence. This might not always work properly though.
+
+But if you want to avoid undoing work you've done, then you need to delay 
+buffering. At the moment I can't think of a general way to express the 
+delayed buffering of ']' using pure regular languages with embedded actions.
+
+The local error action embedding operators are related to this problem, but 
+not a good fit in this case.
+
+So, some options:
+
+1. You could build a machine manually. Basically draw out the state machine 
+you want and use the , and -> operators to construct it. Note that you can 
+still embed actions anywhere you want. In places where you go back to start 
+buffer the necessary number of ']' characters.
+
+main :=
+     start: (
+         (any-']') -> start |
+         ']'-> one
+     ),
+     one: (
+         ']' -> two |
+         [^\]] -> start
+     ),
+     two: (
+         '>' -> final |
+         ']' -> two |
+         [^>\]] -> start
+     );
+
+
+2. Use a mini scanner. This is the kind of thing a scanner does really well, 
+but it does not give you a machine definition you can embed elsewhere. You 
+have to call it. This gives me an idea though. Some scanners can be 
+optimized into a pure state machine with no backtracking. Perhaps we can 
+allow these to be embedded elsewhere.
+
+3. Take ']' out of CData and add in some patterns like ']' [^\]] which 
+accept only strings which look like they could start a termination sequence, 
+but never go all the way. When they fail they can write out necessary number 
+of ']' symbols.
+
+Hope this helps.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> As part of parsing XML, I have the following rules for CData sections:
+> 
+> CDStart = '<![CDATA[';
+> 
+> CDEnd = ']]>';
+> 
+> CData = (Char* -- CDEnd) $each_char;
+> 
+> CDSect = CDStart CData CDEnd;
+> 
+> where each_char is a simple action that stores fc in a buffer. The
+> problem is that the last two characters in the buffer are always ]],
+> because the machine doesn't know until it encounters the > if it
+> should exit the CData machine. I work around this with the following:
+> 
+> CDSect = CDStart CData CDEnd %trim_content;
+> 
+> where trim_content strips the last two characters of the buffer, but
+> it's a bit ugly. It also wouldn't work if the terminator were some
+> variable-length production. Is there any general way to handle this
+> case?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Fri Oct  6 17:06:03 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Fri, 6 Oct 2006 13:06:03 -0400
+Subject: Multi-char terminators
+In-Reply-To: <45258600.20609@cs.queensu.ca>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+	 <45258600.20609@cs.queensu.ca>
+Message-ID: <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for the response! I need to think about it a bit more.
+Obviously in this case it's not a huge problem, but it might be if I
+move to marking strings rather than copying and a buffer boundary
+happens to break up the terminator. The problem with constructing the
+machine manually is that I can't really do any better than Ragel does
+- if you have no look-ahead, you never know if you're on a terminator
+until the end of it.
+
+I'll read up a bit about scanners, too, it sounds interesting.
+
+Cheers,
+Colin
+
+On 10/5/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Hello,
+>
+> If you wanted to remove buffered items when the termination sequence was
+> variable length, you might be able to record the length of the buffer when
+> you start the termination sequence. This might not always work properly though.
+>
+> But if you want to avoid undoing work you've done, then you need to delay
+> buffering. At the moment I can't think of a general way to express the
+> delayed buffering of ']' using pure regular languages with embedded actions.
+>
+> The local error action embedding operators are related to this problem, but
+> not a good fit in this case.
+>
+> So, some options:
+>
+> 1. You could build a machine manually. Basically draw out the state machine
+> you want and use the , and -> operators to construct it. Note that you can
+> still embed actions anywhere you want. In places where you go back to start
+> buffer the necessary number of ']' characters.
+>
+> main :=
+>      start: (
+>          (any-']') -> start |
+>          ']'-> one
+>      ),
+>      one: (
+>          ']' -> two |
+>          [^\]] -> start
+>      ),
+>      two: (
+>          '>' -> final |
+>          ']' -> two |
+>          [^>\]] -> start
+>      );
+>
+>
+> 2. Use a mini scanner. This is the kind of thing a scanner does really well,
+> but it does not give you a machine definition you can embed elsewhere. You
+> have to call it. This gives me an idea though. Some scanners can be
+> optimized into a pure state machine with no backtracking. Perhaps we can
+> allow these to be embedded elsewhere.
+>
+> 3. Take ']' out of CData and add in some patterns like ']' [^\]] which
+> accept only strings which look like they could start a termination sequence,
+> but never go all the way. When they fail they can write out necessary number
+> of ']' symbols.
+>
+> Hope this helps.
+>
+> -Adrian
+>
+> Colin Fleming wrote:
+> > Hi all,
+> >
+> > As part of parsing XML, I have the following rules for CData sections:
+> >
+> > CDStart = '<![CDATA[';
+> >
+> > CDEnd = ']]>';
+> >
+> > CData = (Char* -- CDEnd) $each_char;
+> >
+> > CDSect = CDStart CData CDEnd;
+> >
+> > where each_char is a simple action that stores fc in a buffer. The
+> > problem is that the last two characters in the buffer are always ]],
+> > because the machine doesn't know until it encounters the > if it
+> > should exit the CData machine. I work around this with the following:
+> >
+> > CDSect = CDStart CData CDEnd %trim_content;
+> >
+> > where trim_content strips the last two characters of the buffer, but
+> > it's a bit ugly. It also wouldn't work if the terminator were some
+> > variable-length production. Is there any general way to handle this
+> > case?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 18:27:20 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 06 Oct 2006 14:27:20 -0400
+Subject: Multi-char terminators
+In-Reply-To: <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com> <45258600.20609@cs.queensu.ca> <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+Message-ID: <4526A008.6050208@cs.queensu.ca>
+
+Hi Colin,
+
+This might do what you want:
+
+action bchar { buff( fpc ); }
+action bbrack1 { buff( "]" ); }
+action bbrack2 { buff( "]]" ); }
+
+main :=
+start: (
+     ']'-> one |
+     (any-']') @bchar ->start
+),
+one: (
+     ']' -> two |
+     [^\]] @bbrack1 @bchar ->start
+),
+two: (
+     '>' -> final |
+     ']' @bbrack1 -> two |
+     [^>\]] @bbrack2 @bchar ->start
+);
+
+
+Colin Fleming wrote:
+> Hi Adrian,
+> 
+> Thanks for the response! I need to think about it a bit more.
+> Obviously in this case it's not a huge problem, but it might be if I
+> move to marking strings rather than copying and a buffer boundary
+> happens to break up the terminator. The problem with constructing the
+> machine manually is that I can't really do any better than Ragel does
+> - if you have no look-ahead, you never know if you're on a terminator
+> until the end of it.
+> 
+> I'll read up a bit about scanners, too, it sounds interesting.
+> 
+> Cheers,
+> Colin
+> 
+> On 10/5/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hello,
+>>
+>> If you wanted to remove buffered items when the termination sequence was
+>> variable length, you might be able to record the length of the buffer when
+>> you start the termination sequence. This might not always work properly though.
+>>
+>> But if you want to avoid undoing work you've done, then you need to delay
+>> buffering. At the moment I can't think of a general way to express the
+>> delayed buffering of ']' using pure regular languages with embedded actions.
+>>
+>> The local error action embedding operators are related to this problem, but
+>> not a good fit in this case.
+>>
+>> So, some options:
+>>
+>> 1. You could build a machine manually. Basically draw out the state machine
+>> you want and use the , and -> operators to construct it. Note that you can
+>> still embed actions anywhere you want. In places where you go back to start
+>> buffer the necessary number of ']' characters.
+>>
+>> main :=
+>>      start: (
+>>          (any-']') -> start |
+>>          ']'-> one
+>>      ),
+>>      one: (
+>>          ']' -> two |
+>>          [^\]] -> start
+>>      ),
+>>      two: (
+>>          '>' -> final |
+>>          ']' -> two |
+>>          [^>\]] -> start
+>>      );
+>>
+>>
+>> 2. Use a mini scanner. This is the kind of thing a scanner does really well,
+>> but it does not give you a machine definition you can embed elsewhere. You
+>> have to call it. This gives me an idea though. Some scanners can be
+>> optimized into a pure state machine with no backtracking. Perhaps we can
+>> allow these to be embedded elsewhere.
+>>
+>> 3. Take ']' out of CData and add in some patterns like ']' [^\]] which
+>> accept only strings which look like they could start a termination sequence,
+>> but never go all the way. When they fail they can write out necessary number
+>> of ']' symbols.
+>>
+>> Hope this helps.
+>>
+>> -Adrian
+>>
+>> Colin Fleming wrote:
+>>> Hi all,
+>>>
+>>> As part of parsing XML, I have the following rules for CData sections:
+>>>
+>>> CDStart = '<![CDATA[';
+>>>
+>>> CDEnd = ']]>';
+>>>
+>>> CData = (Char* -- CDEnd) $each_char;
+>>>
+>>> CDSect = CDStart CData CDEnd;
+>>>
+>>> where each_char is a simple action that stores fc in a buffer. The
+>>> problem is that the last two characters in the buffer are always ]],
+>>> because the machine doesn't know until it encounters the > if it
+>>> should exit the CData machine. I work around this with the following:
+>>>
+>>> CDSect = CDStart CData CDEnd %trim_content;
+>>>
+>>> where trim_content strips the last two characters of the buffer, but
+>>> it's a bit ugly. It also wouldn't work if the terminator were some
+>>> variable-length production. Is there any general way to handle this
+>>> case?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Sun Oct 22 02:52:06 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 21 Oct 2006 22:52:06 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <45119FF1.5010803@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com> <450F523D.2040303@cs.queensu.ca> <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com> <45119FF1.5010803@cs.queensu.ca>
+Message-ID: <453ADCD6.2010803@cs.queensu.ca>
+
+To follow up, this is going forward. I have begun a language-independent 
+test harness and already used it to find problems with D and Java code 
+generation.
+
+Cheers,
+  Adrian
+
+Adrian Thurston wrote:
+> Hi Colin,
+> 
+> Sorry, there is no BNF, just the bison grammar. The rlscan example is up to 
+> date for what it covers. Some things like regex details and keywords have 
+> been left out.
+> 
+> Regards,
+>   Adrian
+> 
+> Colin Fleming wrote:
+>> Ok, I agree - for now, a simple pre-processor should be sufficient,
+>> since the languages currently are all more or less c-like.
+>>
+>> BTW do you have a general BNF for the Ragel language? How up to date
+>> is examples/rlscan.rl?
+>>
+>> Cheers,
+>> Colin
+>>
+>>
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Oct 27 17:14:17 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 27 Oct 2006 13:14:17 -0400
+Subject: syntax changes in 5.15
+Message-ID: <45423E69.4040703@cs.queensu.ca>
+
+Hi, version 5.15 will have some syntax changes which should affect only a 
+small number of users (if any). They are trivial to fix. They were made in 
+the interest of making Ragel's rather cryptic syntax easier to remember.
+
+1. The state-based embedding operators which access states that are not the 
+start state and are not final (the 'middle' states) have changed.
+
+They were:
+
+<@/    eof action into middle states
+<@!    error action into middle states
+<@^    local error action into middle states
+<@~    to-state action into middle states
+<@*    from-state action into middle states
+
+They are now:
+
+<>/    eof action into middle states
+<>!    error action into middle states
+<>^    local error action into middle states
+<>~    to-state action into middle states
+<>*    from-state action into middle states
+
+2. The verbose form of embeddings using the <- operator have been removed. 
+This syntax was impossible to remember.
+
+3. New verbose forms of state-based embedding operators have been added. 
+These are like the symbol versions, except they replace the symbols
+
+/  !  ^  ~  *
+
+with literal keywords
+
+eof err lerr to from
+
+For example:
+
+$/ { /*code*/ }
+$eof { /*code*/ }
+
+both embed an eof action into all states.
+
+ >* { /*code*/ }
+ >from { /*code*/ }
+
+both embed a from-state action into a machine's start state.
+
+4. The following new keywords have been added:
+
+when eof err lerr to from
+
+
+-Adrian
+
+
+From cmantu... at gmail.com  Thu Oct 26 22:12:38 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 26 Oct 2006 22:12:38 -0000
+Subject: fcall legal in scanner?
+Message-ID: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+
+Hello!
+
+First of all I'd like to thank Adrian Thurston for a very nice piece of
+software. I had been looking for quite some time for something like
+Ragel and it was with glee that I was able to finally find it!
+
+I've been playing with the scanner construct and found some strange
+behavior when using fcall in action code, followed by a fret. After the
+fret, the scanner no longer properly matches all the patterns. However,
+if I use an fgoto in action code and then another fgoto to return to
+the scanner, things work well. So, my question is, is fcall legal or am
+I potentially stumbling on a bug?
+
+Thanks!
+
+Carlos
+
+
+From thurs... at cs.queensu.ca  Fri Oct 27 16:36:11 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 27 Oct 2006 12:36:11 -0400
+Subject: fcall legal in scanner?
+In-Reply-To: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+Message-ID: <4542357B.80003@cs.queensu.ca>
+
+Hi Carlos,
+
+I'm glad you like Ragel. I've been working on it for a while now and it's 
+nice to hear I'm headed in the right direction.
+
+It sounds like a bug. fcall is supposed to work in actions associated with 
+entire patterns (the lex style actions) but they are illegal in the the 
+transition/state based embeddings and Ragel is supposed to emit an error. 
+Could you post or send me some code which exhibits the problem?
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Hello!
+> 
+> First of all I'd like to thank Adrian Thurston for a very nice piece of
+> software. I had been looking for quite some time for something like
+> Ragel and it was with glee that I was able to finally find it!
+> 
+> I've been playing with the scanner construct and found some strange
+> behavior when using fcall in action code, followed by a fret. After the
+> fret, the scanner no longer properly matches all the patterns. However,
+> if I use an fgoto in action code and then another fgoto to return to
+> the scanner, things work well. So, my question is, is fcall legal or am
+> I potentially stumbling on a bug?
+> 
+> Thanks!
+> 
+> Carlos
+> 
+> 
+> 
+
+
+From cmantu... at gmail.com  Fri Oct 27 17:27:50 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Fri, 27 Oct 2006 13:27:50 -0400
+Subject: fcall legal in scanner?
+In-Reply-To: <4542357B.80003@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+Message-ID: <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+
+On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It sounds like a bug. fcall is supposed to work in actions associated with
+> entire patterns (the lex style actions) but they are illegal in the the
+> transition/state based embeddings and Ragel is supposed to emit an error.
+> Could you post or send me some code which exhibits the problem?
+>
+
+Adrian,
+
+Please, see test2.rl file attached. It's a messy file because it's
+where I do, testing.
+
+Basically, I'm using a scanner (main) to match 'Organization',
+'Authorization' and a general purpose header called extension_header.
+If there is a header like 'an-extension-header', the scanner should
+match on the extension_header rule.
+
+Here's a string to match:
+
+            "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+            "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+            "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+            "Organization: Boxes by\r\n Bob  \r\n      \n"
+            "An-Extension-Header: 10 \n"
+            "\r\n";
+
+The scanner performs well with the previous string. Let's try a new string:
+
+            "An-Extension-Header: 10 \n"
+            "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+            "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+            "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+            "Organization: Boxes by\r\n Bob  \r\n      \n"
+            "\r\n";
+
+In this case, the scanner, once it matches the extension header, will
+continue to match 'Authorization' and 'Organization' as extension
+headers as well, which didn't happen before.
+
+Note that, if instead of using fcall from the main scanner, I use
+fgoto (and them fgoto back to main instead of fret), both input
+strings produce the same, and correct, behavior.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test2.rl
+Type: application/octet-stream
+Size: 12918 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20061027/018eec33/attachment.obj>
+
+From thurs... at cs.queensu.ca  Sun Oct 29 18:40:29 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 29 Oct 2006 13:40:29 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com> <4542357B.80003@cs.queensu.ca> <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+Message-ID: <4544F59D.2040803@cs.queensu.ca>
+
+Hi Carlos,
+
+I found the bug. The problem was with fret in scanner actions. The 
+adjustment to p that is needed in some cases was not happening. The 
+attached patch will fix the problem.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> It sounds like a bug. fcall is supposed to work in actions associated with
+>> entire patterns (the lex style actions) but they are illegal in the the
+>> transition/state based embeddings and Ragel is supposed to emit an error.
+>> Could you post or send me some code which exhibits the problem?
+>>
+> 
+> Adrian,
+> 
+> Please, see test2.rl file attached. It's a messy file because it's
+> where I do, testing.
+> 
+> Basically, I'm using a scanner (main) to match 'Organization',
+> 'Authorization' and a general purpose header called extension_header.
+> If there is a header like 'an-extension-header', the scanner should
+> match on the extension_header rule.
+> 
+> Here's a string to match:
+> 
+>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>             "An-Extension-Header: 10 \n"
+>             "\r\n";
+> 
+> The scanner performs well with the previous string. Let's try a new string:
+> 
+>             "An-Extension-Header: 10 \n"
+>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>             "\r\n";
+> 
+> In this case, the scanner, once it matches the extension header, will
+> continue to match 'Authorization' and 'Organization' as extension
+> headers as well, which didn't happen before.
+> 
+> Note that, if instead of using fcall from the main scanner, I use
+> fgoto (and them fgoto back to main instead of fret), both input
+> strings produce the same, and correct, behavior.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: ragel-5.14.diff
+URL: <http://www.colm.net/pipermail/ragel/attachments/20061029/312bc914/attachment.ksh>
+
+From cmantu... at gmail.com  Sun Oct 29 19:48:39 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sun, 29 Oct 2006 14:48:39 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <4544F59D.2040803@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+	 <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+	 <4544F59D.2040803@cs.queensu.ca>
+Message-ID: <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+
+Thanks, Adrian! Will this fix make it into 5.15?
+
+On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Carlos,
+>
+> I found the bug. The problem was with fret in scanner actions. The
+> adjustment to p that is needed in some cases was not happening. The
+> attached patch will fix the problem.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> It sounds like a bug. fcall is supposed to work in actions associated with
+> >> entire patterns (the lex style actions) but they are illegal in the the
+> >> transition/state based embeddings and Ragel is supposed to emit an error.
+> >> Could you post or send me some code which exhibits the problem?
+> >>
+> >
+> > Adrian,
+> >
+> > Please, see test2.rl file attached. It's a messy file because it's
+> > where I do, testing.
+> >
+> > Basically, I'm using a scanner (main) to match 'Organization',
+> > 'Authorization' and a general purpose header called extension_header.
+> > If there is a header like 'an-extension-header', the scanner should
+> > match on the extension_header rule.
+> >
+> > Here's a string to match:
+> >
+> >             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >             "An-Extension-Header: 10 \n"
+> >             "\r\n";
+> >
+> > The scanner performs well with the previous string. Let's try a new string:
+> >
+> >             "An-Extension-Header: 10 \n"
+> >             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >             "\r\n";
+> >
+> > In this case, the scanner, once it matches the extension header, will
+> > continue to match 'Authorization' and 'Organization' as extension
+> > headers as well, which didn't happen before.
+> >
+> > Note that, if instead of using fcall from the main scanner, I use
+> > fgoto (and them fgoto back to main instead of fret), both input
+> > strings produce the same, and correct, behavior.
+> >
+> > Thanks!
+> >
+> > Carlos
+> >
+>
+>
+> >
+>
+> Index: ragel/xmlcodegen.cpp
+> ===================================================================
+> --- ragel/xmlcodegen.cpp        (revision 3695)
+> +++ ragel/xmlcodegen.cpp        (working copy)
+> @@ -246,6 +246,9 @@
+>         case InlineItem::Break:
+>                 out << "<break></break>";
+>                 break;
+> +       case InlineItem::Ret:
+> +               out << "<ret></ret>";
+> +               break;
+>         default: break;
+>         }
+>
+> @@ -360,12 +363,9 @@
+>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+>                 case InlineItem::Call: case InlineItem::CallExpr:
+>                 case InlineItem::Next: case InlineItem::NextExpr:
+> -               case InlineItem::Break:
+> +               case InlineItem::Break: case InlineItem::Ret:
+>                         writeWithContext( item, context );
+>                         break;
+> -               case InlineItem::Ret:
+> -                       out << "<ret></ret>";
+> -                       break;
+>                 case InlineItem::PChar:
+>                         out << "<pchar></pchar>";
+>                         break;
+>
+>
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Sun Oct 29 20:03:35 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 29 Oct 2006 15:03:35 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com> <4542357B.80003@cs.queensu.ca> <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com> <4544F59D.2040803@cs.queensu.ca> <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+Message-ID: <45450917.60101@cs.queensu.ca>
+
+Indeed it will. 5.15 should be arriving soon.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Thanks, Adrian! Will this fix make it into 5.15?
+> 
+> On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hi Carlos,
+>>
+>> I found the bug. The problem was with fret in scanner actions. The
+>> adjustment to p that is needed in some cases was not happening. The
+>> attached patch will fix the problem.
+>>
+>> Cheers,
+>>   Adrian
+>>
+>> Carlos Antunes wrote:
+>>> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>>> It sounds like a bug. fcall is supposed to work in actions associated with
+>>>> entire patterns (the lex style actions) but they are illegal in the the
+>>>> transition/state based embeddings and Ragel is supposed to emit an error.
+>>>> Could you post or send me some code which exhibits the problem?
+>>>>
+>>> Adrian,
+>>>
+>>> Please, see test2.rl file attached. It's a messy file because it's
+>>> where I do, testing.
+>>>
+>>> Basically, I'm using a scanner (main) to match 'Organization',
+>>> 'Authorization' and a general purpose header called extension_header.
+>>> If there is a header like 'an-extension-header', the scanner should
+>>> match on the extension_header rule.
+>>>
+>>> Here's a string to match:
+>>>
+>>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>>>             "An-Extension-Header: 10 \n"
+>>>             "\r\n";
+>>>
+>>> The scanner performs well with the previous string. Let's try a new string:
+>>>
+>>>             "An-Extension-Header: 10 \n"
+>>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>>>             "\r\n";
+>>>
+>>> In this case, the scanner, once it matches the extension header, will
+>>> continue to match 'Authorization' and 'Organization' as extension
+>>> headers as well, which didn't happen before.
+>>>
+>>> Note that, if instead of using fcall from the main scanner, I use
+>>> fgoto (and them fgoto back to main instead of fret), both input
+>>> strings produce the same, and correct, behavior.
+>>>
+>>> Thanks!
+>>>
+>>> Carlos
+>>>
+>>
+>> Index: ragel/xmlcodegen.cpp
+>> ===================================================================
+>> --- ragel/xmlcodegen.cpp        (revision 3695)
+>> +++ ragel/xmlcodegen.cpp        (working copy)
+>> @@ -246,6 +246,9 @@
+>>         case InlineItem::Break:
+>>                 out << "<break></break>";
+>>                 break;
+>> +       case InlineItem::Ret:
+>> +               out << "<ret></ret>";
+>> +               break;
+>>         default: break;
+>>         }
+>>
+>> @@ -360,12 +363,9 @@
+>>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+>>                 case InlineItem::Call: case InlineItem::CallExpr:
+>>                 case InlineItem::Next: case InlineItem::NextExpr:
+>> -               case InlineItem::Break:
+>> +               case InlineItem::Break: case InlineItem::Ret:
+>>                         writeWithContext( item, context );
+>>                         break;
+>> -               case InlineItem::Ret:
+>> -                       out << "<ret></ret>";
+>> -                       break;
+>>                 case InlineItem::PChar:
+>>                         out << "<pchar></pchar>";
+>>                         break;
+>>
+>>
+>>
+> 
+> 
+
+
+From cmantu... at gmail.com  Sun Oct 29 20:12:54 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sun, 29 Oct 2006 15:12:54 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <45450917.60101@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+	 <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+	 <4544F59D.2040803@cs.queensu.ca>
+	 <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+	 <45450917.60101@cs.queensu.ca>
+Message-ID: <cb2ad8b50610291212s17e95259pb6815aba197e6b1c@mail.gmail.com>
+
+Thanks, Adrian, your fix appears to be working fine. Oh, and I'll be
+posting a feature request soon! :-)
+
+On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Indeed it will. 5.15 should be arriving soon.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > Thanks, Adrian! Will this fix make it into 5.15?
+> >
+> > On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> Hi Carlos,
+> >>
+> >> I found the bug. The problem was with fret in scanner actions. The
+> >> adjustment to p that is needed in some cases was not happening. The
+> >> attached patch will fix the problem.
+> >>
+> >> Cheers,
+> >>   Adrian
+> >>
+> >> Carlos Antunes wrote:
+> >>> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >>>> It sounds like a bug. fcall is supposed to work in actions associated with
+> >>>> entire patterns (the lex style actions) but they are illegal in the the
+> >>>> transition/state based embeddings and Ragel is supposed to emit an error.
+> >>>> Could you post or send me some code which exhibits the problem?
+> >>>>
+> >>> Adrian,
+> >>>
+> >>> Please, see test2.rl file attached. It's a messy file because it's
+> >>> where I do, testing.
+> >>>
+> >>> Basically, I'm using a scanner (main) to match 'Organization',
+> >>> 'Authorization' and a general purpose header called extension_header.
+> >>> If there is a header like 'an-extension-header', the scanner should
+> >>> match on the extension_header rule.
+> >>>
+> >>> Here's a string to match:
+> >>>
+> >>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >>>             "An-Extension-Header: 10 \n"
+> >>>             "\r\n";
+> >>>
+> >>> The scanner performs well with the previous string. Let's try a new string:
+> >>>
+> >>>             "An-Extension-Header: 10 \n"
+> >>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >>>             "\r\n";
+> >>>
+> >>> In this case, the scanner, once it matches the extension header, will
+> >>> continue to match 'Authorization' and 'Organization' as extension
+> >>> headers as well, which didn't happen before.
+> >>>
+> >>> Note that, if instead of using fcall from the main scanner, I use
+> >>> fgoto (and them fgoto back to main instead of fret), both input
+> >>> strings produce the same, and correct, behavior.
+> >>>
+> >>> Thanks!
+> >>>
+> >>> Carlos
+> >>>
+> >>
+> >> Index: ragel/xmlcodegen.cpp
+> >> ===================================================================
+> >> --- ragel/xmlcodegen.cpp        (revision 3695)
+> >> +++ ragel/xmlcodegen.cpp        (working copy)
+> >> @@ -246,6 +246,9 @@
+> >>         case InlineItem::Break:
+> >>                 out << "<break></break>";
+> >>                 break;
+> >> +       case InlineItem::Ret:
+> >> +               out << "<ret></ret>";
+> >> +               break;
+> >>         default: break;
+> >>         }
+> >>
+> >> @@ -360,12 +363,9 @@
+> >>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+> >>                 case InlineItem::Call: case InlineItem::CallExpr:
+> >>                 case InlineItem::Next: case InlineItem::NextExpr:
+> >> -               case InlineItem::Break:
+> >> +               case InlineItem::Break: case InlineItem::Ret:
+> >>                         writeWithContext( item, context );
+> >>                         break;
+> >> -               case InlineItem::Ret:
+> >> -                       out << "<ret></ret>";
+> >> -                       break;
+> >>                 case InlineItem::PChar:
+> >>                         out << "<pchar></pchar>";
+> >>                         break;
+> >>
+> >>
+> >>
+> >
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Sun Oct  1 19:57:55 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Oct 2006 15:57:55 -0400
+Subject: options changed in Ragel version 5.14 
+Message-ID: <45201DC3.2050302@cs.queensu.ca>
+
+Hi,
+
+I'm about to release version 5.14. This version contains a change to the 
+command line options which may break your build. The host language selection 
+options -C -D and -J have been moved to the frontend program (ragel). This 
+allows it to work with an alphabet type based on the host language's types, 
+rather than mapping everything to C's types. It will also permit the 
+frontend to handle future host languages with different lexical parsing rules.
+
+Cheers,
+  Adrian
+
+
+From jhaber... at gmail.com  Thu Oct  5 21:06:09 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 14:06:09 -0700
+Subject: speed vs. re2c?
+Message-ID: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+
+Hello, I just discovered Ragel and I'm very excited that it exists!
+I've used re2c and I like it, but re2c isn't as modularized as Ragel --
+the C-specific code generation isn't very well decoupled from the state
+machine code.
+
+One benefit of re2c is that the generated scanners are extremely fast.
+I'm wondering if anyone has compared Ragel's speed with flex, re2c, or
+runtime regular expression engines like PCRE.
+
+Josh
+
+
+From thurs... at cs.queensu.ca  Thu Oct  5 22:43:47 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 18:43:47 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+Message-ID: <45258AA3.1030902@cs.queensu.ca>
+
+Hi
+
+When you use -G2, Ragel generated scanners are very close in performance to 
+Re2c generated scanners.
+
+If you comment out the printf statements, make the buffers the same size, 
+and run the cppscan examples on 10 megabytes of code then you get something 
+like this:
+
+re2c:  0.090
+ragel: 0.093
+
+But of course this is just one program on one machine (~ 2GHz intel). 
+Personally I don't know how meaningful it is because I don't have any 
+estimation of the error. I don't even know if you could estimate the error. 
+And finally, it should be noted I did poorly in statistics class.
+
+Sometime in the future I'd like to experiment with optimizations like loop 
+unrolling and profiling to try to make Ragel code go faster.
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Hello, I just discovered Ragel and I'm very excited that it exists!
+> I've used re2c and I like it, but re2c isn't as modularized as Ragel --
+> the C-specific code generation isn't very well decoupled from the state
+> machine code.
+> 
+> One benefit of re2c is that the generated scanners are extremely fast.
+> I'm wondering if anyone has compared Ragel's speed with flex, re2c, or
+> runtime regular expression engines like PCRE.
+> 
+> Josh
+> 
+> 
+> 
+
+
+From jhaber... at gmail.com  Thu Oct  5 23:32:15 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 16:32:15 -0700
+Subject: speed vs. re2c?
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+   <45258AA3.1030902@cs.queensu.ca>
+Message-ID: <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+
+Cool -- I'm glad to know it's competetive with re2c.  When I went to
+look up what '-G' does, I was also happy to see that there are lots of
+options for how the code is generated.
+
+Let me explain why I was interested in re2c, and why I'm now interested
+in Ragel.  Many people I've talked to think this idea is crap, so I
+won't be offended if you do too, but I really believe in it.
+
+Text processing is one of the most common bottlenecks in high-level
+languages.  The regular expression engines that are built into
+languages like Perl, Ruby, Python, etc. are useful for pattern matching
+on isolated strings, but aren't optimal for the case where you want to
+want to parse a file in a known format, beginning to end.  If you
+designed a library specifically for this use case, you could get lots
+of nice benefits like:
+
+* its API could be more along the lines of what you want: set up a
+bunch of patterns and rules, then set the library in motion on an input
+stream.
+
+* you could write an optimized buffering layer that keeps a
+configurable number of trailing tokens in memory at once.
+
+* you could use a library like Ragel to generate goto-based scanners at
+runtime, so that you could get the performance improvements over the
+table-based scanners that existing regex engines use.  Basically I am
+proposing use Ragel as the backend for a regex JIT.
+
+You could compile to C and then use an embedded C compiler (like
+libtcc) to compile to machine code.  Personally I would be more
+interested in generating assembly code directly, since it wouldn't be
+as heavyweight a process and would give you the opportunity to optimize
+better than the C compiler, since you are working within a very narrow
+problem domain.
+
+I don't know when I'd actually get to this, but I'm very interested in
+seeing it done, and will probably try to use Ragel in this way at some
+point.  What do you think?
+
+Josh
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 00:45:59 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 20:45:59 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com> <45258AA3.1030902@cs.queensu.ca> <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+Message-ID: <4525A747.4040205@cs.queensu.ca>
+
+Hi Joshua,
+
+If I understand you right, then you'll be pleased to know that Ragel is 
+already one half of this. You can use it to make parsers which parse an 
+entire file in one shot, executing actions (or callbacks, or hooks) along 
+the way. See the Mongrel HTTP Server for an example.
+
+http://mongrel.rubyforge.org/
+
+The half that Ragel isn't is JIT. I need some clarification though: by JIT 
+regex compiling do you mean only synthesize a state when it is needed? This 
+is the only way I can see a possible benefit of doing JIT regex compiling. 
+If not, then exactly what part of the process do you envision to be done at 
+compile time?
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Cool -- I'm glad to know it's competetive with re2c.  When I went to
+> look up what '-G' does, I was also happy to see that there are lots of
+> options for how the code is generated.
+> 
+> Let me explain why I was interested in re2c, and why I'm now interested
+> in Ragel.  Many people I've talked to think this idea is crap, so I
+> won't be offended if you do too, but I really believe in it.
+> 
+> Text processing is one of the most common bottlenecks in high-level
+> languages.  The regular expression engines that are built into
+> languages like Perl, Ruby, Python, etc. are useful for pattern matching
+> on isolated strings, but aren't optimal for the case where you want to
+> want to parse a file in a known format, beginning to end.  If you
+> designed a library specifically for this use case, you could get lots
+> of nice benefits like:
+> 
+> * its API could be more along the lines of what you want: set up a
+> bunch of patterns and rules, then set the library in motion on an input
+> stream.
+> 
+> * you could write an optimized buffering layer that keeps a
+> configurable number of trailing tokens in memory at once.
+> 
+> * you could use a library like Ragel to generate goto-based scanners at
+> runtime, so that you could get the performance improvements over the
+> table-based scanners that existing regex engines use.  Basically I am
+> proposing use Ragel as the backend for a regex JIT.
+> 
+> You could compile to C and then use an embedded C compiler (like
+> libtcc) to compile to machine code.  Personally I would be more
+> interested in generating assembly code directly, since it wouldn't be
+> as heavyweight a process and would give you the opportunity to optimize
+> better than the C compiler, since you are working within a very narrow
+> problem domain.
+> 
+> I don't know when I'd actually get to this, but I'm very interested in
+> seeing it done, and will probably try to use Ragel in this way at some
+> point.  What do you think?
+> 
+> Josh
+> 
+> 
+> 
+
+
+From jhaber... at gmail.com  Fri Oct  6 01:02:15 2006
+From: jhaber... at gmail.com (Joshua  Haberman)
+Date: Thu, 05 Oct 2006 18:02:15 -0700
+Subject: speed vs. re2c?
+In-Reply-To: <4525A747.4040205@cs.queensu.ca>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com>
+   <45258AA3.1030902@cs.queensu.ca>
+   <1160091135.289129.62360@k70g2000cwa.googlegroups.com>
+   <4525A747.4040205@cs.queensu.ca>
+Message-ID: <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+
+Adrian,
+
+Let me try to clarify what I'm talking about.  The traditional use of
+re2c or Ragel is:
+
+COMPILE TIME: c-compiler(ragel(regex)) -> binary that can parse regex
+
+I am proposing:
+
+COMPILE TIME: c-compiler(ragel) -> library that can generate
+regex-parsing code
+RUN TIME: ragel-library(regex) -> machine code in memory I can jump to
+to parse regex
+
+An API for Ruby would look something like:
+
+myparser = Ragel::Machine.new("number = (
+    [0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+    ( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+   ) %number;")
+
+myparser.actions["dgt"] = Proc.new { |dgt| puts "DGT: #{dgt}" }
+
+myparser.run(File.open("foo.txt"))
+
+Specifically:
+
+- I can use Ragel from an interpreted language, without having to
+compile every pattern with a C compiler (like Mongrel does)
+
+- I can write my actions in the target language
+
+- it's faster than a table-based re engine, like what I would get by
+saying: file.read =~ /blah/
+
+Is this more clear?
+
+Thanks,
+Josh
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 03:06:08 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 23:06:08 -0400
+Subject: speed vs. re2c?
+In-Reply-To: <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+References: <1160082369.068604.318500@e3g2000cwe.googlegroups.com> <45258AA3.1030902@cs.queensu.ca> <1160091135.289129.62360@k70g2000cwa.googlegroups.com> <4525A747.4040205@cs.queensu.ca> <1160096535.781747.131750@c28g2000cwb.googlegroups.com>
+Message-ID: <4525C820.7060003@cs.queensu.ca>
+
+Okay, I get it now. That seems like an interesting idea. From the point 
+of view of Ragel it's very doable. I can say that to make Ragel into a 
+library would expose my poor memory management discipline :) So far I've 
+enjoyed the luxury of program termination upon completion.
+
+Please do keep me posted on any developments.
+
+Cheers,
+  Adrian
+
+Joshua Haberman wrote:
+> Adrian,
+> 
+> Let me try to clarify what I'm talking about.  The traditional use of
+> re2c or Ragel is:
+> 
+> COMPILE TIME: c-compiler(ragel(regex)) -> binary that can parse regex
+> 
+> I am proposing:
+> 
+> COMPILE TIME: c-compiler(ragel) -> library that can generate
+> regex-parsing code
+> RUN TIME: ragel-library(regex) -> machine code in memory I can jump to
+> to parse regex
+> 
+> An API for Ruby would look something like:
+> 
+> myparser = Ragel::Machine.new("number = (
+>     [0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+>     ( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+>    ) %number;")
+> 
+> myparser.actions["dgt"] = Proc.new { |dgt| puts "DGT: #{dgt}" }
+> 
+> myparser.run(File.open("foo.txt"))
+> 
+> Specifically:
+> 
+> - I can use Ragel from an interpreted language, without having to
+> compile every pattern with a C compiler (like Mongrel does)
+> 
+> - I can write my actions in the target language
+> 
+> - it's faster than a table-based re engine, like what I would get by
+> saying: file.read =~ /blah/
+> 
+> Is this more clear?
+> 
+> Thanks,
+> Josh
+> 
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Thu Oct  5 19:58:05 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Thu, 5 Oct 2006 15:58:05 -0400
+Subject: Multi-char terminators
+Message-ID: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+
+Hi all,
+
+As part of parsing XML, I have the following rules for CData sections:
+
+CDStart = '<![CDATA[';
+
+CDEnd = ']]>';
+
+CData = (Char* -- CDEnd) $each_char;
+
+CDSect = CDStart CData CDEnd;
+
+where each_char is a simple action that stores fc in a buffer. The
+problem is that the last two characters in the buffer are always ]],
+because the machine doesn't know until it encounters the > if it
+should exit the CData machine. I work around this with the following:
+
+CDSect = CDStart CData CDEnd %trim_content;
+
+where trim_content strips the last two characters of the buffer, but
+it's a bit ugly. It also wouldn't work if the terminator were some
+variable-length production. Is there any general way to handle this
+case?
+
+Cheers,
+Colin
+
+
+From thurs... at cs.queensu.ca  Thu Oct  5 22:24:00 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 05 Oct 2006 18:24:00 -0400
+Subject: Multi-char terminators
+In-Reply-To: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+Message-ID: <45258600.20609@cs.queensu.ca>
+
+Hello,
+
+If you wanted to remove buffered items when the termination sequence was 
+variable length, you might be able to record the length of the buffer when 
+you start the termination sequence. This might not always work properly though.
+
+But if you want to avoid undoing work you've done, then you need to delay 
+buffering. At the moment I can't think of a general way to express the 
+delayed buffering of ']' using pure regular languages with embedded actions.
+
+The local error action embedding operators are related to this problem, but 
+not a good fit in this case.
+
+So, some options:
+
+1. You could build a machine manually. Basically draw out the state machine 
+you want and use the , and -> operators to construct it. Note that you can 
+still embed actions anywhere you want. In places where you go back to start 
+buffer the necessary number of ']' characters.
+
+main :=
+     start: (
+         (any-']') -> start |
+         ']'-> one
+     ),
+     one: (
+         ']' -> two |
+         [^\]] -> start
+     ),
+     two: (
+         '>' -> final |
+         ']' -> two |
+         [^>\]] -> start
+     );
+
+
+2. Use a mini scanner. This is the kind of thing a scanner does really well, 
+but it does not give you a machine definition you can embed elsewhere. You 
+have to call it. This gives me an idea though. Some scanners can be 
+optimized into a pure state machine with no backtracking. Perhaps we can 
+allow these to be embedded elsewhere.
+
+3. Take ']' out of CData and add in some patterns like ']' [^\]] which 
+accept only strings which look like they could start a termination sequence, 
+but never go all the way. When they fail they can write out necessary number 
+of ']' symbols.
+
+Hope this helps.
+
+-Adrian
+
+Colin Fleming wrote:
+> Hi all,
+> 
+> As part of parsing XML, I have the following rules for CData sections:
+> 
+> CDStart = '<![CDATA[';
+> 
+> CDEnd = ']]>';
+> 
+> CData = (Char* -- CDEnd) $each_char;
+> 
+> CDSect = CDStart CData CDEnd;
+> 
+> where each_char is a simple action that stores fc in a buffer. The
+> problem is that the last two characters in the buffer are always ]],
+> because the machine doesn't know until it encounters the > if it
+> should exit the CData machine. I work around this with the following:
+> 
+> CDSect = CDStart CData CDEnd %trim_content;
+> 
+> where trim_content strips the last two characters of the buffer, but
+> it's a bit ugly. It also wouldn't work if the terminator were some
+> variable-length production. Is there any general way to handle this
+> case?
+> 
+> Cheers,
+> Colin
+> 
+> 
+
+
+From colin.flem... at coreproc.com  Fri Oct  6 17:06:03 2006
+From: colin.flem... at coreproc.com (Colin Fleming)
+Date: Fri, 6 Oct 2006 13:06:03 -0400
+Subject: Multi-char terminators
+In-Reply-To: <45258600.20609@cs.queensu.ca>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com>
+	 <45258600.20609@cs.queensu.ca>
+Message-ID: <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for the response! I need to think about it a bit more.
+Obviously in this case it's not a huge problem, but it might be if I
+move to marking strings rather than copying and a buffer boundary
+happens to break up the terminator. The problem with constructing the
+machine manually is that I can't really do any better than Ragel does
+- if you have no look-ahead, you never know if you're on a terminator
+until the end of it.
+
+I'll read up a bit about scanners, too, it sounds interesting.
+
+Cheers,
+Colin
+
+On 10/5/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Hello,
+>
+> If you wanted to remove buffered items when the termination sequence was
+> variable length, you might be able to record the length of the buffer when
+> you start the termination sequence. This might not always work properly though.
+>
+> But if you want to avoid undoing work you've done, then you need to delay
+> buffering. At the moment I can't think of a general way to express the
+> delayed buffering of ']' using pure regular languages with embedded actions.
+>
+> The local error action embedding operators are related to this problem, but
+> not a good fit in this case.
+>
+> So, some options:
+>
+> 1. You could build a machine manually. Basically draw out the state machine
+> you want and use the , and -> operators to construct it. Note that you can
+> still embed actions anywhere you want. In places where you go back to start
+> buffer the necessary number of ']' characters.
+>
+> main :=
+>      start: (
+>          (any-']') -> start |
+>          ']'-> one
+>      ),
+>      one: (
+>          ']' -> two |
+>          [^\]] -> start
+>      ),
+>      two: (
+>          '>' -> final |
+>          ']' -> two |
+>          [^>\]] -> start
+>      );
+>
+>
+> 2. Use a mini scanner. This is the kind of thing a scanner does really well,
+> but it does not give you a machine definition you can embed elsewhere. You
+> have to call it. This gives me an idea though. Some scanners can be
+> optimized into a pure state machine with no backtracking. Perhaps we can
+> allow these to be embedded elsewhere.
+>
+> 3. Take ']' out of CData and add in some patterns like ']' [^\]] which
+> accept only strings which look like they could start a termination sequence,
+> but never go all the way. When they fail they can write out necessary number
+> of ']' symbols.
+>
+> Hope this helps.
+>
+> -Adrian
+>
+> Colin Fleming wrote:
+> > Hi all,
+> >
+> > As part of parsing XML, I have the following rules for CData sections:
+> >
+> > CDStart = '<![CDATA[';
+> >
+> > CDEnd = ']]>';
+> >
+> > CData = (Char* -- CDEnd) $each_char;
+> >
+> > CDSect = CDStart CData CDEnd;
+> >
+> > where each_char is a simple action that stores fc in a buffer. The
+> > problem is that the last two characters in the buffer are always ]],
+> > because the machine doesn't know until it encounters the > if it
+> > should exit the CData machine. I work around this with the following:
+> >
+> > CDSect = CDStart CData CDEnd %trim_content;
+> >
+> > where trim_content strips the last two characters of the buffer, but
+> > it's a bit ugly. It also wouldn't work if the terminator were some
+> > variable-length production. Is there any general way to handle this
+> > case?
+> >
+> > Cheers,
+> > Colin
+> >
+> >
+>
+> >
+>
+
+
+From thurs... at cs.queensu.ca  Fri Oct  6 18:27:20 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 06 Oct 2006 14:27:20 -0400
+Subject: Multi-char terminators
+In-Reply-To: <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+References: <2d4d6bd0610051258q4b48a640na775a3426aefa0a4@mail.gmail.com> <45258600.20609@cs.queensu.ca> <2d4d6bd0610061006j76b4f1bi6bb8be6169e323a0@mail.gmail.com>
+Message-ID: <4526A008.6050208@cs.queensu.ca>
+
+Hi Colin,
+
+This might do what you want:
+
+action bchar { buff( fpc ); }
+action bbrack1 { buff( "]" ); }
+action bbrack2 { buff( "]]" ); }
+
+main :=
+start: (
+     ']'-> one |
+     (any-']') @bchar ->start
+),
+one: (
+     ']' -> two |
+     [^\]] @bbrack1 @bchar ->start
+),
+two: (
+     '>' -> final |
+     ']' @bbrack1 -> two |
+     [^>\]] @bbrack2 @bchar ->start
+);
+
+
+Colin Fleming wrote:
+> Hi Adrian,
+> 
+> Thanks for the response! I need to think about it a bit more.
+> Obviously in this case it's not a huge problem, but it might be if I
+> move to marking strings rather than copying and a buffer boundary
+> happens to break up the terminator. The problem with constructing the
+> machine manually is that I can't really do any better than Ragel does
+> - if you have no look-ahead, you never know if you're on a terminator
+> until the end of it.
+> 
+> I'll read up a bit about scanners, too, it sounds interesting.
+> 
+> Cheers,
+> Colin
+> 
+> On 10/5/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hello,
+>>
+>> If you wanted to remove buffered items when the termination sequence was
+>> variable length, you might be able to record the length of the buffer when
+>> you start the termination sequence. This might not always work properly though.
+>>
+>> But if you want to avoid undoing work you've done, then you need to delay
+>> buffering. At the moment I can't think of a general way to express the
+>> delayed buffering of ']' using pure regular languages with embedded actions.
+>>
+>> The local error action embedding operators are related to this problem, but
+>> not a good fit in this case.
+>>
+>> So, some options:
+>>
+>> 1. You could build a machine manually. Basically draw out the state machine
+>> you want and use the , and -> operators to construct it. Note that you can
+>> still embed actions anywhere you want. In places where you go back to start
+>> buffer the necessary number of ']' characters.
+>>
+>> main :=
+>>      start: (
+>>          (any-']') -> start |
+>>          ']'-> one
+>>      ),
+>>      one: (
+>>          ']' -> two |
+>>          [^\]] -> start
+>>      ),
+>>      two: (
+>>          '>' -> final |
+>>          ']' -> two |
+>>          [^>\]] -> start
+>>      );
+>>
+>>
+>> 2. Use a mini scanner. This is the kind of thing a scanner does really well,
+>> but it does not give you a machine definition you can embed elsewhere. You
+>> have to call it. This gives me an idea though. Some scanners can be
+>> optimized into a pure state machine with no backtracking. Perhaps we can
+>> allow these to be embedded elsewhere.
+>>
+>> 3. Take ']' out of CData and add in some patterns like ']' [^\]] which
+>> accept only strings which look like they could start a termination sequence,
+>> but never go all the way. When they fail they can write out necessary number
+>> of ']' symbols.
+>>
+>> Hope this helps.
+>>
+>> -Adrian
+>>
+>> Colin Fleming wrote:
+>>> Hi all,
+>>>
+>>> As part of parsing XML, I have the following rules for CData sections:
+>>>
+>>> CDStart = '<![CDATA[';
+>>>
+>>> CDEnd = ']]>';
+>>>
+>>> CData = (Char* -- CDEnd) $each_char;
+>>>
+>>> CDSect = CDStart CData CDEnd;
+>>>
+>>> where each_char is a simple action that stores fc in a buffer. The
+>>> problem is that the last two characters in the buffer are always ]],
+>>> because the machine doesn't know until it encounters the > if it
+>>> should exit the CData machine. I work around this with the following:
+>>>
+>>> CDSect = CDStart CData CDEnd %trim_content;
+>>>
+>>> where trim_content strips the last two characters of the buffer, but
+>>> it's a bit ugly. It also wouldn't work if the terminator were some
+>>> variable-length production. Is there any general way to handle this
+>>> case?
+>>>
+>>> Cheers,
+>>> Colin
+>>>
+>>>
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Sun Oct 22 02:52:06 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 21 Oct 2006 22:52:06 -0400
+Subject: Grammar testing proposal
+In-Reply-To: <45119FF1.5010803@cs.queensu.ca>
+References: <2d4d6bd0609150818n72e2a332ie32651aa98ddcceb@mail.gmail.com> <450B07B1.4030803@cs.queensu.ca> <2d4d6bd0609160853r719c2039n8de67bccdf09d21a@mail.gmail.com> <450F523D.2040303@cs.queensu.ca> <2d4d6bd0609181944t54be77b2id52534496e90e793@mail.gmail.com> <45119FF1.5010803@cs.queensu.ca>
+Message-ID: <453ADCD6.2010803@cs.queensu.ca>
+
+To follow up, this is going forward. I have begun a language-independent 
+test harness and already used it to find problems with D and Java code 
+generation.
+
+Cheers,
+  Adrian
+
+Adrian Thurston wrote:
+> Hi Colin,
+> 
+> Sorry, there is no BNF, just the bison grammar. The rlscan example is up to 
+> date for what it covers. Some things like regex details and keywords have 
+> been left out.
+> 
+> Regards,
+>   Adrian
+> 
+> Colin Fleming wrote:
+>> Ok, I agree - for now, a simple pre-processor should be sufficient,
+>> since the languages currently are all more or less c-like.
+>>
+>> BTW do you have a general BNF for the Ragel language? How up to date
+>> is examples/rlscan.rl?
+>>
+>> Cheers,
+>> Colin
+>>
+>>
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Oct 27 17:14:17 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 27 Oct 2006 13:14:17 -0400
+Subject: syntax changes in 5.15
+Message-ID: <45423E69.4040703@cs.queensu.ca>
+
+Hi, version 5.15 will have some syntax changes which should affect only a 
+small number of users (if any). They are trivial to fix. They were made in 
+the interest of making Ragel's rather cryptic syntax easier to remember.
+
+1. The state-based embedding operators which access states that are not the 
+start state and are not final (the 'middle' states) have changed.
+
+They were:
+
+<@/    eof action into middle states
+<@!    error action into middle states
+<@^    local error action into middle states
+<@~    to-state action into middle states
+<@*    from-state action into middle states
+
+They are now:
+
+<>/    eof action into middle states
+<>!    error action into middle states
+<>^    local error action into middle states
+<>~    to-state action into middle states
+<>*    from-state action into middle states
+
+2. The verbose form of embeddings using the <- operator have been removed. 
+This syntax was impossible to remember.
+
+3. New verbose forms of state-based embedding operators have been added. 
+These are like the symbol versions, except they replace the symbols
+
+/  !  ^  ~  *
+
+with literal keywords
+
+eof err lerr to from
+
+For example:
+
+$/ { /*code*/ }
+$eof { /*code*/ }
+
+both embed an eof action into all states.
+
+ >* { /*code*/ }
+ >from { /*code*/ }
+
+both embed a from-state action into a machine's start state.
+
+4. The following new keywords have been added:
+
+when eof err lerr to from
+
+
+-Adrian
+
+
+From cmantu... at gmail.com  Thu Oct 26 22:12:38 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 26 Oct 2006 22:12:38 -0000
+Subject: fcall legal in scanner?
+Message-ID: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+
+Hello!
+
+First of all I'd like to thank Adrian Thurston for a very nice piece of
+software. I had been looking for quite some time for something like
+Ragel and it was with glee that I was able to finally find it!
+
+I've been playing with the scanner construct and found some strange
+behavior when using fcall in action code, followed by a fret. After the
+fret, the scanner no longer properly matches all the patterns. However,
+if I use an fgoto in action code and then another fgoto to return to
+the scanner, things work well. So, my question is, is fcall legal or am
+I potentially stumbling on a bug?
+
+Thanks!
+
+Carlos
+
+
+From thurs... at cs.queensu.ca  Fri Oct 27 16:36:11 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 27 Oct 2006 12:36:11 -0400
+Subject: fcall legal in scanner?
+In-Reply-To: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+Message-ID: <4542357B.80003@cs.queensu.ca>
+
+Hi Carlos,
+
+I'm glad you like Ragel. I've been working on it for a while now and it's 
+nice to hear I'm headed in the right direction.
+
+It sounds like a bug. fcall is supposed to work in actions associated with 
+entire patterns (the lex style actions) but they are illegal in the the 
+transition/state based embeddings and Ragel is supposed to emit an error. 
+Could you post or send me some code which exhibits the problem?
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Hello!
+> 
+> First of all I'd like to thank Adrian Thurston for a very nice piece of
+> software. I had been looking for quite some time for something like
+> Ragel and it was with glee that I was able to finally find it!
+> 
+> I've been playing with the scanner construct and found some strange
+> behavior when using fcall in action code, followed by a fret. After the
+> fret, the scanner no longer properly matches all the patterns. However,
+> if I use an fgoto in action code and then another fgoto to return to
+> the scanner, things work well. So, my question is, is fcall legal or am
+> I potentially stumbling on a bug?
+> 
+> Thanks!
+> 
+> Carlos
+> 
+> 
+> 
+
+
+From cmantu... at gmail.com  Fri Oct 27 17:27:50 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Fri, 27 Oct 2006 13:27:50 -0400
+Subject: fcall legal in scanner?
+In-Reply-To: <4542357B.80003@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+Message-ID: <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+
+On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It sounds like a bug. fcall is supposed to work in actions associated with
+> entire patterns (the lex style actions) but they are illegal in the the
+> transition/state based embeddings and Ragel is supposed to emit an error.
+> Could you post or send me some code which exhibits the problem?
+>
+
+Adrian,
+
+Please, see test2.rl file attached. It's a messy file because it's
+where I do, testing.
+
+Basically, I'm using a scanner (main) to match 'Organization',
+'Authorization' and a general purpose header called extension_header.
+If there is a header like 'an-extension-header', the scanner should
+match on the extension_header rule.
+
+Here's a string to match:
+
+            "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+            "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+            "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+            "Organization: Boxes by\r\n Bob  \r\n      \n"
+            "An-Extension-Header: 10 \n"
+            "\r\n";
+
+The scanner performs well with the previous string. Let's try a new string:
+
+            "An-Extension-Header: 10 \n"
+            "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+            "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+            "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+            "Organization: Boxes by\r\n Bob  \r\n      \n"
+            "\r\n";
+
+In this case, the scanner, once it matches the extension header, will
+continue to match 'Authorization' and 'Organization' as extension
+headers as well, which didn't happen before.
+
+Note that, if instead of using fcall from the main scanner, I use
+fgoto (and them fgoto back to main instead of fret), both input
+strings produce the same, and correct, behavior.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test2.rl
+Type: application/octet-stream
+Size: 12918 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20061027/018eec33/attachment-0001.obj>
+
+From thurs... at cs.queensu.ca  Sun Oct 29 18:40:29 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 29 Oct 2006 13:40:29 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com> <4542357B.80003@cs.queensu.ca> <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+Message-ID: <4544F59D.2040803@cs.queensu.ca>
+
+Hi Carlos,
+
+I found the bug. The problem was with fret in scanner actions. The 
+adjustment to p that is needed in some cases was not happening. The 
+attached patch will fix the problem.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> It sounds like a bug. fcall is supposed to work in actions associated with
+>> entire patterns (the lex style actions) but they are illegal in the the
+>> transition/state based embeddings and Ragel is supposed to emit an error.
+>> Could you post or send me some code which exhibits the problem?
+>>
+> 
+> Adrian,
+> 
+> Please, see test2.rl file attached. It's a messy file because it's
+> where I do, testing.
+> 
+> Basically, I'm using a scanner (main) to match 'Organization',
+> 'Authorization' and a general purpose header called extension_header.
+> If there is a header like 'an-extension-header', the scanner should
+> match on the extension_header rule.
+> 
+> Here's a string to match:
+> 
+>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>             "An-Extension-Header: 10 \n"
+>             "\r\n";
+> 
+> The scanner performs well with the previous string. Let's try a new string:
+> 
+>             "An-Extension-Header: 10 \n"
+>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>             "\r\n";
+> 
+> In this case, the scanner, once it matches the extension header, will
+> continue to match 'Authorization' and 'Organization' as extension
+> headers as well, which didn't happen before.
+> 
+> Note that, if instead of using fcall from the main scanner, I use
+> fgoto (and them fgoto back to main instead of fret), both input
+> strings produce the same, and correct, behavior.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: ragel-5.14.diff
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20061029/312bc914/attachment-0001.ksh>
+
+From cmantu... at gmail.com  Sun Oct 29 19:48:39 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sun, 29 Oct 2006 14:48:39 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <4544F59D.2040803@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+	 <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+	 <4544F59D.2040803@cs.queensu.ca>
+Message-ID: <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+
+Thanks, Adrian! Will this fix make it into 5.15?
+
+On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Carlos,
+>
+> I found the bug. The problem was with fret in scanner actions. The
+> adjustment to p that is needed in some cases was not happening. The
+> attached patch will fix the problem.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> It sounds like a bug. fcall is supposed to work in actions associated with
+> >> entire patterns (the lex style actions) but they are illegal in the the
+> >> transition/state based embeddings and Ragel is supposed to emit an error.
+> >> Could you post or send me some code which exhibits the problem?
+> >>
+> >
+> > Adrian,
+> >
+> > Please, see test2.rl file attached. It's a messy file because it's
+> > where I do, testing.
+> >
+> > Basically, I'm using a scanner (main) to match 'Organization',
+> > 'Authorization' and a general purpose header called extension_header.
+> > If there is a header like 'an-extension-header', the scanner should
+> > match on the extension_header rule.
+> >
+> > Here's a string to match:
+> >
+> >             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >             "An-Extension-Header: 10 \n"
+> >             "\r\n";
+> >
+> > The scanner performs well with the previous string. Let's try a new string:
+> >
+> >             "An-Extension-Header: 10 \n"
+> >             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >             "\r\n";
+> >
+> > In this case, the scanner, once it matches the extension header, will
+> > continue to match 'Authorization' and 'Organization' as extension
+> > headers as well, which didn't happen before.
+> >
+> > Note that, if instead of using fcall from the main scanner, I use
+> > fgoto (and them fgoto back to main instead of fret), both input
+> > strings produce the same, and correct, behavior.
+> >
+> > Thanks!
+> >
+> > Carlos
+> >
+>
+>
+> >
+>
+> Index: ragel/xmlcodegen.cpp
+> ===================================================================
+> --- ragel/xmlcodegen.cpp        (revision 3695)
+> +++ ragel/xmlcodegen.cpp        (working copy)
+> @@ -246,6 +246,9 @@
+>         case InlineItem::Break:
+>                 out << "<break></break>";
+>                 break;
+> +       case InlineItem::Ret:
+> +               out << "<ret></ret>";
+> +               break;
+>         default: break;
+>         }
+>
+> @@ -360,12 +363,9 @@
+>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+>                 case InlineItem::Call: case InlineItem::CallExpr:
+>                 case InlineItem::Next: case InlineItem::NextExpr:
+> -               case InlineItem::Break:
+> +               case InlineItem::Break: case InlineItem::Ret:
+>                         writeWithContext( item, context );
+>                         break;
+> -               case InlineItem::Ret:
+> -                       out << "<ret></ret>";
+> -                       break;
+>                 case InlineItem::PChar:
+>                         out << "<pchar></pchar>";
+>                         break;
+>
+>
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Sun Oct 29 20:03:35 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 29 Oct 2006 15:03:35 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com> <4542357B.80003@cs.queensu.ca> <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com> <4544F59D.2040803@cs.queensu.ca> <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+Message-ID: <45450917.60101@cs.queensu.ca>
+
+Indeed it will. 5.15 should be arriving soon.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Thanks, Adrian! Will this fix make it into 5.15?
+> 
+> On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hi Carlos,
+>>
+>> I found the bug. The problem was with fret in scanner actions. The
+>> adjustment to p that is needed in some cases was not happening. The
+>> attached patch will fix the problem.
+>>
+>> Cheers,
+>>   Adrian
+>>
+>> Carlos Antunes wrote:
+>>> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>>> It sounds like a bug. fcall is supposed to work in actions associated with
+>>>> entire patterns (the lex style actions) but they are illegal in the the
+>>>> transition/state based embeddings and Ragel is supposed to emit an error.
+>>>> Could you post or send me some code which exhibits the problem?
+>>>>
+>>> Adrian,
+>>>
+>>> Please, see test2.rl file attached. It's a messy file because it's
+>>> where I do, testing.
+>>>
+>>> Basically, I'm using a scanner (main) to match 'Organization',
+>>> 'Authorization' and a general purpose header called extension_header.
+>>> If there is a header like 'an-extension-header', the scanner should
+>>> match on the extension_header rule.
+>>>
+>>> Here's a string to match:
+>>>
+>>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>>>             "An-Extension-Header: 10 \n"
+>>>             "\r\n";
+>>>
+>>> The scanner performs well with the previous string. Let's try a new string:
+>>>
+>>>             "An-Extension-Header: 10 \n"
+>>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+>>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+>>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+>>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+>>>             "\r\n";
+>>>
+>>> In this case, the scanner, once it matches the extension header, will
+>>> continue to match 'Authorization' and 'Organization' as extension
+>>> headers as well, which didn't happen before.
+>>>
+>>> Note that, if instead of using fcall from the main scanner, I use
+>>> fgoto (and them fgoto back to main instead of fret), both input
+>>> strings produce the same, and correct, behavior.
+>>>
+>>> Thanks!
+>>>
+>>> Carlos
+>>>
+>>
+>> Index: ragel/xmlcodegen.cpp
+>> ===================================================================
+>> --- ragel/xmlcodegen.cpp        (revision 3695)
+>> +++ ragel/xmlcodegen.cpp        (working copy)
+>> @@ -246,6 +246,9 @@
+>>         case InlineItem::Break:
+>>                 out << "<break></break>";
+>>                 break;
+>> +       case InlineItem::Ret:
+>> +               out << "<ret></ret>";
+>> +               break;
+>>         default: break;
+>>         }
+>>
+>> @@ -360,12 +363,9 @@
+>>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+>>                 case InlineItem::Call: case InlineItem::CallExpr:
+>>                 case InlineItem::Next: case InlineItem::NextExpr:
+>> -               case InlineItem::Break:
+>> +               case InlineItem::Break: case InlineItem::Ret:
+>>                         writeWithContext( item, context );
+>>                         break;
+>> -               case InlineItem::Ret:
+>> -                       out << "<ret></ret>";
+>> -                       break;
+>>                 case InlineItem::PChar:
+>>                         out << "<pchar></pchar>";
+>>                         break;
+>>
+>>
+>>
+> 
+> 
+
+
+From cmantu... at gmail.com  Sun Oct 29 20:12:54 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sun, 29 Oct 2006 15:12:54 -0500
+Subject: fcall legal in scanner?
+In-Reply-To: <45450917.60101@cs.queensu.ca>
+References: <1161900758.868188.25810@f16g2000cwb.googlegroups.com>
+	 <4542357B.80003@cs.queensu.ca>
+	 <cb2ad8b50610271027rcf3b5eo32e81cf2749b0189@mail.gmail.com>
+	 <4544F59D.2040803@cs.queensu.ca>
+	 <cb2ad8b50610291148g17758a44i3655f326c15d8df7@mail.gmail.com>
+	 <45450917.60101@cs.queensu.ca>
+Message-ID: <cb2ad8b50610291212s17e95259pb6815aba197e6b1c@mail.gmail.com>
+
+Thanks, Adrian, your fix appears to be working fine. Oh, and I'll be
+posting a feature request soon! :-)
+
+On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Indeed it will. 5.15 should be arriving soon.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > Thanks, Adrian! Will this fix make it into 5.15?
+> >
+> > On 10/29/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> Hi Carlos,
+> >>
+> >> I found the bug. The problem was with fret in scanner actions. The
+> >> adjustment to p that is needed in some cases was not happening. The
+> >> attached patch will fix the problem.
+> >>
+> >> Cheers,
+> >>   Adrian
+> >>
+> >> Carlos Antunes wrote:
+> >>> On 10/27/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >>>> It sounds like a bug. fcall is supposed to work in actions associated with
+> >>>> entire patterns (the lex style actions) but they are illegal in the the
+> >>>> transition/state based embeddings and Ragel is supposed to emit an error.
+> >>>> Could you post or send me some code which exhibits the problem?
+> >>>>
+> >>> Adrian,
+> >>>
+> >>> Please, see test2.rl file attached. It's a messy file because it's
+> >>> where I do, testing.
+> >>>
+> >>> Basically, I'm using a scanner (main) to match 'Organization',
+> >>> 'Authorization' and a general purpose header called extension_header.
+> >>> If there is a header like 'an-extension-header', the scanner should
+> >>> match on the extension_header rule.
+> >>>
+> >>> Here's a string to match:
+> >>>
+> >>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >>>             "An-Extension-Header: 10 \n"
+> >>>             "\r\n";
+> >>>
+> >>> The scanner performs well with the previous string. Let's try a new string:
+> >>>
+> >>>             "An-Extension-Header: 10 \n"
+> >>>             "Authorization: Digest username=\"Alice\",realm=\"atlanta.com\"\n"
+> >>>             "    , response=\"7587245234b3434cc3412213e5f113a5432\" , \r\n"
+> >>>             "    nonce=\"84a4cc6f3082121f32b42a2187831a9e\" \r\n"
+> >>>             "Organization: Boxes by\r\n Bob  \r\n      \n"
+> >>>             "\r\n";
+> >>>
+> >>> In this case, the scanner, once it matches the extension header, will
+> >>> continue to match 'Authorization' and 'Organization' as extension
+> >>> headers as well, which didn't happen before.
+> >>>
+> >>> Note that, if instead of using fcall from the main scanner, I use
+> >>> fgoto (and them fgoto back to main instead of fret), both input
+> >>> strings produce the same, and correct, behavior.
+> >>>
+> >>> Thanks!
+> >>>
+> >>> Carlos
+> >>>
+> >>
+> >> Index: ragel/xmlcodegen.cpp
+> >> ===================================================================
+> >> --- ragel/xmlcodegen.cpp        (revision 3695)
+> >> +++ ragel/xmlcodegen.cpp        (working copy)
+> >> @@ -246,6 +246,9 @@
+> >>         case InlineItem::Break:
+> >>                 out << "<break></break>";
+> >>                 break;
+> >> +       case InlineItem::Ret:
+> >> +               out << "<ret></ret>";
+> >> +               break;
+> >>         default: break;
+> >>         }
+> >>
+> >> @@ -360,12 +363,9 @@
+> >>                 case InlineItem::Goto: case InlineItem::GotoExpr:
+> >>                 case InlineItem::Call: case InlineItem::CallExpr:
+> >>                 case InlineItem::Next: case InlineItem::NextExpr:
+> >> -               case InlineItem::Break:
+> >> +               case InlineItem::Break: case InlineItem::Ret:
+> >>                         writeWithContext( item, context );
+> >>                         break;
+> >> -               case InlineItem::Ret:
+> >> -                       out << "<ret></ret>";
+> >> -                       break;
+> >>                 case InlineItem::PChar:
+> >>                         out << "<pchar></pchar>";
+> >>                         break;
+> >>
+> >>
+> >>
+> >
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+

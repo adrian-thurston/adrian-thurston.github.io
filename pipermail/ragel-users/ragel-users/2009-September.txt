@@ -1,0 +1,2294 @@
+From nwebster at biopeak.com  Wed Sep  2 17:08:19 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Wed, 02 Sep 2009 13:08:19 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+Message-ID: <1251911299.7920.12.camel@neil-laptop>
+
+I am trying to create a reusable structure for reading in data from a
+binary data stream. I have attached a ragel file that demonstrates the
+problem I am having and would appreciate tips and advice on what I am
+doing wrong or better ways to go about solving the problem.
+
+I have defined Word8b, Word16b and Word32b to represent the blocks I
+will be reading from the data stream. The data is accumulated into a
+temporary variable (temp) and then assigned to the specific variable on
+exit from the appropriate machine. It works fine for small numbers but
+does strange things with numbers >127. It seems to be a problem with
+signed vs unsigned but I can't figure out what it is.
+
+What I expect
+a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+
+What I get
+ 
+a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+
+
+
+
+
+From nwebster at biopeak.com  Wed Sep  2 17:10:32 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Wed, 02 Sep 2009 13:10:32 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+In-Reply-To: <1251911299.7920.12.camel@neil-laptop>
+References: <1251911299.7920.12.camel@neil-laptop>
+Message-ID: <1251911432.7920.14.camel@neil-laptop>
+
+Hi Guys,
+
+Please accept my apologies for the email clutter but I forgot the
+attachment ....
+
+On Wed, 2009-09-02 at 13:08 -0400, Neil Webster wrote:
+
+> I am trying to create a reusable structure for reading in data from a
+> binary data stream. I have attached a ragel file that demonstrates the
+> problem I am having and would appreciate tips and advice on what I am
+> doing wrong or better ways to go about solving the problem.
+> 
+> I have defined Word8b, Word16b and Word32b to represent the blocks I
+> will be reading from the data stream. The data is accumulated into a
+> temporary variable (temp) and then assigned to the specific variable on
+> exit from the appropriate machine. It works fine for small numbers but
+> does strange things with numbers >127. It seems to be a problem with
+> signed vs unsigned but I can't figure out what it is.
+> 
+> What I expect
+> a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+> 
+> What I get
+>  
+> a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+> 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090902/682311f0/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: demoIssue.rl
+Type: text/x-csrc
+Size: 1015 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090902/682311f0/attachment.c>
+
+From adrian.thurston at esentire.com  Wed Sep  2 17:17:04 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 02 Sep 2009 13:17:04 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+In-Reply-To: <1251911432.7920.14.camel@neil-laptop>
+References: <1251911299.7920.12.camel@neil-laptop>
+	<1251911432.7920.14.camel@neil-laptop>
+Message-ID: <4A9EA890.4080707@esentire.com>
+
+The problem is casting. The fc expression is signed char (since the 
+default alphabet is char) and it is being upcast to int size. In the 
+process the high bits become 1 to preserve the negative property of the 
+value.
+
+Use:
+
+alphtype unsigned char;
+
+And make p and pe unsigned char* type;
+
+-Adrian
+
+Neil Webster wrote:
+> Hi Guys,
+> 
+> Please accept my apologies for the email clutter but I forgot the 
+> attachment ....
+> 
+> On Wed, 2009-09-02 at 13:08 -0400, Neil Webster wrote:
+>> I am trying to create a reusable structure for reading in data from a
+>> binary data stream. I have attached a ragel file that demonstrates the
+>> problem I am having and would appreciate tips and advice on what I am
+>> doing wrong or better ways to go about solving the problem.
+>>
+>> I have defined Word8b, Word16b and Word32b to represent the blocks I
+>> will be reading from the data stream. The data is accumulated into a
+>> temporary variable (temp) and then assigned to the specific variable on
+>> exit from the appropriate machine. It works fine for small numbers but
+>> does strange things with numbers >127. It seems to be a problem with
+>> signed vs unsigned but I can't figure out what it is.
+>>
+>> What I expect
+>> a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+>>
+>> What I get
+>>  
+>> a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+>>
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From voidptrptr at gmail.com  Fri Sep  4 23:05:17 2009
+From: voidptrptr at gmail.com (=?ISO-8859-1?Q?Youn=E8s_HAFRI?=)
+Date: Sat, 5 Sep 2009 01:05:17 +0200
+Subject: [ragel-users] Ragel for JSON
+Message-ID: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+
+Hi List,
+I started this week a small project to learn how to use "Ragel" on something
+useful.
+
+The idea is to parse JSON (www.json.org) data-interchange format. I've
+posted my solution below with the corresponding graphviz FSM.
+Lexing is OK and I can parse eveything correctly (except JSON comments ... I
+don't care about them).
+
+My question is for Ragel GURUS : is there a better way to do it ? Could I
+parse JSON faster than that ?
+
+Any hint, tricks to improve speed will be very welcome ;)
+
+N.B: the beauty of JSON is that you need exactly one character lookahead to
+parse everything.
+But I don't know if my Ragel code is doing a good job on that.
+
+Thanks in advance
+Ferret
+
+======================================================
+   myspace        = [ \n\r\t];
+    endspace       = any - myspace;
+    end            = [\]},\[{}\":tfn] | myspace;
+
+    exp            = ([eE] >number_float . [+\-]? . digit+) $append . (end
+>number_break)?;
+    float          = ('.' >number_float  . digit+) $append . (exp | end
+>number_break)?;
+
+    number         = (('-' >number_signed)? $append) . (('0' | ([1-9] .
+digit*)) >number_unsigned $append . (float | exp | end >number_break)?);
+
+    unicode        = ((0 .. 0xd777) | (0xe000 .. 0x10ffff));
+    string         = '"' . (
+                   start: (
+                           (unicode - [\"\\]) $append -> start |
+                           '"' (any >string_break)? -> final |
+                           '\\' >append -> unquote
+                           ),
+                   unquote: ([\"\\/bfnrt] >append -> start |
+                             'u' $append . (xdigit{4} $append) -> start
+                             ),
+                   final: empty
+                   );
+
+     blank        = myspace+ (endspace >break)?;
+     true         = 'true'   (any >true_break)?;
+     false        = 'false'  (any >false_break)?;
+     nil          = 'null'   (any >null_break)?;
+     object_start = '{'      (any >left_brace_break)?;
+     object_end   = '}'      (any >right_brace_break)?;
+     array_start  = '['      (any >left_bracket_break)?;
+     array_end    = ']'      (any >right_bracket_break)?;
+     comma        = ','      (any >comma_break)?;
+     colon        = ':'      (any >colon_break )?;
+     eoi          = 0 >eoi_break;
+
+     main := (
+              object_start |
+              object_end   |
+              array_start  |
+              array_end    |
+              colon        |
+              comma        |
+              string       |
+              number       |
+              true         |
+              false        |
+              nil          |
+              blank        |
+              eoi
+              ) >clear;
+}%%
+
+======================================================
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: json_ragel_fsm.png.gz
+Type: application/x-gzip
+Size: 501981 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090905/58fbe147/attachment.bin>
+
+From flameeyes at gmail.com  Sun Sep  6 20:09:00 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sun, 06 Sep 2009 22:09:00 +0200
+Subject: [ragel-users] Wrong #line directive emitted when including files
+Message-ID: <1252267745.16199.6.camel@yamato>
+
+I've been spending half an hour to find a build error in my code because
+of this bug so here comes an useful testcase ;)
+
+When including statemachines from multiple files, the #line directive
+emitted in the .c file, which is used to report errors by gcc, is
+_always_ referencing the converted .rl file. In the case of the testcase
+I'm attaching (which is a reduced version of what I hit), gcc is going
+to report an error in a line that is a comment:
+
+flame at yamato testcase-bug-ragel % ragel test.rl
+flame at yamato testcase-bug-ragel % gcc test.c -c
+test.rl: In function ‘test’:
+test.rl:9: error: ‘line’ undeclared (first use in this function)
+test.rl:9: error: (Each undeclared identifier is reported only once
+test.rl:9: error: for each function it appears in.)
+flame at yamato testcase-bug-ragel % sed -n -e 9p test.rl 
+ *
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: common.rl
+Type: text/x-matlab
+Size: 1359 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090906/b9989ea2/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.rl
+Type: text/x-csrc
+Size: 321 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090906/b9989ea2/attachment.c>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Questa è una parte del messaggio	firmata digitalmente
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090906/b9989ea2/attachment.sig>
+
+From thurston at complang.org  Sun Sep  6 20:38:56 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 6 Sep 2009 20:38:56 +0000
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+Message-ID: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+
+In the break actions I'm assuming that you're returning a token to the caller?  I'm using email on my phone right now so it's hard for me to read. 
+
+If you want to squeeze more time out of it I would suggest calling the parsing functions right from the ragel actions. I'm not sure how much faster that will be though.
+
+Adrian
+-----Original Message-----
+From: Younès HAFRI <voidptrptr at gmail.com>
+
+Date: Sat, 5 Sep 2009 01:05:17 
+To: <ragel-users at complang.org>
+Subject: [ragel-users] Ragel for JSON
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Sep  6 20:41:47 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 6 Sep 2009 20:41:47 +0000
+Subject: [ragel-users] Wrong #line directive emitted when including files
+In-Reply-To: <1252267745.16199.6.camel@yamato>
+References: <1252267745.16199.6.camel@yamato>
+Message-ID: <949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+
+The solution is to always write code without any compilation errors. 
+
+Just kidding :) This annoying bug has actually been fixed in the trunk, and will go out with the next release.
+
+Thanks,
+ Adrian
+-----Original Message-----
+From: "Diego E." “Flameeyes” 
+	Petten� <flameeyes at gmail.com>
+
+Date: Sun, 06 Sep 2009 22:09:00 
+To: <ragel-users at complang.org>
+Subject: [ragel-users] Wrong #line directive emitted when including files
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From voidptrptr at gmail.com  Sun Sep  6 22:51:51 2009
+From: voidptrptr at gmail.com (WARC)
+Date: Mon, 7 Sep 2009 00:51:51 +0200
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+	<1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+Message-ID: <296A7FD7-1E0A-46AC-9E91-8E2BE9223EC4@gmail.com>
+
+> In the break actions I'm assuming that you're returning a token to  
+> the caller?
+
+Yep. Each time Ragel advance "p", I save that character in a global  
+buffer. This is how I built all the actions.
+
+> If you want to squeeze more time out of it I would suggest calling  
+> the parsing functions right from the ragel actions.
+
+Didn't know that. Is there any example showing this feature?
+
+> I'm not sure how much faster that will be though.
+
+The idea I'm thinking about is to wait until a token is fully  
+identified by Ragel, and then copy it to a buffer in one shot.
+Maybe this will be faster than copying tokens character by character.  
+I am right?
+
+--F.
+
+>
+> Adrian
+> -----Original Message-----
+> From: Younès HAFRI <voidptrptr at gmail.com>
+>
+> Date: Sat, 5 Sep 2009 01:05:17
+> To: <ragel-users at complang.org>
+> Subject: [ragel-users] Ragel for JSON
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From voidptrptr at gmail.com  Mon Sep  7 02:51:17 2009
+From: voidptrptr at gmail.com (WARC)
+Date: Mon, 7 Sep 2009 04:51:17 +0200
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+	<1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+Message-ID: <52F9A3FF-241C-4142-B35B-6A3AC0592D0A@gmail.com>
+
+Following my idea to lazy copy "tokens" into a buffer (instead of char  
+by char) didn't improve the performance a lot (%1 improvement).
+I'm trying to rewrite Ragel's code for parsing of "integer", "unsigned  
+integer" and "float" numbers.
+
+Your advices will be very welcome !
+
+Le 6 sept. 09 à 22:38, Adrian Thurston a écrit :
+
+> In the break actions I'm assuming that you're returning a token to  
+> the caller?  I'm using email on my phone right now so it's hard for  
+> me to read.
+>
+> If you want to squeeze more time out of it I would suggest calling  
+> the parsing functions right from the ragel actions. I'm not sure how  
+> much faster that will be though.
+>
+> Adrian
+> -----Original Message-----
+> From: Younès HAFRI <voidptrptr at gmail.com>
+>
+> Date: Sat, 5 Sep 2009 01:05:17
+> To: <ragel-users at complang.org>
+> Subject: [ragel-users] Ragel for JSON
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From flameeyes at gmail.com  Mon Sep  7 08:35:22 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Mon, 07 Sep 2009 10:35:22 +0200
+Subject: [ragel-users] Wrong #line directive emitted when including files
+In-Reply-To: <949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+References: <1252267745.16199.6.camel@yamato>
+	<949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+Message-ID: <1252312527.16199.20.camel@yamato>
+
+Il giorno Sun, 06/09/2009 alle 20.41 +0000, Adrian Thurston ha scritto:
+> The solution is to always write code without any compilation errors. 
+
+It wasn't my part of the code ;)
+> 
+> Just kidding :) This annoying bug has actually been fixed in the
+> trunk, and will go out with the next release.
+
+Great! Is there any timeframe for ragel 6.6 (and maybe kelbt 0.14 with
+-I support? :) ).
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Questa è una parte del messaggio	firmata digitalmente
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090907/7118cdd9/attachment.sig>
+
+From berniepallek at brytech.com  Fri Sep 11 15:20:58 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Fri, 11 Sep 2009 11:20:58 -0400
+Subject: [ragel-users] Overfrequent/premature call of 'on-exit-transition'
+	action
+Message-ID: <4AAA6ADA.6090608@brytech.com>
+
+<cid:part1.03050701.01060104 at brytech.com>Hello,
+
+We are working on a parser for data blocks, and we've encountered some 
+confusion. An action is being taken more frequently than expected (or 
+prematurely). We've attached a few files that should be helpful (in 
+addition to the original Ragel script). The PNG has been painted on to 
+show where the unexpected action (circled in red) is expected to appear 
+on the graph (end of red arrow).
+
+If file attachments get scrubbed (if they are disallowed, I apologize), 
+please let me know, and I'll figure out how to convey the info another way.
+
+Just to be clear, we are trying to parse a block of data that is 
+composed of a small header which contains 'n', followed by 'n' number of 
+16-bit words, *then* we want the rogue action ("processCompleteMessage") 
+to be taken; instead, it is taken after each 16-bit word is collected.
+
+Thanks for any input.
+
+Best regards,
+
+- bernie
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.cpp
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090911/b258d9f5/attachment.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.dot
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090911/b258d9f5/attachment-0001.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: problemDemo.png
+Type: image/png
+Size: 41633 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090911/b258d9f5/attachment.png>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090911/b258d9f5/attachment-0002.ksh>
+
+From berniepallek at brytech.com  Fri Sep 11 21:52:19 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Fri, 11 Sep 2009 17:52:19 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAA6ADA.6090608@brytech.com>
+References: <4AAA6ADA.6090608@brytech.com>
+Message-ID: <4AAAC693.1000507@brytech.com>
+
+Bernie Pallek wrote:
+> <cid:part1.03050701.01060104 at brytech.com>Hello,
+>
+> We are working on a parser for data blocks, and we've encountered some 
+> confusion. An action is being taken more frequently than expected (or 
+> prematurely). We've attached a few files that should be helpful (in 
+> addition to the original Ragel script). The PNG has been painted on to 
+> show where the unexpected action (circled in red) is expected to 
+> appear on the graph (end of red arrow).
+> ...
+Well, it looks like we've overcome our various problems. In the end, the 
+most significant consideration was using '%' instead of '@' to trigger 
+the "processCompleteMessage" action. It's not ideal, because I'd prefer 
+to call the action after having received the expected number of samples, 
+as opposed to on transition to the start of the next block. In other 
+words, if we receive exactly one block's worth of data, we won't process 
+that block until at least one more byte enters the parser. Any 
+recommendations on implementing a scheme like that would be appreciated. 
+(If you hadn't guessed, I've been only been working with Ragel for about 
+24 hours so far, so I apologize if I'm clogging the list with stupid 
+questions).
+
+Cheers,
+
+- bernie
+
+
+
+
+From thurston at complang.org  Sat Sep 12 03:20:27 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 11 Sep 2009 23:20:27 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAAC693.1000507@brytech.com>
+References: <4AAA6ADA.6090608@brytech.com> <4AAAC693.1000507@brytech.com>
+Message-ID: <4AAB137B.40606@complang.org>
+
+Hey Bernie,
+
+You could do it like this. You'll have to remember to decrement 
+dataRemaining by two bytes first.
+
+dataBlock =
+     0 Word16b @storeSamplesPerBlock
+     (Word16b @storeData when dataRemaining)*
+     (Word16b @storeData when !dataRemaining)
+     @processCompleteMessage;
+
+One problem with this is that it assumes you've got at least one 2-byte 
+sample in each block. Is that an acceptable assumption?
+
+-Adrian
+
+Bernie Pallek wrote:
+> Bernie Pallek wrote:
+>> <cid:part1.03050701.01060104 at brytech.com>Hello,
+>>
+>> We are working on a parser for data blocks, and we've encountered some 
+>> confusion. An action is being taken more frequently than expected (or 
+>> prematurely). We've attached a few files that should be helpful (in 
+>> addition to the original Ragel script). The PNG has been painted on to 
+>> show where the unexpected action (circled in red) is expected to 
+>> appear on the graph (end of red arrow).
+>> ...
+> Well, it looks like we've overcome our various problems. In the end, the 
+> most significant consideration was using '%' instead of '@' to trigger 
+> the "processCompleteMessage" action. It's not ideal, because I'd prefer 
+> to call the action after having received the expected number of samples, 
+> as opposed to on transition to the start of the next block. In other 
+> words, if we receive exactly one block's worth of data, we won't process 
+> that block until at least one more byte enters the parser. Any 
+> recommendations on implementing a scheme like that would be appreciated. 
+> (If you hadn't guessed, I've been only been working with Ragel for about 
+> 24 hours so far, so I apologize if I'm clogging the list with stupid 
+> questions).
+> 
+> Cheers,
+> 
+> - bernie
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From berniepallek at brytech.com  Mon Sep 14 20:30:23 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Mon, 14 Sep 2009 16:30:23 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAB137B.40606@complang.org>
+References: <4AAA6ADA.6090608@brytech.com> <4AAAC693.1000507@brytech.com>
+	<4AAB137B.40606@complang.org>
+Message-ID: <4AAEA7DF.5080203@brytech.com>
+
+Adrian Thurston wrote:
+> You could do it like this. You'll have to remember to decrement 
+> dataRemaining by two bytes first.
+>
+> dataBlock =
+>      0 Word16b @storeSamplesPerBlock
+>      (Word16b @storeData when dataRemaining)*
+>      (Word16b @storeData when !dataRemaining)
+>      @processCompleteMessage;
+>
+> One problem with this is that it assumes you've got at least one 2-byte 
+> sample in each block. Is that an acceptable assumption?
+>   
+
+Ah yes, that looks like a good trick. No worries about having a minimum 
+of one sample; we'll make that a requirement of the protocol.
+
+Cheers,
+
+- bernie
+
+
+
+
+From nbubingo at gmail.com  Mon Sep 21 05:42:54 2009
+From: nbubingo at gmail.com (Weibin Yao)
+Date: Mon, 21 Sep 2009 13:42:54 +0800
+Subject: [ragel-users] A compile error in my box.
+Message-ID: <4AB7125E.8020504@gmail.com>
+
+I check out the source from the svn resr epository:
+|http://svn.complang.org/ragel/trunk/|
+
+#./auogen.sh && ./configure && make
+
+Making all in ragel
+make[1]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+make all-am
+make[2]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+g++ -DHAVE_CONFIG_H -I. -I../aapl -Wall -g -MT ragel-inputdata.o -MD -MP
+-MF .deps/ragel-inputdata.Tpo -c -o ragel-inputdata.o `test -f
+'inputdata.cpp' || echo './'`inputdata.cpp
+inputdata.cpp: In member function ‘void InputData::terminateAllParsers()’:
+inputdata.cpp:207: error: ‘Parser_tk_eof’ was not declared in this scope
+make[2]: *** [ragel-inputdata.o] Error 1
+make[2]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+make: *** [all-recursive] Error 1
+
+My box is debian lenny.
+
+-- 
+Weibin Yao
+
+
+
+
+From thurston at complang.org  Mon Sep 21 12:16:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 21 Sep 2009 08:16:38 -0400
+Subject: [ragel-users] A compile error in my box.
+In-Reply-To: <4AB7125E.8020504@gmail.com>
+References: <4AB7125E.8020504@gmail.com>
+Message-ID: <4AB76EA6.6080906@complang.org>
+
+Hi, you'll need the latest version of kelbt to fix this.
+
+-Adrian
+
+Weibin Yao wrote:
+> I check out the source from the svn resr epository:
+> |http://svn.complang.org/ragel/trunk/|
+> 
+> #./auogen.sh && ./configure && make
+> 
+> Making all in ragel
+> make[1]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+> make all-am
+> make[2]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+> g++ -DHAVE_CONFIG_H -I. -I../aapl -Wall -g -MT ragel-inputdata.o -MD -MP
+> -MF .deps/ragel-inputdata.Tpo -c -o ragel-inputdata.o `test -f
+> 'inputdata.cpp' || echo './'`inputdata.cpp
+> inputdata.cpp: In member function ‘void InputData::terminateAllParsers()’:
+> inputdata.cpp:207: error: ‘Parser_tk_eof’ was not declared in this scope
+> make[2]: *** [ragel-inputdata.o] Error 1
+> make[2]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+> make[1]: *** [all] Error 2
+> make[1]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+> make: *** [all-recursive] Error 1
+> 
+> My box is debian lenny.
+> 
+
+
+
+From wrlach at gmail.com  Thu Sep 24 01:36:12 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Wed, 23 Sep 2009 21:36:12 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+Message-ID: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+
+Hi,
+
+I'm trying to construct a parser for street addresses using Ragel.
+That is to say, a machine that will take a free form address like
+"5553 Barrington Street NW" and parse out the individual components
+(street number, name, suffix, direction). Everything was going
+swimmingly until I started to try to add support for street names with
+multiple tokens in them (e.g. "Bella Vista Avenue NW")
+
+Right now my main machine looks like this:
+
+streetNumber = (digit+ >getStartStr %endNumber);
+streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+suffixFull = space+ suffix
+dirFull = space+ direction
+main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+
+The suffix and dir expressions are really long and boring
+concatenations like this:
+
+directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+
+Anyway, the problem with this simple regular expression is that it
+doesn't give up on parsing the streetName when it begins parsing the
+direction and suffix. So in the above example, it will correctly parse
+"Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+thought that perhaps adding a few ":>>"'s (to stop the processing of
+the streetname when suffixes and directions appear) would help:
+
+main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+
+Unfortunately, that seems to have the side effect of terminating
+parsing of the street name prematurely (bringing us back to square
+one).
+
+It _seems_ like what I'm doing should be straightforward. Basically
+the rule should be: "keep on parsing the street until you find a token
+that unambiguously matches a suffix and/or direction; at that point,
+stop, only keeping the previous tokens". Surely there's a way of
+expressing that in Ragel?
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From thurston at complang.org  Thu Sep 24 01:53:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 23 Sep 2009 21:53:25 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+Message-ID: <4ABAD115.7030905@complang.org>
+
+Hi William,
+
+I think what you need is a traditional lexer. See section 6.3 of the manual.
+
+-Adrian
+
+William Lachance wrote:
+> Hi,
+> 
+> I'm trying to construct a parser for street addresses using Ragel.
+> That is to say, a machine that will take a free form address like
+> "5553 Barrington Street NW" and parse out the individual components
+> (street number, name, suffix, direction). Everything was going
+> swimmingly until I started to try to add support for street names with
+> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+> 
+> Right now my main machine looks like this:
+> 
+> streetNumber = (digit+ >getStartStr %endNumber);
+> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+> suffixFull = space+ suffix
+> dirFull = space+ direction
+> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+> 
+> The suffix and dir expressions are really long and boring
+> concatenations like this:
+> 
+> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+> 
+> Anyway, the problem with this simple regular expression is that it
+> doesn't give up on parsing the streetName when it begins parsing the
+> direction and suffix. So in the above example, it will correctly parse
+> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+> thought that perhaps adding a few ":>>"'s (to stop the processing of
+> the streetname when suffixes and directions appear) would help:
+> 
+> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+> 
+> Unfortunately, that seems to have the side effect of terminating
+> parsing of the street name prematurely (bringing us back to square
+> one).
+> 
+> It _seems_ like what I'm doing should be straightforward. Basically
+> the rule should be: "keep on parsing the street until you find a token
+> that unambiguously matches a suffix and/or direction; at that point,
+> stop, only keeping the previous tokens". Surely there's a way of
+> expressing that in Ragel?
+> 
+
+
+
+From wrlach at gmail.com  Thu Sep 24 19:20:25 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Thu, 24 Sep 2009 15:20:25 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <4ABAD115.7030905@complang.org>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+	<4ABAD115.7030905@complang.org>
+Message-ID: <b78c39a60909241220y6fae4077o9d01b2424fcceb33@mail.gmail.com>
+
+Hi Adrian,
+
+Trying to unpack what you're saying-- do you mean I should try to
+define a scanner (as defined in section 6.3 of the manual) which tries
+the various possibilities for street names (in order from most
+preferred to least)?
+
+So one might have
+
+main := |*
+   streetNameWithSuffixAndDirection;
+   streetNameWithDirection;
+
+
+
+
+2009/9/23 Adrian Thurston <thurston at complang.org>:
+> Hi William,
+>
+> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>
+> -Adrian
+>
+> William Lachance wrote:
+>> Hi,
+>>
+>> I'm trying to construct a parser for street addresses using Ragel.
+>> That is to say, a machine that will take a free form address like
+>> "5553 Barrington Street NW" and parse out the individual components
+>> (street number, name, suffix, direction). Everything was going
+>> swimmingly until I started to try to add support for street names with
+>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>
+>> Right now my main machine looks like this:
+>>
+>> streetNumber = (digit+ >getStartStr %endNumber);
+>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>> suffixFull = space+ suffix
+>> dirFull = space+ direction
+>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>
+>> The suffix and dir expressions are really long and boring
+>> concatenations like this:
+>>
+>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>
+>> Anyway, the problem with this simple regular expression is that it
+>> doesn't give up on parsing the streetName when it begins parsing the
+>> direction and suffix. So in the above example, it will correctly parse
+>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>> the streetname when suffixes and directions appear) would help:
+>>
+>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>
+>> Unfortunately, that seems to have the side effect of terminating
+>> parsing of the street name prematurely (bringing us back to square
+>> one).
+>>
+>> It _seems_ like what I'm doing should be straightforward. Basically
+>> the rule should be: "keep on parsing the street until you find a token
+>> that unambiguously matches a suffix and/or direction; at that point,
+>> stop, only keeping the previous tokens". Surely there's a way of
+>> expressing that in Ragel?
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From wrlach at gmail.com  Thu Sep 24 19:23:44 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Thu, 24 Sep 2009 15:23:44 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <4ABAD115.7030905@complang.org>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+	<4ABAD115.7030905@complang.org>
+Message-ID: <b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+
+(sorry about the duplicated mail-- stupid gmail sent my message before
+it was ready) :)
+
+Hi Adrian,
+
+Thanks for the quick response. Trying to unpack what you're saying--
+do you mean I should try to define a scanner (as defined in section
+6.3 of the manual) which tries the various possibilities for street
+names (in order from most preferred to least)?
+
+So one might have
+
+main := |*
+  streetWithSuffixAndDirection;
+  streetWithDirection;
+  streetWithSuffix
+  street
+
+?
+
+I was looking a little bit more at regular expressions, and it seems
+like perl compatible re's have some special options which allow you to
+define how matches are supposed to occur. For example:
+
+http://www.boost.org/doc/libs/1_40_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html
+
+"*? Matches the previous atom zero or more times, while consuming as
+little input as possible." seems like exactly what I need (a quick
+test indicates it gives the desired behaviour). Would it not be
+possible for ragel to do this sort of thing?
+
+Will
+
+2009/9/23 Adrian Thurston <thurston at complang.org>:
+> Hi William,
+>
+> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>
+> -Adrian
+>
+> William Lachance wrote:
+>> Hi,
+>>
+>> I'm trying to construct a parser for street addresses using Ragel.
+>> That is to say, a machine that will take a free form address like
+>> "5553 Barrington Street NW" and parse out the individual components
+>> (street number, name, suffix, direction). Everything was going
+>> swimmingly until I started to try to add support for street names with
+>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>
+>> Right now my main machine looks like this:
+>>
+>> streetNumber = (digit+ >getStartStr %endNumber);
+>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>> suffixFull = space+ suffix
+>> dirFull = space+ direction
+>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>
+>> The suffix and dir expressions are really long and boring
+>> concatenations like this:
+>>
+>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>
+>> Anyway, the problem with this simple regular expression is that it
+>> doesn't give up on parsing the streetName when it begins parsing the
+>> direction and suffix. So in the above example, it will correctly parse
+>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>> the streetname when suffixes and directions appear) would help:
+>>
+>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>
+>> Unfortunately, that seems to have the side effect of terminating
+>> parsing of the street name prematurely (bringing us back to square
+>> one).
+>>
+>> It _seems_ like what I'm doing should be straightforward. Basically
+>> the rule should be: "keep on parsing the street until you find a token
+>> that unambiguously matches a suffix and/or direction; at that point,
+>> stop, only keeping the previous tokens". Surely there's a way of
+>> expressing that in Ragel?
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From thurston at complang.org  Sun Sep 27 15:44:52 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 27 Sep 2009 11:44:52 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>	<4ABAD115.7030905@complang.org>
+	<b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+Message-ID: <4ABF8874.9090404@complang.org>
+
+If you want shortest match you'll have to program that manually with a 
+union of patterns and some actions to record the shortest one that you 
+want to pull from the head of the input stream.
+
+Perl regex's are quite different from those of Ragel. Perl has a much 
+more sophisticated runtime engine that supports many extensions to 
+regexes. The ragel runtime engine is much simpler, allowing directly 
+executable state machines (using -G2 option).
+
+-Adrian
+
+William Lachance wrote:
+> (sorry about the duplicated mail-- stupid gmail sent my message before
+> it was ready) :)
+> 
+> Hi Adrian,
+> 
+> Thanks for the quick response. Trying to unpack what you're saying--
+> do you mean I should try to define a scanner (as defined in section
+> 6.3 of the manual) which tries the various possibilities for street
+> names (in order from most preferred to least)?
+> 
+> So one might have
+> 
+> main := |*
+>   streetWithSuffixAndDirection;
+>   streetWithDirection;
+>   streetWithSuffix
+>   street
+> 
+> ?
+> 
+> I was looking a little bit more at regular expressions, and it seems
+> like perl compatible re's have some special options which allow you to
+> define how matches are supposed to occur. For example:
+> 
+> http://www.boost.org/doc/libs/1_40_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html
+> 
+> "*? Matches the previous atom zero or more times, while consuming as
+> little input as possible." seems like exactly what I need (a quick
+> test indicates it gives the desired behaviour). Would it not be
+> possible for ragel to do this sort of thing?
+> 
+> Will
+> 
+> 2009/9/23 Adrian Thurston <thurston at complang.org>:
+>> Hi William,
+>>
+>> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>>
+>> -Adrian
+>>
+>> William Lachance wrote:
+>>> Hi,
+>>>
+>>> I'm trying to construct a parser for street addresses using Ragel.
+>>> That is to say, a machine that will take a free form address like
+>>> "5553 Barrington Street NW" and parse out the individual components
+>>> (street number, name, suffix, direction). Everything was going
+>>> swimmingly until I started to try to add support for street names with
+>>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>>
+>>> Right now my main machine looks like this:
+>>>
+>>> streetNumber = (digit+ >getStartStr %endNumber);
+>>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>>> suffixFull = space+ suffix
+>>> dirFull = space+ direction
+>>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>>
+>>> The suffix and dir expressions are really long and boring
+>>> concatenations like this:
+>>>
+>>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>>
+>>> Anyway, the problem with this simple regular expression is that it
+>>> doesn't give up on parsing the streetName when it begins parsing the
+>>> direction and suffix. So in the above example, it will correctly parse
+>>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>>> the streetname when suffixes and directions appear) would help:
+>>>
+>>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>>
+>>> Unfortunately, that seems to have the side effect of terminating
+>>> parsing of the street name prematurely (bringing us back to square
+>>> one).
+>>>
+>>> It _seems_ like what I'm doing should be straightforward. Basically
+>>> the rule should be: "keep on parsing the street until you find a token
+>>> that unambiguously matches a suffix and/or direction; at that point,
+>>> stop, only keeping the previous tokens". Surely there's a way of
+>>> expressing that in Ragel?
+>>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+> 
+> 
+> 
+
+
+
+From nwebster at biopeak.com  Wed Sep  2 17:08:19 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Wed, 02 Sep 2009 13:08:19 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+Message-ID: <1251911299.7920.12.camel@neil-laptop>
+
+I am trying to create a reusable structure for reading in data from a
+binary data stream. I have attached a ragel file that demonstrates the
+problem I am having and would appreciate tips and advice on what I am
+doing wrong or better ways to go about solving the problem.
+
+I have defined Word8b, Word16b and Word32b to represent the blocks I
+will be reading from the data stream. The data is accumulated into a
+temporary variable (temp) and then assigned to the specific variable on
+exit from the appropriate machine. It works fine for small numbers but
+does strange things with numbers >127. It seems to be a problem with
+signed vs unsigned but I can't figure out what it is.
+
+What I expect
+a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+
+What I get
+ 
+a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+
+
+
+
+
+From nwebster at biopeak.com  Wed Sep  2 17:10:32 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Wed, 02 Sep 2009 13:10:32 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+In-Reply-To: <1251911299.7920.12.camel@neil-laptop>
+References: <1251911299.7920.12.camel@neil-laptop>
+Message-ID: <1251911432.7920.14.camel@neil-laptop>
+
+Hi Guys,
+
+Please accept my apologies for the email clutter but I forgot the
+attachment ....
+
+On Wed, 2009-09-02 at 13:08 -0400, Neil Webster wrote:
+
+> I am trying to create a reusable structure for reading in data from a
+> binary data stream. I have attached a ragel file that demonstrates the
+> problem I am having and would appreciate tips and advice on what I am
+> doing wrong or better ways to go about solving the problem.
+> 
+> I have defined Word8b, Word16b and Word32b to represent the blocks I
+> will be reading from the data stream. The data is accumulated into a
+> temporary variable (temp) and then assigned to the specific variable on
+> exit from the appropriate machine. It works fine for small numbers but
+> does strange things with numbers >127. It seems to be a problem with
+> signed vs unsigned but I can't figure out what it is.
+> 
+> What I expect
+> a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+> 
+> What I get
+>  
+> a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+> 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090902/682311f0/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: demoIssue.rl
+Type: text/x-csrc
+Size: 1015 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090902/682311f0/attachment-0001.c>
+
+From adrian.thurston at esentire.com  Wed Sep  2 17:17:04 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 02 Sep 2009 13:17:04 -0400
+Subject: [ragel-users] Newbie problem with reading unsigned numbers
+In-Reply-To: <1251911432.7920.14.camel@neil-laptop>
+References: <1251911299.7920.12.camel@neil-laptop>
+	<1251911432.7920.14.camel@neil-laptop>
+Message-ID: <4A9EA890.4080707@esentire.com>
+
+The problem is casting. The fc expression is signed char (since the 
+default alphabet is char) and it is being upcast to int size. In the 
+process the high bits become 1 to preserve the negative property of the 
+value.
+
+Use:
+
+alphtype unsigned char;
+
+And make p and pe unsigned char* type;
+
+-Adrian
+
+Neil Webster wrote:
+> Hi Guys,
+> 
+> Please accept my apologies for the email clutter but I forgot the 
+> attachment ....
+> 
+> On Wed, 2009-09-02 at 13:08 -0400, Neil Webster wrote:
+>> I am trying to create a reusable structure for reading in data from a
+>> binary data stream. I have attached a ragel file that demonstrates the
+>> problem I am having and would appreciate tips and advice on what I am
+>> doing wrong or better ways to go about solving the problem.
+>>
+>> I have defined Word8b, Word16b and Word32b to represent the blocks I
+>> will be reading from the data stream. The data is accumulated into a
+>> temporary variable (temp) and then assigned to the specific variable on
+>> exit from the appropriate machine. It works fine for small numbers but
+>> does strange things with numbers >127. It seems to be a problem with
+>> signed vs unsigned but I can't figure out what it is.
+>>
+>> What I expect
+>> a8 1 b8 ff a16 2 b16 fe a32 3 b32 fd
+>>
+>> What I get
+>>  
+>> a8 1 b8 ffff a16 2 b16 fffe a32 3 b32 fffffffd 
+>>
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From voidptrptr at gmail.com  Fri Sep  4 23:05:17 2009
+From: voidptrptr at gmail.com (=?ISO-8859-1?Q?Youn=E8s_HAFRI?=)
+Date: Sat, 5 Sep 2009 01:05:17 +0200
+Subject: [ragel-users] Ragel for JSON
+Message-ID: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+
+Hi List,
+I started this week a small project to learn how to use "Ragel" on something
+useful.
+
+The idea is to parse JSON (www.json.org) data-interchange format. I've
+posted my solution below with the corresponding graphviz FSM.
+Lexing is OK and I can parse eveything correctly (except JSON comments ... I
+don't care about them).
+
+My question is for Ragel GURUS : is there a better way to do it ? Could I
+parse JSON faster than that ?
+
+Any hint, tricks to improve speed will be very welcome ;)
+
+N.B: the beauty of JSON is that you need exactly one character lookahead to
+parse everything.
+But I don't know if my Ragel code is doing a good job on that.
+
+Thanks in advance
+Ferret
+
+======================================================
+   myspace        = [ \n\r\t];
+    endspace       = any - myspace;
+    end            = [\]},\[{}\":tfn] | myspace;
+
+    exp            = ([eE] >number_float . [+\-]? . digit+) $append . (end
+>number_break)?;
+    float          = ('.' >number_float  . digit+) $append . (exp | end
+>number_break)?;
+
+    number         = (('-' >number_signed)? $append) . (('0' | ([1-9] .
+digit*)) >number_unsigned $append . (float | exp | end >number_break)?);
+
+    unicode        = ((0 .. 0xd777) | (0xe000 .. 0x10ffff));
+    string         = '"' . (
+                   start: (
+                           (unicode - [\"\\]) $append -> start |
+                           '"' (any >string_break)? -> final |
+                           '\\' >append -> unquote
+                           ),
+                   unquote: ([\"\\/bfnrt] >append -> start |
+                             'u' $append . (xdigit{4} $append) -> start
+                             ),
+                   final: empty
+                   );
+
+     blank        = myspace+ (endspace >break)?;
+     true         = 'true'   (any >true_break)?;
+     false        = 'false'  (any >false_break)?;
+     nil          = 'null'   (any >null_break)?;
+     object_start = '{'      (any >left_brace_break)?;
+     object_end   = '}'      (any >right_brace_break)?;
+     array_start  = '['      (any >left_bracket_break)?;
+     array_end    = ']'      (any >right_bracket_break)?;
+     comma        = ','      (any >comma_break)?;
+     colon        = ':'      (any >colon_break )?;
+     eoi          = 0 >eoi_break;
+
+     main := (
+              object_start |
+              object_end   |
+              array_start  |
+              array_end    |
+              colon        |
+              comma        |
+              string       |
+              number       |
+              true         |
+              false        |
+              nil          |
+              blank        |
+              eoi
+              ) >clear;
+}%%
+
+======================================================
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090905/58fbe147/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: json_ragel_fsm.png.gz
+Type: application/x-gzip
+Size: 501981 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090905/58fbe147/attachment-0001.bin>
+
+From flameeyes at gmail.com  Sun Sep  6 20:09:00 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sun, 06 Sep 2009 22:09:00 +0200
+Subject: [ragel-users] Wrong #line directive emitted when including files
+Message-ID: <1252267745.16199.6.camel@yamato>
+
+I've been spending half an hour to find a build error in my code because
+of this bug so here comes an useful testcase ;)
+
+When including statemachines from multiple files, the #line directive
+emitted in the .c file, which is used to report errors by gcc, is
+_always_ referencing the converted .rl file. In the case of the testcase
+I'm attaching (which is a reduced version of what I hit), gcc is going
+to report an error in a line that is a comment:
+
+flame at yamato testcase-bug-ragel % ragel test.rl
+flame at yamato testcase-bug-ragel % gcc test.c -c
+test.rl: In function ‘test’:
+test.rl:9: error: ‘line’ undeclared (first use in this function)
+test.rl:9: error: (Each undeclared identifier is reported only once
+test.rl:9: error: for each function it appears in.)
+flame at yamato testcase-bug-ragel % sed -n -e 9p test.rl 
+ *
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: common.rl
+Type: text/x-matlab
+Size: 1359 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090906/b9989ea2/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.rl
+Type: text/x-csrc
+Size: 321 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090906/b9989ea2/attachment-0001.c>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Questa è una parte del messaggio	firmata digitalmente
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090906/b9989ea2/attachment-0001.sig>
+
+From thurston at complang.org  Sun Sep  6 20:38:56 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 6 Sep 2009 20:38:56 +0000
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+Message-ID: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+
+In the break actions I'm assuming that you're returning a token to the caller?  I'm using email on my phone right now so it's hard for me to read. 
+
+If you want to squeeze more time out of it I would suggest calling the parsing functions right from the ragel actions. I'm not sure how much faster that will be though.
+
+Adrian
+-----Original Message-----
+From: Younès HAFRI <voidptrptr at gmail.com>
+
+Date: Sat, 5 Sep 2009 01:05:17 
+To: <ragel-users at complang.org>
+Subject: [ragel-users] Ragel for JSON
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Sep  6 20:41:47 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 6 Sep 2009 20:41:47 +0000
+Subject: [ragel-users] Wrong #line directive emitted when including files
+In-Reply-To: <1252267745.16199.6.camel@yamato>
+References: <1252267745.16199.6.camel@yamato>
+Message-ID: <949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+
+The solution is to always write code without any compilation errors. 
+
+Just kidding :) This annoying bug has actually been fixed in the trunk, and will go out with the next release.
+
+Thanks,
+ Adrian
+-----Original Message-----
+From: "Diego E." “Flameeyes” 
+	Petten� <flameeyes at gmail.com>
+
+Date: Sun, 06 Sep 2009 22:09:00 
+To: <ragel-users at complang.org>
+Subject: [ragel-users] Wrong #line directive emitted when including files
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From voidptrptr at gmail.com  Sun Sep  6 22:51:51 2009
+From: voidptrptr at gmail.com (WARC)
+Date: Mon, 7 Sep 2009 00:51:51 +0200
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+	<1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+Message-ID: <296A7FD7-1E0A-46AC-9E91-8E2BE9223EC4@gmail.com>
+
+> In the break actions I'm assuming that you're returning a token to  
+> the caller?
+
+Yep. Each time Ragel advance "p", I save that character in a global  
+buffer. This is how I built all the actions.
+
+> If you want to squeeze more time out of it I would suggest calling  
+> the parsing functions right from the ragel actions.
+
+Didn't know that. Is there any example showing this feature?
+
+> I'm not sure how much faster that will be though.
+
+The idea I'm thinking about is to wait until a token is fully  
+identified by Ragel, and then copy it to a buffer in one shot.
+Maybe this will be faster than copying tokens character by character.  
+I am right?
+
+--F.
+
+>
+> Adrian
+> -----Original Message-----
+> From: Younès HAFRI <voidptrptr at gmail.com>
+>
+> Date: Sat, 5 Sep 2009 01:05:17
+> To: <ragel-users at complang.org>
+> Subject: [ragel-users] Ragel for JSON
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From voidptrptr at gmail.com  Mon Sep  7 02:51:17 2009
+From: voidptrptr at gmail.com (WARC)
+Date: Mon, 7 Sep 2009 04:51:17 +0200
+Subject: [ragel-users] Ragel for JSON
+In-Reply-To: <1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+References: <ec8ab8c50909041605l55047ab2m1480aef59ec649ca@mail.gmail.com>
+	<1099524987-1252269524-cardhu_decombobulator_blackberry.rim.net-72558144-@bda675.bisx.prod.on.blackberry>
+Message-ID: <52F9A3FF-241C-4142-B35B-6A3AC0592D0A@gmail.com>
+
+Following my idea to lazy copy "tokens" into a buffer (instead of char  
+by char) didn't improve the performance a lot (%1 improvement).
+I'm trying to rewrite Ragel's code for parsing of "integer", "unsigned  
+integer" and "float" numbers.
+
+Your advices will be very welcome !
+
+Le 6 sept. 09 à 22:38, Adrian Thurston a écrit :
+
+> In the break actions I'm assuming that you're returning a token to  
+> the caller?  I'm using email on my phone right now so it's hard for  
+> me to read.
+>
+> If you want to squeeze more time out of it I would suggest calling  
+> the parsing functions right from the ragel actions. I'm not sure how  
+> much faster that will be though.
+>
+> Adrian
+> -----Original Message-----
+> From: Younès HAFRI <voidptrptr at gmail.com>
+>
+> Date: Sat, 5 Sep 2009 01:05:17
+> To: <ragel-users at complang.org>
+> Subject: [ragel-users] Ragel for JSON
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From flameeyes at gmail.com  Mon Sep  7 08:35:22 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Mon, 07 Sep 2009 10:35:22 +0200
+Subject: [ragel-users] Wrong #line directive emitted when including files
+In-Reply-To: <949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+References: <1252267745.16199.6.camel@yamato>
+	<949883037-1252269696-cardhu_decombobulator_blackberry.rim.net-1569132676-@bda675.bisx.prod.on.blackberry>
+Message-ID: <1252312527.16199.20.camel@yamato>
+
+Il giorno Sun, 06/09/2009 alle 20.41 +0000, Adrian Thurston ha scritto:
+> The solution is to always write code without any compilation errors. 
+
+It wasn't my part of the code ;)
+> 
+> Just kidding :) This annoying bug has actually been fixed in the
+> trunk, and will go out with the next release.
+
+Great! Is there any timeframe for ragel 6.6 (and maybe kelbt 0.14 with
+-I support? :) ).
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Questa è una parte del messaggio	firmata digitalmente
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090907/7118cdd9/attachment-0001.sig>
+
+From berniepallek at brytech.com  Fri Sep 11 15:20:58 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Fri, 11 Sep 2009 11:20:58 -0400
+Subject: [ragel-users] Overfrequent/premature call of 'on-exit-transition'
+	action
+Message-ID: <4AAA6ADA.6090608@brytech.com>
+
+<cid:part1.03050701.01060104 at brytech.com>Hello,
+
+We are working on a parser for data blocks, and we've encountered some 
+confusion. An action is being taken more frequently than expected (or 
+prematurely). We've attached a few files that should be helpful (in 
+addition to the original Ragel script). The PNG has been painted on to 
+show where the unexpected action (circled in red) is expected to appear 
+on the graph (end of red arrow).
+
+If file attachments get scrubbed (if they are disallowed, I apologize), 
+please let me know, and I'll figure out how to convey the info another way.
+
+Just to be clear, we are trying to parse a block of data that is 
+composed of a small header which contains 'n', followed by 'n' number of 
+16-bit words, *then* we want the rogue action ("processCompleteMessage") 
+to be taken; instead, it is taken after each 16-bit word is collected.
+
+Thanks for any input.
+
+Best regards,
+
+- bernie
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.cpp
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090911/b258d9f5/attachment-0003.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.dot
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090911/b258d9f5/attachment-0004.ksh>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: problemDemo.png
+Type: image/png
+Size: 41633 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090911/b258d9f5/attachment-0001.png>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: problemDemo.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090911/b258d9f5/attachment-0005.ksh>
+
+From berniepallek at brytech.com  Fri Sep 11 21:52:19 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Fri, 11 Sep 2009 17:52:19 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAA6ADA.6090608@brytech.com>
+References: <4AAA6ADA.6090608@brytech.com>
+Message-ID: <4AAAC693.1000507@brytech.com>
+
+Bernie Pallek wrote:
+> <cid:part1.03050701.01060104 at brytech.com>Hello,
+>
+> We are working on a parser for data blocks, and we've encountered some 
+> confusion. An action is being taken more frequently than expected (or 
+> prematurely). We've attached a few files that should be helpful (in 
+> addition to the original Ragel script). The PNG has been painted on to 
+> show where the unexpected action (circled in red) is expected to 
+> appear on the graph (end of red arrow).
+> ...
+Well, it looks like we've overcome our various problems. In the end, the 
+most significant consideration was using '%' instead of '@' to trigger 
+the "processCompleteMessage" action. It's not ideal, because I'd prefer 
+to call the action after having received the expected number of samples, 
+as opposed to on transition to the start of the next block. In other 
+words, if we receive exactly one block's worth of data, we won't process 
+that block until at least one more byte enters the parser. Any 
+recommendations on implementing a scheme like that would be appreciated. 
+(If you hadn't guessed, I've been only been working with Ragel for about 
+24 hours so far, so I apologize if I'm clogging the list with stupid 
+questions).
+
+Cheers,
+
+- bernie
+
+
+
+
+From thurston at complang.org  Sat Sep 12 03:20:27 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 11 Sep 2009 23:20:27 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAAC693.1000507@brytech.com>
+References: <4AAA6ADA.6090608@brytech.com> <4AAAC693.1000507@brytech.com>
+Message-ID: <4AAB137B.40606@complang.org>
+
+Hey Bernie,
+
+You could do it like this. You'll have to remember to decrement 
+dataRemaining by two bytes first.
+
+dataBlock =
+     0 Word16b @storeSamplesPerBlock
+     (Word16b @storeData when dataRemaining)*
+     (Word16b @storeData when !dataRemaining)
+     @processCompleteMessage;
+
+One problem with this is that it assumes you've got at least one 2-byte 
+sample in each block. Is that an acceptable assumption?
+
+-Adrian
+
+Bernie Pallek wrote:
+> Bernie Pallek wrote:
+>> <cid:part1.03050701.01060104 at brytech.com>Hello,
+>>
+>> We are working on a parser for data blocks, and we've encountered some 
+>> confusion. An action is being taken more frequently than expected (or 
+>> prematurely). We've attached a few files that should be helpful (in 
+>> addition to the original Ragel script). The PNG has been painted on to 
+>> show where the unexpected action (circled in red) is expected to 
+>> appear on the graph (end of red arrow).
+>> ...
+> Well, it looks like we've overcome our various problems. In the end, the 
+> most significant consideration was using '%' instead of '@' to trigger 
+> the "processCompleteMessage" action. It's not ideal, because I'd prefer 
+> to call the action after having received the expected number of samples, 
+> as opposed to on transition to the start of the next block. In other 
+> words, if we receive exactly one block's worth of data, we won't process 
+> that block until at least one more byte enters the parser. Any 
+> recommendations on implementing a scheme like that would be appreciated. 
+> (If you hadn't guessed, I've been only been working with Ragel for about 
+> 24 hours so far, so I apologize if I'm clogging the list with stupid 
+> questions).
+> 
+> Cheers,
+> 
+> - bernie
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From berniepallek at brytech.com  Mon Sep 14 20:30:23 2009
+From: berniepallek at brytech.com (Bernie Pallek)
+Date: Mon, 14 Sep 2009 16:30:23 -0400
+Subject: [ragel-users] more or less solved -- Overfrequent/premature
+ call of 'on-exit-transition' action
+In-Reply-To: <4AAB137B.40606@complang.org>
+References: <4AAA6ADA.6090608@brytech.com> <4AAAC693.1000507@brytech.com>
+	<4AAB137B.40606@complang.org>
+Message-ID: <4AAEA7DF.5080203@brytech.com>
+
+Adrian Thurston wrote:
+> You could do it like this. You'll have to remember to decrement 
+> dataRemaining by two bytes first.
+>
+> dataBlock =
+>      0 Word16b @storeSamplesPerBlock
+>      (Word16b @storeData when dataRemaining)*
+>      (Word16b @storeData when !dataRemaining)
+>      @processCompleteMessage;
+>
+> One problem with this is that it assumes you've got at least one 2-byte 
+> sample in each block. Is that an acceptable assumption?
+>   
+
+Ah yes, that looks like a good trick. No worries about having a minimum 
+of one sample; we'll make that a requirement of the protocol.
+
+Cheers,
+
+- bernie
+
+
+
+
+From nbubingo at gmail.com  Mon Sep 21 05:42:54 2009
+From: nbubingo at gmail.com (Weibin Yao)
+Date: Mon, 21 Sep 2009 13:42:54 +0800
+Subject: [ragel-users] A compile error in my box.
+Message-ID: <4AB7125E.8020504@gmail.com>
+
+I check out the source from the svn resr epository:
+|http://svn.complang.org/ragel/trunk/|
+
+#./auogen.sh && ./configure && make
+
+Making all in ragel
+make[1]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+make all-am
+make[2]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+g++ -DHAVE_CONFIG_H -I. -I../aapl -Wall -g -MT ragel-inputdata.o -MD -MP
+-MF .deps/ragel-inputdata.Tpo -c -o ragel-inputdata.o `test -f
+'inputdata.cpp' || echo './'`inputdata.cpp
+inputdata.cpp: In member function ‘void InputData::terminateAllParsers()’:
+inputdata.cpp:207: error: ‘Parser_tk_eof’ was not declared in this scope
+make[2]: *** [ragel-inputdata.o] Error 1
+make[2]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+make: *** [all-recursive] Error 1
+
+My box is debian lenny.
+
+-- 
+Weibin Yao
+
+
+
+
+From thurston at complang.org  Mon Sep 21 12:16:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 21 Sep 2009 08:16:38 -0400
+Subject: [ragel-users] A compile error in my box.
+In-Reply-To: <4AB7125E.8020504@gmail.com>
+References: <4AB7125E.8020504@gmail.com>
+Message-ID: <4AB76EA6.6080906@complang.org>
+
+Hi, you'll need the latest version of kelbt to fix this.
+
+-Adrian
+
+Weibin Yao wrote:
+> I check out the source from the svn resr epository:
+> |http://svn.complang.org/ragel/trunk/|
+> 
+> #./auogen.sh && ./configure && make
+> 
+> Making all in ragel
+> make[1]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+> make all-am
+> make[2]: Entering directory `/home/yaoweibin/work/ragel/ragel'
+> g++ -DHAVE_CONFIG_H -I. -I../aapl -Wall -g -MT ragel-inputdata.o -MD -MP
+> -MF .deps/ragel-inputdata.Tpo -c -o ragel-inputdata.o `test -f
+> 'inputdata.cpp' || echo './'`inputdata.cpp
+> inputdata.cpp: In member function ‘void InputData::terminateAllParsers()’:
+> inputdata.cpp:207: error: ‘Parser_tk_eof’ was not declared in this scope
+> make[2]: *** [ragel-inputdata.o] Error 1
+> make[2]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+> make[1]: *** [all] Error 2
+> make[1]: Leaving directory `/home/yaoweibin/work/ragel/ragel'
+> make: *** [all-recursive] Error 1
+> 
+> My box is debian lenny.
+> 
+
+
+
+From wrlach at gmail.com  Thu Sep 24 01:36:12 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Wed, 23 Sep 2009 21:36:12 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+Message-ID: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+
+Hi,
+
+I'm trying to construct a parser for street addresses using Ragel.
+That is to say, a machine that will take a free form address like
+"5553 Barrington Street NW" and parse out the individual components
+(street number, name, suffix, direction). Everything was going
+swimmingly until I started to try to add support for street names with
+multiple tokens in them (e.g. "Bella Vista Avenue NW")
+
+Right now my main machine looks like this:
+
+streetNumber = (digit+ >getStartStr %endNumber);
+streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+suffixFull = space+ suffix
+dirFull = space+ direction
+main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+
+The suffix and dir expressions are really long and boring
+concatenations like this:
+
+directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+
+Anyway, the problem with this simple regular expression is that it
+doesn't give up on parsing the streetName when it begins parsing the
+direction and suffix. So in the above example, it will correctly parse
+"Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+thought that perhaps adding a few ":>>"'s (to stop the processing of
+the streetname when suffixes and directions appear) would help:
+
+main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+
+Unfortunately, that seems to have the side effect of terminating
+parsing of the street name prematurely (bringing us back to square
+one).
+
+It _seems_ like what I'm doing should be straightforward. Basically
+the rule should be: "keep on parsing the street until you find a token
+that unambiguously matches a suffix and/or direction; at that point,
+stop, only keeping the previous tokens". Surely there's a way of
+expressing that in Ragel?
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From thurston at complang.org  Thu Sep 24 01:53:25 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 23 Sep 2009 21:53:25 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+Message-ID: <4ABAD115.7030905@complang.org>
+
+Hi William,
+
+I think what you need is a traditional lexer. See section 6.3 of the manual.
+
+-Adrian
+
+William Lachance wrote:
+> Hi,
+> 
+> I'm trying to construct a parser for street addresses using Ragel.
+> That is to say, a machine that will take a free form address like
+> "5553 Barrington Street NW" and parse out the individual components
+> (street number, name, suffix, direction). Everything was going
+> swimmingly until I started to try to add support for street names with
+> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+> 
+> Right now my main machine looks like this:
+> 
+> streetNumber = (digit+ >getStartStr %endNumber);
+> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+> suffixFull = space+ suffix
+> dirFull = space+ direction
+> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+> 
+> The suffix and dir expressions are really long and boring
+> concatenations like this:
+> 
+> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+> 
+> Anyway, the problem with this simple regular expression is that it
+> doesn't give up on parsing the streetName when it begins parsing the
+> direction and suffix. So in the above example, it will correctly parse
+> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+> thought that perhaps adding a few ":>>"'s (to stop the processing of
+> the streetname when suffixes and directions appear) would help:
+> 
+> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+> 
+> Unfortunately, that seems to have the side effect of terminating
+> parsing of the street name prematurely (bringing us back to square
+> one).
+> 
+> It _seems_ like what I'm doing should be straightforward. Basically
+> the rule should be: "keep on parsing the street until you find a token
+> that unambiguously matches a suffix and/or direction; at that point,
+> stop, only keeping the previous tokens". Surely there's a way of
+> expressing that in Ragel?
+> 
+
+
+
+From wrlach at gmail.com  Thu Sep 24 19:20:25 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Thu, 24 Sep 2009 15:20:25 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <4ABAD115.7030905@complang.org>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+	<4ABAD115.7030905@complang.org>
+Message-ID: <b78c39a60909241220y6fae4077o9d01b2424fcceb33@mail.gmail.com>
+
+Hi Adrian,
+
+Trying to unpack what you're saying-- do you mean I should try to
+define a scanner (as defined in section 6.3 of the manual) which tries
+the various possibilities for street names (in order from most
+preferred to least)?
+
+So one might have
+
+main := |*
+   streetNameWithSuffixAndDirection;
+   streetNameWithDirection;
+
+
+
+
+2009/9/23 Adrian Thurston <thurston at complang.org>:
+> Hi William,
+>
+> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>
+> -Adrian
+>
+> William Lachance wrote:
+>> Hi,
+>>
+>> I'm trying to construct a parser for street addresses using Ragel.
+>> That is to say, a machine that will take a free form address like
+>> "5553 Barrington Street NW" and parse out the individual components
+>> (street number, name, suffix, direction). Everything was going
+>> swimmingly until I started to try to add support for street names with
+>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>
+>> Right now my main machine looks like this:
+>>
+>> streetNumber = (digit+ >getStartStr %endNumber);
+>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>> suffixFull = space+ suffix
+>> dirFull = space+ direction
+>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>
+>> The suffix and dir expressions are really long and boring
+>> concatenations like this:
+>>
+>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>
+>> Anyway, the problem with this simple regular expression is that it
+>> doesn't give up on parsing the streetName when it begins parsing the
+>> direction and suffix. So in the above example, it will correctly parse
+>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>> the streetname when suffixes and directions appear) would help:
+>>
+>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>
+>> Unfortunately, that seems to have the side effect of terminating
+>> parsing of the street name prematurely (bringing us back to square
+>> one).
+>>
+>> It _seems_ like what I'm doing should be straightforward. Basically
+>> the rule should be: "keep on parsing the street until you find a token
+>> that unambiguously matches a suffix and/or direction; at that point,
+>> stop, only keeping the previous tokens". Surely there's a way of
+>> expressing that in Ragel?
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From wrlach at gmail.com  Thu Sep 24 19:23:44 2009
+From: wrlach at gmail.com (William Lachance)
+Date: Thu, 24 Sep 2009 15:23:44 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <4ABAD115.7030905@complang.org>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>
+	<4ABAD115.7030905@complang.org>
+Message-ID: <b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+
+(sorry about the duplicated mail-- stupid gmail sent my message before
+it was ready) :)
+
+Hi Adrian,
+
+Thanks for the quick response. Trying to unpack what you're saying--
+do you mean I should try to define a scanner (as defined in section
+6.3 of the manual) which tries the various possibilities for street
+names (in order from most preferred to least)?
+
+So one might have
+
+main := |*
+  streetWithSuffixAndDirection;
+  streetWithDirection;
+  streetWithSuffix
+  street
+
+?
+
+I was looking a little bit more at regular expressions, and it seems
+like perl compatible re's have some special options which allow you to
+define how matches are supposed to occur. For example:
+
+http://www.boost.org/doc/libs/1_40_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html
+
+"*? Matches the previous atom zero or more times, while consuming as
+little input as possible." seems like exactly what I need (a quick
+test indicates it gives the desired behaviour). Would it not be
+possible for ragel to do this sort of thing?
+
+Will
+
+2009/9/23 Adrian Thurston <thurston at complang.org>:
+> Hi William,
+>
+> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>
+> -Adrian
+>
+> William Lachance wrote:
+>> Hi,
+>>
+>> I'm trying to construct a parser for street addresses using Ragel.
+>> That is to say, a machine that will take a free form address like
+>> "5553 Barrington Street NW" and parse out the individual components
+>> (street number, name, suffix, direction). Everything was going
+>> swimmingly until I started to try to add support for street names with
+>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>
+>> Right now my main machine looks like this:
+>>
+>> streetNumber = (digit+ >getStartStr %endNumber);
+>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>> suffixFull = space+ suffix
+>> dirFull = space+ direction
+>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>
+>> The suffix and dir expressions are really long and boring
+>> concatenations like this:
+>>
+>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>
+>> Anyway, the problem with this simple regular expression is that it
+>> doesn't give up on parsing the streetName when it begins parsing the
+>> direction and suffix. So in the above example, it will correctly parse
+>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>> the streetname when suffixes and directions appear) would help:
+>>
+>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>
+>> Unfortunately, that seems to have the side effect of terminating
+>> parsing of the street name prematurely (bringing us back to square
+>> one).
+>>
+>> It _seems_ like what I'm doing should be straightforward. Basically
+>> the rule should be: "keep on parsing the street until you find a token
+>> that unambiguously matches a suffix and/or direction; at that point,
+>> stop, only keeping the previous tokens". Surely there's a way of
+>> expressing that in Ragel?
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+William Lachance
+wrlach at gmail.com
+
+
+
+From thurston at complang.org  Sun Sep 27 15:44:52 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 27 Sep 2009 11:44:52 -0400
+Subject: [ragel-users] Priority issues when doing a street name parser
+In-Reply-To: <b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+References: <b78c39a60909231836u4564ea8dt7454d979f30253b@mail.gmail.com>	<4ABAD115.7030905@complang.org>
+	<b78c39a60909241223i1a64a3ccqd54dc7c545f1374@mail.gmail.com>
+Message-ID: <4ABF8874.9090404@complang.org>
+
+If you want shortest match you'll have to program that manually with a 
+union of patterns and some actions to record the shortest one that you 
+want to pull from the head of the input stream.
+
+Perl regex's are quite different from those of Ragel. Perl has a much 
+more sophisticated runtime engine that supports many extensions to 
+regexes. The ragel runtime engine is much simpler, allowing directly 
+executable state machines (using -G2 option).
+
+-Adrian
+
+William Lachance wrote:
+> (sorry about the duplicated mail-- stupid gmail sent my message before
+> it was ready) :)
+> 
+> Hi Adrian,
+> 
+> Thanks for the quick response. Trying to unpack what you're saying--
+> do you mean I should try to define a scanner (as defined in section
+> 6.3 of the manual) which tries the various possibilities for street
+> names (in order from most preferred to least)?
+> 
+> So one might have
+> 
+> main := |*
+>   streetWithSuffixAndDirection;
+>   streetWithDirection;
+>   streetWithSuffix
+>   street
+> 
+> ?
+> 
+> I was looking a little bit more at regular expressions, and it seems
+> like perl compatible re's have some special options which allow you to
+> define how matches are supposed to occur. For example:
+> 
+> http://www.boost.org/doc/libs/1_40_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html
+> 
+> "*? Matches the previous atom zero or more times, while consuming as
+> little input as possible." seems like exactly what I need (a quick
+> test indicates it gives the desired behaviour). Would it not be
+> possible for ragel to do this sort of thing?
+> 
+> Will
+> 
+> 2009/9/23 Adrian Thurston <thurston at complang.org>:
+>> Hi William,
+>>
+>> I think what you need is a traditional lexer. See section 6.3 of the manual.
+>>
+>> -Adrian
+>>
+>> William Lachance wrote:
+>>> Hi,
+>>>
+>>> I'm trying to construct a parser for street addresses using Ragel.
+>>> That is to say, a machine that will take a free form address like
+>>> "5553 Barrington Street NW" and parse out the individual components
+>>> (street number, name, suffix, direction). Everything was going
+>>> swimmingly until I started to try to add support for street names with
+>>> multiple tokens in them (e.g. "Bella Vista Avenue NW")
+>>>
+>>> Right now my main machine looks like this:
+>>>
+>>> streetNumber = (digit+ >getStartStr %endNumber);
+>>> streetName = (alpha+ (space+ alpha+)*) >getStartStr %endName;
+>>> suffixFull = space+ suffix
+>>> dirFull = space+ direction
+>>> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+>>>
+>>> The suffix and dir expressions are really long and boring
+>>> concatenations like this:
+>>>
+>>> directionWest = ("w"i|"west"i) >getStartStr %endDirWest;
+>>>
+>>> Anyway, the problem with this simple regular expression is that it
+>>> doesn't give up on parsing the streetName when it begins parsing the
+>>> direction and suffix. So in the above example, it will correctly parse
+>>> "Bella Vista", but then overwrite it with "Avenue", and later "NW". I
+>>> thought that perhaps adding a few ":>>"'s (to stop the processing of
+>>> the streetname when suffixes and directions appear) would help:
+>>>
+>>> main := (streetNumber alpha? space+)? streetName :>> suffixFull? :>> dirFull? 0;
+>>>
+>>> Unfortunately, that seems to have the side effect of terminating
+>>> parsing of the street name prematurely (bringing us back to square
+>>> one).
+>>>
+>>> It _seems_ like what I'm doing should be straightforward. Basically
+>>> the rule should be: "keep on parsing the street until you find a token
+>>> that unambiguously matches a suffix and/or direction; at that point,
+>>> stop, only keeping the previous tokens". Surely there's a way of
+>>> expressing that in Ragel?
+>>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+> 
+> 
+> 
+
+
+

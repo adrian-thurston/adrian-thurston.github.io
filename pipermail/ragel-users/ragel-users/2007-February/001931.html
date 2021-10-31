@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> action ordering. is this a bug?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20action%20ordering.%20is%20this%20a%20bug%3F&In-Reply-To=%3C1171870278.925001.61140%40q2g2000cwa.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001930.html">
+   <LINK REL="Next"  HREF="001932.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>action ordering. is this a bug?</H1>
+    <B>Chris Pirazzi</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20action%20ordering.%20is%20this%20a%20bug%3F&In-Reply-To=%3C1171870278.925001.61140%40q2g2000cwa.googlegroups.com%3E"
+       TITLE="action ordering. is this a bug?">cpira... at gmail.com
+       </A><BR>
+    <I>Mon Feb 19 07:31:18 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001930.html">action ordering. is this a bug?
+</A></li>
+        <LI>Next message: <A HREF="001932.html">action ordering. is this a bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1931">[ date ]</a>
+              <a href="thread.html#1931">[ thread ]</a>
+              <a href="subject.html#1931">[ subject ]</a>
+              <a href="author.html#1931">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On Feb 18, 11:29 pm, &quot;Steve Horne&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">stephenhorne... at aol.com</A>&gt; wrote:
+&gt;<i> I understand Adrian won't be around for a couple of weeks. I'm no
+</I>&gt;<i> Ragel expert, but I'll make what I think is an educated guess and hope
+</I>&gt;<i> someone sets both of us straight ;-)
+</I>
+Hi,
+
+Thanks for your response....see below..
+
+&gt;<i> Even entry actions aren't triggered at the start of a rule - they are
+</I>&gt;<i> triggered on entry into the state where the rule has been fully
+</I>&gt;<i> recognised. Basically, the recognition tends to find the smallest
+</I>&gt;<i> building blocks first, progressing to larger building blocks later.
+</I>&gt;<i>
+</I>&gt;<i> In general, entry actions *cannot* be triggered on (for instance) the
+</I>&gt;<i> first character of a rule - you cannot know for sure which is the
+</I>&gt;<i> right rule. Consider what happens when there are two alternatives, for
+</I>&gt;<i> instance...
+</I>&gt;<i>
+</I>&gt;<i> opt1 = a.b;
+</I>&gt;<i> opt2 = a.c;
+</I>&gt;<i> main = opt1 | opt2;
+</I>&gt;<i>
+</I>&gt;<i> When the only input that has been examined is the 'a', you cannot tell
+</I>&gt;<i> whether you have an opt1 or an opt2. Therefore you cannot choose the
+</I>&gt;<i> correct entry action - this can only happen when you have also
+</I>&gt;<i> examined the 'b' or 'c' and entered the state where either opt1 or
+</I>&gt;<i> opt2 has been fully recognised.
+</I>
+Interesting theory, but I tried your grammar:
+
+%%{
+
+machine smaller;
+write data noerror;
+
+opt1 = ('a' . 'b') &gt;{ printf(&quot;&gt;opt1\n&quot;); } @{ printf(&quot;@opt1\n&quot;); }  $
+{ printf(&quot;$opt1\n&quot;); }  %{ printf(&quot;%%opt1\n&quot;); };
+opt2 = ('a' . 'c') &gt;{ printf(&quot;&gt;opt2\n&quot;); } @{ printf(&quot;@opt2\n&quot;); }  $
+{ printf(&quot;$opt2\n&quot;); }  %{ printf(&quot;%%opt2\n&quot;); };
+main := (opt1 | opt2) &gt;{ printf(&quot;&gt;main\n&quot;); } @{ printf(&quot;@main\n&quot;); }
+${ printf(&quot;$main\n&quot;); }  %{ printf(&quot;%%main\n&quot;); };
+
+write init;
+write exec noend;
+
+}%%
+}%%
+
+and it doesn't seem to work that way.  when you view the state
+diagram, you see that
+as soon as we see the 'a', regel calls &quot;&gt;main&quot;, then &quot;&gt;opt1&quot;, and
+&quot;&gt;opt2&quot; (in this
+case, unlike my initial example, this is the order I would expect with
+the
+parents' &quot;&gt;&quot; routine being called first):
+
+&lt;ragel filename=&quot;smaller.rl&quot; lang=&quot;C&quot;&gt;
+&lt;ragel_def name=&quot;smaller&quot;&gt;
+  &lt;alphtype&gt;0&lt;/alphtype&gt;
+  &lt;machine&gt;
+    &lt;action_list length=&quot;9&quot;&gt;
+      &lt;action id=&quot;0&quot; line=&quot;7&quot; col=&quot;21&quot;&gt;&lt;text&gt; printf(&quot;&gt;opt1\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;1&quot; line=&quot;7&quot; col=&quot;45&quot;&gt;&lt;text&gt; printf(&quot;@opt1\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;2&quot; line=&quot;7&quot; col=&quot;70&quot;&gt;&lt;text&gt; printf(&quot;$opt1\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;3&quot; line=&quot;8&quot; col=&quot;21&quot;&gt;&lt;text&gt; printf(&quot;&gt;opt2\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;4&quot; line=&quot;8&quot; col=&quot;45&quot;&gt;&lt;text&gt; printf(&quot;@opt2\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;5&quot; line=&quot;8&quot; col=&quot;70&quot;&gt;&lt;text&gt; printf(&quot;$opt2\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;6&quot; line=&quot;9&quot; col=&quot;24&quot;&gt;&lt;text&gt; printf(&quot;&gt;main\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;7&quot; line=&quot;9&quot; col=&quot;48&quot;&gt;&lt;text&gt; printf(&quot;@main\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;8&quot; line=&quot;9&quot; col=&quot;73&quot;&gt;&lt;text&gt; printf(&quot;$main\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+    &lt;/action_list&gt;
+    &lt;action_table_list length=&quot;3&quot;&gt;
+      &lt;action_table id=&quot;0&quot; length=&quot;6&quot;&gt;6 0 2 3 5 8&lt;/action_table&gt;
+      &lt;action_table id=&quot;1&quot; length=&quot;4&quot;&gt;1 2 7 8&lt;/action_table&gt;
+      &lt;action_table id=&quot;2&quot; length=&quot;4&quot;&gt;4 5 7 8&lt;/action_table&gt;
+    &lt;/action_table_list&gt;
+    &lt;start_state&gt;1&lt;/start_state&gt;
+    &lt;error_state&gt;0&lt;/error_state&gt;
+    &lt;state_list length=&quot;5&quot;&gt;
+      &lt;state id=&quot;0&quot;&gt;
+      &lt;trans_list length=&quot;0&quot;&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;1&quot;&gt;
+      &lt;trans_list length=&quot;1&quot;&gt;
+        &lt;t&gt;97 97 2 0&lt;/t&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;2&quot;&gt;
+      &lt;trans_list length=&quot;2&quot;&gt;
+        &lt;t&gt;98 98 3 1&lt;/t&gt;
+        &lt;t&gt;99 99 4 2&lt;/t&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;3&quot; final=&quot;t&quot;&gt;
+      &lt;trans_list length=&quot;0&quot;&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;4&quot; final=&quot;t&quot;&gt;
+      &lt;trans_list length=&quot;0&quot;&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+    &lt;/state_list&gt;
+  &lt;/machine&gt;
+&lt;/ragel_def&gt;
+&lt;host line=&quot;1&quot; col=&quot;1&quot;&gt;
+
+&lt;/host&gt;
+&lt;write def_name=&quot;smaller&quot; line=&quot;5&quot; col=&quot;1&quot;&gt;&lt;arg&gt;data&lt;/
+arg&gt;&lt;arg&gt;noerror&lt;/arg&gt;&lt;/write&gt;
+&lt;write def_name=&quot;smaller&quot; line=&quot;11&quot; col=&quot;1&quot;&gt;&lt;arg&gt;init&lt;/arg&gt;&lt;/write&gt;
+&lt;write def_name=&quot;smaller&quot; line=&quot;12&quot; col=&quot;1&quot;&gt;&lt;arg&gt;exec&lt;/arg&gt;&lt;arg&gt;noend&lt;/
+arg&gt;&lt;/write&gt;
+&lt;host line=&quot;14&quot;&gt;
+
+}&lt;/host&gt;
+&lt;host line=&quot;16&quot;&gt;&lt;/host&gt;
+&lt;/ragel&gt;
+
+it seems like if ragel waited to call the &quot;&gt;&quot; routine until it found a
+match, then
+this would be the same as the &quot;@&quot; routine or the &quot;$&quot; routine.  the &quot;&gt;&quot;
+routine
+is then useful for creating some state (e.g. allocating a memory
+location)
+which can later be filled in if the rule matches.
+
+any other ideas?
+
+     - Chris Pirazzi
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001930.html">action ordering. is this a bug?
+</A></li>
+	<LI>Next message: <A HREF="001932.html">action ordering. is this a bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1931">[ date ]</a>
+              <a href="thread.html#1931">[ thread ]</a>
+              <a href="subject.html#1931">[ subject ]</a>
+              <a href="author.html#1931">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

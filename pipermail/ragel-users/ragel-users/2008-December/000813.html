@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem with tag comment implementation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20tag%20comment%20implementation&In-Reply-To=%3C200812241226.CEW19221%40persistent.co.in%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000812.html">
+   <LINK REL="Next"  HREF="000814.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem with tag comment implementation</H1>
+    <B>Hardik Parikh</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20tag%20comment%20implementation&In-Reply-To=%3C200812241226.CEW19221%40persistent.co.in%3E"
+       TITLE="[ragel-users] Problem with tag comment implementation">hardik_parikh at persistent.co.in
+       </A><BR>
+    <I>Wed Dec 24 12:26:55 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000812.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+        <LI>Next message: <A HREF="000814.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#813">[ date ]</a>
+              <a href="thread.html#813">[ thread ]</a>
+              <a href="subject.html#813">[ subject ]</a>
+              <a href="author.html#813">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian
+
+I tried to work out with your suggestion but seeing not any reflection in
+output. I am not able to understand where it is going wrong?
+
+Thanks &amp; Regards
+Hardik Parikh
+
+-----Original Message-----
+From: Adrian Thurston [mailto:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurston at complang.org</A>] 
+Sent: Sunday, December 21, 2008 9:01 AM
+To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+Subject: Re: [ragel-users] Problem with tag comment implementation
+
+Hi Hardik,
+
+The problem here is very subtle. Conditions are executed before the 
+actions on the same character, so the test of stringcmp is running 
+before it is set. Change the embedding of tagend to a &quot;to state&quot; action 
+using:
+
+ &gt;to(tagend)
+
+That should do it.
+
+-Adrian
+
+Hardik Parikh wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>     I have requirement to consider following as valid comment in source 
+</I>&gt;<i> language
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>     |abc#
+</I>&gt;<i> 
+</I>&gt;<i>              Some description ...
+</I>&gt;<i> 
+</I>&gt;<i>    #abc|
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>   And following is invalid comment
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>     |abc#
+</I>&gt;<i> 
+</I>&gt;<i>              Some description ...
+</I>&gt;<i> 
+</I>&gt;<i>     #xyz|
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> And for above requirement I need to capture token string and performed 
+</I>&gt;<i> match operation as there is no inbuilt support for backward reference in 
+</I>&gt;<i> ragel
+</I>&gt;<i> 
+</I>&gt;<i> I tried out with following implementation
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> action mark_start{
+</I>&gt;<i> 
+</I>&gt;<i>      start = fpc+1;
+</I>&gt;<i> 
+</I>&gt;<i>     // printf(&quot; Mark start at %c\n&quot;,fc);
+</I>&gt;<i> 
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>  action tagstart{
+</I>&gt;<i> 
+</I>&gt;<i>     size_t len = fpc - start ;
+</I>&gt;<i> 
+</I>&gt;<i>     s = calloc(len,sizeof(char));
+</I>&gt;<i> 
+</I>&gt;<i>     strncpy(s,start,len);
+</I>&gt;<i> 
+</I>&gt;<i>     s[len]='\0';
+</I>&gt;<i> 
+</I>&gt;<i>   //  printf(&quot;Start : %s\n&quot;,s);
+</I>&gt;<i> 
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>  action tagend{
+</I>&gt;<i> 
+</I>&gt;<i>     size_t len = fpc - start ;
+</I>&gt;<i> 
+</I>&gt;<i>     e = calloc(len,sizeof(char));
+</I>&gt;<i> 
+</I>&gt;<i>     strncpy(e,start,len);
+</I>&gt;<i> 
+</I>&gt;<i>     e[len]='\0';
+</I>&gt;<i> 
+</I>&gt;<i>    stringcmp = strncmp(e,s,sizeof(s));
+</I>&gt;<i> 
+</I>&gt;<i>     //printf(&quot;End : %s\n&quot;,e);
+</I>&gt;<i> 
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>    curl_tag_comment =
+</I>&gt;<i> 
+</I>&gt;<i>     '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+</I>&gt;<i> 
+</I>&gt;<i>       newline %{ entity = INTERNAL_NL; } %curl_ccallback
+</I>&gt;<i> 
+</I>&gt;<i>       |
+</I>&gt;<i> 
+</I>&gt;<i>       ws
+</I>&gt;<i> 
+</I>&gt;<i>       |
+</I>&gt;<i> 
+</I>&gt;<i>       (nonnewline - ws) @comment
+</I>&gt;<i> 
+</I>&gt;<i>     )* :&gt;&gt; ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { 
+</I>&gt;<i> stringcmp == 0}) @comment;
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Now I am able to capture both start and end substring properly and able 
+</I>&gt;<i> to do math operation in when condition but it produces as a valid commet 
+</I>&gt;<i> in parser for even a non valid statement.
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Like
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> curl comment |abc#
+</I>&gt;<i> 
+</I>&gt;<i> curl comment             Some  description ...
+</I>&gt;<i> 
+</I>&gt;<i> curl comment  #xyz|
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Please provide me any suggestions where I am doing something wrong or is 
+</I>&gt;<i> there any other better way to implement the same.
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Thanks &amp; Regards
+</I>&gt;<i> 
+</I>&gt;<i> Hardik Parikh
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> DISCLAIMER ========== This e-mail may contain privileged and 
+</I>&gt;<i> confidential information which is the property of Persistent Systems 
+</I>&gt;<i> Ltd. It is intended only for the use of the individual or entity to 
+</I>&gt;<i> which it is addressed. If you are not the intended recipient, you are 
+</I>&gt;<i> not authorized to read, retain, copy, print, distribute or use this 
+</I>&gt;<i> message. If you have received this communication in error, please notify 
+</I>&gt;<i> the sender and delete all copies of this message. Persistent Systems 
+</I>&gt;<i> Ltd. does not accept any liability for virus infected mails.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000812.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+	<LI>Next message: <A HREF="000814.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#813">[ date ]</a>
+              <a href="thread.html#813">[ thread ]</a>
+              <a href="subject.html#813">[ subject ]</a>
+              <a href="author.html#813">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

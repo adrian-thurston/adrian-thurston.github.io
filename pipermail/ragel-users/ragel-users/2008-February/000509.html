@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] % Leaving Action Questions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3C1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-%40bxe150.bisx.prod.on.blackberry%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000508.html">
+   <LINK REL="Next"  HREF="000510.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] % Leaving Action Questions</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3C1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-%40bxe150.bisx.prod.on.blackberry%3E"
+       TITLE="[ragel-users] % Leaving Action Questions">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Feb 25 22:01:59 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000508.html">% Leaving Action Questions
+</A></li>
+        <LI>Next message: <A HREF="000510.html">% Leaving Action Questions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#509">[ date ]</a>
+              <a href="thread.html#509">[ thread ]</a>
+              <a href="subject.html#509">[ subject ]</a>
+              <a href="author.html#509">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Francois,
+
+The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that. 
+
+You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern. 
+
+Cheers,
+ Adrian
+-----Original Message-----
+From: &quot;francois.beausoleil&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">francois.beausoleil at gmail.com</A>&gt;
+
+Date: Mon, 25 Feb 2008 07:47:18 
+To:ragel-users &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>&gt;
+Subject: [ragel-users] % Leaving Action Questions
+
+
+
+Hi all !
+
+I'm writing a state machine that would detect interesting sentences
+from withing a commit message.  For instance, given this:
+
+Fix problem with dada.  Fixes #231.  Assign to qa.
+
+There are 2 interesting events here:  &quot;Fixes #231&quot; and &quot;Assign to qa&quot;.
+
+At the moment, I'm just concentrating on &quot;Fixes #231&quot;.  The machine
+works, kind of.  Running my machine prints this:
+
+$ rake ragel:compile &amp;&amp; ruby bla.rb &quot;Fix problem with dada.  Fixes
+#231.  Assign to qa.&quot;
+(in /home/francois/src/fogbugz-svnhook)
+Fixing 23
+Fixing 231
+Fixing 231.
+
+My specification is:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action notify { listener.send(action, bugid.pack(&quot;C*&quot;)) }
+
+      bugid = (&quot;#&quot; ('1'..'9')&gt;mark ('0'..'9')**) % bugid;
+      close = ( (/close/i 's'? ':'? space*) %close bugid%notify);
+      fix = ( (/fix/i 'es'? ':'? space*) %fix bugid%notify);
+
+      bla = (any* (close | fix));
+      main := bla*;
+    }%%
+
+Isn't % supposed to fire only on leaving ?  Why is the bugid machine
+leaving at 3 and 1 and '.' ?  Why is '.' even in the bugid machine ?
+
+And then, I still have the problem of parsing &quot;Closes #123, #234 and
+#345.&quot; !
+
+Thanks for any help !
+François
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000508.html">% Leaving Action Questions
+</A></li>
+	<LI>Next message: <A HREF="000510.html">% Leaving Action Questions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#509">[ date ]</a>
+              <a href="thread.html#509">[ thread ]</a>
+              <a href="subject.html#509">[ subject ]</a>
+              <a href="author.html#509">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

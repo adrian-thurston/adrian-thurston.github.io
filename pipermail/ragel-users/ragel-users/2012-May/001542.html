@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] MSVC-friendly -GT2 mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20MSVC-friendly%20-GT2%20mode&In-Reply-To=%3CCABLBYvStD39YrgyZ0Xb7cDkCboNXYGVdEPPzr7U3U1wj%3DY%2BTJA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001541.html">
+   <LINK REL="Next"  HREF="001543.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] MSVC-friendly -GT2 mode</H1>
+    <B>Victor Khimenko</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20MSVC-friendly%20-GT2%20mode&In-Reply-To=%3CCABLBYvStD39YrgyZ0Xb7cDkCboNXYGVdEPPzr7U3U1wj%3DY%2BTJA%40mail.gmail.com%3E"
+       TITLE="[ragel-users] MSVC-friendly -GT2 mode">khim at chromium.org
+       </A><BR>
+    <I>Mon May 14 17:26:00 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001541.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+        <LI>Next message: <A HREF="001543.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1542">[ date ]</a>
+              <a href="thread.html#1542">[ thread ]</a>
+              <a href="subject.html#1542">[ subject ]</a>
+              <a href="author.html#1542">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, May 14, 2012 at 9:12 PM, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurston at complang.org</A>&gt;wrote:
+
+&gt;<i> Hi Victor, I haven't looked at the patch yet, I'll hopefully do that
+</I>&gt;<i> tonight. It sounds similar to the 'split goto' mode I had worked on some
+</I>&gt;<i> years back but is now unmaintained. The machine was partitioned naively --
+</I>&gt;<i> psuedo optimally requires advanced heuristics. Between partitions, tables
+</I>&gt;<i> were used. Within a partition, directly executable was used. That sound the
+</I>&gt;<i> same?
+</I>&gt;<i>
+</I>
+Well, the implementations are kind-of similar, but the end goals are
+different. In &quot;split goto&quot; mode you have few functions which call each
+other which of course makes compiler happier, but does not help us because
+we really want to convince compiler to keep some critical information on
+registers (in our case actions fire once per 2-3 bytes, function calls or
+lack of them really do a world of difference in such a case) - this is only
+possible if we keep everything in one large functions (plus may be some
+inlined functions which does not help the compiler at all).
+
+My patch replaces large switches with table which contains the next state
+and then does jump to _again label.This reduces number of basic blocks
+about 5-7 times and makes compiler much happier and the cost is small: I
+just add one table and one unconditional goto (which is easy for the CPU to
+predict). Of course I remove a lot of conditional jumps which makes it
+harder for the CPU to keep track of things - I think this is where 20%
+slowdown comes from.
+
+I can send you example of our .rl file and test-driver if you want to
+experiment (it's open-source projects, there are nothing secret here), but
+it's huge (about 3MB .rl file and 1MB test file) and the problem only
+happens on Windows thus it's not very hack-friendly case.
+
+
+&gt;<i> -----Original Message-----
+</I>&gt;<i> From: Victor Khimenko &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">khim at chromium.org</A>&gt;
+</I>&gt;<i> Sender: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-bounces at complang.org</A>
+</I>&gt;<i> Date: Sun, 13 May 2012 16:35:35
+</I>&gt;<i> To: &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>&gt;
+</I>&gt;<i> Reply-To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> Subject: [ragel-users] MSVC-friendly -GT2 mode
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120514/806f2243/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20120514/806f2243/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001541.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+	<LI>Next message: <A HREF="001543.html">[ragel-users] MSVC-friendly -GT2 mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1542">[ date ]</a>
+              <a href="thread.html#1542">[ thread ]</a>
+              <a href="subject.html#1542">[ subject ]</a>
+              <a href="author.html#1542">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] simple parser for #include statements
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cf1d6192022f5c8732a5dfb5f82a295d8%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003541.html">
+   <LINK REL="Next"  HREF="003543.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] simple parser for #include statements</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cf1d6192022f5c8732a5dfb5f82a295d8%40mail.colm.net%3E"
+       TITLE="[ragel-users] simple parser for #include statements">thurston at colm.net
+       </A><BR>
+    <I>Wed Apr 25 18:18:08 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003541.html">[ragel-users] simple parser for #include statements
+</A></li>
+        <LI>Next message: <A HREF="003543.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3542">[ date ]</a>
+              <a href="thread.html#3542">[ thread ]</a>
+              <a href="subject.html#3542">[ subject ]</a>
+              <a href="author.html#3542">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Oh I see. In that case you could use dnl as the default rule, but be 
+sure to add it to the end of pattern. That would guarantee achor on 
+beginning of line. A question then arises though, do you want to allow 
+comments ahead of include statements?
+
+On 2018-04-25 11:37, Mark Olesen wrote:
+&gt;<i> Hi Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Your explanation starts to make some sense. Using 'any' machine
+</I>&gt;<i> instead my 'dnl' machine should be a similar speed (the position of
+</I>&gt;<i> looping and testing for '\n' has just shifted about a bit).
+</I>&gt;<i> 
+</I>&gt;<i> However, if I rewrite it:
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     main := |*
+</I>&gt;<i>     space*;
+</I>&gt;<i> 
+</I>&gt;<i>     white* '#' white* 'include' white*
+</I>&gt;<i>     (dquot dqarg &gt;buffer %process dquot) dnl;
+</I>&gt;<i> 
+</I>&gt;<i>     '//' dnl;               # 1-line comment
+</I>&gt;<i>     '/*' any* :&gt;&gt; '*/';     # Multi-line comment
+</I>&gt;<i> 
+</I>&gt;<i>     any                     # Discard
+</I>&gt;<i>     *|;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> How do I ensure that the '#include' is properly anchored? This is what
+</I>&gt;<i> I was attempting with the 'dnl' machine: an attempt to enforce
+</I>&gt;<i> line-based processing, but combined with swallowing multi-line
+</I>&gt;<i> comments.
+</I>&gt;<i> 
+</I>&gt;<i> As a regex, I'd specify my match like this
+</I>&gt;<i> 
+</I>&gt;<i>    /^\s*#\s*include\s+&quot;(.*?)&quot;.*$/
+</I>&gt;<i> 
+</I>&gt;<i> For my ragel machine, should I be doing something different such as
+</I>&gt;<i> having a begin-of-line state that I initialize into and reset every
+</I>&gt;<i> time I cross a newline?
+</I>&gt;<i> With vague hand waving:
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     main := |*
+</I>&gt;<i> 
+</I>&gt;<i>     '#' white* 'include' white*
+</I>&gt;<i>     (dquot dqarg &gt;buffer %process dquot) dnl;
+</I>&gt;<i> 
+</I>&gt;<i>     '//' dnl;               # 1-line comment
+</I>&gt;<i>     '/*' any* :&gt;&gt; '*/';     # Multi-line comment
+</I>&gt;<i> 
+</I>&gt;<i>     (space %isbol | any %notbol)  # Discard
+</I>&gt;<i>     *|;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> Not that I really understand what I'd do next with this.
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> /mark
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> On 04/25/18 15:45, Adrian Thurston wrote:
+</I>&gt;&gt;<i> Hi Mark,
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> So the thing to remember here is that a scanner will always try for 
+</I>&gt;&gt;<i> the longest match possible, and only in the case of matches of equal 
+</I>&gt;&gt;<i> length will it choose the pattern that appears ahead of the others. So 
+</I>&gt;&gt;<i> in this case the dnl at the end is taking precedence over the comment 
+</I>&gt;&gt;<i> rules. It doesn't interfere with the include matching rule because it 
+</I>&gt;&gt;<i> also has a dnl at the end.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> For the catch all you want to use just the any machine. It will go one 
+</I>&gt;&gt;<i> char at a time and this may seem less efficient, but ragel does its 
+</I>&gt;&gt;<i> best to optimize this.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> In regards to the slightly tighter machine that you mentioned, it 
+</I>&gt;&gt;<i> would be interesting to see before and after grammars in full to see 
+</I>&gt;&gt;<i> what's going on. On their own they produce the same machine, but in 
+</I>&gt;&gt;<i> the context of something larger there might be something preventing 
+</I>&gt;&gt;<i> it, or it could be a missed opportunity for optimization.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> -Adrian
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003541.html">[ragel-users] simple parser for #include statements
+</A></li>
+	<LI>Next message: <A HREF="003543.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3542">[ date ]</a>
+              <a href="thread.html#3542">[ thread ]</a>
+              <a href="subject.html#3542">[ subject ]</a>
+              <a href="author.html#3542">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,147 @@
+From 6752b384fe44d3c6af1cf512409b8c9a4c70fbde Mon Sep 17 00:00:00 2001
+From: =?utf-8?q?Diego=20Elio=20'Flameeyes'=20Petten=C3=B2?= <flameeyes@gmail.com>
+Date: Fri, 10 Apr 2009 14:24:27 +0200
+Subject: [PATCH 2/2] Don't use a static switched variable to regenerate the parsers.
+
+Instead, use the CHECK_RAGEL and CHECK_KELBT macros to check whether it's
+needed to find the two of them (if the source files don't exist), and
+regenerate whenever needed.
+---
+ Makefile.am  |    1 +
+ configure.in |    9 ++++-----
+ m4/kelbt.m4  |   43 +++++++++++++++++++++++++++++++++++++++++++
+ m4/ragel.m4  |   43 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 91 insertions(+), 5 deletions(-)
+ create mode 100644 m4/kelbt.m4
+ create mode 100644 m4/ragel.m4
+
+diff --git a/Makefile.am b/Makefile.am
+index 97bdc8f..d294128 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -3,3 +3,4 @@ SUBDIRS = ragel aapl doc test contrib
+ 
+ dist_doc_DATA = ChangeLog
+ 
++ACLOCAL_AMFLAGS = -I m4
+diff --git a/configure.in b/configure.in
+index a711112..465ebcb 100644
+--- a/configure.in
++++ b/configure.in
+@@ -25,11 +25,10 @@ AM_INIT_AUTOMAKE
+ AC_SUBST(PUBDATE)
+ AC_CONFIG_HEADER(ragel/config.h)
+ 
+-dnl Set to true if the build system should generate parsers from ragel and kelbt
+-dnl sources. Set to false if generated files are included and not to be built
+-dnl (production).
+-build_parsers=yes;
+-AM_CONDITIONAL(BUILD_PARSERS, [test "x$build_parsers" = "xyes"])
++CHECK_RAGEL([ragel/rlscan.cpp])
++CHECK_KELBT([ragel/rlparse.cpp])
++
++AM_CONDITIONAL([BUILD_PARSERS], [test "x$RAGEL" != "xfalse" -a "x$KELBT" != "xfalse"])
+ 
+ dnl Set to true if the manual should be built.
+ build_manual=yes;
+diff --git a/m4/kelbt.m4 b/m4/kelbt.m4
+new file mode 100644
+index 0000000..14f4f79
+--- /dev/null
++++ b/m4/kelbt.m4
+@@ -0,0 +1,43 @@
++dnl Check for presence of the Kelbt State Machine generator.
++dnl
++dnl This macro checks for the presence of the kelbt tool in the system,
++dnl and whether the kelbt tool is absolutely needed for a complete
++dnl build.
++dnl
++dnl To check for the need for Kelbt, you have to provide the relative
++dnl path of a source file generated through Kelbt: if the file is
++dnl present in the source tree, a missing kelbt command will not cause
++dnl the configure to abort.
++
++AC_DEFUN([_KELBT_VARS], [
++  AC_ARG_VAR([KELBT], [Kelbt generator command])
++  AC_ARG_VAR([KELBTFLAGS], [Kelbt generator flags])
++])
++
++AC_DEFUN([CHECK_KELBT], [
++  AC_REQUIRE([_KELBT_VARS])
++  AC_CHECK_PROG([KELBT], [kelbt], [kelbt], [no])
++
++  dnl We set KELBT to false so that it would execute the "false"
++  dnl command if needed.
++  AS_IF([test x"$KELBT" = x"no"], [KELBT=false])
++
++  dnl Only test the need if not found
++  AS_IF([test x"$KELBT" = x"false"], [
++    AC_MSG_CHECKING([whether we need kelbt to regenerate sources])
++    AS_IF([test -a ${srcdir}/$1], [kelbt_needed=no], [kelbt_needed=yes])
++    AC_MSG_RESULT([$kelbt_needed])
++
++    AS_IF([test x"$kelbt_needed" = x"yes"],
++      [AC_MSG_ERROR([dnl
++You need Kelbt to build from development sources.
++You can find Kelbt at http://www.complang.org/kelbt/dnl
++      ])])
++  ])
++])
++
++AC_DEFUN([CHECK_KELBT_AM], [
++  CHECK_KELBT([$1])
++
++  AM_CONDITIONAL([HAVE_KELBT], [test x"$KELBT" != x"false"])
++])
+diff --git a/m4/ragel.m4 b/m4/ragel.m4
+new file mode 100644
+index 0000000..c5cb9e9
+--- /dev/null
++++ b/m4/ragel.m4
+@@ -0,0 +1,43 @@
++dnl Check for presence of the Ragel State Machine generator.
++dnl
++dnl This macro checks for the presence of the ragel tool in the system,
++dnl and whether the ragel tool is absolutely needed for a complete
++dnl build.
++dnl
++dnl To check for the need for Ragel, you have to provide the relative
++dnl path of a source file generated through Ragel: if the file is
++dnl present in the source tree, a missing ragel command will not cause
++dnl the configure to abort.
++
++AC_DEFUN([_RAGEL_VARS], [
++  AC_ARG_VAR([RAGEL], [Ragel generator command])
++  AC_ARG_VAR([RAGELFLAGS], [Ragel generator flags])
++])
++
++AC_DEFUN([CHECK_RAGEL], [
++  AC_REQUIRE([_RAGEL_VARS])
++  AC_CHECK_PROG([RAGEL], [ragel], [ragel], [no])
++
++  dnl We set RAGEL to false so that it would execute the "false"
++  dnl command if needed.
++  AS_IF([test x"$RAGEL" = x"no"], [RAGEL=false])
++
++  dnl Only test the need if not found
++  AS_IF([test x"$RAGEL" = x"false"], [
++    AC_MSG_CHECKING([whether we need ragel to regenerate sources])
++    AS_IF([test -a ${srcdir}/$1], [ragel_needed=no], [ragel_needed=yes])
++    AC_MSG_RESULT([$ragel_needed])
++
++    AS_IF([test x"$ragel_needed" = x"yes"],
++      [AC_MSG_ERROR([dnl
++You need Ragel to build from development sources.
++You can find Ragel at http://www.complang.org/ragel/dnl
++      ])])
++  ])
++])
++
++AC_DEFUN([CHECK_RAGEL_AM], [
++  CHECK_RAGEL([$1])
++
++  AM_CONDITIONAL([HAVE_RAGEL], [test x"$RAGEL" != x"false"])
++])
+-- 
+1.6.2.2
+

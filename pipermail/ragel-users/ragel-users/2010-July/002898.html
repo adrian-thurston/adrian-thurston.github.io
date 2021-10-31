@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Error State
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Error%20State&In-Reply-To=%3C4C468DAB.2070009%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002896.html">
+   <LINK REL="Next"  HREF="002897.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Error State</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Error%20State&In-Reply-To=%3C4C468DAB.2070009%40complang.org%3E"
+       TITLE="[ragel-users] Error State">thurston at complang.org
+       </A><BR>
+    <I>Wed Jul 21 06:03:23 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002896.html">[ragel-users] Error State
+</A></li>
+        <LI>Next message: <A HREF="002897.html">[ragel-users] Greedy star operator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2898">[ date ]</a>
+              <a href="thread.html#2898">[ thread ]</a>
+              <a href="subject.html#2898">[ subject ]</a>
+              <a href="author.html#2898">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It must mean that you're using a scanner and that your patterns accept 
+the inputs that your testing. The scanner resets the state to the start 
+state every time a pattern is matched.
+
+-Adrian
+
+On 10-07-20 08:53 AM, Pete Gervais wrote:
+&gt;<i> Gents,
+</I>&gt;<i>
+</I>&gt;<i> According to the ragel user guide:
+</I>&gt;<i>
+</I>&gt;<i> /“Two variables are written that may be used to test the state of the
+</I>&gt;<i> machine after a buffer block/
+</I>&gt;<i>
+</I>&gt;<i> /has been processed. The //name_error //variable gives the id of the
+</I>&gt;<i> state that the machine moves/
+</I>&gt;<i>
+</I>&gt;<i> /into when it cannot find a valid transition to take. The machine
+</I>&gt;<i> immediately breaks out of the/
+</I>&gt;<i>
+</I>&gt;<i> /processing loop when It finds itself in the error state. The error
+</I>&gt;<i> variable can be compared to the/
+</I>&gt;<i>
+</I>&gt;<i> /current state to determine if the machine has failed to parse the
+</I>&gt;<i> input. If the machine is complete,/
+</I>&gt;<i>
+</I>&gt;<i> /that is from every state there is a transition to a proper state on
+</I>&gt;<i> every possible character of the/
+</I>&gt;<i>
+</I>&gt;<i> /alphabet, then no error state is required and this variable will be set
+</I>&gt;<i> to -1./
+</I>&gt;<i>
+</I>&gt;<i> / /
+</I>&gt;<i>
+</I>&gt;<i> /The //name_first_final //variable stores the id of the first final
+</I>&gt;<i> state. All of the machine's states/
+</I>&gt;<i>
+</I>&gt;<i> /are sorted by their final state status before having their ids
+</I>&gt;<i> assigned. Checking if the machine has/
+</I>&gt;<i>
+</I>&gt;<i> /accepted its input can then be done by checking if the current state is
+</I>&gt;<i> greater-than or equal to the/
+</I>&gt;<i>
+</I>&gt;<i> /first final state.”/
+</I>&gt;<i>
+</I>&gt;<i> There are many examples shown that check to see if the machine has
+</I>&gt;<i> parsed the input correctly or something similar.
+</I>&gt;<i>
+</I>&gt;<i> /* Did parsing succeed? */
+</I>&gt;<i>
+</I>&gt;<i> if ( cs &lt; name_first_final ) {
+</I>&gt;<i>
+</I>&gt;<i> result = ERR_PARSE_ERROR;
+</I>&gt;<i>
+</I>&gt;<i> goto fail;
+</I>&gt;<i>
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> The problem I have is no matter the final result, ( proper parse or not)
+</I>&gt;<i> , the cs variable is always reset to 0 which ensures the test above
+</I>&gt;<i> always fails. .
+</I>&gt;<i>
+</I>&gt;<i> If you look at the C code generated , its look like:
+</I>&gt;<i>
+</I>&gt;<i> st0:
+</I>&gt;<i>
+</I>&gt;<i> fsm-&gt;cs = 0;
+</I>&gt;<i>
+</I>&gt;<i> goto _out;
+</I>&gt;<i>
+</I>&gt;<i> This code gets called on valid exit or error .
+</I>&gt;<i>
+</I>&gt;<i> Is there something that needs to done in order to get actual state where
+</I>&gt;<i> the error occurred?
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i>
+</I>&gt;<i> Peter J. Gervais
+</I>&gt;<i>
+</I>&gt;<i> President, Simtree Information Systems
+</I>&gt;<i>
+</I>&gt;<i> 17621 Island Rd,
+</I>&gt;<i>
+</I>&gt;<i> RR#2 , Martintown,
+</I>&gt;<i>
+</I>&gt;<i> Martintown,Ont
+</I>&gt;<i>
+</I>&gt;<i> K0C 1S0
+</I>&gt;<i>
+</I>&gt;<i> Business: 613-938-6549
+</I>&gt;<i>
+</I>&gt;<i> Cell: 613-864-7370
+</I>&gt;<i>
+</I>&gt;<i> E-mail: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">pgervais at xplornet.com</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002896.html">[ragel-users] Error State
+</A></li>
+	<LI>Next message: <A HREF="002897.html">[ragel-users] Greedy star operator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2898">[ date ]</a>
+              <a href="thread.html#2898">[ thread ]</a>
+              <a href="subject.html#2898">[ subject ]</a>
+              <a href="author.html#2898">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ruby buffer code for streaming scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ruby%20buffer%20code%20for%20streaming%20scanner&In-Reply-To=%3C4DF6323E.3020400%40abshere.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003113.html">
+   <LINK REL="Next"  HREF="003118.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ruby buffer code for streaming scanner</H1>
+    <B>Seamus Abshere</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ruby%20buffer%20code%20for%20streaming%20scanner&In-Reply-To=%3C4DF6323E.3020400%40abshere.net%3E"
+       TITLE="[ragel-users] Ruby buffer code for streaming scanner">seamus at abshere.net
+       </A><BR>
+    <I>Mon Jun 13 15:52:30 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003113.html">[ragel-users] For very basic XML tokenizing, do I really need Ragel's full scanner functionality?
+</A></li>
+        <LI>Next message: <A HREF="003118.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3117">[ date ]</a>
+              <a href="thread.html#3117">[ thread ]</a>
+              <a href="subject.html#3117">[ subject ]</a>
+              <a href="author.html#3117">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>hi,
+
+The Ragel Guide has an excellent set of guidelines for how to &quot;take on 
+some buffer management functions&quot; when using the longest-match operator 
+(for scanners):
+
+&gt;<i> \begin{itemize}
+</I>&gt;<i> \setlength{\parskip}{0pt}
+</I>&gt;<i> \item Read a block of input data.
+</I>&gt;<i> \item Run the execute code.
+</I>&gt;<i> \item If \verb|ts| is set, the execute code will expect the incomplete
+</I>&gt;<i> token to be preserved ahead of the buffer on the next invocation of the execute
+</I>&gt;<i> code.
+</I>&gt;<i> \begin{itemize}
+</I>&gt;<i> \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the
+</I>&gt;<i> beginning of the input buffer.
+</I>&gt;<i> \item Reset \verb|ts| to the beginning of the buffer.
+</I>&gt;<i> \item Shift \verb|te| by the distance from the old value of \verb|ts|
+</I>&gt;<i> to the new value. The \verb|te| variable may or may not be valid.  There is
+</I>&gt;<i> no way to know if it holds a meaningful value because it is not kept at null
+</I>&gt;<i> when it is not in use. It can be shifted regardless.
+</I>&gt;<i> \end{itemize}
+</I>&gt;<i> \item Read another block of data into the buffer, immediately following any
+</I>&gt;<i> preserved data.
+</I>&gt;<i> \item Run the scanner on the new data.
+</I>&gt;<i> \end{itemize}
+</I>
+I believe this is a correct implementation in Ruby: (see the #scan! 
+method for the buffering)
+
+&gt;<i> =begin
+</I>&gt;<i> %%{
+</I>&gt;<i>   machine foo_scanner;
+</I>&gt;<i>
+</I>&gt;<i>   foo_open = 'START_FOO';
+</I>&gt;<i>   foo_close = 'STOP_FOO';
+</I>&gt;<i>   foo = foo_open any* :&gt;&gt; foo_close;
+</I>&gt;<i>
+</I>&gt;<i>   main := |*
+</I>&gt;<i>     foo =&gt; { emit data[ts...te].pack('c*') };
+</I>&gt;<i>     any;
+</I>&gt;<i>   *|;
+</I>&gt;<i> }%%
+</I>&gt;<i> =end
+</I>&gt;<i>
+</I>&gt;<i> class FooScanner
+</I>&gt;<i>   # read stuff in 1 meg at a time
+</I>&gt;<i>   CHUNK_SIZE = 1_048_576
+</I>&gt;<i>
+</I>&gt;<i>   attr_reader :target
+</I>&gt;<i>
+</I>&gt;<i>   def initialize(target)
+</I>&gt;<i>     @target = target
+</I>&gt;<i>     %% write data;
+</I>&gt;<i>   end
+</I>&gt;<i>
+</I>&gt;<i>   def emit(foo_entity)
+</I>&gt;<i>     puts &quot;I found a foo entity!&quot;
+</I>&gt;<i>     puts foo_entity
+</I>&gt;<i>   end
+</I>&gt;<i>
+</I>&gt;<i>   def scan!
+</I>&gt;<i>     # Set pe so that ragel doesn't try to get it from data.length
+</I>&gt;<i>     pe = -1
+</I>&gt;<i>     eof = File.size(target)
+</I>&gt;<i>
+</I>&gt;<i>     %% write init;
+</I>&gt;<i>
+</I>&gt;<i>     prefix = []
+</I>&gt;<i>     File.open(target) do |f|
+</I>&gt;<i>       while chunk = f.read(CHUNK_SIZE)
+</I>&gt;<i>         # \item Read a block of input data.
+</I>&gt;<i>         data = prefix + chunk.unpack(&quot;c*&quot;)
+</I>&gt;<i>
+</I>&gt;<i>         # \item Run the execute code.
+</I>&gt;<i>         p = 0
+</I>&gt;<i>         pe = data.length
+</I>&gt;<i>         %% write exec;
+</I>&gt;<i>
+</I>&gt;<i>         # \item If \verb|ts| is set, the execute code will expect the incomplete token to be preserved ahead of the buffer on the next invocation of the execute code.
+</I>&gt;<i>         unless ts.nil?
+</I>&gt;<i>           # \begin{itemize}
+</I>&gt;<i>           # \item Shift the data beginning at \verb|ts| and ending at \verb|pe| to the beginning of the input buffer.
+</I>&gt;<i>           prefix = data[ts..pe]
+</I>&gt;<i>           # \item Shift \verb|te| by the distance from the old value of \verb|ts| to the new value. The \verb|te| variable may or may not be valid.  There is no way to know if it holds a meaningful value because it is not kept at null when it is not in use. It can be shifted regardless. [SWAPPED ORDER]
+</I>&gt;<i>           if te
+</I>&gt;<i>             te = te - ts
+</I>&gt;<i>           end
+</I>&gt;<i>           # \item Reset \verb|ts| to the beginning of the buffer. [SWAPPED ORDER]
+</I>&gt;<i>           ts = 0
+</I>&gt;<i>           # \end{itemize}
+</I>&gt;<i>         else
+</I>&gt;<i>           prefix = []
+</I>&gt;<i>         end
+</I>&gt;<i>         # \item Read another block of data into the buffer, immediately following any preserved data.
+</I>&gt;<i>         # \item Run the scanner on the new data.
+</I>&gt;<i>       end
+</I>&gt;<i>     end
+</I>&gt;<i>   end
+</I>&gt;<i> end
+</I>
+You can run it with
+
+&gt;<i> foo_scanner = FooScanner.new 'foo.txt'
+</I>&gt;<i> foo_scanner.scan!
+</I>
+If that is good code, then perhaps it could be added as another example 
+to the Ragel website?
+
+Thanks,
+Seamus
+
+-- 
+Seamus Abshere
+123 N Blount St Apt 403
+Madison, WI 53703
+1 (201) 566-0130
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003113.html">[ragel-users] For very basic XML tokenizing, do I really need Ragel's full scanner functionality?
+</A></li>
+	<LI>Next message: <A HREF="003118.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3117">[ date ]</a>
+              <a href="thread.html#3117">[ thread ]</a>
+              <a href="subject.html#3117">[ subject ]</a>
+              <a href="author.html#3117">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

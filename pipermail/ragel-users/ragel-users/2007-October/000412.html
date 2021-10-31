@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Is this the right way to do it ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Is%20this%20the%20right%20way%20to%20do%20it%20%3F&In-Reply-To=%3C1193817501.221237.216530%4022g2000hsm.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000411.html">
+   <LINK REL="Next"  HREF="002176.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Is this the right way to do it ?</H1>
+    <B>Gaspard Bucher</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Is%20this%20the%20right%20way%20to%20do%20it%20%3F&In-Reply-To=%3C1193817501.221237.216530%4022g2000hsm.googlegroups.com%3E"
+       TITLE="Is this the right way to do it ?">gasp... at teti.ch
+       </A><BR>
+    <I>Wed Oct 31 07:58:21 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000411.html">MountainWest RubyConf 2008
+</A></li>
+        <LI>Next message: <A HREF="002176.html">[ragel-users] Is this the right way to do it ?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#412">[ date ]</a>
+              <a href="thread.html#412">[ thread ]</a>
+              <a href="subject.html#412">[ subject ]</a>
+              <a href="author.html#412">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I am implementing a parser to read commands from user (interactive) or
+from a stored file. The idea is to build the objects and their
+relation inside rubyk (<A HREF="http://rubyk.org">http://rubyk.org</A>). Some examples of the syntax:
+
+create a metronome object: m1 = Metro(120)
+create a metronome object: m1 = Metro(metro:120) # same as above
+create a note out object:     n  = NoteOut(velocity:80 port:&quot;funk&quot;)
+create a script object:         cooking = Script(&quot;.... Lua code ....&quot;)
+create links:               m1.1 =&gt; 1.cooking, cooking.1 =&gt;
+1.n
+
+Here is a rough prototype to implement the parsing using ragel (have
+been using flex/lemon).
+
+Am I doing this right ? More precisely :
+1. is there a better way to extract token values ( instead of by
+repeated @a appends) ?
+2. would it be simpler to use ragel only for building the tokens and
+let lemon handle the actions ?
+
+Thanks for your answers.
+
+Gaspard
+
+=================== prototype.rl ========
+#include &lt;iostream&gt;
+#include &lt;cstdio&gt;
+#define MAX_BUFFER_SIZE 2048
+
+%%{
+  machine foo;
+  write data noerror;
+}%%
+
+class Command
+{
+public:
+  void parse(char * str)
+  {
+    char *p = str; // data pointer
+    char *pe = str + strlen(str); // past end
+    int cs;        // machine state
+    int len = 0;
+    char token[MAX_BUFFER_SIZE + 1];
+
+    %%{
+      action a {
+        if (len &gt;= MAX_BUFFER_SIZE) {
+          std::cerr &lt;&lt; &quot;Buffer overflow !&quot; &lt;&lt; std::endl;
+          // stop parsing
+          return;
+        }
+        token[len] = fc; /* append */
+        len++;
+      }
+
+      action set_var {
+        token[len] = '\0';
+        mVariable = token;
+        len = 0;
+      }
+
+      action key {
+        token[len] = '\0';
+        std::cout &lt;&lt; &quot;[key   :&quot; &lt;&lt; token &lt;&lt; &quot;]&quot; &lt;&lt; std::endl;
+        len = 0;
+      }
+
+      action set_klass {
+        token[len] = '\0';
+        mClass = token;
+        len = 0;
+      }
+
+      action space {
+        printf(&quot; &quot;);
+      }
+
+      action ret {
+        printf(&quot;\n&quot;);
+      }
+
+      action set_string {
+        token[len] = '\0';
+        mValue = token;
+        len = 0;
+      }
+
+      action set_float {
+        token[len] = '\0';
+        mValue = token;
+        len = 0;
+      }
+
+      action set_integer {
+        token[len] = '\0';
+        mValue = token;
+        len = 0;
+      }
+
+      action set_from {
+        mFromPort = atoi(mValue.c_str());
+        mFrom = mVariable;
+      }
+
+      action create_instance {
+        std::cout &lt;&lt; &quot;NEW  (&quot; &lt;&lt; mVariable &lt;&lt; &quot;=&quot; &lt;&lt; mClass &lt;&lt; &quot;()&quot; &lt;&lt;
+&quot;)&quot; &lt;&lt; std::endl;
+      }
+
+      action create_link {
+        mToPort = atoi(mValue.c_str());
+        mTo   = mVariable;
+        std::cout &lt;&lt; &quot;LINK (&quot; &lt;&lt; mFrom &lt;&lt; &quot;.&quot; &lt;&lt; mFromPort &lt;&lt; &quot;=&gt;&quot; &lt;&lt;
+mToPort &lt;&lt; &quot;.&quot; &lt;&lt; mTo &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;
+      }
+
+      ws     = (' ' | '\n' | '\t')+;
+
+      identifier = 'a'..'z' @a (digit | alpha | '_')* @a;
+
+      var    = identifier %set_var;
+
+      klass  = 'A'..'Z' @a (digit | alpha | '_')* @a %set_klass;
+
+      string  = '&quot;' ([^&quot;\\] | '\n' | ( '\\' (any | '\n') ))* @a
+%set_string '&quot;';
+      float   = ('1'..'9' @a digit* @a '.' @a digit+ @a) %set_float;
+      integer = ('1'..'9' @a digit* @a) %set_integer;
+
+      value  = (string | float | integer);
+
+      key    = identifier %key;
+
+      param  = (key ':' ws* value);
+
+      parameters = value | (param ws*)+;
+
+      create_instance = var ws* '=' ws* klass '(' parameters? ')'
+@create_instance;
+
+      create_link = var '.' integer @set_from ws* '=&gt;' ws* integer '.'
+var @create_link;
+
+      main := ((create_instance | create_link) ws*)+  ;
+
+      write init;
+      write exec;
+    }%%
+
+    printf(&quot;\n&quot;);
+  }
+private:
+  std::string mVariable, mFrom, mTo, mClass, mValue;
+  int         mFromPort,     mToPort;
+};
+
+int main()
+{
+  Command cmd;
+  cmd.parse(&quot;a=Value() b=Super(23.3)c=This(hey:\&quot;mosdffasl\&quot; come:
+3)\na.1=&gt;1.b a.2=&gt;2.b&quot;);
+}
+===========================
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000411.html">MountainWest RubyConf 2008
+</A></li>
+	<LI>Next message: <A HREF="002176.html">[ragel-users] Is this the right way to do it ?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#412">[ date ]</a>
+              <a href="thread.html#412">[ thread ]</a>
+              <a href="subject.html#412">[ subject ]</a>
+              <a href="author.html#412">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

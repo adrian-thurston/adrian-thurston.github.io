@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] tuning/optimizing scanners
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20tuning/optimizing%20scanners&In-Reply-To=%3C47066293.506%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000390.html">
+   <LINK REL="Next"  HREF="002155.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] tuning/optimizing scanners</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20tuning/optimizing%20scanners&In-Reply-To=%3C47066293.506%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] tuning/optimizing scanners">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Oct  5 16:13:07 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000390.html">tuning/optimizing scanners
+</A></li>
+        <LI>Next message: <A HREF="002155.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2154">[ date ]</a>
+              <a href="thread.html#2154">[ thread ]</a>
+              <a href="subject.html#2154">[ subject ]</a>
+              <a href="author.html#2154">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Chuck,
+
+The parsing methodology looks fine to me. There is no undue backtracking.
+
+What version of Ragel are you using?
+
+-Adrian
+
+Chuck Remes wrote:
+&gt;<i> I've written a log parsing tool using ragel and ruby. I'm using the  
+</I>&gt;<i> scanner construct to perform the parsing, but things appear to be  
+</I>&gt;<i> running very slowly. I fear I may have chosen the wrong methodology  
+</I>&gt;<i> to parse the log. (And yes, I know ruby isn't the quickest language  
+</I>&gt;<i> out there...) :-)
+</I>&gt;<i> 
+</I>&gt;<i> The log in question is a set of key/value pairs that look like this  
+</I>&gt;<i> (this is one line):
+</I>&gt;<i> 
+</I>&gt;<i> Oct  1 09:50:33.37204 [29193]: {market = ICE | type = order |  
+</I>&gt;<i> order_id = 4 | buy = 1 | price = 80.83 | volume = 1 | date =  
+</I>&gt;<i> 2007-10-01 | time = 09:50:33.37201 | metadata = {l={f=Quote|g=4|j=1| 
+</I>&gt;<i> sid=8290182729}|ac=289182|cf=2881|ca= 289182}}
+</I>&gt;<i> 
+</I>&gt;<i> I'm uninterested in the date and other data at the line start, so I  
+</I>&gt;<i> throw it away. I primarily search for the key (e.g. 'market = ') and  
+</I>&gt;<i> then fgoto another machine to parse the value. Upon hitting a pipe  
+</I>&gt;<i> character, I fgoto main again and look for another key. I pasted in a  
+</I>&gt;<i> section of the machine below to illustrate.
+</I>&gt;<i> 
+</I>&gt;<i> Is this the correct approach? Is there a superior method for rapidly  
+</I>&gt;<i> parsing long text strings? Be gentle with me... I'm new to this stuff.
+</I>&gt;<i> 
+</I>&gt;<i> Unfortunately, each log record is a slightly different format (for a  
+</I>&gt;<i> total of about 15 different formats). I also can't plan on the key/ 
+</I>&gt;<i> value pairs showing up in the same order every time.
+</I>&gt;<i> 
+</I>&gt;<i> Any suggestions?
+</I>&gt;<i> 
+</I>&gt;<i> ----------- snip here ---------------
+</I>&gt;<i> 	feedcode_name = [0-9a-zA-Z\-]+;
+</I>&gt;<i> 	numbers = [0-9]+;
+</I>&gt;<i> 
+</I>&gt;<i> #####
+</I>&gt;<i> 	feedcode := |*
+</I>&gt;<i> 		spaces;
+</I>&gt;<i> 
+</I>&gt;<i> 		'|' =&gt; { fgoto main; };
+</I>&gt;<i> 
+</I>&gt;<i> 		feedcode_name =&gt; { temp[:feedcode] = data[tokstart..tokend-1]; };
+</I>&gt;<i> 		any =&gt; {puts &quot;ERR: feedcode #{data[tokstart..tokend-1]}&quot;};
+</I>&gt;<i> 	*|;
+</I>&gt;<i> #####
+</I>&gt;<i> 	volume := |*
+</I>&gt;<i> 		spaces;
+</I>&gt;<i> 
+</I>&gt;<i> 		'|' =&gt; { fgoto main; };
+</I>&gt;<i> 
+</I>&gt;<i> 		numbers =&gt; { temp[:quantity] = data[tokstart..tokend].to_i; };
+</I>&gt;<i> 		any =&gt; {puts &quot;ERR: volume #{data[tokstart..tokend]}&quot;};
+</I>&gt;<i> 	*|;
+</I>&gt;<i> #####
+</I>&gt;<i>          main := |*
+</I>&gt;<i> 					'module = ' =&gt; { fgoto module; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'market = ' =&gt; { fgoto market; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'feedcode = ' =&gt; { fgoto feedcode; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'type = ' =&gt; { fgoto type; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'order_id = ' =&gt; { fgoto order_id; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'buy = ' =&gt; { fgoto activity; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'price = ' =&gt; { fgoto price; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'volume = ' =&gt; { fgoto volume; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'date = ' =&gt; { fgoto date; };
+</I>&gt;<i> 
+</I>&gt;<i> 					'time = ' =&gt; { fgoto time; };
+</I>&gt;<i> 
+</I>&gt;<i> 					( numbers | letters | spaces | '\n' | '{' | '}' | other | any );
+</I>&gt;<i> 		
+</I>&gt;<i>          *|;
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20071005/788ebc17/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20071005/788ebc17/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000390.html">tuning/optimizing scanners
+</A></li>
+	<LI>Next message: <A HREF="002155.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2154">[ date ]</a>
+              <a href="thread.html#2154">[ thread ]</a>
+              <a href="subject.html#2154">[ subject ]</a>
+              <a href="author.html#2154">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

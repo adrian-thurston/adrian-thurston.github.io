@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Detect keywords with a ragel scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Detect%20keywords%20with%20a%20ragel%20scanner&In-Reply-To=%3CCA%2B5xd7APv6AAevfhbi%3D72mZHTpgkhDB8mQCmuptLrZSF5g0QUw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003160.html">
+   <LINK REL="Next"  HREF="003151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Detect keywords with a ragel scanner</H1>
+    <B>Alec Tica</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Detect%20keywords%20with%20a%20ragel%20scanner&In-Reply-To=%3CCA%2B5xd7APv6AAevfhbi%3D72mZHTpgkhDB8mQCmuptLrZSF5g0QUw%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Detect keywords with a ragel scanner">alexandru.tica at gmail.com
+       </A><BR>
+    <I>Thu Jul 14 21:20:42 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003160.html">[ragel-users] BUG while processing import directive
+</A></li>
+        <LI>Next message: <A HREF="003151.html">[ragel-users] Detect keywords with a ragel scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3148">[ date ]</a>
+              <a href="thread.html#3148">[ thread ]</a>
+              <a href="subject.html#3148">[ subject ]</a>
+              <a href="author.html#3148">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I'm new to Ragel and I'm trying to figure out how to solve,
+apparently, a very simple problem. Let's say I have the following
+text:
+
+&quot;select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select&quot;
+
+I want to detect all &quot;select&quot; keywords using a scanner but taking into
+consideration the word boundaries. &quot;select&quot; is a keyword only if:
+
+1. starts at: the very beginning of the text or it has a whitespace
+before or a comment or a statement separator (;)
+2. ends at: the very end of the text or it has a whitespace after or a
+comment or a statement separator (;)
+3. is not within quotes
+4. is not part of a comment
+
+Till now I have:
+
+&lt;code&gt;
+%%{
+  machine example;
+
+  action is_eof {
+    true if p == eof - 1
+  }
+
+  # eof
+  EOF = zlen when is_eof;
+
+  # strings
+  squoted_string = ['] ( (any - [''])** ) ['];
+  dquoted_string = '&quot;' ( any )* :&gt;&gt; '&quot;';
+
+  # comments
+  ml_comment = '/*' ( any )* :&gt;&gt; '*/';
+  sl_comment = '--' ( any )* :&gt;&gt; ('\n' | EOF);
+  comment = ml_comment | sl_comment;
+
+  tail = space | comment | ';' | EOF;
+
+  # keyword
+  select = 'select' . tail;
+
+  main := |*
+    squoted_string;
+    dquoted_string;
+    comment;
+    select =&gt; { puts &quot;found at #{ts}-#{te}&quot; };
+    any;
+  *|;
+
+}%%
+
+%% write data;
+
+data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+from dual;select'
+# convert the provided string in a stream of chars
+stream_data = data.unpack(&quot;c*&quot;) if(data.is_a?(String))
+eof = stream_data.length
+
+%% write init;
+%% write exec;
+&lt;/code&gt;
+
+Of course, the above scanner incorrectly matches the &quot;unselect&quot; word
+from the data. Anyway, I feel that I'm not on the right track
+therefore I'd like to ask for your advice.
+
+Many thanks in advance!
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003160.html">[ragel-users] BUG while processing import directive
+</A></li>
+	<LI>Next message: <A HREF="003151.html">[ragel-users] Detect keywords with a ragel scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3148">[ date ]</a>
+              <a href="thread.html#3148">[ thread ]</a>
+              <a href="subject.html#3148">[ subject ]</a>
+              <a href="author.html#3148">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

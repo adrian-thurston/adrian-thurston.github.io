@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+%%{
+machine test;
+
+       action show_open {
+           printf ("Door will open... ");
+           res = 0;
+       }
+
+       action show_close {
+           printf ("Door will close... ");
+           res = 1;
+       }
+
+       OPEN = 'O';
+       CLOSE = 'C';
+
+       main :=
+               start: 
+               door_closed: (
+                       OPEN @show_open -> door_open -> final
+               ),
+               door_open: (
+                       CLOSE @show_close -> door_closed
+               );
+}%%
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+        /* Mandatory Ragel variables, see the manual */
+        int cs;
+        char *p;
+        char *pe;
+
+        int res = 0;
+        int i;
+        %%write init;
+        if ( argc > 1 ) {       
+           for (i=1; i<argc; i++)  {
+              p = argv[i];
+              pe = p + strlen(p);
+              printf("Step %i: input %s, current state %i... ", i, p, cs);
+              %%write exec; 
+              if (cs == test_error) { 
+                 printf("Error, invalid input\n");
+                 break;
+              }
+              else {
+                 printf("New state is %i\n", cs);
+              }
+           }
+        }
+        else {
+	   printf("Usage: %s O C O C ...\n", argv[0]);
+           return 1;
+        } 
+        printf("result = %i\n", res );
+        %%write eof;
+        return 0;
+} 
+
+

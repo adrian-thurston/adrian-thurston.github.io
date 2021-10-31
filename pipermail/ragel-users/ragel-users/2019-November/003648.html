@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] -G2 -Z generating an incorrect FSM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20-G2%20-Z%20generating%20an%20incorrect%20FSM&In-Reply-To=%3C0cc74d1240ded62985164789da8ab706%40colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003647.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] -G2 -Z generating an incorrect FSM</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20-G2%20-Z%20generating%20an%20incorrect%20FSM&In-Reply-To=%3C0cc74d1240ded62985164789da8ab706%40colm.net%3E"
+       TITLE="[ragel-users] -G2 -Z generating an incorrect FSM">thurston at colm.net
+       </A><BR>
+    <I>Fri Nov  8 07:59:58 EST 2019</I>
+    <P><UL>
+        <LI>Previous message (by thread): <A HREF="003647.html">[ragel-users] -G2 -Z generating an incorrect FSM
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3648">[ date ]</a>
+              <a href="thread.html#3648">[ thread ]</a>
+              <a href="subject.html#3648">[ subject ]</a>
+              <a href="author.html#3648">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Karl,
+
+Thank you for the report. It seems fbreak in an EOF action is not well 
+defined. This is an unusual thing to do (from my point of view), but 
+this should be corrected regardless.
+
+Will add a github issue.
+
+See attached patch for a quick fix. I haven't fully tested this patch on 
+other ragel programs, but in your case it corrects the issue and does 
+nothing else.
+
+Thank you,
+  Adrian
+
+On 2019-11-08 02:04, Karl Stenerud wrote:
+&gt;<i> I have a ragel machine that generates passing Go code when built with
+</I>&gt;<i> -G1, but failing code when built with -G2 (using ragel 6.10 on
+</I>&gt;<i> ubuntu).
+</I>&gt;<i> 
+</I>&gt;<i> Given the following machine definition:
+</I>&gt;<i> 
+</I>&gt;<i> -------------------------------------------------------------------------
+</I>&gt;<i> package safe16l
+</I>&gt;<i> 
+</I>&gt;<i> import (
+</I>&gt;<i>     &quot;fmt&quot;
+</I>&gt;<i> )
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine safe16;
+</I>&gt;<i>     access this.;
+</I>&gt;<i> 
+</I>&gt;<i>     numeric_hi = [0-9] @{
+</I>&gt;<i>         accumulator = (fc - '0') &lt;&lt; 4
+</I>&gt;<i>     };
+</I>&gt;<i>     af_hi = [a-f] @{
+</I>&gt;<i>         accumulator = (fc - 'a' + 10) &lt;&lt; 4
+</I>&gt;<i>     };
+</I>&gt;<i>     AF_hi = [A-F] @{
+</I>&gt;<i>         accumulator = (fc - 'A' + 10) &lt;&lt; 4
+</I>&gt;<i>     };
+</I>&gt;<i>     numeric_lo = [0-9] @{
+</I>&gt;<i>         accumulator |= fc - '0'
+</I>&gt;<i>     };
+</I>&gt;<i>     af_lo = [a-f] @{
+</I>&gt;<i>         accumulator |= fc - 'a' + 10
+</I>&gt;<i>     };
+</I>&gt;<i>     AF_lo = [A-F] @{
+</I>&gt;<i>         accumulator |= fc - 'A' + 10
+</I>&gt;<i>     };
+</I>&gt;<i> 
+</I>&gt;<i>     sequence = space* (numeric_hi | af_hi | AF_hi) space* (numeric_lo
+</I>&gt;<i> | af_lo | AF_lo) %{
+</I>&gt;<i>         dst[dstIndex] = accumulator
+</I>&gt;<i>         dstIndex++
+</I>&gt;<i>     };
+</I>&gt;<i> 
+</I>&gt;<i>     length_nocontinue = [0-7] @{
+</I>&gt;<i>         this.length = this.length &lt;&lt; 3 + int(fc - '0')
+</I>&gt;<i>     };
+</I>&gt;<i>     length_numeric = [8-9] @{
+</I>&gt;<i>         this.length = this.length &lt;&lt; 3 + int(fc - '0')
+</I>&gt;<i>     };
+</I>&gt;<i>     length_af = [a-f] @{
+</I>&gt;<i>         this.length = this.length &lt;&lt; 3 + int(fc - 'a' + 10 - 8)
+</I>&gt;<i>     };
+</I>&gt;<i>     length_AF = [A-F] @{
+</I>&gt;<i>         this.length = this.length &lt;&lt; 3 + int(fc - 'A' + 10 - 8)
+</I>&gt;<i>     };
+</I>&gt;<i> 
+</I>&gt;<i>     length = (length_numeric | length_af | length_AF)*
+</I>&gt;<i> length_nocontinue;
+</I>&gt;<i> 
+</I>&gt;<i>     sequence_counted = sequence %{
+</I>&gt;<i>         fmt.Printf(&quot;### End of sequence\n&quot;)
+</I>&gt;<i>         this.length--
+</I>&gt;<i>         if this.length == 0 {
+</I>&gt;<i>             this.isComplete = true
+</I>&gt;<i>             fbreak;
+</I>&gt;<i>         }
+</I>&gt;<i>     };
+</I>&gt;<i> 
+</I>&gt;<i>     main := length sequence_counted* @/{
+</I>&gt;<i>         err = fmt.Errorf(&quot;Incomplete document&quot;)
+</I>&gt;<i>     };
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> %% write data;
+</I>&gt;<i> 
+</I>&gt;<i> type Parser struct {
+</I>&gt;<i>     cs int // Current Ragel state
+</I>&gt;<i>     data []byte
+</I>&gt;<i>     length int
+</I>&gt;<i>     isComplete bool
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> func (this *Parser) Init() {
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> func NewParser() *Parser {
+</I>&gt;<i>     this := new(Parser)
+</I>&gt;<i>     return this
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> func (this *Parser) Parse(src []byte, dst []byte) (bytesWritten int,
+</I>&gt;<i> isComplete bool, err error) {
+</I>&gt;<i>     this.data = src
+</I>&gt;<i>     p := 0 // Position: current
+</I>&gt;<i>     pe := len(this.data) // Position: end of buffer
+</I>&gt;<i>     // TODO: Change to -1 and check for end of file
+</I>&gt;<i>     eof := pe // Position: end of file
+</I>&gt;<i>     accumulator := byte(0)
+</I>&gt;<i>     dstIndex := 0
+</I>&gt;<i> 
+</I>&gt;<i>     _ = eof
+</I>&gt;<i> 
+</I>&gt;<i>     %%{
+</I>&gt;<i>         write init;
+</I>&gt;<i>         write exec;
+</I>&gt;<i>     }%%
+</I>&gt;<i> 
+</I>&gt;<i>     if this.cs == safe16_error {
+</I>&gt;<i>         err = fmt.Errorf(&quot;Parse error at %v&quot;, p)
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     return dstIndex, this.isComplete, err
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> -------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> And the following test code:
+</I>&gt;<i> 
+</I>&gt;<i> -------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> package safe16l
+</I>&gt;<i> 
+</I>&gt;<i> import (
+</I>&gt;<i>     &quot;bytes&quot;
+</I>&gt;<i>     &quot;testing&quot;
+</I>&gt;<i> )
+</I>&gt;<i> 
+</I>&gt;<i> func testSafe16L(t *testing.T, src string, expected []byte) {
+</I>&gt;<i>     dst := make([]byte, len(src))
+</I>&gt;<i>     parser := NewParser()
+</I>&gt;<i> 
+</I>&gt;<i>     bytesWritten, isComplete, err := parser.Parse([]byte(src), dst)
+</I>&gt;<i>     if err != nil {
+</I>&gt;<i>         t.Error(err)
+</I>&gt;<i>     }
+</I>&gt;<i>     if !isComplete {
+</I>&gt;<i>         t.Errorf(&quot;Sequence [%v]: Incomplete parse&quot;, src)
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>     actual := dst[:bytesWritten]
+</I>&gt;<i>     if !bytes.Equal(actual, expected) {
+</I>&gt;<i>         t.Errorf(&quot;Sequence [%v]: Expected %v but got %v&quot;, src,
+</I>&gt;<i> expected, actual)
+</I>&gt;<i>     }
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> func TestSafe16L(t *testing.T) {
+</I>&gt;<i>     testSafe16L(t, &quot;100&quot;, []byte{0x00})
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> -------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> With G1:
+</I>&gt;<i> 
+</I>&gt;<i> $ ragel -Z -G1 safe16l.rl &amp;&amp; go test
+</I>&gt;<i> ### End of sequence
+</I>&gt;<i> PASS
+</I>&gt;<i> ok   github.com/kstenerud/go-safe16 [1] 0.001s
+</I>&gt;<i> 
+</I>&gt;<i> With G2:
+</I>&gt;<i> 
+</I>&gt;<i> $ ragel -Z -G2 safe16l.rl &amp;&amp; go test
+</I>&gt;<i> ### End of sequence
+</I>&gt;<i> --- FAIL: TestSafe16L (0.00s)
+</I>&gt;<i>     parser_test.go:14: Parse error at 4
+</I>&gt;<i> FAIL
+</I>&gt;<i> exit status 1
+</I>&gt;<i> FAIL github.com/kstenerud/go-safe16 [1] 0.001s
+</I>&gt;<i> 
+</I>&gt;<i> -------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> Looking at the generated code, I see this in the -G2 version:
+</I>&gt;<i> 
+</I>&gt;<i> //line safe16l.rl:51
+</I>&gt;<i> 
+</I>&gt;<i>         fmt.Printf(&quot;### End of sequence\n&quot;)
+</I>&gt;<i>         this.length--
+</I>&gt;<i>         if this.length == 0 {
+</I>&gt;<i>             this.isComplete = true
+</I>&gt;<i>             {p++;  this.cs = 0; goto _out }
+</I>&gt;<i>         }
+</I>&gt;<i> 
+</I>&gt;<i> I'm not sure why cs would be set to 0 here. This isn't an error state
+</I>&gt;<i> as far as I can tell...
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Karl
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Links:
+</I>&gt;<i> ------
+</I>&gt;<i> [1] <A HREF="http://github.com/kstenerud/go-safe16">http://github.com/kstenerud/go-safe16</A>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+<A HREF="http://colm.net/">http://colm.net/</A>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: git.diff
+Type: text/x-diff
+Size: 469 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20191108/cc5b8752/attachment.diff">http://www.colm.net/pipermail/ragel-users/attachments/20191108/cc5b8752/attachment.diff</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message (by thread): <A HREF="003647.html">[ragel-users] -G2 -Z generating an incorrect FSM
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3648">[ date ]</a>
+              <a href="thread.html#3648">[ thread ]</a>
+              <a href="subject.html#3648">[ subject ]</a>
+              <a href="author.html#3648">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

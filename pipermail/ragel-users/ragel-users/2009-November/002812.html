@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] some questions regarding ragel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20some%20questions%20regarding%20ragel&In-Reply-To=%3C4B06EC2F.4030202%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002807.html">
+   <LINK REL="Next"  HREF="002808.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] some questions regarding ragel</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20some%20questions%20regarding%20ragel&In-Reply-To=%3C4B06EC2F.4030202%40esentire.com%3E"
+       TITLE="[ragel-users] some questions regarding ragel">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Fri Nov 20 19:21:19 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002807.html">[ragel-users] some questions regarding ragel
+</A></li>
+        <LI>Next message: <A HREF="002808.html">[ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2812">[ date ]</a>
+              <a href="thread.html#2812">[ thread ]</a>
+              <a href="subject.html#2812">[ subject ]</a>
+              <a href="author.html#2812">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>The EOF actions are likely coming from leaving actions that are embedded 
+into the final state. The semantics of leaving actions is such that they 
+are executed when EOF arrives and we are in a state that has leaving 
+actions and the state is final.
+
+I have long been interested in adding a write option that causes ragel 
+to process only one character. Since I haven't gotten to that yet, the 
+way to do it is to do something like this:
+
+char c = something();
+char *p = &c;
+char *pe = p + 1;
+
+I admit that this does not produce optimal code, as the pe testing code 
+is pointless, but it's all there is right now.
+
+In regards to checks, yes, you can use conditions. This makes the 
+running code more complex, so it might not be for you. Best to try it 
+out. See the manual in &quot;Beyond the Basic Model.&quot;
+
+Adrian
+
+Григорий Фучеджи wrote:
+&gt;<i> Hi. I'm new to ragel and currently exploring its features. I'm working 
+</I>&gt;<i> on some applications using microcontrollers which have very limited 
+</I>&gt;<i> resources. Microcontrollers communicate with each other with radio. I'm 
+</I>&gt;<i> using ragel to parse radio protocol. So here is my questions:
+</I>&gt;<i> 
+</I>&gt;<i> 1. Main part of my application is infinite loop, which is waiting for 
+</I>&gt;<i> input, parses it with ragel-generated code and do some work. So I don't 
+</I>&gt;<i> have EOF-thing at all. I don't use any EOF actions(at least explicitly). 
+</I>&gt;<i> But generated code still contains some EOF-stuff which uses eof 
+</I>&gt;<i> variable(thus I have to declare it). Documentation states: &quot;If EOF 
+</I>&gt;<i> actions are used then the eof variable is required.&quot;(so if I don't use 
+</I>&gt;<i> EOF actions it shouldn't be required) I think I'm missing something. 
+</I>&gt;<i> Maybe I have to state explicitly somewhere in .rl file that EOF is 
+</I>&gt;<i> senseless in my case. Here is my dummy-playground-example for PC 
+</I>&gt;<i> <A HREF="http://gist.github.com/239028">http://gist.github.com/239028</A>
+</I>&gt;<i> 
+</I>&gt;<i> 2. Ragel assumes that data which have to be processed is between p and 
+</I>&gt;<i> pe pointers. Can this be customized? Here is what I want. I have 
+</I>&gt;<i> ring-buffer which fills in interrupt routines. I have interface function 
+</I>&gt;<i> for this ring-buffer, which returns data from this buffer byte by byte ( 
+</I>&gt;<i> int cyw_tryread(uint8_t* ptr) ). If there is some valid data in buffer 
+</I>&gt;<i> it writes it to (*ptr) and returns 1, otherwise 0. I want ragel to use 
+</I>&gt;<i> this function as source of data instead of walking through p pointer. It 
+</I>&gt;<i> seems that all I need to do for this is replace
+</I>&gt;<i>  &gt;    if ( ++p != pe )
+</I>&gt;<i>  &gt;        goto _resume;
+</I>&gt;<i> with
+</I>&gt;<i>  &gt;    if ( cyw_tryread(p))
+</I>&gt;<i>  &gt;        goto _resume;
+</I>&gt;<i> pe pointer is useless here. So can I customize this in ragel without 
+</I>&gt;<i> patching generated code(patching generated code is not very good thing 
+</I>&gt;<i> to do...)
+</I>&gt;<i> 
+</I>&gt;<i> 3. Can I embed C checks within machine definition statement? e.g. if I 
+</I>&gt;<i> want machine that matches any character, that have nonzero bit number 2 
+</I>&gt;<i> (xxxxx1xx). So for this characters (ch &amp; 4) is true. Is there a way to 
+</I>&gt;<i> define such machine?
+</I>&gt;<i> 
+</I>&gt;<i> Any tips and explanations would be very much appreciated.
+</I>&gt;<i> __
+</I>&gt;<i> Grygoriy Fuchedzhy
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002807.html">[ragel-users] some questions regarding ragel
+</A></li>
+	<LI>Next message: <A HREF="002808.html">[ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2812">[ date ]</a>
+              <a href="thread.html#2812">[ thread ]</a>
+              <a href="subject.html#2812">[ subject ]</a>
+              <a href="author.html#2812">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

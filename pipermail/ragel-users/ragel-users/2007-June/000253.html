@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Transition actions on EOF handling
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Transition%20actions%20on%20EOF%20handling&In-Reply-To=%3C1183165642.076488.319350%40k79g2000hse.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000252.html">
+   <LINK REL="Next"  HREF="002017.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Transition actions on EOF handling</H1>
+    <B>Alexander Strange</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Transition%20actions%20on%20EOF%20handling&In-Reply-To=%3C1183165642.076488.319350%40k79g2000hse.googlegroups.com%3E"
+       TITLE="Transition actions on EOF handling">astra... at gmail.com
+       </A><BR>
+    <I>Sat Jun 30 01:07:22 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000252.html">Basic &quot;Hello World&quot; Example?
+</A></li>
+        <LI>Next message: <A HREF="002017.html">[ragel-users] Transition actions on EOF handling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I wrote this program:
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+%% machine romaji;
+%% write data;
+
+int main(void)
+{
+	char buf[1024];
+	int ilen;
+
+	scanf(&quot;%s&quot;,buf);
+	ilen = strlen(buf);
+	{
+		char *p = buf, *pe = &amp;buf[ilen], *m=&quot;qqq&quot;;
+		int cs;
+		%%{
+			alphtype unsigned char;
+
+			action mora_out {printf(&quot;%s&quot;,m);}
+
+			mora = (&quot;a&quot; % {m=&quot;あ&quot;;} |
+					&quot;e&quot; % {m=&quot;え&quot;;} |
+					&quot;i&quot; % {m=&quot;い&quot;;} |
+					&quot;o&quot; % {m=&quot;お&quot;;} |
+					&quot;u&quot; % {m=&quot;う&quot;;} |
+					&quot;ga&quot; % {m=&quot;が&quot;;} |
+					&quot;ge&quot; % {m=&quot;げ&quot;;} |
+					&quot;gi&quot; % {m=&quot;ぎ&quot;;} |
+					&quot;go&quot; % {m=&quot;ご&quot;;} |
+					&quot;gu&quot; % {m=&quot;ぐ&quot;;}) % mora_out;
+
+			char = mora;
+
+			main := char+;
+		}%%
+
+		%% write init;
+		%% write exec;
+		%% write eof;
+	}
+	printf(&quot;\n&quot;);
+	return 0;
+}
+
+and run it:
+
+&gt;<i> ./r2h
+</I>aei
+あえ
+
+I don't blame you if you can't read the output, but there should be 3
+characters instead of two. The last one isn't firing, apparently
+because it reaches the end of the string. I've got the same problem
+(worked around) in Perian 1.0, which uses Ragel for the subtitle
+parsing. Is there a general way to handle this?
+
+Also, how fast is Ragel for general text searches? At the expense of
+more tables and FSM purity, it could maybe implement something really
+fast like Boyer-Moore.
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000252.html">Basic &quot;Hello World&quot; Example?
+</A></li>
+	<LI>Next message: <A HREF="002017.html">[ragel-users] Transition actions on EOF handling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

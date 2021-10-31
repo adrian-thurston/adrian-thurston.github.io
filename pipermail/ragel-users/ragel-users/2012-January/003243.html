@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Failed to convert URL parser regular expression to	Ragel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Failed%20to%20convert%20URL%20parser%20regular%20expression%20to%0A%09Ragel&In-Reply-To=%3CCADA6EctF0y8MnV22g-ma8Dou7cYkGydy55iCWhL%2BqySZxv6HMg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003242.html">
+   <LINK REL="Next"  HREF="003244.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Failed to convert URL parser regular expression to	Ragel</H1>
+    <B>徐亮</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Failed%20to%20convert%20URL%20parser%20regular%20expression%20to%0A%09Ragel&In-Reply-To=%3CCADA6EctF0y8MnV22g-ma8Dou7cYkGydy55iCWhL%2BqySZxv6HMg%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Failed to convert URL parser regular expression to	Ragel">lxu4net at gmail.com
+       </A><BR>
+    <I>Mon Jan  9 11:02:11 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003242.html">[ragel-users] getNextToken() : how to return ?
+</A></li>
+        <LI>Next message: <A HREF="003244.html">[ragel-users] Failed to convert URL parser regular expression	toRagel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3243">[ date ]</a>
+              <a href="thread.html#3243">[ thread ]</a>
+              <a href="subject.html#3243">[ subject ]</a>
+              <a href="author.html#3243">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have posted a question in
+StackOverflow&lt;<A HREF="http://stackoverflow.com/questions/8784903/failed-to-convert-url-parser-regular-expression-to-ragel">http://stackoverflow.com/questions/8784903/failed-to-convert-url-parser-regular-expression-to-ragel</A>&gt;about
+it.
+
+I found an URL parser regular expression at RFC 2396 and RFC 3986.
+
+    ^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?
+
+I converted it to Ragel:
+
+    %%{
+      # RFC 3986 URI Generic Syntax (January 2005)
+      machine url_parser;
+
+      action pchar     {
+        printf(&quot;%c&quot;, fc);
+      }
+      action scheme            { printf(&quot;scheme\n&quot;); }
+      action scheme_end     { printf(&quot;\nscheme_end\n&quot;); }
+      action authority           { printf(&quot;authority\n&quot;); }
+      action authority_end    { printf(&quot;\nauthority_end\n&quot;); }
+      action path                  { printf(&quot;path\n&quot;); }
+      action path_end           { printf(&quot;\npath_end\n&quot;); }
+      action query                { printf(&quot;query\n&quot;); }
+      action query_end         { printf(&quot;\nquery_end\n&quot;); }
+      action fragment           { printf(&quot;fragment\n&quot;); }
+      action fragment_end    { printf(&quot;\nfragment_end\n&quot;); }
+
+      scheme    = (any - [:/?#])+ &gt;scheme    $pchar %scheme_end ;
+      authority = (any - [/?#])*  &gt;authority $pchar %authority_end ;
+      path      = (any - [?#])*   &gt;path      $pchar %path_end ;
+      query     = (any - [#])*    &gt;query     $pchar %query_end ;
+      fragment  = (any)*          &gt;fragment  $pchar %fragment_end ;
+      main     := (( scheme &quot;:&quot; )?) &lt;: (( &quot;//&quot; authority )?) &lt;: path ( &quot;?&quot;
+query )? ( &quot;#&quot; fragment )?;
+    }%%
+
+    #include &lt;cstdio&gt;
+    #include &lt;cstdlib&gt;
+    #include &lt;string&gt;
+
+    /** Data **/
+    %% write data;
+
+    int main(int argc, char **argv) {
+      std::string str(argv[1]);
+      char const* p = str.c_str();
+      char const* pe = p + str.size();
+      char const* eof = pe;
+      int cs = 0;
+
+      %% write init;
+      %% write exec;
+
+      return p - str.c_str();
+    }
+
+It's work when I input absolute URI.
+
+    <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">liangxu at dev64</A>:~$ ./uri_test &quot;
+<A HREF="http://www.ics.uci.edu/pub/ietf/uri/?c=www&amp;rot=1&amp;e=%20%20">http://www.ics.uci.edu/pub/ietf/uri/?c=www&amp;rot=1&amp;e=%20%20</A>&quot;
+    scheme
+    http
+    scheme_end
+    authority
+    www.ics.uci.edu
+    authority_end
+    path
+    /pub/ietf/uri/
+    path_end
+    query
+    c=www&amp;rot=1&amp;e=%20%20
+    query_end
+
+And success when I input authority and path:
+
+    <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">liangxu at dev64</A>:~$ ./uri_test &quot;//
+www.ics.uci.edu/pub/ietf/uri/?c=www&amp;rot=1&amp;e=%20%20&quot;
+    authority
+    www.ics.uci.edu
+    authority_end
+    path
+    /pub/ietf/uri/
+    path_end
+    query
+    c=www&amp;rot=1&amp;e=%20%20
+    query_end
+
+But failed when I input only path:
+
+    <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">liangxu at dev64</A>:~$ ./uri_test &quot;/pub/ietf/uri&quot;
+
+What's wrong?
+
+-- 
+Liang Xu
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20120109/e8efb89f/attachment-0001.html">http://www.colm.net/pipermail/ragel-users/attachments/20120109/e8efb89f/attachment-0001.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003242.html">[ragel-users] getNextToken() : how to return ?
+</A></li>
+	<LI>Next message: <A HREF="003244.html">[ragel-users] Failed to convert URL parser regular expression	toRagel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3243">[ date ]</a>
+              <a href="thread.html#3243">[ thread ]</a>
+              <a href="subject.html#3243">[ subject ]</a>
+              <a href="author.html#3243">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

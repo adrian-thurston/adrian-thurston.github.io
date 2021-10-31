@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] EOF and token termination
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3C4C28DA0B.9000305%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002887.html">
+   <LINK REL="Next"  HREF="002889.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] EOF and token termination</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3C4C28DA0B.9000305%40esentire.com%3E"
+       TITLE="[ragel-users] EOF and token termination">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Mon Jun 28 17:21:15 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002887.html">[ragel-users] EOF and token termination
+</A></li>
+        <LI>Next message: <A HREF="002889.html">[ragel-users] EOF and token termination
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2888">[ date ]</a>
+              <a href="thread.html#2888">[ thread ]</a>
+              <a href="subject.html#2888">[ subject ]</a>
+              <a href="author.html#2888">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Brian,
+
+Just to be certain, you'd like a token at the end of the input to match 
+even if it is not in a final state?
+
+If that's the case, I'm sorry I don't have an elegant solution for you. 
+A state is either final or not, and what you need is to make all states 
+final when at the end of the input.
+
+-Adrian
+
+
+
+On 10-06-27 06:46 AM, Brian Maher wrote:
+&gt;<i> Hello Ragel Users,
+</I>&gt;<i>
+</I>&gt;<i> First, I just want to say that Ragel is an awesome tool, thank you
+</I>&gt;<i> Adrian for sharing this tool with the open source community!
+</I>&gt;<i>
+</I>&gt;<i> Recently I've been trying to write a grammar for which individual
+</I>&gt;<i> tokens may be pre-maturely terminated by EOF.  I came up with the
+</I>&gt;<i> following rather hacky solution below (emit the same action as though
+</I>&gt;<i> the token was &quot;recognized&quot;, then fbreak so that only one token is
+</I>&gt;<i> guaranteed to be &quot;seen&quot;).  The things that I don't like with this
+</I>&gt;<i> solution are that:
+</I>&gt;<i>
+</I>&gt;<i>    * I'm not keen on having to redundantly call the token's action in
+</I>&gt;<i> two places since a maintainer later on may forget to update one of the
+</I>&gt;<i> places where $eof(token_action) is done.
+</I>&gt;<i>
+</I>&gt;<i>    * te is not updated (although this isn't a big deal since I can just
+</I>&gt;<i> use p instead of relying on te, and if I really wanted to make a fuss
+</I>&gt;<i> about this I could always add $eof{te=p;}).
+</I>&gt;<i>
+</I>&gt;<i> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+</I>&gt;<i> the &quot;final&quot; label is only defined within the context of state charts
+</I>&gt;<i> and can't be used as a &quot;normal label&quot;.
+</I>&gt;<i>
+</I>&gt;<i> --------------example.rl
+</I>&gt;<i>
+</I>&gt;<i> #include&lt;stdio.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> %% machine t;
+</I>&gt;<i> %% write data;
+</I>&gt;<i>
+</I>&gt;<i> #define INPUT &quot;abcd&quot;
+</I>&gt;<i>
+</I>&gt;<i> int main() {
+</I>&gt;<i>     char *ts, *te;
+</I>&gt;<i>     int   cs, act, i;
+</I>&gt;<i>     char *input = INPUT;
+</I>&gt;<i>     char *p     = input;
+</I>&gt;<i>     char *pe    = input + (sizeof(INPUT) - 1);
+</I>&gt;<i>     char *eof   = pe;
+</I>&gt;<i>
+</I>&gt;<i>     fprintf(stderr, &quot;Input[&quot;);
+</I>&gt;<i>     fwrite(p, 1, pe-p, stderr);
+</I>&gt;<i>     fprintf(stderr, &quot;]\n&quot;);
+</I>&gt;<i>
+</I>&gt;<i>     %%{
+</I>&gt;<i>         write init;
+</I>&gt;<i>
+</I>&gt;<i>         action text {
+</I>&gt;<i>             fprintf(stderr, &quot;Text [%c]\n&quot;, *p);
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         action token {
+</I>&gt;<i>             fprintf(stderr, &quot;Token[&quot;);
+</I>&gt;<i>             fwrite(ts, 1, p-ts, stderr);
+</I>&gt;<i>             fprintf(stderr, &quot;]\n&quot;);
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         Token = &quot;abc&quot; &quot;def&quot; $eof(token) $eof{fbreak;};
+</I>&gt;<i>
+</I>&gt;<i>          main := |*
+</I>&gt;<i>             Token =&gt;  token;
+</I>&gt;<i>             any   =&gt;  text;
+</I>&gt;<i>         *|;
+</I>&gt;<i>         write exec;
+</I>&gt;<i>
+</I>&gt;<i>     }%%
+</I>&gt;<i>     fprintf(stderr, &quot;end\n&quot;);
+</I>&gt;<i>     return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> --------------/example.rl
+</I>&gt;<i>
+</I>&gt;<i> Thanks!
+</I>&gt;<i> -Brian
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002887.html">[ragel-users] EOF and token termination
+</A></li>
+	<LI>Next message: <A HREF="002889.html">[ragel-users] EOF and token termination
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2888">[ date ]</a>
+              <a href="thread.html#2888">[ thread ]</a>
+              <a href="subject.html#2888">[ subject ]</a>
+              <a href="author.html#2888">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

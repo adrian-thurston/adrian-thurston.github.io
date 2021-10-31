@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Solving ambiguity
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Solving%20ambiguity&In-Reply-To=%3C4BFC49EE.80806%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001119.html">
+   <LINK REL="Next"  HREF="001121.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Solving ambiguity</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Solving%20ambiguity&In-Reply-To=%3C4BFC49EE.80806%40esentire.com%3E"
+       TITLE="[ragel-users] Solving ambiguity">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Tue May 25 22:06:38 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001119.html">[ragel-users] Solving ambiguity
+</A></li>
+        <LI>Next message: <A HREF="001121.html">[ragel-users] Solving ambiguity
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1120">[ date ]</a>
+              <a href="thread.html#1120">[ thread ]</a>
+              <a href="subject.html#1120">[ subject ]</a>
+              <a href="author.html#1120">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It's because of the fws in between hosts and the fws? inside field. You 
+could lower the priority of the inner one and raise the priority of the 
+outer one to resolve the ambiguity.
+
+     wsp            = [ \t];
+     fws            = ( ( wsp* crlf )? wsp+ ) ;
+
+     opt_fws        = ( fws? )$(fws,0);
+     sep_fws        = ( fws )$(fws,1);
+
+     field          = (opt_fws alpha+ opt_fws);
+     host           = (field ('.' field)*) &gt;mark %print;
+     main          := host (sep_fws host)*;
+
+-Adrian
+
+Husam Senussi wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I'm trying to use ragel to write parser for RFC2822 but I found some ambiguity in the grammar  so just want to see if
+</I>&gt;<i> is solve it using priories.
+</I>&gt;<i> 
+</I>&gt;<i> Below is sample I found in the grammar with ambiguity
+</I>&gt;<i> 
+</I>&gt;<i> wsp           = [ \t];
+</I>&gt;<i> fws             = ( ( wsp* crlf )? wsp+ ) 
+</I>&gt;<i> field		   = (fws? alpha+ fws?);
+</I>&gt;<i> host		   = (field ('.' field)*) &gt;mark %print;
+</I>&gt;<i> main        := host (fws host)*;
+</I>&gt;<i> 
+</I>&gt;<i> The problem I found with input like this &quot;a.mydomain.com  b.mydomain.com&quot; end up calling print 3 times
+</I>&gt;<i> 
+</I>&gt;<i> 1. &quot;a.mydomain.com&quot;
+</I>&gt;<i> 2. &quot;a.mydomain.com &quot;
+</I>&gt;<i> 3. &quot;b.mydomain.com&quot;
+</I>&gt;<i> 
+</I>&gt;<i> where I was expecting:
+</I>&gt;<i> 
+</I>&gt;<i> 2. &quot;a.mydomain.com &quot;
+</I>&gt;<i> 3. &quot;b.mydomain.com&quot;
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> I'm assuming the problem is having fws? in end of field and one in main between host, so is there
+</I>&gt;<i> anyway  solve this without breaking the grammar.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Sorry if this sounds  like basic question I just started using Ragel.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks  
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> 
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001119.html">[ragel-users] Solving ambiguity
+</A></li>
+	<LI>Next message: <A HREF="001121.html">[ragel-users] Solving ambiguity
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1120">[ date ]</a>
+              <a href="thread.html#1120">[ thread ]</a>
+              <a href="subject.html#1120">[ subject ]</a>
+              <a href="author.html#1120">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

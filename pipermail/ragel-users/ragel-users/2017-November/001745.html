@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel] [PATCH] Use portable types in the C/C++ code generator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%5BPATCH%5D%20Use%20portable%20types%20in%20the%20C/C%2B%2B%20code%20generator&In-Reply-To=%3CE1eEUzi-00061V-Ts%40void-ptr.info%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001744.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel] [PATCH] Use portable types in the C/C++ code generator</H1>
+    <B>Petr Ovtchenkov</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel%5D%20%5BPATCH%5D%20Use%20portable%20types%20in%20the%20C/C%2B%2B%20code%20generator&In-Reply-To=%3CE1eEUzi-00061V-Ts%40void-ptr.info%3E"
+       TITLE="[ragel] [PATCH] Use portable types in the C/C++ code generator">ptr at void-ptr.info
+       </A><BR>
+    <I>Wed Nov  1 20:40:16 UTC 2017</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001744.html">[ragel] Ragel sanitise output - memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1745">[ date ]</a>
+              <a href="thread.html#1745">[ thread ]</a>
+              <a href="subject.html#1745">[ subject ]</a>
+              <a href="author.html#1745">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>The char may be signed or unsigned, this is implementation
+defined. So, for platforms where char is unsigned (ARM, for example)
+assign negative value to char will lead to errors like
+
+  error: narrowing conversion of '-1' from 'int' to 'char' inside { } [-Wnarrowing]
+
+Use explicit &quot;signed char&quot; in such case.
+
+Use fixed-sized integral types. This provide that both host and target
+platforms use the same types with the equivalent range of storable values.
+Critical when ragel generate code that compiled for foreign platform.
+
+There is a problem: type that used on target platform is placed
+in the same table with size/signess derived at compile time
+on build host. Used _minimal_ requirements for integer types size from
+ISO/IEC 9899 (as :1999 (aka C99), :2011 (aka C11)).
+
+Similar to
+
+  commit dc238e78cd3024889b6fb2618fe5bbc20179a132
+  Author: Jan Kundrat &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">jkt at flaska.net</A>&gt;
+  Date:   Wed, 18 Sep 2013 15:34:24 +0200
+
+  Use portable types in the C/C++ code generator
+
+  commit 06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+  Author: Jan Kundrat &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">jkt at flaska.net</A>&gt;
+  Date:   Wed, 18 Sep 2013 12:26:20 +0200
+
+  Use signed char when working with char
+---
+ src/codegen.cc | 10 +++++-----
+ src/common.cc  | 18 ++++++++++--------
+ 2 files changed, 15 insertions(+), 13 deletions(-)
+
+ See also: <A HREF="http://www.colm.net/pipermail/ragel/2013-September/001592.html">http://www.colm.net/pipermail/ragel/2013-September/001592.html</A>
+
+diff --git a/src/codegen.cc b/src/codegen.cc
+index e98002d..6491d99 100644
+--- a/src/codegen.cc
++++ b/src/codegen.cc
+@@ -96,19 +96,19 @@ void TableArray::finishAnalyze()
+ 	/* Calculate the type if it is not already set. */
+ 	if ( type.empty() ) {
+ 		if ( min &gt;= S8BIT_MIN &amp;&amp; max &lt;= S8BIT_MAX ) {
+-			type = &quot;char&quot;;
++			type = &quot;int8_t&quot;;
+ 			width = sizeof(char);
+ 		}
+ 		else if ( min &gt;= S16BIT_MIN &amp;&amp; max &lt;= S16BIT_MAX ) {
+-			type = &quot;short&quot;;
++			type = &quot;int16_t&quot;;
+ 			width = sizeof(short);
+ 		}
+ 		else if ( min &gt;= S32BIT_MIN &amp;&amp; max &lt;= S32BIT_MAX ) {
+-			type = &quot;int&quot;;
++			type = &quot;int32_t&quot;;
+ 			width = sizeof(int);
+ 		}
+ 		else if ( min &gt;= S64BIT_MAX &amp;&amp; max &lt;= S64BIT_MAX ) {
+-			type = &quot;long&quot;;
++			type = &quot;int64_t&quot;;
+ 			width = sizeof(long);
+ 		}
+ 		else  {
+@@ -121,7 +121,7 @@ void TableArray::finishAnalyze()
+ void TableArray::startGenerate()
+ {
+ 	if ( stringTables ) {
+-		out &lt;&lt; &quot;static const char S_&quot; &lt;&lt; codeGen.DATA_PREFIX() &lt;&lt; name &lt;&lt;
++		out &lt;&lt; &quot;static const int8_t S_&quot; &lt;&lt; codeGen.DATA_PREFIX() &lt;&lt; name &lt;&lt;
+ 			&quot;[] __attribute__((aligned (16))) = \n\t\&quot;&quot;;
+ 	}
+ 	else {
+diff --git a/src/common.cc b/src/common.cc
+index e0cf2cf..30ed1bf 100644
+--- a/src/common.cc
++++ b/src/common.cc
+@@ -20,6 +20,7 @@
+  * SOFTWARE.
+  */
+ 
++#include &lt;stdint.h&gt;
+ #include &quot;pcheck.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;stdlib.h&quot;
+@@ -30,14 +31,15 @@
+ 
+ HostType hostTypesC[] =
+ {
+-	{ &quot;char&quot;,     0,       &quot;char&quot;,    true,   true,  false,  CHAR_MIN,  CHAR_MAX,   0, 0,          sizeof(char) },
+-	{ &quot;unsigned&quot;, &quot;char&quot;,  &quot;uchar&quot;,   false,  true,  false,  0, 0,                  0, UCHAR_MAX,  sizeof(unsigned char) },
+-	{ &quot;short&quot;,    0,       &quot;short&quot;,   true,   true,  false,  SHRT_MIN,  SHRT_MAX,   0, 0,          sizeof(short) },
+-	{ &quot;unsigned&quot;, &quot;short&quot;, &quot;ushort&quot;,  false,  true,  false,  0, 0,                  0, USHRT_MAX,  sizeof(unsigned short) },
+-	{ &quot;int&quot;,      0,       &quot;int&quot;,     true,   true,  false,  INT_MIN,   INT_MAX,    0, 0,          sizeof(int) },
+-	{ &quot;unsigned&quot;, &quot;int&quot;,   &quot;uint&quot;,    false,  true,  false,  0, 0,                  0, UINT_MAX,   sizeof(unsigned int) },
+-	{ &quot;long&quot;,     0,       &quot;long&quot;,    true,   true,  false,  LONG_MIN,  LONG_MAX,   0, 0,          sizeof(long) },
+-	{ &quot;unsigned&quot;, &quot;long&quot;,  &quot;ulong&quot;,   false,  true,  false,  0, 0,                  0, ULONG_MAX,  sizeof(unsigned long) },
++	{ &quot;char&quot;,     0,       &quot;int8_t&quot;,    true,   true,  false,  INT8_MIN,  INT8_MAX,    0, 0,          sizeof(int8_t) },
++	{ &quot;unsigned&quot;, &quot;char&quot;,  &quot;uint8_t&quot;,   false,  true,  false,  0, 0,                   0, UINT8_MAX,  sizeof(uint8_t) },
++	{ &quot;short&quot;,    0,       &quot;int16_t&quot;,   true,   true,  false,  INT16_MIN,  INT16_MAX,  0, 0,          sizeof(int16_t) },
++	{ &quot;unsigned&quot;, &quot;short&quot;, &quot;uint16_t&quot;,  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ &quot;int&quot;,      0,       &quot;int16_t&quot;,   true,   true,  false,  INT16_MIN,   INT16_MAX, 0, 0,          sizeof(int16_t) },
++	{ &quot;unsigned&quot;, &quot;int&quot;,   &quot;uint16_t&quot;,  false,  true,  false,  0, 0,                   0, UINT16_MAX, sizeof(uint16_t) },
++	{ &quot;long&quot;,     0,       &quot;int32_t&quot;,   true,   true,  false,  INT32_MIN,  INT32_MAX,  0, 0,          sizeof(int32_t) },
++	{ &quot;unsigned&quot;, &quot;long&quot;,  &quot;uint32_t&quot;,  false,  true,  false,  0, 0,                   0, UINT32_MAX, sizeof(uint32_t) },
++	{ &quot;long&quot;,     &quot;long&quot;,  &quot;int64_t&quot;,   true,   true,  false,  INT64_MIN,  INT64_MAX,  0, 0,          sizeof(int64_t) },
+ };
+ 
+ const HostLang hostLangC = {
+-- 
+2.10.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001744.html">[ragel] Ragel sanitise output - memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1745">[ date ]</a>
+              <a href="thread.html#1745">[ thread ]</a>
+              <a href="subject.html#1745">[ subject ]</a>
+              <a href="author.html#1745">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

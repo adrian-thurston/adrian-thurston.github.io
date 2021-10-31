@@ -1,0 +1,45 @@
+#include <stdio.h>
+#include <string.h>
+
+%%{
+machine defs;
+
+CRLF = "\r\n";
+SP = " ";
+TAB = '\x09';
+textstring = (TAB|SP|[!-~])+;
+
+Domain = [a-z.]+;
+
+
+domain_instance := Domain %{ printf("%d: domain complete\n", __LINE__); fret;};
+
+action parse_domain {
+    printf("%d:, calling parse_domain  {%s}\n", __LINE__, p);
+    fcall domain_instance;
+}
+
+Greeting := "220 " %parse_domain (SP textstring)? CRLF;
+}%%
+
+int main()
+{
+    const char * const text= "220 qwe.ru text qweqweqweqwe\r\n";
+    int cs;
+    const char* p=text;
+    const char* pe = text + strlen(text);
+    const char* eof = pe;
+
+    int top;
+    int stack[100];
+
+    %% write data;
+    %% write init;
+
+    printf("startp=<%s>\n", p);
+
+    %% write exec;
+
+    printf("endp=<%s>\n cs=%d\n", p, cs);
+    return 0;
+}

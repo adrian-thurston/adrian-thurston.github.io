@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel goes while(1) with the following scanner.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20goes%20while%281%29%20with%20the%20following%20scanner.&In-Reply-To=%3C4A2C6225.90302%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000969.html">
+   <LINK REL="Next"  HREF="000971.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel goes while(1) with the following scanner.</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20goes%20while%281%29%20with%20the%20following%20scanner.&In-Reply-To=%3C4A2C6225.90302%40complang.org%3E"
+       TITLE="[ragel-users] Ragel goes while(1) with the following scanner.">thurston at complang.org
+       </A><BR>
+    <I>Mon Jun  8 00:58:13 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000969.html">[ragel-users] Ragel goes while(1) with the following scanner.
+</A></li>
+        <LI>Next message: <A HREF="000971.html">[ragel-users] Ragel goes while(1) with the following scanner.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>The reason ragel seems to run endlessly is that you're getting a state 
+explosion. The machine:
+
+comment = '#' any* -- newline;
+
+Is not terminated with a newline. It's just a string that starts with 
+'#' and cannot contain a newline. When you put this in front of alnum 
+(in bulk?) you create an ambiguity that is costly for ragel to implement 
+with a deterministic state machine.
+
+Do this instead:
+
+comment = '#' (any* -- newline) newline;
+
+Or use :&gt;&gt; as you suggested.
+
+Cheers,
+  Adrian
+
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">david.keller at litchis.fr</A> wrote:
+&gt;<i> Hi
+</I>&gt;<i> 
+</I>&gt;<i> When using this scanner (I removed actions), ragel seems to loop endless.
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine configuration_parser;
+</I>&gt;<i>     include scanner_common &quot;scanner.rl&quot;;
+</I>&gt;<i> 
+</I>&gt;<i>     newline = '\r'?  '\n';
+</I>&gt;<i> 
+</I>&gt;<i>     comment = '#' any* -- newline;
+</I>&gt;<i> 
+</I>&gt;<i>     bulk = ([\t\v\f\ ] | comment | newline)+;
+</I>&gt;<i> 
+</I>&gt;<i>     key = bulk? (alnum ([\_\.]? alnum)*);
+</I>&gt;<i> 
+</I>&gt;<i>     value = bulk? &quot;\&quot;&quot; any* :&gt;&gt; &quot;\&quot;&quot;;
+</I>&gt;<i> 
+</I>&gt;<i>     values = bulk? value (bulk? ',' value)*;
+</I>&gt;<i> 
+</I>&gt;<i>     assign = key bulk? '=' values;
+</I>&gt;<i> 
+</I>&gt;<i>     main := assign* bulk?;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> But I works like a charm when:
+</I>&gt;<i> 
+</I>&gt;<i>     comment = '#' any* -- newline;
+</I>&gt;<i> 
+</I>&gt;<i> become:
+</I>&gt;<i> 
+</I>&gt;<i>     comment = '#' any* :&gt;&gt; newline;
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000969.html">[ragel-users] Ragel goes while(1) with the following scanner.
+</A></li>
+	<LI>Next message: <A HREF="000971.html">[ragel-users] Ragel goes while(1) with the following scanner.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

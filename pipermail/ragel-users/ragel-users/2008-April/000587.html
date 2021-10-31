@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: State Chart Finishing Actions?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20State%20Chart%20Finishing%20Actions%3F&In-Reply-To=%3Ca3aee9a50804151055l1cd9a807sfdcb8f1989999f12%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000566.html">
+   <LINK REL="Next"  HREF="000588.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: State Chart Finishing Actions?</H1>
+    <B>Bob Paddock</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20State%20Chart%20Finishing%20Actions%3F&In-Reply-To=%3Ca3aee9a50804151055l1cd9a807sfdcb8f1989999f12%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: State Chart Finishing Actions?">graceindustr... at gmail.com
+       </A><BR>
+    <I>Tue Apr 15 17:55:44 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000566.html">[ragel-users] Re: fnext followed by fbreak
+</A></li>
+        <LI>Next message: <A HREF="000588.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#587">[ date ]</a>
+              <a href="thread.html#587">[ thread ]</a>
+              <a href="subject.html#587">[ subject ]</a>
+              <a href="author.html#587">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Am I not understanding something here, or is there
+a bug with State Charts in 6.1?
+
+I'm dealing with a serial protocol.  I want to stay
+in the starting state until I receive a &quot;&gt;&quot;.
+
+Here is a snippet of have I have:
+
+action Starting {
+ wxLogVerbose( _(&quot;Starting [State{%d}]&quot;) , cs );
+}
+
+bootloader = (
+ start: (
+  '&gt;' @start_signal_received -&gt; UnitID
+  any*                       -&gt; start # Only a '&gt;' means anything to us in
+the starting state
+ )@Starting,
+
+ UnitID: (
+  '&gt;' @start_signal_received   -&gt; UnitID         |
+
+ 'A' @{ DeviceID_u16 = 1; }    -&gt; FlashSize      |
+ ...
+
+Everything seems to work but the action 'Starting' is called for
+*EVERY* state in the chart.  If this is what any* does, this
+isn't what I want.  I only want 'Starting' called when I
+transition from 'start' to 'UnitID'.  Once I leave 'start'
+I don't want to see any more 'Starting' message.
+
+?
+
+Example output:
+13:22:49: &gt;
+13:22:49: Execute[0x3E]  {Byte passed to write exec}
+13:22:49: Begin
+13:22:49: Synchronization Signal Received.
+13:22:49: Starting [State{2}]  {This is good, it belongs here}
+
+13:22:49: [Not printable]
+13:22:49: Execute[0x95]
+13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+
+13:22:49: o
+13:22:49: Execute[0x6F]
+13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+13:22:49: DeviceFlashSize = 65536
+
+If I use *any in other states then they show up in the list when
+then should not as well.
+
+Compiled on  Windows with Digital Mars Compiler with:
+
+BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+ G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+BootLoaderStateChart.cpp
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20080415/2941f81b/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20080415/2941f81b/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000566.html">[ragel-users] Re: fnext followed by fbreak
+</A></li>
+	<LI>Next message: <A HREF="000588.html">[ragel-users] Re: State Chart Finishing Actions?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#587">[ date ]</a>
+              <a href="thread.html#587">[ thread ]</a>
+              <a href="subject.html#587">[ subject ]</a>
+              <a href="author.html#587">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

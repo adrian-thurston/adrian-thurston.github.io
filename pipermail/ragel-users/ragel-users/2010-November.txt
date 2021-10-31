@@ -1,0 +1,2404 @@
+From shawn at bighugh.com  Fri Nov  5 18:50:13 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 5 Nov 2010 14:50:13 -0400
+Subject: [ragel-users] Symbolic graph labels
+Message-ID: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+
+The graphviz output option is great, but I was wondering if there's a way to
+make it print the state names instead of numbers in the circle labels.
+Similarly, constants parsed from include files have names, but the numeric
+values are printed on transition labels.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101105/36b0166e/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Nov  5 19:02:57 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 05 Nov 2010 12:02:57 -0700
+Subject: [ragel-users] Symbolic graph labels
+In-Reply-To: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+References: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+Message-ID: <4CD454E1.1070208@complang.org>
+
+Ragel doesn't currently maintain a mapping from state numbers back to 
+symbolic names. This would need to be implemented. Similarly with 
+transitions.
+
+Though the real problem is how to display it in a non-chaotic way. A 
+symbol name can result in many states and a single state can have many 
+origin symbol names.
+
+-Adrian
+
+On 10-11-05 11:50 AM, Shawn Hoover wrote:
+> The graphviz output option is great, but I was wondering if there's a
+> way to make it print the state names instead of numbers in the circle
+> labels. Similarly, constants parsed from include files have names, but
+> the numeric values are printed on transition labels.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graham.miller at gmail.com  Mon Nov  8 21:34:23 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 8 Nov 2010 16:34:23 -0500
+Subject: [ragel-users] Go Patches
+Message-ID: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+
+Just wanted to give a thumbs up for the Go language support in Ragel.
+I have built a non-trivial FSM, and it works like a charm.  +1 for
+integrating it into the trunk.
+
+graham
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Nov  9 03:22:34 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 08 Nov 2010 19:22:34 -0800
+Subject: [ragel-users] Go Patches
+In-Reply-To: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+References: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+Message-ID: <4CD8BE7A.4060306@complang.org>
+
+Ah, great! Could you say a bit about which ragel features you used? For 
+example, to-state, from-state, or leaving actions? Scanner?
+
+Regards,
+  Adrian
+
+On 10-11-08 01:34 PM, Graham Miller wrote:
+> Just wanted to give a thumbs up for the Go language support in Ragel.
+> I have built a non-trivial FSM, and it works like a charm.  +1 for
+> integrating it into the trunk.
+>
+> graham
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From hongbin.kou at gmail.com  Tue Nov  9 08:07:43 2010
+From: hongbin.kou at gmail.com (hongbin kou)
+Date: Tue, 9 Nov 2010 16:07:43 +0800
+Subject: [ragel-users] nondeterminism problem
+Message-ID: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+
+Now I’m using ragel to build a http parser.
+
+One requirement of the parser is to parse all the http headers, which would
+be used by another module.
+
+For some common headers, the header value would be parsed directly by ragel.
+
+
+For other headers, only mark the header name and value.
+
+Here is my ragel script:
+
+
+
+message_header =(
+
+                  ("Content-Length"i ":" LWS* digit+ $on_content_length)
+
+                | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+{request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+finish_TE))
+
+                | ("Connection"i ":" LWS* ("Keep-alive"i %
+{request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+{request->connection = HTTP_CONNECTION_CLOSE;}))
+
+                | ("Host"i ":" LWS* field_content >start_host
+%*finish_host*%/break_host)
+
+                | ("Accept"i ":" LWS* field_content >start_accept %
+finish_accept %/break_accept)
+
+                | ("Accept-Charset"i ":" LWS* field_content
+>start_accept_charset % finish_accept_charset %/break_accept_charset)
+
+                | ("Accept-Encoding"i ":" LWS* field_content
+>start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+
+                | ("Accept-Language"i ":" LWS* field_content
+>start_accept_language % finish_accept_language %/break_accept_language)
+
+                | ("User-Agent"i ":" LWS* field_content >start_user_agent %
+finish_user_agent %/break_user_agent)
+
+                | ("Referer"i ":" LWS* field_content >start_referer %
+finish_referer %/break_referer)
+
+                | ("X-Forward-For"i ":" LWS* field_content
+>start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+
+                | ((token) >start_header_name %finish_header_name
+%/break_header_name":" LWS* field_content % *header_end*)
+
+            ) :>CRLF;
+
+Here there is a nondeterminism between token and the common header names.
+
+For example, when a Host header value finished, the header’s action
+finish_host and the “token” action header_end will be triggered.
+
+How can I resolve this kind of problem?
+
+
+Thanks.
+
+
+Hongbin.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101109/20fdfefe/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graham.miller at gmail.com  Tue Nov  9 17:00:51 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Tue, 9 Nov 2010 12:00:51 -0500
+Subject: [ragel-users] Go Patches
+Message-ID: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+
+> Ah, great! Could you say a bit about which ragel features you used? For
+> example, to-state, from-state, or leaving actions? Scanner?
+
+Sure nothing too elaborate:
+
+entering action
+leaving action
+finishing action
+all transition action
+error handling (fhold, fgoto)
+regular language difference operator
+encapsulated parser state with partial parse
+
+graham
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From shawn at bighugh.com  Tue Nov  9 22:52:13 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Tue, 9 Nov 2010 17:52:13 -0500
+Subject: [ragel-users] Local error actions examples
+Message-ID: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+
+Can anyone provide examples contrasting the behavior of local and global
+error actions? All the examples I've found so far only use global error
+actions, and the difference is not quite sinking in for me from reading the
+manual.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101109/3a780df5/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:03:14 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:03:14 -0800
+Subject: [ragel-users] nondeterminism problem
+In-Reply-To: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+References: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+Message-ID: <4CD9E142.9060202@esentire.com>
+
+Define:
+
+colon = ':' @(colon, 1);
+else_colon = ':' @(colon, 0);
+
+Then use colon in the named headers and else_colon in the final case.
+
+-Adrian
+
+On 10-11-09 12:07 AM, hongbin kou wrote:
+> Now I’m using ragel to build a http parser.
+>
+> One requirement of the parser is to parse all the http headers, which
+> would be used by another module.
+>
+> For some common headers, the header value would be parsed directly by
+> ragel.
+>
+> For other headers, only mark the header name and value.
+>
+> Here is my ragel script:
+>
+> message_header =(
+>
+>                    ("Content-Length"i ":" LWS* digit+ $on_content_length)
+>
+>                  | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+> {request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+> finish_TE))
+>
+>                  | ("Connection"i ":" LWS* ("Keep-alive"i %
+> {request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+> {request->connection = HTTP_CONNECTION_CLOSE;}))
+>
+>                  | ("Host"i ":" LWS* field_content >start_host
+> %*finish_host* %/break_host)
+>
+>                  | ("Accept"i ":" LWS* field_content >start_accept %
+> finish_accept %/break_accept)
+>
+>                  | ("Accept-Charset"i ":" LWS* field_content
+>  >start_accept_charset % finish_accept_charset %/break_accept_charset)
+>
+>                  | ("Accept-Encoding"i ":" LWS* field_content
+>  >start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+>
+>                  | ("Accept-Language"i ":" LWS* field_content
+>  >start_accept_language % finish_accept_language %/break_accept_language)
+>
+>                  | ("User-Agent"i ":" LWS* field_content
+>  >start_user_agent % finish_user_agent %/break_user_agent)
+>
+>                  | ("Referer"i ":" LWS* field_content >start_referer %
+> finish_referer %/break_referer)
+>
+>                  | ("X-Forward-For"i ":" LWS* field_content
+>  >start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+>
+>                  | ((token) >start_header_name %finish_header_name
+> %/break_header_name":" LWS* field_content % *header_end*)
+>
+>              ) :>CRLF;
+>
+> Here there is a nondeterminism between token and the common header names.
+>
+> For example, when a Host header value finished, the header’s action
+> finish_host and the “token” action header_end will be triggered.
+>
+> How can I resolve this kind of problem?
+>
+>
+> Thanks.
+>
+>
+> Hongbin.
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:03:42 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:03:42 -0800
+Subject: [ragel-users] Go Patches
+In-Reply-To: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+References: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+Message-ID: <4CD9E15E.7000700@esentire.com>
+
+Thanks!
+
+On 10-11-09 09:00 AM, Graham Miller wrote:
+>> Ah, great! Could you say a bit about which ragel features you used? For
+>> example, to-state, from-state, or leaving actions? Scanner?
+>
+> Sure nothing too elaborate:
+>
+> entering action
+> leaving action
+> finishing action
+> all transition action
+> error handling (fhold, fgoto)
+> regular language difference operator
+> encapsulated parser state with partial parse
+>
+> graham
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:25:30 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:25:30 -0800
+Subject: [ragel-users] Local error actions examples
+In-Reply-To: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+References: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+Message-ID: <4CD9E67A.30205@esentire.com>
+
+Graph this machine. The global error actions are executed outside of the 
+full 0 .. 30 range. The local e1 action is executed outside of the 0 .. 
+20 range. Notice it's executed on 21 .. 30. Similar story for the local e2.
+
+%%{
+     machine foo;
+
+     action e1 {}
+     action e2 {}
+
+     global1 = 0 .. 20 >!e1;
+     global2 = 10 .. 30 >!e2;
+
+     local1 = 0 .. 20 >^e1;
+     local2 = 10 .. 30 >^e2;
+
+     main := ( global1 | global2 ) ' ' ( local1 | local2 );
+}%%
+
+
+On 10-11-09 02:52 PM, Shawn Hoover wrote:
+> Can anyone provide examples contrasting the behavior of local and global
+> error actions? All the examples I've found so far only use global error
+> actions, and the difference is not quite sinking in for me from reading
+> the manual.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From shawn at bighugh.com  Wed Nov 10 02:24:19 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Tue, 9 Nov 2010 21:24:19 -0500
+Subject: [ragel-users] Local error actions examples
+In-Reply-To: <4CD9E67A.30205@esentire.com>
+References: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+	<4CD9E67A.30205@esentire.com>
+Message-ID: <AANLkTim8fJHwOO0=cOM1c17OXHFyYiRySVcSOr2oRf6U@mail.gmail.com>
+
+Perfect. Thanks for the example and the excellent Ragel!
+
+On Tue, Nov 9, 2010 at 7:25 PM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Graph this machine. The global error actions are executed outside of the
+> full 0 .. 30 range. The local e1 action is executed outside of the 0 .. 20
+> range. Notice it's executed on 21 .. 30. Similar story for the local e2.
+>
+> %%{
+>    machine foo;
+>
+>    action e1 {}
+>    action e2 {}
+>
+>    global1 = 0 .. 20 >!e1;
+>    global2 = 10 .. 30 >!e2;
+>
+>    local1 = 0 .. 20 >^e1;
+>    local2 = 10 .. 30 >^e2;
+>
+>    main := ( global1 | global2 ) ' ' ( local1 | local2 );
+> }%%
+>
+>
+>
+> On 10-11-09 02:52 PM, Shawn Hoover wrote:
+>
+>> Can anyone provide examples contrasting the behavior of local and global
+>> error actions? All the examples I've found so far only use global error
+>> actions, and the difference is not quite sinking in for me from reading
+>> the manual.
+>>
+>> Thanks,
+>> Shawn
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101109/8305cec2/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From hongbin.kou at gmail.com  Wed Nov 10 02:48:05 2010
+From: hongbin.kou at gmail.com (hongbin kou)
+Date: Wed, 10 Nov 2010 10:48:05 +0800
+Subject: [ragel-users] nondeterminism problem
+In-Reply-To: <4CD9E142.9060202@esentire.com>
+References: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+	<4CD9E142.9060202@esentire.com>
+Message-ID: <AANLkTinob=zWjy3P6o7rVhYuszuoDYL8rvuO2bB6MHfP@mail.gmail.com>
+
+It works after I specified the priority!
+
+Thanks.
+
+2010/11/10 Adrian Thurston <adrian.thurston at esentire.com>
+
+> Define:
+>
+> colon = ':' @(colon, 1);
+> else_colon = ':' @(colon, 0);
+>
+> Then use colon in the named headers and else_colon in the final case.
+>
+> -Adrian
+>
+>
+> On 10-11-09 12:07 AM, hongbin kou wrote:
+>
+>> Now I’m using ragel to build a http parser.
+>>
+>> One requirement of the parser is to parse all the http headers, which
+>> would be used by another module.
+>>
+>> For some common headers, the header value would be parsed directly by
+>> ragel.
+>>
+>> For other headers, only mark the header name and value.
+>>
+>> Here is my ragel script:
+>>
+>> message_header =(
+>>
+>>                   ("Content-Length"i ":" LWS* digit+ $on_content_length)
+>>
+>>                 | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+>> {request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+>> finish_TE))
+>>
+>>                 | ("Connection"i ":" LWS* ("Keep-alive"i %
+>> {request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+>> {request->connection = HTTP_CONNECTION_CLOSE;}))
+>>
+>>                 | ("Host"i ":" LWS* field_content >start_host
+>> %*finish_host* %/break_host)
+>>
+>>                 | ("Accept"i ":" LWS* field_content >start_accept %
+>> finish_accept %/break_accept)
+>>
+>>                 | ("Accept-Charset"i ":" LWS* field_content
+>>  >start_accept_charset % finish_accept_charset %/break_accept_charset)
+>>
+>>                 | ("Accept-Encoding"i ":" LWS* field_content
+>>  >start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+>>
+>>                 | ("Accept-Language"i ":" LWS* field_content
+>>  >start_accept_language % finish_accept_language %/break_accept_language)
+>>
+>>                 | ("User-Agent"i ":" LWS* field_content
+>>  >start_user_agent % finish_user_agent %/break_user_agent)
+>>
+>>                 | ("Referer"i ":" LWS* field_content >start_referer %
+>> finish_referer %/break_referer)
+>>
+>>                 | ("X-Forward-For"i ":" LWS* field_content
+>>  >start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+>>
+>>                 | ((token) >start_header_name %finish_header_name
+>> %/break_header_name":" LWS* field_content % *header_end*)
+>>
+>>             ) :>CRLF;
+>>
+>> Here there is a nondeterminism between token and the common header names.
+>>
+>> For example, when a Host header value finished, the header’s action
+>> finish_host and the “token” action header_end will be triggered.
+>>
+>> How can I resolve this kind of problem?
+>>
+>>
+>> Thanks.
+>>
+>>
+>> Hongbin.
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101110/461a7335/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From brofield2 at jellycan.com  Thu Nov 18 06:51:52 2010
+From: brofield2 at jellycan.com (Brodie Thiesfield)
+Date: Thu, 18 Nov 2010 15:51:52 +0900
+Subject: [ragel-users] scanning boolean expressions
+Message-ID: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+
+Hi,
+
+Some advice please. I wanted to make a scanner/parser for a simple
+grammar. Simple boolean expressions with a variety of comparison
+operators.
+
+I originally tried to combine the scanner with the parser, resulting
+in something like:
+
+============
+Tag := |*
+    '%' [a-z]+ { tag(ts,te); };
+    space;
+    *|;
+Op  := |*
+    "<" { op(LT); };
+    "<=" { op(LE); };
+    space;
+    *|;
+Val := |*
+    [0-9]+ { val(ts, te); };
+    space;
+    *|;
+Expr := Tag Op Val ;
+============
+
+It seemed exactly what I wanted. I wanted to express the valid order
+for things as in the state machine of Expr, but using the scanner to
+find the actual tokens, limiting them to only what is valid. However
+it results in the error "references to graph instantiations not
+allowed in expressions".
+
+I eventually split it into two parts, a complete scanner and a parser
+based on token types. I take the results of the scanner (calls to
+tag(), op(), val(), etc) and pipe them into an instance of the state
+machine Expr, watching for state errors to see if the token wasn't
+valid.
+
+============
+Scanner := |*
+    # Tag
+    '%' [a-z]+ { tag(ts,te); };
+    # Op
+    "<" { op(LT); };
+    "<=" { op(LE); };
+    # Val
+    [0-9]+ { val(ts, te); };
+    space;
+    *|;
+
+Tag = 'T';
+Op  = 'O';
+Val = 'V';
+Expr := Tag Op Val ;
+============
+
+I originally made it with a straight state machine, similar to the
+mongrel HTTP parser with lots of "mark" and field actions, but it
+tripped up on the difference between the operators "<" and "<=" for
+some reason giving me strange results there.
+
+Although this works, it can't be the right way to do it. Would someone
+please give me pointers to a better way of doing it?
+
+Regards,
+Brodie
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From wjmoore at gmail.com  Thu Nov 18 11:03:31 2010
+From: wjmoore at gmail.com (=?utf-8?Q?Wesley_Moore_=E2=9C=86?=)
+Date: Thu, 18 Nov 2010 22:03:31 +1100
+Subject: [ragel-users] scanning boolean expressions
+In-Reply-To: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+References: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+Message-ID: <0C5A14B9-B458-41EC-8244-B62CC8EE60DA@gmail.com>
+
+I was Was thinking about using Ragel to build a compiler for a programming language today and after looking at the clang sample linked on the website and the full C grammar I came to the conclusion that a scanner as the lever that fed tokens into a state machine with the grammar was the way I'd need to do it. In other words pretty much exactly what you described here. So I too would be interested to know if this is a sensible way to go about it.
+
+Regards,
+Wes
+
+On 18/11/2010, at 5:51 PM, Brodie Thiesfield <brofield2 at jellycan.com> wrote:
+
+> Hi,
+> 
+> Some advice please. I wanted to make a scanner/parser for a simple
+> grammar. Simple boolean expressions with a variety of comparison
+> operators.
+> 
+> I originally tried to combine the scanner with the parser, resulting
+> in something like:
+> 
+> ============
+> Tag := |*
+>    '%' [a-z]+ { tag(ts,te); };
+>    space;
+>    *|;
+> Op  := |*
+>    "<" { op(LT); };
+>    "<=" { op(LE); };
+>    space;
+>    *|;
+> Val := |*
+>    [0-9]+ { val(ts, te); };
+>    space;
+>    *|;
+> Expr := Tag Op Val ;
+> ============
+> 
+> It seemed exactly what I wanted. I wanted to express the valid order
+> for things as in the state machine of Expr, but using the scanner to
+> find the actual tokens, limiting them to only what is valid. However
+> it results in the error "references to graph instantiations not
+> allowed in expressions".
+> 
+> I eventually split it into two parts, a complete scanner and a parser
+> based on token types. I take the results of the scanner (calls to
+> tag(), op(), val(), etc) and pipe them into an instance of the state
+> machine Expr, watching for state errors to see if the token wasn't
+> valid.
+> 
+> ============
+> Scanner := |*
+>    # Tag
+>    '%' [a-z]+ { tag(ts,te); };
+>    # Op
+>    "<" { op(LT); };
+>    "<=" { op(LE); };
+>    # Val
+>    [0-9]+ { val(ts, te); };
+>    space;
+>    *|;
+> 
+> Tag = 'T';
+> Op  = 'O';
+> Val = 'V';
+> Expr := Tag Op Val ;
+> ============
+> 
+> I originally made it with a straight state machine, similar to the
+> mongrel HTTP parser with lots of "mark" and field actions, but it
+> tripped up on the difference between the operators "<" and "<=" for
+> some reason giving me strange results there.
+> 
+> Although this works, it can't be the right way to do it. Would someone
+> please give me pointers to a better way of doing it?
+> 
+> Regards,
+> Brodie
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Fri Nov 19 17:26:35 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 19 Nov 2010 09:26:35 -0800
+Subject: [ragel-users] scanning boolean expressions
+In-Reply-To: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+References: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+Message-ID: <4CE6B34B.8070008@esentire.com>
+
+Hi Brodie,
+
+In general, Ragel is not made for parsing context-free languages. Also 
+speaking generally, expression languages are normally context free.
+
+There are exceptions to both of these rules. It's possible to write 
+recursive parsers using ragel and not all 'expression' languages have to 
+be context-free, however I would suggest sticking with the conventional 
+methods unless you really know what you are doing. Use Ragel for 
+scanning and some parser generator for parsing.
+
+-Adrian
+
+program some recursive language constructs into
+
+On 10-11-17 10:51 PM, Brodie Thiesfield wrote:
+> Hi,
+>
+> Some advice please. I wanted to make a scanner/parser for a simple
+> grammar. Simple boolean expressions with a variety of comparison
+> operators.
+>
+> I originally tried to combine the scanner with the parser, resulting
+> in something like:
+>
+> ============
+> Tag := |*
+>      '%' [a-z]+ { tag(ts,te); };
+>      space;
+>      *|;
+> Op  := |*
+>      "<" { op(LT); };
+>      "<=" { op(LE); };
+>      space;
+>      *|;
+> Val := |*
+>      [0-9]+ { val(ts, te); };
+>      space;
+>      *|;
+> Expr := Tag Op Val ;
+> ============
+>
+> It seemed exactly what I wanted. I wanted to express the valid order
+> for things as in the state machine of Expr, but using the scanner to
+> find the actual tokens, limiting them to only what is valid. However
+> it results in the error "references to graph instantiations not
+> allowed in expressions".
+>
+> I eventually split it into two parts, a complete scanner and a parser
+> based on token types. I take the results of the scanner (calls to
+> tag(), op(), val(), etc) and pipe them into an instance of the state
+> machine Expr, watching for state errors to see if the token wasn't
+> valid.
+>
+> ============
+> Scanner := |*
+>      # Tag
+>      '%' [a-z]+ { tag(ts,te); };
+>      # Op
+>      "<" { op(LT); };
+>      "<=" { op(LE); };
+>      # Val
+>      [0-9]+ { val(ts, te); };
+>      space;
+>      *|;
+>
+> Tag = 'T';
+> Op  = 'O';
+> Val = 'V';
+> Expr := Tag Op Val ;
+> ============
+>
+> I originally made it with a straight state machine, similar to the
+> mongrel HTTP parser with lots of "mark" and field actions, but it
+> tripped up on the difference between the operators "<" and"<=" for
+> some reason giving me strange results there.
+>
+> Although this works, it can't be the right way to do it. Would someone
+> please give me pointers to a better way of doing it?
+>
+> Regards,
+> Brodie
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ismael at initng.org  Mon Nov 22 12:45:34 2010
+From: ismael at initng.org (Ismael Luceno)
+Date: Mon, 22 Nov 2010 10:45:34 -0200
+Subject: [ragel-users] [PATCH] Add built-in ragel rules to vim syntax
+	highlighting
+Message-ID: <1290429934-23492-1-git-send-email-ismael@initng.org>
+
+
+Signed-off-by: Ismael Luceno <ismael at initng.org>
+---
+ ragel-d.vim    |    6 +++++-
+ ragel-java.vim |    6 +++++-
+ ragel-m.vim    |    6 +++++-
+ ragel.vim      |    6 +++++-
+ 4 files changed, 20 insertions(+), 4 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Add-built-in-ragel-rules-to-vim-syntax-highlighting.patch
+Type: text/x-patch
+Size: 6508 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101122/71e76237/attachment.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Nov 23 07:07:14 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 22 Nov 2010 23:07:14 -0800
+Subject: [ragel-users] [PATCH] Add built-in ragel rules to vim syntax
+ highlighting
+In-Reply-To: <1290429934-23492-1-git-send-email-ismael@initng.org>
+References: <1290429934-23492-1-git-send-email-ismael@initng.org>
+Message-ID: <4CEB6822.7070603@complang.org>
+
+Thanks, applied.
+
+-Adrian
+
+Ismael Luceno wrote:
+> Signed-off-by: Ismael Luceno <ismael at initng.org>
+> ---
+>  ragel-d.vim    |    6 +++++-
+>  ragel-java.vim |    6 +++++-
+>  ragel-m.vim    |    6 +++++-
+>  ragel.vim      |    6 +++++-
+>  4 files changed, 20 insertions(+), 4 deletions(-)
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Wed Nov 24 21:40:16 2010
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Wed, 24 Nov 2010 16:40:16 -0500
+Subject: [ragel-users] Defining transitions at run time
+Message-ID: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+
+Can I define a transition at run time, i.e. I'm parsing csv files, but I
+might want to parse tab delimited instead.
+right now I'm doing something ugly like this:
+https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101124/dadd58aa/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 24 22:02:26 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 24 Nov 2010 14:02:26 -0800
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+Message-ID: <4CED8B72.6080605@esentire.com>
+
+Typically not. You can decide which machine you want to transfer control 
+to at runtime. You can also augment transitions by attaching conditions 
+that are tested at runtime. But you cannot alter the graph at runtime.
+
+-Adrian
+
+
+On 10-11-24 01:40 PM, Matt Mongeau wrote:
+> Can I define a transition at run time, i.e. I'm parsing csv files, but I
+> might want to parse tab delimited instead.
+> right now I'm doing something ugly like this:
+> https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Wed Nov 24 22:11:16 2010
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Wed, 24 Nov 2010 17:11:16 -0500
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <4CED8B72.6080605@esentire.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+	<4CED8B72.6080605@esentire.com>
+Message-ID: <AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+
+Pity, I wanted to allows users to specify the delimiter...
+
+On Wed, Nov 24, 2010 at 5:02 PM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Typically not. You can decide which machine you want to transfer control to
+> at runtime. You can also augment transitions by attaching conditions that
+> are tested at runtime. But you cannot alter the graph at runtime.
+>
+> -Adrian
+>
+>
+>
+> On 10-11-24 01:40 PM, Matt Mongeau wrote:
+>
+>> Can I define a transition at run time, i.e. I'm parsing csv files, but I
+>> might want to parse tab delimited instead.
+>> right now I'm doing something ugly like this:
+>>
+>> https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101124/d1f91dcb/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 24 22:13:17 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 24 Nov 2010 14:13:17 -0800
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>	<4CED8B72.6080605@esentire.com>
+	<AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+Message-ID: <4CED8DFD.70604@esentire.com>
+
+Use conditions:
+
+delimiter = any when { *p == delimiter }
+
+-Adrian
+
+On 10-11-24 02:11 PM, Matt Mongeau wrote:
+> Pity, I wanted to allows users to specify the delimiter...
+>
+> On Wed, Nov 24, 2010 at 5:02 PM, Adrian Thurston
+> <adrian.thurston at esentire.com <mailto:adrian.thurston at esentire.com>> wrote:
+>
+>     Typically not. You can decide which machine you want to transfer
+>     control to at runtime. You can also augment transitions by attaching
+>     conditions that are tested at runtime. But you cannot alter the
+>     graph at runtime.
+>
+>     -Adrian
+>
+>
+>
+>     On 10-11-24 01:40 PM, Matt Mongeau wrote:
+>
+>         Can I define a transition at run time, i.e. I'm parsing csv
+>         files, but I
+>         might want to parse tab delimited instead.
+>         right now I'm doing something ugly like this:
+>         https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>
+>
+>
+>
+>         _______________________________________________
+>         ragel-users mailing list
+>         ragel-users at complang.org <mailto:ragel-users at complang.org>
+>         http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graham.miller at gmail.com  Fri Nov 26 15:22:35 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Fri, 26 Nov 2010 10:22:35 -0500
+Subject: [ragel-users] Bug in Go support of $err
+Message-ID: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+
+I found a bug in the Go language branch of ragel.  I didn't see a public
+issue tracker, so I thought I'd post it here.  I've attached an input file
+that you can compile with the following command line:
+
+ragel -G2 -Z -o errorbug.go errorbug.rl
+
+The problem is that the line reference comments associated with the $err
+action start with the wrong comment marker.  That is, they should start with
+'//' and they start with '#'.  Most of these comments do have the correct
+comment marker, as the problem only occurs when I add a $err action to my
+FSM.
+
+graham
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101126/c7ddd1fc/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: errorbug.rl
+Type: application/octet-stream
+Size: 168 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20101126/c7ddd1fc/attachment.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Tue Nov 30 19:44:30 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 30 Nov 2010 11:44:30 -0800
+Subject: [ragel-users] Bug in Go support of $err
+In-Reply-To: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+References: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+Message-ID: <4CF5541E.7070207@esentire.com>
+
+Hi Graham, I just checked in a fix.
+
+Regards,
+  Adrian
+
+On 10-11-26 07:22 AM, Graham Miller wrote:
+> I found a bug in the Go language branch of ragel.  I didn't see a public
+> issue tracker, so I thought I'd post it here.  I've attached an input
+> file that you can compile with the following command line:
+>
+> ragel -G2 -Z -o errorbug.go errorbug.rl
+>
+> The problem is that the line reference comments associated with the $err
+> action start with the wrong comment marker.  That is, they should start
+> with '//' and they start with '#'.  Most of these comments do have the
+> correct comment marker, as the problem only occurs when I add a $err
+> action to my FSM.
+>
+> graham
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From shawn at bighugh.com  Fri Nov  5 18:50:13 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 5 Nov 2010 14:50:13 -0400
+Subject: [ragel-users] Symbolic graph labels
+Message-ID: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+
+The graphviz output option is great, but I was wondering if there's a way to
+make it print the state names instead of numbers in the circle labels.
+Similarly, constants parsed from include files have names, but the numeric
+values are printed on transition labels.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101105/36b0166e/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Nov  5 19:02:57 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 05 Nov 2010 12:02:57 -0700
+Subject: [ragel-users] Symbolic graph labels
+In-Reply-To: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+References: <AANLkTim9PS4fNqTeosaNtsZisio+KydWOCQF8cq7c0wY@mail.gmail.com>
+Message-ID: <4CD454E1.1070208@complang.org>
+
+Ragel doesn't currently maintain a mapping from state numbers back to 
+symbolic names. This would need to be implemented. Similarly with 
+transitions.
+
+Though the real problem is how to display it in a non-chaotic way. A 
+symbol name can result in many states and a single state can have many 
+origin symbol names.
+
+-Adrian
+
+On 10-11-05 11:50 AM, Shawn Hoover wrote:
+> The graphviz output option is great, but I was wondering if there's a
+> way to make it print the state names instead of numbers in the circle
+> labels. Similarly, constants parsed from include files have names, but
+> the numeric values are printed on transition labels.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graham.miller at gmail.com  Mon Nov  8 21:34:23 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 8 Nov 2010 16:34:23 -0500
+Subject: [ragel-users] Go Patches
+Message-ID: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+
+Just wanted to give a thumbs up for the Go language support in Ragel.
+I have built a non-trivial FSM, and it works like a charm.  +1 for
+integrating it into the trunk.
+
+graham
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Nov  9 03:22:34 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 08 Nov 2010 19:22:34 -0800
+Subject: [ragel-users] Go Patches
+In-Reply-To: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+References: <AANLkTimA_Do8DyfN7FN_0W-b6WXBLSgV6n5PKjgsrkpq@mail.gmail.com>
+Message-ID: <4CD8BE7A.4060306@complang.org>
+
+Ah, great! Could you say a bit about which ragel features you used? For 
+example, to-state, from-state, or leaving actions? Scanner?
+
+Regards,
+  Adrian
+
+On 10-11-08 01:34 PM, Graham Miller wrote:
+> Just wanted to give a thumbs up for the Go language support in Ragel.
+> I have built a non-trivial FSM, and it works like a charm.  +1 for
+> integrating it into the trunk.
+>
+> graham
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From hongbin.kou at gmail.com  Tue Nov  9 08:07:43 2010
+From: hongbin.kou at gmail.com (hongbin kou)
+Date: Tue, 9 Nov 2010 16:07:43 +0800
+Subject: [ragel-users] nondeterminism problem
+Message-ID: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+
+Now I’m using ragel to build a http parser.
+
+One requirement of the parser is to parse all the http headers, which would
+be used by another module.
+
+For some common headers, the header value would be parsed directly by ragel.
+
+
+For other headers, only mark the header name and value.
+
+Here is my ragel script:
+
+
+
+message_header =(
+
+                  ("Content-Length"i ":" LWS* digit+ $on_content_length)
+
+                | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+{request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+finish_TE))
+
+                | ("Connection"i ":" LWS* ("Keep-alive"i %
+{request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+{request->connection = HTTP_CONNECTION_CLOSE;}))
+
+                | ("Host"i ":" LWS* field_content >start_host
+%*finish_host*%/break_host)
+
+                | ("Accept"i ":" LWS* field_content >start_accept %
+finish_accept %/break_accept)
+
+                | ("Accept-Charset"i ":" LWS* field_content
+>start_accept_charset % finish_accept_charset %/break_accept_charset)
+
+                | ("Accept-Encoding"i ":" LWS* field_content
+>start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+
+                | ("Accept-Language"i ":" LWS* field_content
+>start_accept_language % finish_accept_language %/break_accept_language)
+
+                | ("User-Agent"i ":" LWS* field_content >start_user_agent %
+finish_user_agent %/break_user_agent)
+
+                | ("Referer"i ":" LWS* field_content >start_referer %
+finish_referer %/break_referer)
+
+                | ("X-Forward-For"i ":" LWS* field_content
+>start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+
+                | ((token) >start_header_name %finish_header_name
+%/break_header_name":" LWS* field_content % *header_end*)
+
+            ) :>CRLF;
+
+Here there is a nondeterminism between token and the common header names.
+
+For example, when a Host header value finished, the header’s action
+finish_host and the “token” action header_end will be triggered.
+
+How can I resolve this kind of problem?
+
+
+Thanks.
+
+
+Hongbin.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101109/20fdfefe/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graham.miller at gmail.com  Tue Nov  9 17:00:51 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Tue, 9 Nov 2010 12:00:51 -0500
+Subject: [ragel-users] Go Patches
+Message-ID: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+
+> Ah, great! Could you say a bit about which ragel features you used? For
+> example, to-state, from-state, or leaving actions? Scanner?
+
+Sure nothing too elaborate:
+
+entering action
+leaving action
+finishing action
+all transition action
+error handling (fhold, fgoto)
+regular language difference operator
+encapsulated parser state with partial parse
+
+graham
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From shawn at bighugh.com  Tue Nov  9 22:52:13 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Tue, 9 Nov 2010 17:52:13 -0500
+Subject: [ragel-users] Local error actions examples
+Message-ID: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+
+Can anyone provide examples contrasting the behavior of local and global
+error actions? All the examples I've found so far only use global error
+actions, and the difference is not quite sinking in for me from reading the
+manual.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101109/3a780df5/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:03:14 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:03:14 -0800
+Subject: [ragel-users] nondeterminism problem
+In-Reply-To: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+References: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+Message-ID: <4CD9E142.9060202@esentire.com>
+
+Define:
+
+colon = ':' @(colon, 1);
+else_colon = ':' @(colon, 0);
+
+Then use colon in the named headers and else_colon in the final case.
+
+-Adrian
+
+On 10-11-09 12:07 AM, hongbin kou wrote:
+> Now I’m using ragel to build a http parser.
+>
+> One requirement of the parser is to parse all the http headers, which
+> would be used by another module.
+>
+> For some common headers, the header value would be parsed directly by
+> ragel.
+>
+> For other headers, only mark the header name and value.
+>
+> Here is my ragel script:
+>
+> message_header =(
+>
+>                    ("Content-Length"i ":" LWS* digit+ $on_content_length)
+>
+>                  | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+> {request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+> finish_TE))
+>
+>                  | ("Connection"i ":" LWS* ("Keep-alive"i %
+> {request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+> {request->connection = HTTP_CONNECTION_CLOSE;}))
+>
+>                  | ("Host"i ":" LWS* field_content >start_host
+> %*finish_host* %/break_host)
+>
+>                  | ("Accept"i ":" LWS* field_content >start_accept %
+> finish_accept %/break_accept)
+>
+>                  | ("Accept-Charset"i ":" LWS* field_content
+>  >start_accept_charset % finish_accept_charset %/break_accept_charset)
+>
+>                  | ("Accept-Encoding"i ":" LWS* field_content
+>  >start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+>
+>                  | ("Accept-Language"i ":" LWS* field_content
+>  >start_accept_language % finish_accept_language %/break_accept_language)
+>
+>                  | ("User-Agent"i ":" LWS* field_content
+>  >start_user_agent % finish_user_agent %/break_user_agent)
+>
+>                  | ("Referer"i ":" LWS* field_content >start_referer %
+> finish_referer %/break_referer)
+>
+>                  | ("X-Forward-For"i ":" LWS* field_content
+>  >start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+>
+>                  | ((token) >start_header_name %finish_header_name
+> %/break_header_name":" LWS* field_content % *header_end*)
+>
+>              ) :>CRLF;
+>
+> Here there is a nondeterminism between token and the common header names.
+>
+> For example, when a Host header value finished, the header’s action
+> finish_host and the “token” action header_end will be triggered.
+>
+> How can I resolve this kind of problem?
+>
+>
+> Thanks.
+>
+>
+> Hongbin.
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:03:42 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:03:42 -0800
+Subject: [ragel-users] Go Patches
+In-Reply-To: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+References: <AANLkTi=XWC9zxodLFmJVTt5cOi4yLDij7OP3+gd5zBt7@mail.gmail.com>
+Message-ID: <4CD9E15E.7000700@esentire.com>
+
+Thanks!
+
+On 10-11-09 09:00 AM, Graham Miller wrote:
+>> Ah, great! Could you say a bit about which ragel features you used? For
+>> example, to-state, from-state, or leaving actions? Scanner?
+>
+> Sure nothing too elaborate:
+>
+> entering action
+> leaving action
+> finishing action
+> all transition action
+> error handling (fhold, fgoto)
+> regular language difference operator
+> encapsulated parser state with partial parse
+>
+> graham
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Wed Nov 10 00:25:30 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 09 Nov 2010 16:25:30 -0800
+Subject: [ragel-users] Local error actions examples
+In-Reply-To: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+References: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+Message-ID: <4CD9E67A.30205@esentire.com>
+
+Graph this machine. The global error actions are executed outside of the 
+full 0 .. 30 range. The local e1 action is executed outside of the 0 .. 
+20 range. Notice it's executed on 21 .. 30. Similar story for the local e2.
+
+%%{
+     machine foo;
+
+     action e1 {}
+     action e2 {}
+
+     global1 = 0 .. 20 >!e1;
+     global2 = 10 .. 30 >!e2;
+
+     local1 = 0 .. 20 >^e1;
+     local2 = 10 .. 30 >^e2;
+
+     main := ( global1 | global2 ) ' ' ( local1 | local2 );
+}%%
+
+
+On 10-11-09 02:52 PM, Shawn Hoover wrote:
+> Can anyone provide examples contrasting the behavior of local and global
+> error actions? All the examples I've found so far only use global error
+> actions, and the difference is not quite sinking in for me from reading
+> the manual.
+>
+> Thanks,
+> Shawn
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From shawn at bighugh.com  Wed Nov 10 02:24:19 2010
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Tue, 9 Nov 2010 21:24:19 -0500
+Subject: [ragel-users] Local error actions examples
+In-Reply-To: <4CD9E67A.30205@esentire.com>
+References: <AANLkTinD5+rtt8k7EBb=eb4N8kyi2CR4ZbjMgTjokKdP@mail.gmail.com>
+	<4CD9E67A.30205@esentire.com>
+Message-ID: <AANLkTim8fJHwOO0=cOM1c17OXHFyYiRySVcSOr2oRf6U@mail.gmail.com>
+
+Perfect. Thanks for the example and the excellent Ragel!
+
+On Tue, Nov 9, 2010 at 7:25 PM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Graph this machine. The global error actions are executed outside of the
+> full 0 .. 30 range. The local e1 action is executed outside of the 0 .. 20
+> range. Notice it's executed on 21 .. 30. Similar story for the local e2.
+>
+> %%{
+>    machine foo;
+>
+>    action e1 {}
+>    action e2 {}
+>
+>    global1 = 0 .. 20 >!e1;
+>    global2 = 10 .. 30 >!e2;
+>
+>    local1 = 0 .. 20 >^e1;
+>    local2 = 10 .. 30 >^e2;
+>
+>    main := ( global1 | global2 ) ' ' ( local1 | local2 );
+> }%%
+>
+>
+>
+> On 10-11-09 02:52 PM, Shawn Hoover wrote:
+>
+>> Can anyone provide examples contrasting the behavior of local and global
+>> error actions? All the examples I've found so far only use global error
+>> actions, and the difference is not quite sinking in for me from reading
+>> the manual.
+>>
+>> Thanks,
+>> Shawn
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101109/8305cec2/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From hongbin.kou at gmail.com  Wed Nov 10 02:48:05 2010
+From: hongbin.kou at gmail.com (hongbin kou)
+Date: Wed, 10 Nov 2010 10:48:05 +0800
+Subject: [ragel-users] nondeterminism problem
+In-Reply-To: <4CD9E142.9060202@esentire.com>
+References: <AANLkTim6SVFzhRz78Aitia2sPLs2z4wzr99SvK6aqT-E@mail.gmail.com>
+	<4CD9E142.9060202@esentire.com>
+Message-ID: <AANLkTinob=zWjy3P6o7rVhYuszuoDYL8rvuO2bB6MHfP@mail.gmail.com>
+
+It works after I specified the priority!
+
+Thanks.
+
+2010/11/10 Adrian Thurston <adrian.thurston at esentire.com>
+
+> Define:
+>
+> colon = ':' @(colon, 1);
+> else_colon = ':' @(colon, 0);
+>
+> Then use colon in the named headers and else_colon in the final case.
+>
+> -Adrian
+>
+>
+> On 10-11-09 12:07 AM, hongbin kou wrote:
+>
+>> Now I’m using ragel to build a http parser.
+>>
+>> One requirement of the parser is to parse all the http headers, which
+>> would be used by another module.
+>>
+>> For some common headers, the header value would be parsed directly by
+>> ragel.
+>>
+>> For other headers, only mark the header name and value.
+>>
+>> Here is my ragel script:
+>>
+>> message_header =(
+>>
+>>                   ("Content-Length"i ":" LWS* digit+ $on_content_length)
+>>
+>>                 | ("Transfer-Encoding"i ":" LWS* ("Chunked"i %
+>> {request->transfer_encoding = HTTP_TE_CHUNKED;} | any* > start_TE %
+>> finish_TE))
+>>
+>>                 | ("Connection"i ":" LWS* ("Keep-alive"i %
+>> {request->connection = HTTP_CONNECTION_KEEP_ALIVE;} | "Close"i %
+>> {request->connection = HTTP_CONNECTION_CLOSE;}))
+>>
+>>                 | ("Host"i ":" LWS* field_content >start_host
+>> %*finish_host* %/break_host)
+>>
+>>                 | ("Accept"i ":" LWS* field_content >start_accept %
+>> finish_accept %/break_accept)
+>>
+>>                 | ("Accept-Charset"i ":" LWS* field_content
+>>  >start_accept_charset % finish_accept_charset %/break_accept_charset)
+>>
+>>                 | ("Accept-Encoding"i ":" LWS* field_content
+>>  >start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+>>
+>>                 | ("Accept-Language"i ":" LWS* field_content
+>>  >start_accept_language % finish_accept_language %/break_accept_language)
+>>
+>>                 | ("User-Agent"i ":" LWS* field_content
+>>  >start_user_agent % finish_user_agent %/break_user_agent)
+>>
+>>                 | ("Referer"i ":" LWS* field_content >start_referer %
+>> finish_referer %/break_referer)
+>>
+>>                 | ("X-Forward-For"i ":" LWS* field_content
+>>  >start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+>>
+>>                 | ((token) >start_header_name %finish_header_name
+>> %/break_header_name":" LWS* field_content % *header_end*)
+>>
+>>             ) :>CRLF;
+>>
+>> Here there is a nondeterminism between token and the common header names.
+>>
+>> For example, when a Host header value finished, the header’s action
+>> finish_host and the “token” action header_end will be triggered.
+>>
+>> How can I resolve this kind of problem?
+>>
+>>
+>> Thanks.
+>>
+>>
+>> Hongbin.
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101110/461a7335/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From brofield2 at jellycan.com  Thu Nov 18 06:51:52 2010
+From: brofield2 at jellycan.com (Brodie Thiesfield)
+Date: Thu, 18 Nov 2010 15:51:52 +0900
+Subject: [ragel-users] scanning boolean expressions
+Message-ID: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+
+Hi,
+
+Some advice please. I wanted to make a scanner/parser for a simple
+grammar. Simple boolean expressions with a variety of comparison
+operators.
+
+I originally tried to combine the scanner with the parser, resulting
+in something like:
+
+============
+Tag := |*
+    '%' [a-z]+ { tag(ts,te); };
+    space;
+    *|;
+Op  := |*
+    "<" { op(LT); };
+    "<=" { op(LE); };
+    space;
+    *|;
+Val := |*
+    [0-9]+ { val(ts, te); };
+    space;
+    *|;
+Expr := Tag Op Val ;
+============
+
+It seemed exactly what I wanted. I wanted to express the valid order
+for things as in the state machine of Expr, but using the scanner to
+find the actual tokens, limiting them to only what is valid. However
+it results in the error "references to graph instantiations not
+allowed in expressions".
+
+I eventually split it into two parts, a complete scanner and a parser
+based on token types. I take the results of the scanner (calls to
+tag(), op(), val(), etc) and pipe them into an instance of the state
+machine Expr, watching for state errors to see if the token wasn't
+valid.
+
+============
+Scanner := |*
+    # Tag
+    '%' [a-z]+ { tag(ts,te); };
+    # Op
+    "<" { op(LT); };
+    "<=" { op(LE); };
+    # Val
+    [0-9]+ { val(ts, te); };
+    space;
+    *|;
+
+Tag = 'T';
+Op  = 'O';
+Val = 'V';
+Expr := Tag Op Val ;
+============
+
+I originally made it with a straight state machine, similar to the
+mongrel HTTP parser with lots of "mark" and field actions, but it
+tripped up on the difference between the operators "<" and "<=" for
+some reason giving me strange results there.
+
+Although this works, it can't be the right way to do it. Would someone
+please give me pointers to a better way of doing it?
+
+Regards,
+Brodie
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From wjmoore at gmail.com  Thu Nov 18 11:03:31 2010
+From: wjmoore at gmail.com (=?utf-8?Q?Wesley_Moore_=E2=9C=86?=)
+Date: Thu, 18 Nov 2010 22:03:31 +1100
+Subject: [ragel-users] scanning boolean expressions
+In-Reply-To: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+References: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+Message-ID: <0C5A14B9-B458-41EC-8244-B62CC8EE60DA@gmail.com>
+
+I was Was thinking about using Ragel to build a compiler for a programming language today and after looking at the clang sample linked on the website and the full C grammar I came to the conclusion that a scanner as the lever that fed tokens into a state machine with the grammar was the way I'd need to do it. In other words pretty much exactly what you described here. So I too would be interested to know if this is a sensible way to go about it.
+
+Regards,
+Wes
+
+On 18/11/2010, at 5:51 PM, Brodie Thiesfield <brofield2 at jellycan.com> wrote:
+
+> Hi,
+> 
+> Some advice please. I wanted to make a scanner/parser for a simple
+> grammar. Simple boolean expressions with a variety of comparison
+> operators.
+> 
+> I originally tried to combine the scanner with the parser, resulting
+> in something like:
+> 
+> ============
+> Tag := |*
+>    '%' [a-z]+ { tag(ts,te); };
+>    space;
+>    *|;
+> Op  := |*
+>    "<" { op(LT); };
+>    "<=" { op(LE); };
+>    space;
+>    *|;
+> Val := |*
+>    [0-9]+ { val(ts, te); };
+>    space;
+>    *|;
+> Expr := Tag Op Val ;
+> ============
+> 
+> It seemed exactly what I wanted. I wanted to express the valid order
+> for things as in the state machine of Expr, but using the scanner to
+> find the actual tokens, limiting them to only what is valid. However
+> it results in the error "references to graph instantiations not
+> allowed in expressions".
+> 
+> I eventually split it into two parts, a complete scanner and a parser
+> based on token types. I take the results of the scanner (calls to
+> tag(), op(), val(), etc) and pipe them into an instance of the state
+> machine Expr, watching for state errors to see if the token wasn't
+> valid.
+> 
+> ============
+> Scanner := |*
+>    # Tag
+>    '%' [a-z]+ { tag(ts,te); };
+>    # Op
+>    "<" { op(LT); };
+>    "<=" { op(LE); };
+>    # Val
+>    [0-9]+ { val(ts, te); };
+>    space;
+>    *|;
+> 
+> Tag = 'T';
+> Op  = 'O';
+> Val = 'V';
+> Expr := Tag Op Val ;
+> ============
+> 
+> I originally made it with a straight state machine, similar to the
+> mongrel HTTP parser with lots of "mark" and field actions, but it
+> tripped up on the difference between the operators "<" and "<=" for
+> some reason giving me strange results there.
+> 
+> Although this works, it can't be the right way to do it. Would someone
+> please give me pointers to a better way of doing it?
+> 
+> Regards,
+> Brodie
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Fri Nov 19 17:26:35 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 19 Nov 2010 09:26:35 -0800
+Subject: [ragel-users] scanning boolean expressions
+In-Reply-To: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+References: <AANLkTikUR+HPBENcqhDyw9ydVfpx4kB9cRjgfqO=jE7Z@mail.gmail.com>
+Message-ID: <4CE6B34B.8070008@esentire.com>
+
+Hi Brodie,
+
+In general, Ragel is not made for parsing context-free languages. Also 
+speaking generally, expression languages are normally context free.
+
+There are exceptions to both of these rules. It's possible to write 
+recursive parsers using ragel and not all 'expression' languages have to 
+be context-free, however I would suggest sticking with the conventional 
+methods unless you really know what you are doing. Use Ragel for 
+scanning and some parser generator for parsing.
+
+-Adrian
+
+program some recursive language constructs into
+
+On 10-11-17 10:51 PM, Brodie Thiesfield wrote:
+> Hi,
+>
+> Some advice please. I wanted to make a scanner/parser for a simple
+> grammar. Simple boolean expressions with a variety of comparison
+> operators.
+>
+> I originally tried to combine the scanner with the parser, resulting
+> in something like:
+>
+> ============
+> Tag := |*
+>      '%' [a-z]+ { tag(ts,te); };
+>      space;
+>      *|;
+> Op  := |*
+>      "<" { op(LT); };
+>      "<=" { op(LE); };
+>      space;
+>      *|;
+> Val := |*
+>      [0-9]+ { val(ts, te); };
+>      space;
+>      *|;
+> Expr := Tag Op Val ;
+> ============
+>
+> It seemed exactly what I wanted. I wanted to express the valid order
+> for things as in the state machine of Expr, but using the scanner to
+> find the actual tokens, limiting them to only what is valid. However
+> it results in the error "references to graph instantiations not
+> allowed in expressions".
+>
+> I eventually split it into two parts, a complete scanner and a parser
+> based on token types. I take the results of the scanner (calls to
+> tag(), op(), val(), etc) and pipe them into an instance of the state
+> machine Expr, watching for state errors to see if the token wasn't
+> valid.
+>
+> ============
+> Scanner := |*
+>      # Tag
+>      '%' [a-z]+ { tag(ts,te); };
+>      # Op
+>      "<" { op(LT); };
+>      "<=" { op(LE); };
+>      # Val
+>      [0-9]+ { val(ts, te); };
+>      space;
+>      *|;
+>
+> Tag = 'T';
+> Op  = 'O';
+> Val = 'V';
+> Expr := Tag Op Val ;
+> ============
+>
+> I originally made it with a straight state machine, similar to the
+> mongrel HTTP parser with lots of "mark" and field actions, but it
+> tripped up on the difference between the operators "<" and"<=" for
+> some reason giving me strange results there.
+>
+> Although this works, it can't be the right way to do it. Would someone
+> please give me pointers to a better way of doing it?
+>
+> Regards,
+> Brodie
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ismael at initng.org  Mon Nov 22 12:45:34 2010
+From: ismael at initng.org (Ismael Luceno)
+Date: Mon, 22 Nov 2010 10:45:34 -0200
+Subject: [ragel-users] [PATCH] Add built-in ragel rules to vim syntax
+	highlighting
+Message-ID: <1290429934-23492-1-git-send-email-ismael@initng.org>
+
+
+Signed-off-by: Ismael Luceno <ismael at initng.org>
+---
+ ragel-d.vim    |    6 +++++-
+ ragel-java.vim |    6 +++++-
+ ragel-m.vim    |    6 +++++-
+ ragel.vim      |    6 +++++-
+ 4 files changed, 20 insertions(+), 4 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Add-built-in-ragel-rules-to-vim-syntax-highlighting.patch
+Type: text/x-patch
+Size: 6508 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101122/71e76237/attachment-0001.bin>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Nov 23 07:07:14 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 22 Nov 2010 23:07:14 -0800
+Subject: [ragel-users] [PATCH] Add built-in ragel rules to vim syntax
+ highlighting
+In-Reply-To: <1290429934-23492-1-git-send-email-ismael@initng.org>
+References: <1290429934-23492-1-git-send-email-ismael@initng.org>
+Message-ID: <4CEB6822.7070603@complang.org>
+
+Thanks, applied.
+
+-Adrian
+
+Ismael Luceno wrote:
+> Signed-off-by: Ismael Luceno <ismael at initng.org>
+> ---
+>  ragel-d.vim    |    6 +++++-
+>  ragel-java.vim |    6 +++++-
+>  ragel-m.vim    |    6 +++++-
+>  ragel.vim      |    6 +++++-
+>  4 files changed, 20 insertions(+), 4 deletions(-)
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Wed Nov 24 21:40:16 2010
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Wed, 24 Nov 2010 16:40:16 -0500
+Subject: [ragel-users] Defining transitions at run time
+Message-ID: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+
+Can I define a transition at run time, i.e. I'm parsing csv files, but I
+might want to parse tab delimited instead.
+right now I'm doing something ugly like this:
+https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101124/dadd58aa/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 24 22:02:26 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 24 Nov 2010 14:02:26 -0800
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+Message-ID: <4CED8B72.6080605@esentire.com>
+
+Typically not. You can decide which machine you want to transfer control 
+to at runtime. You can also augment transitions by attaching conditions 
+that are tested at runtime. But you cannot alter the graph at runtime.
+
+-Adrian
+
+
+On 10-11-24 01:40 PM, Matt Mongeau wrote:
+> Can I define a transition at run time, i.e. I'm parsing csv files, but I
+> might want to parse tab delimited instead.
+> right now I'm doing something ugly like this:
+> https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From halogenandtoast at gmail.com  Wed Nov 24 22:11:16 2010
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Wed, 24 Nov 2010 17:11:16 -0500
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <4CED8B72.6080605@esentire.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>
+	<4CED8B72.6080605@esentire.com>
+Message-ID: <AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+
+Pity, I wanted to allows users to specify the delimiter...
+
+On Wed, Nov 24, 2010 at 5:02 PM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> Typically not. You can decide which machine you want to transfer control to
+> at runtime. You can also augment transitions by attaching conditions that
+> are tested at runtime. But you cannot alter the graph at runtime.
+>
+> -Adrian
+>
+>
+>
+> On 10-11-24 01:40 PM, Matt Mongeau wrote:
+>
+>> Can I define a transition at run time, i.e. I'm parsing csv files, but I
+>> might want to parse tab delimited instead.
+>> right now I'm doing something ugly like this:
+>>
+>> https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101124/d1f91dcb/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Wed Nov 24 22:13:17 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 24 Nov 2010 14:13:17 -0800
+Subject: [ragel-users] Defining transitions at run time
+In-Reply-To: <AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+References: <AANLkTik8dMjfTtu=Y+b9=tFR-d-JOK7AN3NcMte1o5GR@mail.gmail.com>	<4CED8B72.6080605@esentire.com>
+	<AANLkTin7RtruF66LBESf7nBaLKfJk7OB+sm6XHeK0u6Q@mail.gmail.com>
+Message-ID: <4CED8DFD.70604@esentire.com>
+
+Use conditions:
+
+delimiter = any when { *p == delimiter }
+
+-Adrian
+
+On 10-11-24 02:11 PM, Matt Mongeau wrote:
+> Pity, I wanted to allows users to specify the delimiter...
+>
+> On Wed, Nov 24, 2010 at 5:02 PM, Adrian Thurston
+> <adrian.thurston at esentire.com <mailto:adrian.thurston at esentire.com>> wrote:
+>
+>     Typically not. You can decide which machine you want to transfer
+>     control to at runtime. You can also augment transitions by attaching
+>     conditions that are tested at runtime. But you cannot alter the
+>     graph at runtime.
+>
+>     -Adrian
+>
+>
+>
+>     On 10-11-24 01:40 PM, Matt Mongeau wrote:
+>
+>         Can I define a transition at run time, i.e. I'm parsing csv
+>         files, but I
+>         might want to parse tab delimited instead.
+>         right now I'm doing something ugly like this:
+>         https://github.com/toastyapps/excelsior/blob/formats/ext/excelsior_reader/excelsior_reader.rl
+>
+>
+>
+>
+>         _______________________________________________
+>         ragel-users mailing list
+>         ragel-users at complang.org <mailto:ragel-users at complang.org>
+>         http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From graham.miller at gmail.com  Fri Nov 26 15:22:35 2010
+From: graham.miller at gmail.com (Graham Miller)
+Date: Fri, 26 Nov 2010 10:22:35 -0500
+Subject: [ragel-users] Bug in Go support of $err
+Message-ID: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+
+I found a bug in the Go language branch of ragel.  I didn't see a public
+issue tracker, so I thought I'd post it here.  I've attached an input file
+that you can compile with the following command line:
+
+ragel -G2 -Z -o errorbug.go errorbug.rl
+
+The problem is that the line reference comments associated with the $err
+action start with the wrong comment marker.  That is, they should start with
+'//' and they start with '#'.  Most of these comments do have the correct
+comment marker, as the problem only occurs when I add a $err action to my
+FSM.
+
+graham
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101126/c7ddd1fc/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: errorbug.rl
+Type: application/octet-stream
+Size: 168 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20101126/c7ddd1fc/attachment-0001.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From adrian.thurston at esentire.com  Tue Nov 30 19:44:30 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 30 Nov 2010 11:44:30 -0800
+Subject: [ragel-users] Bug in Go support of $err
+In-Reply-To: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+References: <AANLkTimkq2P9ocSiGYKtxxN+fB03J9yd=Vv3hQcng0TN@mail.gmail.com>
+Message-ID: <4CF5541E.7070207@esentire.com>
+
+Hi Graham, I just checked in a fix.
+
+Regards,
+  Adrian
+
+On 10-11-26 07:22 AM, Graham Miller wrote:
+> I found a bug in the Go language branch of ragel.  I didn't see a public
+> issue tracker, so I thought I'd post it here.  I've attached an input
+> file that you can compile with the following command line:
+>
+> ragel -G2 -Z -o errorbug.go errorbug.rl
+>
+> The problem is that the line reference comments associated with the $err
+> action start with the wrong comment marker.  That is, they should start
+> with '//' and they start with '#'.  Most of these comments do have the
+> correct comment marker, as the problem only occurs when I add a $err
+> action to my FSM.
+>
+> graham
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

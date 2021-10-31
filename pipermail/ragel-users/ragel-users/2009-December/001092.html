@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Actions executing too often.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C4E876BE9-8146-4965-8F35-1EE8EBC4581C%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001091.html">
+   <LINK REL="Next"  HREF="001093.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Actions executing too often.</H1>
+    <B>Richard Osborn</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Actions%20executing%20too%20often.&In-Reply-To=%3C4E876BE9-8146-4965-8F35-1EE8EBC4581C%40mac.com%3E"
+       TITLE="[ragel-users] Actions executing too often.">richardosborn at mac.com
+       </A><BR>
+    <I>Wed Dec  9 00:34:16 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001091.html">[ragel-users] Actions executing too often.
+</A></li>
+        <LI>Next message: <A HREF="001093.html">[ragel-users] Actions executing too often.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1092">[ date ]</a>
+              <a href="thread.html#1092">[ thread ]</a>
+              <a href="subject.html#1092">[ subject ]</a>
+              <a href="author.html#1092">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Is there any way to refactor the code to get the behavior I desire? I  
+understand why I am getting the current behavior, but I am unsure of  
+how I can use the given actions to my liking. It seems as though there  
+should be another set of action types for transitioning to different  
+states.
+On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+
+&gt;<i> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i> 	I've just recently started learning Ragel. I have read the guide pdf
+</I>&gt;&gt;<i> and I can't seem to find a solution to this problem.
+</I>&gt;&gt;<i> Let's say I have this grammar:
+</I>&gt;&gt;<i> 	%%{
+</I>&gt;&gt;<i> 		op = '+'+;
+</I>&gt;&gt;<i> 		word = alpha+;
+</I>&gt;&gt;<i> 		spaces = ' '+;
+</I>&gt;&gt;<i> 		base = 	  spaces
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 				| word &gt;start_word $in_word %end_word
+</I>&gt;&gt;<i> 				| op &gt;start_op $in_op %end_op
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 				;
+</I>&gt;&gt;<i> 		main := base+;
+</I>&gt;&gt;<i> 	}%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> What I would like to see is this:
+</I>&gt;&gt;<i> 	<A HREF="http://imgur.com/POP8U.png">http://imgur.com/POP8U.png</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> What Ragel compiles is this:
+</I>&gt;&gt;<i> 	<A HREF="http://imgur.com/x36VA.png">http://imgur.com/x36VA.png</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Can anyone help me get the behavior I'm looking?
+</I>&gt;<i>
+</I>&gt;<i> Imagine you parse &quot;abc&quot;.
+</I>&gt;<i> Note that &quot;main := base+;&quot;.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> So when Ragel reads &quot;a&quot; it performs &quot;&gt;start_word&quot;.
+</I>&gt;<i>
+</I>&gt;<i> Then Ragel reads &quot;b&quot;. How can Ragel know if &quot;b&quot; is part of the first  
+</I>&gt;<i> 'base' or
+</I>&gt;<i> the first char of a new 'base'? Both options are valid, so Ragel  
+</I>&gt;<i> runs action
+</I>&gt;<i> for both (in parallel), so it runs:
+</I>&gt;<i>
+</I>&gt;<i> - &quot;&gt;start_word&quot; because &quot;b&quot; could be the start of a new 'base'.
+</I>&gt;<i>
+</I>&gt;<i> - &quot;$in_word&quot; because &quot;b&quot; could be part of the previous 'base' and  
+</I>&gt;<i> it's a valid
+</I>&gt;<i> existing point.
+</I>&gt;<i>
+</I>&gt;<i> - &quot;&gt;end_word&quot; because when considering &quot;b&quot; as a new 'base' it means  
+</I>&gt;<i> that first
+</I>&gt;<i> 'base' (&quot;a&quot;) has totally ended.
+</I>&gt;<i>
+</I>&gt;<i> Of course, this will happen for each char. The main problem of your  
+</I>&gt;<i> grammar is
+</I>&gt;<i> that Ragel cannot determine (who can?) how to split &quot;base+;&quot; into  
+</I>&gt;<i> different
+</I>&gt;<i> &quot;words&quot; so it takes *all* the valid options *in parallel*.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Hope this helps. Regards.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> -- 
+</I>&gt;<i> Iñaki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001091.html">[ragel-users] Actions executing too often.
+</A></li>
+	<LI>Next message: <A HREF="001093.html">[ragel-users] Actions executing too often.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1092">[ date ]</a>
+              <a href="thread.html#1092">[ thread ]</a>
+              <a href="subject.html#1092">[ subject ]</a>
+              <a href="author.html#1092">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

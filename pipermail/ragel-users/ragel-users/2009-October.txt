@@ -1,0 +1,3112 @@
+From nwebster at biopeak.com  Thu Oct  8 16:25:42 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Thu, 08 Oct 2009 12:25:42 -0400
+Subject: [ragel-users] Using Ragel for state machine
+Message-ID: <1255019142.5808.11.camel@neil-laptop>
+
+Hi,
+
+Is it possible to generate a state machine from the code below? I am
+getting stuck with using engines before they have been defined and as
+far as I can figure out, no matter how I order things this will still
+happen.
+
+%%{
+
+  machine adcpState ;
+
+  pressUser = 1;
+  insertUsb = 2;
+  removeUsb = 3;
+        
+  Idle = pressUser Recording ;
+
+  MassStorage = removeUsb Idle ;
+
+  Recording = pressUser Idle
+             | insertUsb MassStorage
+             ;
+
+  main := Idle ;
+
+  write data;
+
+}%%
+
+
+
+
+
+
+From rustompmody at gmail.com  Fri Oct  9 08:33:52 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 9 Oct 2009 14:03:52 +0530
+Subject: [ragel-users] porting to python
+Message-ID: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+
+Hello.
+
+What do you think would be the scale of work in porting ragel to
+python? (ie adding python generation)
+
+Thanks,
+
+Rustom
+
+PS Please CC me in addition to the list
+
+
+
+From thurston at complang.org  Sat Oct 10 00:12:36 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 09 Oct 2009 20:12:36 -0400
+Subject: [ragel-users] porting to python
+In-Reply-To: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+Message-ID: <4ACFD174.3080103@complang.org>
+
+Maybe a couple of days of work. It would depend on how many of Ragel's 
+code styles you would like to support. If you wanted to do just -T0 that 
+could be half a day maybe. I might be biased though, since I arguably 
+know ragel the best.
+
+Try emailing the people that helped out with the code generators.
+
+$ head *codegen.{h,cpp} | sort | uniq | grep '@'
+
+Also track down Daniel Tang http://saiyr.blogspot.com/
+
+-Adrian
+
+
+
+Rustom Mody wrote:
+> Hello.
+> 
+> What do you think would be the scale of work in porting ragel to
+> python? (ie adding python generation)
+> 
+> Thanks,
+> 
+> Rustom
+> 
+> PS Please CC me in addition to the list
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Oct 10 00:20:34 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 09 Oct 2009 20:20:34 -0400
+Subject: [ragel-users] Using Ragel for state machine
+In-Reply-To: <1255019142.5808.11.camel@neil-laptop>
+References: <1255019142.5808.11.camel@neil-laptop>
+Message-ID: <4ACFD352.8050908@complang.org>
+
+You're going to have trouble using that recursive style. A ragel state 
+machine definition represents a set of states that is substituted in 
+place where it is referenced. This precludes recursive definitions.
+
+Another way to look at the problem is to note that regular languages do 
+not support recursion, and ragel (at the core) is a means of defining 
+regular languages.
+
+It looks like you can rearrange this grammar without recursion to 
+something like:
+
+main := ( pressUser+ insertUsb removeUsb )*;
+
+-Adrian
+
+Neil Webster wrote:
+> Hi,
+> 
+> Is it possible to generate a state machine from the code below? I am
+> getting stuck with using engines before they have been defined and as
+> far as I can figure out, no matter how I order things this will still
+> happen.
+> 
+> %%{
+> 
+>   machine adcpState ;
+> 
+>   pressUser = 1;
+>   insertUsb = 2;
+>   removeUsb = 3;
+>         
+>   Idle = pressUser Recording ;
+> 
+>   MassStorage = removeUsb Idle ;
+> 
+>   Recording = pressUser Idle
+>              | insertUsb MassStorage
+>              ;
+> 
+>   main := Idle ;
+> 
+>   write data;
+> 
+> }%%
+> 
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Sat Oct 10 16:24:55 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 10 Oct 2009 18:24:55 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+Message-ID: <1255191895.30430.54.camel@yamato>
+
+Seems like I hit something here ;)
+
+check out git://git.lscube.org/feng.git (rfc822-parser branch):
+
+feng % ragel
+-I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+-Isrc/network
+-C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c 
+*** glibc detected *** ragel: corrupted double-linked list:
+0x0000000000d68520 ***
+
+uh-oh!
+
+==17658== Invalid write of size 8
+==17658==    at 0x425571: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:594)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658==  Address 0x5a00830 is 0 bytes after a block of size 16 alloc'd
+==17658==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658== 
+==17658== Invalid write of size 8
+==17658==    at 0x4255A5: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:598)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658==  Address 0x5a00838 is 8 bytes after a block of size 16 alloc'd
+==17658==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From thurston at complang.org  Mon Oct 12 03:34:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 11 Oct 2009 23:34:38 -0400
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <1255191895.30430.54.camel@yamato>
+References: <1255191895.30430.54.camel@yamato>
+Message-ID: <4AD2A3CE.2090007@complang.org>
+
+I can't reproduce, but I fixed a bug in this area the other day. Is this 
+the trunk? If not could you test with it?
+
+-Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Seems like I hit something here ;)
+> 
+> check out git://git.lscube.org/feng.git (rfc822-parser branch):
+> 
+> feng % ragel
+> -I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+> -Isrc/network
+> -C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c 
+> *** glibc detected *** ragel: corrupted double-linked list:
+> 0x0000000000d68520 ***
+> 
+> uh-oh!
+> 
+> ==17658== Invalid write of size 8
+> ==17658==    at 0x425571: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:594)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658==  Address 0x5a00830 is 0 bytes after a block of size 16 alloc'd
+> ==17658==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658== 
+> ==17658== Invalid write of size 8
+> ==17658==    at 0x4255A5: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:598)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658==  Address 0x5a00838 is 8 bytes after a block of size 16 alloc'd
+> ==17658==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:03:44 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Mon, 12 Oct 2009 13:03:44 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <4AD2A3CE.2090007@complang.org>
+References: <1255191895.30430.54.camel@yamato> <4AD2A3CE.2090007@complang.org>
+Message-ID: <1255345424.30430.55.camel@yamato>
+
+Il giorno Sun, 11/10/2009 alle 23.34 -0400, Adrian Thurston ha scritto:
+> 
+> I can't reproduce, but I fixed a bug in this area the other day. Is
+> this 
+> the trunk? If not could you test with it? 
+
+I can reproduce it in trunk:
+
+==27620== Command: /home/flame/devel/repos/git/bridge/ragel/ragel/ragel
+-I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+-Isrc/network
+-C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c
+==27620== 
+==27620== Invalid write of size 8
+==27620==    at 0x434E3B: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:594)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620==  Address 0x5a00840 is 0 bytes after a block of size 16 alloc'd
+==27620==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620== 
+==27620== Invalid write of size 8
+==27620==    at 0x434E7A: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:598)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620==  Address 0x5a00848 is 8 bytes after a block of size 16 alloc'd
+==27620==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:05:32 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Mon, 12 Oct 2009 13:05:32 +0200
+Subject: [ragel-users] [PATCH 1/2] Don't refer to GIT checkouts directly.
+Message-ID: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+
+---
+ contrib/ragel.m4 |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/contrib/ragel.m4 b/contrib/ragel.m4
+index 8b9b913..c5cb9e9 100644
+--- a/contrib/ragel.m4
++++ b/contrib/ragel.m4
+@@ -30,7 +30,7 @@ AC_DEFUN([CHECK_RAGEL], [
+ 
+     AS_IF([test x"$ragel_needed" = x"yes"],
+       [AC_MSG_ERROR([dnl
+-You need Ragel to build from GIT checkouts.
++You need Ragel to build from development sources.
+ You can find Ragel at http://www.complang.org/ragel/dnl
+       ])])
+   ])
+-- 
+1.6.5
+
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:05:33 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Mon, 12 Oct 2009 13:05:33 +0200
+Subject: [ragel-users] [PATCH 2/2] Use foreign automake.
+In-Reply-To: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+References: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+Message-ID: <1255345533-5985-2-git-send-email-flameeyes@gmail.com>
+
+This avoids the need for the NEWS file to be present (only required by
+GNU-style automake).
+---
+ configure.in |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index c5c40bf..a50b3cf 100644
+--- a/configure.in
++++ b/configure.in
+@@ -21,7 +21,7 @@ dnl   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ AC_INIT(ragel, 6.5)
+ PUBDATE="May 2009"
+ 
+-AM_INIT_AUTOMAKE
++AM_INIT_AUTOMAKE([foreign])
+ AC_SUBST(PUBDATE)
+ AC_CONFIG_HEADER(ragel/config.h)
+ 
+-- 
+1.6.5
+
+
+
+
+From rustompmody at gmail.com  Mon Oct 12 16:03:00 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Mon, 12 Oct 2009 21:33:00 +0530
+Subject: [ragel-users] porting to python
+In-Reply-To: <4ACFD174.3080103@complang.org>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+	<4ACFD174.3080103@complang.org>
+Message-ID: <f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+
+just downloaded the ragel sources and started looking around.
+Not yet found my way too much but here are a few initial questions.
+
+Is T0 the easiest or F0?
+
+Also Python has a very specific problem: it does not use a definite
+block constructor marker like {} in C(like) languages but uses
+indentation instead.
+The small problem is that this means that we may have to add indents
+to a piece of code to nest it correctly.
+
+The bigger problem is that we need to know how much indent to add.
+By contrast in a normal block structured language, when we want to
+generate code inside say an while, we generate the head of the while
+(while and condition) emit the '{' emit the code and finally a closing
+'}'
+
+Here by contrast we need to know the entire stack of indents, add 1 to
+it, and right-shift the code that much.
+
+Does this seem doable?
+
+On Sat, Oct 10, 2009 at 5:42 AM, Adrian Thurston <thurston at complang.org> wrote:
+> Maybe a couple of days of work. It would depend on how many of Ragel's code
+> styles you would like to support. If you wanted to do just -T0 that could be
+> half a day maybe. I might be biased though, since I arguably know ragel the
+> best.
+>
+> Try emailing the people that helped out with the code generators.
+>
+> $ head *codegen.{h,cpp} | sort | uniq | grep '@'
+>
+> Also track down Daniel Tang http://saiyr.blogspot.com/
+>
+> -Adrian
+>
+>
+>
+> Rustom Mody wrote:
+>>
+>> Hello.
+>>
+>> What do you think would be the scale of work in porting ragel to
+>> python? (ie adding python generation)
+>>
+>> Thanks,
+>>
+>> Rustom
+>>
+>> PS Please CC me in addition to the list
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From adrian.thurston at esentire.com  Tue Oct 13 16:32:02 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Oct 2009 12:32:02 -0400
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <1255345424.30430.55.camel@yamato>
+References: <1255191895.30430.54.camel@yamato> <4AD2A3CE.2090007@complang.org>
+	<1255345424.30430.55.camel@yamato>
+Message-ID: <4AD4AB82.6070109@esentire.com>
+
+Are you sure your git repository is synced with the SVN? The line 
+numbers of the functions don't match with what I've got in the trunk.
+
+-Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Il giorno Sun, 11/10/2009 alle 23.34 -0400, Adrian Thurston ha scritto:
+>> I can't reproduce, but I fixed a bug in this area the other day. Is
+>> this 
+>> the trunk? If not could you test with it? 
+> 
+> I can reproduce it in trunk:
+> 
+> ==27620== Command: /home/flame/devel/repos/git/bridge/ragel/ragel/ragel
+> -I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+> -Isrc/network
+> -C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c
+> ==27620== 
+> ==27620== Invalid write of size 8
+> ==27620==    at 0x434E3B: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:594)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620==  Address 0x5a00840 is 0 bytes after a block of size 16 alloc'd
+> ==27620==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620== 
+> ==27620== Invalid write of size 8
+> ==27620==    at 0x434E7A: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:598)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620==  Address 0x5a00848 is 8 bytes after a block of size 16 alloc'd
+> ==27620==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Tue Oct 13 16:38:14 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Tue, 13 Oct 2009 18:38:14 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <4AD4AB82.6070109@esentire.com>
+References: <1255191895.30430.54.camel@yamato>
+	<4AD2A3CE.2090007@complang.org> <1255345424.30430.55.camel@yamato>
+	<4AD4AB82.6070109@esentire.com>
+Message-ID: <1255451894.9913.26.camel@yamato>
+
+Il giorno Tue, 13/10/2009 alle 12.32 -0400, Adrian Thurston ha scritto:
+> 
+> Are you sure your git repository is synced with the SVN? The line 
+> numbers of the functions don't match with what I've got in the trunk.
+> 
+Actually I was just going to mail, I was running on the wrong branch :/
+
+It seems indeed to be fine with trunk, sorry for the noise!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From adrian.thurston at esentire.com  Tue Oct 13 20:22:33 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Oct 2009 16:22:33 -0400
+Subject: [ragel-users] porting to python
+In-Reply-To: <f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>	<4ACFD174.3080103@complang.org>
+	<f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+Message-ID: <4AD4E189.2000005@esentire.com>
+
+The -F0 code style would probably be easier, but it doesn't cover all 
+ragel programs, whereas -T0 will always work. The flat tables are a 
+problem when working with long-sized input.
+
+I forgot about the offside rules in python ... they will definitely 
+cause extra work, but it won't be fatal (unless you consider tedium to 
+be fatal). Some of the code respects formatting rules for the sake of 
+those who choose to read the output, but not all the details are looked 
+after.
+
+-Adrian
+
+Rustom Mody wrote:
+> just downloaded the ragel sources and started looking around.
+> Not yet found my way too much but here are a few initial questions.
+> 
+> Is T0 the easiest or F0?
+> 
+> Also Python has a very specific problem: it does not use a definite
+> block constructor marker like {} in C(like) languages but uses
+> indentation instead.
+> The small problem is that this means that we may have to add indents
+> to a piece of code to nest it correctly.
+> 
+> The bigger problem is that we need to know how much indent to add.
+> By contrast in a normal block structured language, when we want to
+> generate code inside say an while, we generate the head of the while
+> (while and condition) emit the '{' emit the code and finally a closing
+> '}'
+> 
+> Here by contrast we need to know the entire stack of indents, add 1 to
+> it, and right-shift the code that much.
+> 
+> Does this seem doable?
+> 
+> On Sat, Oct 10, 2009 at 5:42 AM, Adrian Thurston <thurston at complang.org> wrote:
+>> Maybe a couple of days of work. It would depend on how many of Ragel's code
+>> styles you would like to support. If you wanted to do just -T0 that could be
+>> half a day maybe. I might be biased though, since I arguably know ragel the
+>> best.
+>>
+>> Try emailing the people that helped out with the code generators.
+>>
+>> $ head *codegen.{h,cpp} | sort | uniq | grep '@'
+>>
+>> Also track down Daniel Tang http://saiyr.blogspot.com/
+>>
+>> -Adrian
+>>
+>>
+>>
+>> Rustom Mody wrote:
+>>> Hello.
+>>>
+>>> What do you think would be the scale of work in porting ragel to
+>>> python? (ie adding python generation)
+>>>
+>>> Thanks,
+>>>
+>>> Rustom
+>>>
+>>> PS Please CC me in addition to the list
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From flameeyes at gmail.com  Thu Oct 15 13:55:30 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Thu, 15 Oct 2009 15:55:30 +0200
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from GIT).
+Message-ID: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+
+With this change, ragel can find the generated files even when doing
+out-of-tree builds.
+---
+ ragel/Makefile.am |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/ragel/Makefile.am b/ragel/Makefile.am
+index beb1f9d..db3610c 100644
+--- a/ragel/Makefile.am
++++ b/ragel/Makefile.am
+@@ -47,6 +47,6 @@ rlparse.cpp: rlparse.kl rlparse.kh
+ rlscan.cpp: rlparse.h
+ 
+ rlscan.cpp: rlscan.rl
+-	ragel -G2 -o $@ $<
++	ragel -G2 -I$(builddir) -o $@ $<
+ 
+ endif
+-- 
+1.6.5
+
+
+
+
+From antony.blakey at gmail.com  Wed Oct 21 13:40:16 2009
+From: antony.blakey at gmail.com (Antony Blakey)
+Date: Thu, 22 Oct 2009 00:10:16 +1030
+Subject: [ragel-users] How do I act on eof in state charts
+Message-ID: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+
+Hi,
+
+I (a Ragel newb) have a state chart for consuming smalltalk string  
+literals (single quotes, any body, double single quotes is an embedded  
+quote), like this:
+
+string_literal_body =
+   start: (
+     "'" -> seen_quote |
+     [^'] -> start
+   ),
+   seen_quote: (
+     "'" -> start |
+     [^'] @{ fhold; } -> final
+   );
+string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+
+The problem occurs when a string literal ends at eof. How do I specify  
+the eof 'match' in the seen_quote state such that all the leaving- 
+transition actions that are in place above the string_literal are  
+executed, such as the 'puts' on the 'string_literal' machine. I don't  
+want to manually duplicate the parent code because multiple machines  
+reference string_literal, with different leaving-transition actions.
+
+I couldn't get it to work using priorities - the terminator needs  
+lookahead to disambiguate; the following doesn't work:
+
+string_literal = "'" [^']* ( "''" [^']* )* '"'
+
+Antony Blakey
+--------------------------
+CTO, Linkuistics Pty Ltd
+Ph: 0438 840 787
+
+Lack of will power has caused more failure than lack of intelligence  
+or ability.
+  -- Flower A. Newhouse
+
+
+
+
+From antony.blakey at gmail.com  Thu Oct 22 00:07:46 2009
+From: antony.blakey at gmail.com (Antony Blakey)
+Date: Thu, 22 Oct 2009 10:37:46 +1030
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+Message-ID: <2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+
+
+On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+
+> string_literal_body =
+>  start: (
+>    "'" -> seen_quote |
+>    [^'] -> start
+>  ),
+>  seen_quote: (
+>    "'" -> start |
+>    [^'] @{ fhold; } -> final
+>  );
+> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+>
+> The problem occurs when a string literal ends at eof. How do I  
+> specify the eof 'match' in the seen_quote state such that all the  
+> leaving-transition actions that are in place above the  
+> string_literal are executed, such as the 'puts' on the  
+> 'string_literal' machine. I don't want to manually duplicate the  
+> parent code because multiple machines reference string_literal, with  
+> different leaving-transition actions.
+>
+> I couldn't get it to work using priorities - the terminator needs  
+> lookahead to disambiguate; the following doesn't work:
+>
+> string_literal = "'" [^']* ( "''" [^']* )* '"'
+
+I ended up doing this:
+
+   string_literal_unqoted = "'" [^']* "'" ;
+   string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+0) % { puts "string_literal" };
+
+which works. I would have thought that this:
+
+   string_literal = string_literal_unqoted string_literal_unqoted** %  
+{ puts "string_literal" };
+
+would work, but '**' doesn't work for me - if I use a main like this:
+
+   main := space* ( string_literal space* )* ;
+
+then I get two string_literals from 'a''b' rather than one, while the  
+explicit priorities do give me one string_literal.
+
+Of course this works as well:
+
+   main := space* ( string_literal <: space* )* ;
+
+but given the pervasiveness of whitespace handling in my grammar (a  
+full Smalltalk parser) it's a real PITA because everything you want  
+greedy consumption for has to be thus annotated wherever it is used.
+
+Still, I'm interested in how you specify EOF transitions in an  
+explicit state machine. I also had success appending a 0 onto the  
+input for use as an EOF marker that can be matched in the state  
+machine, but I'm not sure yet if/how that will interfere with true EOF  
+functioning.
+
+Antony Blakey
+-------------
+CTO, Linkuistics Pty Ltd
+Ph: 0438 840 787
+
+In anything at all, perfection is finally attained not when there is  
+no longer anything to add, but when there is no longer anything to  
+take away.
+   -- Antoine de Saint-Exupery
+
+
+
+
+
+From thurston at complang.org  Fri Oct 23 01:33:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 21:33:14 -0400
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from
+ GIT).
+In-Reply-To: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+References: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+Message-ID: <4AE107DA.4020003@complang.org>
+
+Applied (along with the other two). Thanks!
+
+-Adrian
+
+Diego Elio 'Flameeyes' Pettenò wrote:
+> With this change, ragel can find the generated files even when doing
+> out-of-tree builds.
+> ---
+>  ragel/Makefile.am |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/ragel/Makefile.am b/ragel/Makefile.am
+> index beb1f9d..db3610c 100644
+> --- a/ragel/Makefile.am
+> +++ b/ragel/Makefile.am
+> @@ -47,6 +47,6 @@ rlparse.cpp: rlparse.kl rlparse.kh
+>  rlscan.cpp: rlparse.h
+>  
+>  rlscan.cpp: rlscan.rl
+> -	ragel -G2 -o $@ $<
+> +	ragel -G2 -I$(builddir) -o $@ $<
+>  
+>  endif
+
+
+
+From thurston at complang.org  Fri Oct 23 01:46:12 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 21:46:12 -0400
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+Message-ID: <4AE10AE4.6060303@complang.org>
+
+Hi Antony
+
+You can do this:
+
+       seen_quote: (
+               "'" -> start |
+               [^'] @{ fhold; } -> final
+               ) >eof(here);
+
+If you don't like putting the action after the closing brace you can do 
+this.
+
+       seen_quote: "" $eof(here) (
+               "'" -> start |
+               [^'] @{ fhold; } -> final
+               );
+
+-Adrian
+
+Antony Blakey wrote:
+> Hi,
+> 
+> I (a Ragel newb) have a state chart for consuming smalltalk string  
+> literals (single quotes, any body, double single quotes is an embedded  
+> quote), like this:
+> 
+> string_literal_body =
+>    start: (
+>      "'" -> seen_quote |
+>      [^'] -> start
+>    ),
+>    seen_quote: (
+>      "'" -> start |
+>      [^'] @{ fhold; } -> final
+>    );
+> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+> 
+> The problem occurs when a string literal ends at eof. How do I specify  
+> the eof 'match' in the seen_quote state such that all the leaving- 
+> transition actions that are in place above the string_literal are  
+> executed, such as the 'puts' on the 'string_literal' machine. I don't  
+> want to manually duplicate the parent code because multiple machines  
+> reference string_literal, with different leaving-transition actions.
+> 
+> I couldn't get it to work using priorities - the terminator needs  
+> lookahead to disambiguate; the following doesn't work:
+> 
+> string_literal = "'" [^']* ( "''" [^']* )* '"'
+> 
+> Antony Blakey
+> --------------------------
+> CTO, Linkuistics Pty Ltd
+> Ph: 0438 840 787
+> 
+> Lack of will power has caused more failure than lack of intelligence  
+> or ability.
+>   -- Flower A. Newhouse
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Fri Oct 23 02:04:24 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 22:04:24 -0400
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+	<2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+Message-ID: <4AE10F28.4050309@complang.org>
+
+If you are unioning tokens together and then doing a kleene star then 
+you could do this;
+
+     action lit {}
+     action space {}
+
+     string_literal = ( "'" ( [^'] | "''" )* "'" ) %lit;
+     ws = ' ' @space;
+
+     main := ( ws | string_literal )**;
+
+If you're not and you want to make yourself a self-contained string lit 
+that is safe to use regardless which operation it is used in next, then 
+do the following (you seem to have something like this already).
+
+     action lit {}
+     action space {}
+
+     string_literal = ( "'" ( [^'] | "''" $1 )* "'" ) %0 %lit;
+     ws = ' ' @space;
+
+     main := ws string_literal ( ws | string_literal )*;
+
+-Adrian
+
+Antony Blakey wrote:
+> On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+> 
+>> string_literal_body =
+>>  start: (
+>>    "'" -> seen_quote |
+>>    [^'] -> start
+>>  ),
+>>  seen_quote: (
+>>    "'" -> start |
+>>    [^'] @{ fhold; } -> final
+>>  );
+>> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+>>
+>> The problem occurs when a string literal ends at eof. How do I  
+>> specify the eof 'match' in the seen_quote state such that all the  
+>> leaving-transition actions that are in place above the  
+>> string_literal are executed, such as the 'puts' on the  
+>> 'string_literal' machine. I don't want to manually duplicate the  
+>> parent code because multiple machines reference string_literal, with  
+>> different leaving-transition actions.
+>>
+>> I couldn't get it to work using priorities - the terminator needs  
+>> lookahead to disambiguate; the following doesn't work:
+>>
+>> string_literal = "'" [^']* ( "''" [^']* )* '"'
+> 
+> I ended up doing this:
+> 
+>    string_literal_unqoted = "'" [^']* "'" ;
+>    string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+> 0) % { puts "string_literal" };
+> 
+> which works. I would have thought that this:
+> 
+>    string_literal = string_literal_unqoted string_literal_unqoted** %  
+> { puts "string_literal" };
+> 
+> would work, but '**' doesn't work for me - if I use a main like this:
+> 
+>    main := space* ( string_literal space* )* ;
+> 
+> then I get two string_literals from 'a''b' rather than one, while the  
+> explicit priorities do give me one string_literal.
+> 
+> Of course this works as well:
+> 
+>    main := space* ( string_literal <: space* )* ;
+> 
+> but given the pervasiveness of whitespace handling in my grammar (a  
+> full Smalltalk parser) it's a real PITA because everything you want  
+> greedy consumption for has to be thus annotated wherever it is used.
+> 
+> Still, I'm interested in how you specify EOF transitions in an  
+> explicit state machine. I also had success appending a 0 onto the  
+> input for use as an EOF marker that can be matched in the state  
+> machine, but I'm not sure yet if/how that will interfere with true EOF  
+> functioning.
+> 
+> Antony Blakey
+> -------------
+> CTO, Linkuistics Pty Ltd
+> Ph: 0438 840 787
+> 
+> In anything at all, perfection is finally attained not when there is  
+> no longer anything to add, but when there is no longer anything to  
+> take away.
+>    -- Antoine de Saint-Exupery
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Fri Oct 23 10:50:36 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Fri, 23 Oct 2009 12:50:36 +0200
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from
+ GIT).
+In-Reply-To: <4AE107DA.4020003@complang.org>
+References: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+	<4AE107DA.4020003@complang.org>
+Message-ID: <1256295036.4446.50.camel@yamato>
+
+Il giorno Thu, 22/10/2009 alle 21.33 -0400, Adrian Thurston ha scritto:
+> Applied (along with the other two). Thanks! 
+
+Thank you :)
+
+Is there a new release coming by chance? I've finally implemented a new
+fully Ragel-based for RTSP/HTTP in feng, but it needs the include fix
+that is only in trunk for now. Before merging in our master branch I'd
+like to have the released ragel to build them fine.
+
+Thanks!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From web at t-0.be  Wed Oct 28 14:55:23 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 16:55:23 +0200
+Subject: [ragel-users] union operator and thread-local variables
+Message-ID: <4AE85B5B.2010400@t-0.be>
+
+Hello. I would like to parse a date which can be in one of 
+several forms and I want to get the number of a month in a variable.
+
+My problem is that for some input, the month is parsed by both 
+alternatives, but I need to get the correct value. If I could 
+detect which "thread" I am in, I could throw away the other 
+values in an @lerr handler.
+
+This machine demonstrates what I want:
+
+%%{
+     machine test;
+
+     action in { puts("mon begins", fpc); }
+     action out { puts("mon ends", fpc); }
+     action fail { puts("thread failed", fpc); }
+
+     i = digit+;
+     day = i " ";
+     mon = i >in %out " ";
+     time = (i ":" i) @lerr(fail);
+     stamp
+         = day mon time
+         | mon time
+         ;
+
+     main := stamp "\n" >{ puts("done"); };
+}%%
+
+Is there another way to do this?
+
+Thanks,
+Devin Bayer
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 15:00:36 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 11:00:36 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE85B5B.2010400@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>
+Message-ID: <4AE85C94.6030108@esentire.com>
+
+My suggestion is to store away values as you parse and then act when you 
+get to the end of a 'stamp' using a leaving action. That way only one 
+action will happen, unless there is ambiguity between the forms. You can 
+check for ambiguity by looking at a graphviz rendering. If you see 
+transitions with both actions in them then you have ambiguity.
+
+-Adrian
+
+Devin Bayer wrote:
+> Hello. I would like to parse a date which can be in one of 
+> several forms and I want to get the number of a month in a variable.
+> 
+> My problem is that for some input, the month is parsed by both 
+> alternatives, but I need to get the correct value. If I could 
+> detect which "thread" I am in, I could throw away the other 
+> values in an @lerr handler.
+> 
+> This machine demonstrates what I want:
+> 
+> %%{
+>      machine test;
+> 
+>      action in { puts("mon begins", fpc); }
+>      action out { puts("mon ends", fpc); }
+>      action fail { puts("thread failed", fpc); }
+> 
+>      i = digit+;
+>      day = i " ";
+>      mon = i >in %out " ";
+>      time = (i ":" i) @lerr(fail);
+>      stamp
+>          = day mon time
+>          | mon time
+>          ;
+> 
+>      main := stamp "\n" >{ puts("done"); };
+> }%%
+> 
+> Is there another way to do this?
+> 
+> Thanks,
+> Devin Bayer
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From web at t-0.be  Wed Oct 28 15:27:30 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 17:27:30 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE85C94.6030108@esentire.com>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+Message-ID: <4AE862E2.8010605@t-0.be>
+
+Adrian Thurston wrote:
+> My suggestion is to store away values as you parse and then act when you 
+> get to the end of a 'stamp' using a leaving action. That way only one 
+> action will happen,
+
+Hi. Thanks for the suggestion, but I don't understand how to 
+implement it.
+
+(1) How do I "store away values" without using an action?
+(2) When storing values, both the correct and incorrect values 
+will be stored.  Which values do I use when leaving stamp?
+
+Thanks,
+Devin Bayer
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 15:32:08 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 11:32:08 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE862E2.8010605@t-0.be>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+	<4AE862E2.8010605@t-0.be>
+Message-ID: <4AE863F8.3050600@esentire.com>
+
+Store away to different variables using different actions.
+
+-Adrian
+
+Devin Bayer wrote:
+> Adrian Thurston wrote:
+>> My suggestion is to store away values as you parse and then act when you 
+>> get to the end of a 'stamp' using a leaving action. That way only one 
+>> action will happen,
+> 
+> Hi. Thanks for the suggestion, but I don't understand how to 
+> implement it.
+> 
+> (1) How do I "store away values" without using an action?
+> (2) When storing values, both the correct and incorrect values 
+> will be stored.  Which values do I use when leaving stamp?
+> 
+> Thanks,
+> Devin Bayer
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From web at t-0.be  Wed Oct 28 16:40:15 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 18:40:15 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE863F8.3050600@esentire.com>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+	<4AE862E2.8010605@t-0.be> <4AE863F8.3050600@esentire.com>
+Message-ID: <657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+
+
+On Wed, 2009-10-28, at 17:32, Adrian Thurston wrote:
+
+> Store away to different variables using different actions.
+
+In my real grammar I have a pattern that occurs in several parallel  
+machines and I need to extract several substrings from that pattern.  
+Using a separate action for every substring and every parent machine  
+would make my grammar unusable.
+
+Even so, it seems the 'mon' expression will always use the same  
+actions. How can I use different actions on different invocations?
+
+I thought about:
+
+	m1 = a1 mon >{ in = "m1" } b1;
+	m2 = a2 mon >{ in = "m2" } b1;
+
+but this will not work if the 'mon' machines overlap.
+
+That's why I thought about thread-local variables.  If we have local  
+error actions can't we export some local context?
+
+Thanks,
+Devin
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 17:20:59 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 13:20:59 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>
+	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>
+	<4AE863F8.3050600@esentire.com>
+	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+Message-ID: <4AE87D7B.3000308@esentire.com>
+
+I would make
+
+mon1 = ...
+mon2 = ...
+mon3 = ...
+.
+.
+.
+
+For all the possibly interfering invocations you need.
+
+> That's why I thought about thread-local variables.  If we have local  
+> error actions can't we export some local context?
+
+Ragel builds DFAs from the grammar, so the 'threads' are switched 
+between at each character. Any kind of local context switch that occurs 
+on each state change would be way too costly. Better to try to parse 
+pattern one, stop, rewind, try pattern two, and so on or to make the 
+'threads' use different data.
+
+
+
+From web at t-0.be  Wed Oct 28 18:48:19 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 20:48:19 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE87D7B.3000308@esentire.com>
+References: <4AE85B5B.2010400@t-0.be>
+	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>
+	<4AE863F8.3050600@esentire.com>
+	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+	<4AE87D7B.3000308@esentire.com>
+Message-ID: <6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+
+
+On Wed, 2009-10-28, at 19:20, Adrian Thurston wrote:
+
+>> That's why I thought about thread-local variables.  If we have local
+>> error actions can't we export some local context?
+>
+> Ragel builds DFAs from the grammar, so the 'threads' are switched
+> between at each character. Any kind of local context switch that  
+> occurs
+> on each state change would be way too costly.
+
+I think it would only involve setting one integer before each action,  
+and this doesn't seem costly at first glance.  For this example,  
+action 'c' would be called twice, and 'thread' would be set to 1 or  
+2.  When we finish one alternative, the correct value of 'c' is used.
+
+action c { c[thread] += fc; }
+action a { puts c[thread]; }
+action b { puts c[thread]; }
+
+c = any any $act;
+a = c "Y";
+b = c "X";
+main : thread=1 a %out
+      | thread=2 b %out
+      ;
+
+Comments?
+
+> Better to try to parse pattern one, stop, rewind, try pattern two,  
+> and so on or to make the
+> 'threads' use different data.
+
+This could work, but
+
+(1) requires more boilerplate
+(2) is less efficient
+(3) doesn't work in a sub-machine, since it requires fcall/fgoto
+
+- Devin
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 19:20:39 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 15:20:39 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>
+	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+Message-ID: <4AE89987.5070607@esentire.com>
+
+When I speak about 'threads' in Ragel it is at a conceptual level. It is 
+not the same as an operating system thread. In ragel, a thread's only 
+state is the current state variable, which indicating that the state 
+machine runtime is attempting to match a defined pattern. There can be 
+many such patterns that is is attempting to match. This precludes 
+storage of any kind of thread identifier at runtime that is associated 
+with the current state. Instead, it would have to be handled at 
+compile-time, through action rewriting. This is far beyond the scope of 
+the current implementation. Instead the solution is to achieve the same 
+thing by hand, as I previously described.
+
+> (1) requires more boilerplate
+Yes. Such is life. A previously proposed macro system for ragel would 
+relieve this somewhat, but so does relaxing a little bit and moving on 
+to more concrete problems ;)
+
+> (2) is less efficient
+No, would be more efficient.
+
+> (3) doesn't work in a sub-machine, since it requires fcall/fgoto
+No, does not require fcall/fgoto.
+
+
+
+From web at t-0.be  Thu Oct 29 08:36:19 2009
+From: web at t-0.be (Devin Bayer)
+Date: Thu, 29 Oct 2009 10:36:19 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE89987.5070607@esentire.com>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+	<4AE89987.5070607@esentire.com>
+Message-ID: <4AE95403.8090403@t-0.be>
+
+Hi Adrian:
+
+After our discussion I think I can express this more clearly. 
+Ragel works well to recognize my grammar but doesn't expose the 
+primitive constructs required to determine context, which is 
+important for extracting values from the input stream.
+
+Workarounds are available but they require an unmaintainable 
+amount of copy & pasting and are less efficient, since they use 
+backtracking or duplication of all shared states. A macro 
+language would improve the situation, but it would only hide the 
+complexity.
+
+My proposal would make ragel easier to use. Constructs like 
+matching text before ']]>', which the manual admits cannot be 
+expressed using ragel's RE operators, would become simpler.
+
+Each state is in one or more threads.  It doesn't require any 
+runtime overhead to make this information available and I don't 
+see any major hurdles with keeping track of the information in 
+the compiler.  It doesn't require action rewriting, just building 
+one more piece of data.
+
+So my concern is not about implementation, but that you don't 
+recognize the value of this feature.
+
+Thanks,
+Devin
+
+
+
+From adrian.thurston at esentire.com  Thu Oct 29 12:39:55 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 29 Oct 2009 08:39:55 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE95403.8090403@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>	<4AE89987.5070607@esentire.com>
+	<4AE95403.8090403@t-0.be>
+Message-ID: <4AE98D1B.3060007@esentire.com>
+
+I do recognize the value of such a feature, and I would like to add 
+features that make programming in Ragel a better experience, however, 
+the feature that you describe is just not possible in Ragel. A mapping 
+from the current input character and current state to some thread 
+context is beyond the limits of the DFA execution model, to which the 
+Ragel compiler is confined.
+
+-Adrian
+
+Devin Bayer wrote:
+> Hi Adrian:
+> 
+> After our discussion I think I can express this more clearly. 
+> Ragel works well to recognize my grammar but doesn't expose the 
+> primitive constructs required to determine context, which is 
+> important for extracting values from the input stream.
+> 
+> Workarounds are available but they require an unmaintainable 
+> amount of copy & pasting and are less efficient, since they use 
+> backtracking or duplication of all shared states. A macro 
+> language would improve the situation, but it would only hide the 
+> complexity.
+> 
+> My proposal would make ragel easier to use. Constructs like 
+> matching text before ']]>', which the manual admits cannot be 
+> expressed using ragel's RE operators, would become simpler.
+> 
+> Each state is in one or more threads.  It doesn't require any 
+> runtime overhead to make this information available and I don't 
+> see any major hurdles with keeping track of the information in 
+> the compiler.  It doesn't require action rewriting, just building 
+> one more piece of data.
+> 
+> So my concern is not about implementation, but that you don't 
+> recognize the value of this feature.
+> 
+> Thanks,
+> Devin
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From nwebster at biopeak.com  Thu Oct  8 16:25:42 2009
+From: nwebster at biopeak.com (Neil Webster)
+Date: Thu, 08 Oct 2009 12:25:42 -0400
+Subject: [ragel-users] Using Ragel for state machine
+Message-ID: <1255019142.5808.11.camel@neil-laptop>
+
+Hi,
+
+Is it possible to generate a state machine from the code below? I am
+getting stuck with using engines before they have been defined and as
+far as I can figure out, no matter how I order things this will still
+happen.
+
+%%{
+
+  machine adcpState ;
+
+  pressUser = 1;
+  insertUsb = 2;
+  removeUsb = 3;
+        
+  Idle = pressUser Recording ;
+
+  MassStorage = removeUsb Idle ;
+
+  Recording = pressUser Idle
+             | insertUsb MassStorage
+             ;
+
+  main := Idle ;
+
+  write data;
+
+}%%
+
+
+
+
+
+
+From rustompmody at gmail.com  Fri Oct  9 08:33:52 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 9 Oct 2009 14:03:52 +0530
+Subject: [ragel-users] porting to python
+Message-ID: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+
+Hello.
+
+What do you think would be the scale of work in porting ragel to
+python? (ie adding python generation)
+
+Thanks,
+
+Rustom
+
+PS Please CC me in addition to the list
+
+
+
+From thurston at complang.org  Sat Oct 10 00:12:36 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 09 Oct 2009 20:12:36 -0400
+Subject: [ragel-users] porting to python
+In-Reply-To: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+Message-ID: <4ACFD174.3080103@complang.org>
+
+Maybe a couple of days of work. It would depend on how many of Ragel's 
+code styles you would like to support. If you wanted to do just -T0 that 
+could be half a day maybe. I might be biased though, since I arguably 
+know ragel the best.
+
+Try emailing the people that helped out with the code generators.
+
+$ head *codegen.{h,cpp} | sort | uniq | grep '@'
+
+Also track down Daniel Tang http://saiyr.blogspot.com/
+
+-Adrian
+
+
+
+Rustom Mody wrote:
+> Hello.
+> 
+> What do you think would be the scale of work in porting ragel to
+> python? (ie adding python generation)
+> 
+> Thanks,
+> 
+> Rustom
+> 
+> PS Please CC me in addition to the list
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Oct 10 00:20:34 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 09 Oct 2009 20:20:34 -0400
+Subject: [ragel-users] Using Ragel for state machine
+In-Reply-To: <1255019142.5808.11.camel@neil-laptop>
+References: <1255019142.5808.11.camel@neil-laptop>
+Message-ID: <4ACFD352.8050908@complang.org>
+
+You're going to have trouble using that recursive style. A ragel state 
+machine definition represents a set of states that is substituted in 
+place where it is referenced. This precludes recursive definitions.
+
+Another way to look at the problem is to note that regular languages do 
+not support recursion, and ragel (at the core) is a means of defining 
+regular languages.
+
+It looks like you can rearrange this grammar without recursion to 
+something like:
+
+main := ( pressUser+ insertUsb removeUsb )*;
+
+-Adrian
+
+Neil Webster wrote:
+> Hi,
+> 
+> Is it possible to generate a state machine from the code below? I am
+> getting stuck with using engines before they have been defined and as
+> far as I can figure out, no matter how I order things this will still
+> happen.
+> 
+> %%{
+> 
+>   machine adcpState ;
+> 
+>   pressUser = 1;
+>   insertUsb = 2;
+>   removeUsb = 3;
+>         
+>   Idle = pressUser Recording ;
+> 
+>   MassStorage = removeUsb Idle ;
+> 
+>   Recording = pressUser Idle
+>              | insertUsb MassStorage
+>              ;
+> 
+>   main := Idle ;
+> 
+>   write data;
+> 
+> }%%
+> 
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Sat Oct 10 16:24:55 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 10 Oct 2009 18:24:55 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+Message-ID: <1255191895.30430.54.camel@yamato>
+
+Seems like I hit something here ;)
+
+check out git://git.lscube.org/feng.git (rfc822-parser branch):
+
+feng % ragel
+-I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+-Isrc/network
+-C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c 
+*** glibc detected *** ragel: corrupted double-linked list:
+0x0000000000d68520 ***
+
+uh-oh!
+
+==17658== Invalid write of size 8
+==17658==    at 0x425571: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:594)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658==  Address 0x5a00830 is 0 bytes after a block of size 16 alloc'd
+==17658==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658== 
+==17658== Invalid write of size 8
+==17658==    at 0x4255A5: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:598)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+==17658==  Address 0x5a00838 is 8 bytes after a block of size 16 alloc'd
+==17658==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+==17658==    by 0x4049F6: main (main.cpp:548)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From thurston at complang.org  Mon Oct 12 03:34:38 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 11 Oct 2009 23:34:38 -0400
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <1255191895.30430.54.camel@yamato>
+References: <1255191895.30430.54.camel@yamato>
+Message-ID: <4AD2A3CE.2090007@complang.org>
+
+I can't reproduce, but I fixed a bug in this area the other day. Is this 
+the trunk? If not could you test with it?
+
+-Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Seems like I hit something here ;)
+> 
+> check out git://git.lscube.org/feng.git (rfc822-parser branch):
+> 
+> feng % ragel
+> -I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+> -Isrc/network
+> -C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c 
+> *** glibc detected *** ragel: corrupted double-linked list:
+> 0x0000000000d68520 ***
+> 
+> uh-oh!
+> 
+> ==17658== Invalid write of size 8
+> ==17658==    at 0x425571: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:594)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658==  Address 0x5a00830 is 0 bytes after a block of size 16 alloc'd
+> ==17658==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658== 
+> ==17658== Invalid write of size 8
+> ==17658==    at 0x4255A5: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:598)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> ==17658==  Address 0x5a00838 is 8 bytes after a block of size 16 alloc'd
+> ==17658==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==17658==    by 0x425423: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==17658==    by 0x42E88E: Scanner::handleInclude() (rlscan.rl:316)
+> ==17658==    by 0x426977: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==17658==    by 0x42DC7F: Scanner::do_scan() (rlscan.rl:1106)
+> ==17658==    by 0x40397D: process(InputData&) (main.cpp:456)
+> ==17658==    by 0x4049F6: main (main.cpp:548)
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:03:44 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Mon, 12 Oct 2009 13:03:44 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <4AD2A3CE.2090007@complang.org>
+References: <1255191895.30430.54.camel@yamato> <4AD2A3CE.2090007@complang.org>
+Message-ID: <1255345424.30430.55.camel@yamato>
+
+Il giorno Sun, 11/10/2009 alle 23.34 -0400, Adrian Thurston ha scritto:
+> 
+> I can't reproduce, but I fixed a bug in this area the other day. Is
+> this 
+> the trunk? If not could you test with it? 
+
+I can reproduce it in trunk:
+
+==27620== Command: /home/flame/devel/repos/git/bridge/ragel/ragel/ragel
+-I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+-Isrc/network
+-C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c
+==27620== 
+==27620== Invalid write of size 8
+==27620==    at 0x434E3B: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:594)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620==  Address 0x5a00840 is 0 bytes after a block of size 16 alloc'd
+==27620==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620== 
+==27620== Invalid write of size 8
+==27620==    at 0x434E7A: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:598)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+==27620==  Address 0x5a00848 is 8 bytes after a block of size 16 alloc'd
+==27620==    at 0x4C2466C: operator new[](unsigned long)
+(vg_replace_malloc.c:264)
+==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+char const*, int) (rlscan.rl:559)
+==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+(rlscan.rl:391)
+==27620==    by 0x434165: Scanner::token(int, char*, char*)
+(rlscan.rl:483)
+==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+==27620==    by 0x40416B: main (main.cpp:555)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:05:32 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Mon, 12 Oct 2009 13:05:32 +0200
+Subject: [ragel-users] [PATCH 1/2] Don't refer to GIT checkouts directly.
+Message-ID: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+
+---
+ contrib/ragel.m4 |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/contrib/ragel.m4 b/contrib/ragel.m4
+index 8b9b913..c5cb9e9 100644
+--- a/contrib/ragel.m4
++++ b/contrib/ragel.m4
+@@ -30,7 +30,7 @@ AC_DEFUN([CHECK_RAGEL], [
+ 
+     AS_IF([test x"$ragel_needed" = x"yes"],
+       [AC_MSG_ERROR([dnl
+-You need Ragel to build from GIT checkouts.
++You need Ragel to build from development sources.
+ You can find Ragel at http://www.complang.org/ragel/dnl
+       ])])
+   ])
+-- 
+1.6.5
+
+
+
+
+From flameeyes at gmail.com  Mon Oct 12 11:05:33 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Mon, 12 Oct 2009 13:05:33 +0200
+Subject: [ragel-users] [PATCH 2/2] Use foreign automake.
+In-Reply-To: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+References: <1255345533-5985-1-git-send-email-flameeyes@gmail.com>
+Message-ID: <1255345533-5985-2-git-send-email-flameeyes@gmail.com>
+
+This avoids the need for the NEWS file to be present (only required by
+GNU-style automake).
+---
+ configure.in |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index c5c40bf..a50b3cf 100644
+--- a/configure.in
++++ b/configure.in
+@@ -21,7 +21,7 @@ dnl   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ AC_INIT(ragel, 6.5)
+ PUBDATE="May 2009"
+ 
+-AM_INIT_AUTOMAKE
++AM_INIT_AUTOMAKE([foreign])
+ AC_SUBST(PUBDATE)
+ AC_CONFIG_HEADER(ragel/config.h)
+ 
+-- 
+1.6.5
+
+
+
+
+From rustompmody at gmail.com  Mon Oct 12 16:03:00 2009
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Mon, 12 Oct 2009 21:33:00 +0530
+Subject: [ragel-users] porting to python
+In-Reply-To: <4ACFD174.3080103@complang.org>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>
+	<4ACFD174.3080103@complang.org>
+Message-ID: <f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+
+just downloaded the ragel sources and started looking around.
+Not yet found my way too much but here are a few initial questions.
+
+Is T0 the easiest or F0?
+
+Also Python has a very specific problem: it does not use a definite
+block constructor marker like {} in C(like) languages but uses
+indentation instead.
+The small problem is that this means that we may have to add indents
+to a piece of code to nest it correctly.
+
+The bigger problem is that we need to know how much indent to add.
+By contrast in a normal block structured language, when we want to
+generate code inside say an while, we generate the head of the while
+(while and condition) emit the '{' emit the code and finally a closing
+'}'
+
+Here by contrast we need to know the entire stack of indents, add 1 to
+it, and right-shift the code that much.
+
+Does this seem doable?
+
+On Sat, Oct 10, 2009 at 5:42 AM, Adrian Thurston <thurston at complang.org> wrote:
+> Maybe a couple of days of work. It would depend on how many of Ragel's code
+> styles you would like to support. If you wanted to do just -T0 that could be
+> half a day maybe. I might be biased though, since I arguably know ragel the
+> best.
+>
+> Try emailing the people that helped out with the code generators.
+>
+> $ head *codegen.{h,cpp} | sort | uniq | grep '@'
+>
+> Also track down Daniel Tang http://saiyr.blogspot.com/
+>
+> -Adrian
+>
+>
+>
+> Rustom Mody wrote:
+>>
+>> Hello.
+>>
+>> What do you think would be the scale of work in porting ragel to
+>> python? (ie adding python generation)
+>>
+>> Thanks,
+>>
+>> Rustom
+>>
+>> PS Please CC me in addition to the list
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From adrian.thurston at esentire.com  Tue Oct 13 16:32:02 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Oct 2009 12:32:02 -0400
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <1255345424.30430.55.camel@yamato>
+References: <1255191895.30430.54.camel@yamato> <4AD2A3CE.2090007@complang.org>
+	<1255345424.30430.55.camel@yamato>
+Message-ID: <4AD4AB82.6070109@esentire.com>
+
+Are you sure your git repository is synced with the SVN? The line 
+numbers of the functions don't match with what I've got in the trunk.
+
+-Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Il giorno Sun, 11/10/2009 alle 23.34 -0400, Adrian Thurston ha scritto:
+>> I can't reproduce, but I fixed a bug in this area the other day. Is
+>> this 
+>> the trunk? If not could you test with it? 
+> 
+> I can reproduce it in trunk:
+> 
+> ==27620== Command: /home/flame/devel/repos/git/bridge/ragel/ragel/ragel
+> -I/media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network
+> -Isrc/network
+> -C /media/repos/flame/.lscube/yamato/feng/../../sources/feng/src/network/ragel_request_line.rl -o src/network/ragel_request_line.c
+> ==27620== 
+> ==27620== Invalid write of size 8
+> ==27620==    at 0x434E3B: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:594)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620==  Address 0x5a00840 is 0 bytes after a block of size 16 alloc'd
+> ==27620==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620== 
+> ==27620== Invalid write of size 8
+> ==27620==    at 0x434E7A: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:598)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> ==27620==  Address 0x5a00848 is 8 bytes after a block of size 16 alloc'd
+> ==27620==    at 0x4C2466C: operator new[](unsigned long)
+> (vg_replace_malloc.c:264)
+> ==27620==    by 0x434BE6: Scanner::makeIncludePathChecks(char const*,
+> char const*, int) (rlscan.rl:559)
+> ==27620==    by 0x433C2F: Scanner::handleInclude() (rlscan.rl:316)
+> ==27620==    by 0x434210: Scanner::processToken(int, char*, int)
+> (rlscan.rl:391)
+> ==27620==    by 0x434165: Scanner::token(int, char*, char*)
+> (rlscan.rl:483)
+> ==27620==    by 0x4340CC: Scanner::token(int) (rlscan.rl:469)
+> ==27620==    by 0x43BEC6: Scanner::do_scan() (rlscan.rl:1107)
+> ==27620==    by 0x403DAB: process(InputData&) (main.cpp:459)
+> ==27620==    by 0x40416B: main (main.cpp:555)
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Tue Oct 13 16:38:14 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Tue, 13 Oct 2009 18:38:14 +0200
+Subject: [ragel-users] Ragel crash (searching includes?)
+In-Reply-To: <4AD4AB82.6070109@esentire.com>
+References: <1255191895.30430.54.camel@yamato>
+	<4AD2A3CE.2090007@complang.org> <1255345424.30430.55.camel@yamato>
+	<4AD4AB82.6070109@esentire.com>
+Message-ID: <1255451894.9913.26.camel@yamato>
+
+Il giorno Tue, 13/10/2009 alle 12.32 -0400, Adrian Thurston ha scritto:
+> 
+> Are you sure your git repository is synced with the SVN? The line 
+> numbers of the functions don't match with what I've got in the trunk.
+> 
+Actually I was just going to mail, I was running on the wrong branch :/
+
+It seems indeed to be fine with trunk, sorry for the noise!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From adrian.thurston at esentire.com  Tue Oct 13 20:22:33 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 13 Oct 2009 16:22:33 -0400
+Subject: [ragel-users] porting to python
+In-Reply-To: <f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+References: <f46c52560910090133j345eafc2oe797f38798905a6b@mail.gmail.com>	<4ACFD174.3080103@complang.org>
+	<f46c52560910120903xf369ca6o664e6542ee35b131@mail.gmail.com>
+Message-ID: <4AD4E189.2000005@esentire.com>
+
+The -F0 code style would probably be easier, but it doesn't cover all 
+ragel programs, whereas -T0 will always work. The flat tables are a 
+problem when working with long-sized input.
+
+I forgot about the offside rules in python ... they will definitely 
+cause extra work, but it won't be fatal (unless you consider tedium to 
+be fatal). Some of the code respects formatting rules for the sake of 
+those who choose to read the output, but not all the details are looked 
+after.
+
+-Adrian
+
+Rustom Mody wrote:
+> just downloaded the ragel sources and started looking around.
+> Not yet found my way too much but here are a few initial questions.
+> 
+> Is T0 the easiest or F0?
+> 
+> Also Python has a very specific problem: it does not use a definite
+> block constructor marker like {} in C(like) languages but uses
+> indentation instead.
+> The small problem is that this means that we may have to add indents
+> to a piece of code to nest it correctly.
+> 
+> The bigger problem is that we need to know how much indent to add.
+> By contrast in a normal block structured language, when we want to
+> generate code inside say an while, we generate the head of the while
+> (while and condition) emit the '{' emit the code and finally a closing
+> '}'
+> 
+> Here by contrast we need to know the entire stack of indents, add 1 to
+> it, and right-shift the code that much.
+> 
+> Does this seem doable?
+> 
+> On Sat, Oct 10, 2009 at 5:42 AM, Adrian Thurston <thurston at complang.org> wrote:
+>> Maybe a couple of days of work. It would depend on how many of Ragel's code
+>> styles you would like to support. If you wanted to do just -T0 that could be
+>> half a day maybe. I might be biased though, since I arguably know ragel the
+>> best.
+>>
+>> Try emailing the people that helped out with the code generators.
+>>
+>> $ head *codegen.{h,cpp} | sort | uniq | grep '@'
+>>
+>> Also track down Daniel Tang http://saiyr.blogspot.com/
+>>
+>> -Adrian
+>>
+>>
+>>
+>> Rustom Mody wrote:
+>>> Hello.
+>>>
+>>> What do you think would be the scale of work in porting ragel to
+>>> python? (ie adding python generation)
+>>>
+>>> Thanks,
+>>>
+>>> Rustom
+>>>
+>>> PS Please CC me in addition to the list
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From flameeyes at gmail.com  Thu Oct 15 13:55:30 2009
+From: flameeyes at gmail.com (=?UTF-8?q?Diego=20Elio=20=27Flameeyes=27=20Petten=C3=B2?=)
+Date: Thu, 15 Oct 2009 15:55:30 +0200
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from GIT).
+Message-ID: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+
+With this change, ragel can find the generated files even when doing
+out-of-tree builds.
+---
+ ragel/Makefile.am |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/ragel/Makefile.am b/ragel/Makefile.am
+index beb1f9d..db3610c 100644
+--- a/ragel/Makefile.am
++++ b/ragel/Makefile.am
+@@ -47,6 +47,6 @@ rlparse.cpp: rlparse.kl rlparse.kh
+ rlscan.cpp: rlparse.h
+ 
+ rlscan.cpp: rlscan.rl
+-	ragel -G2 -o $@ $<
++	ragel -G2 -I$(builddir) -o $@ $<
+ 
+ endif
+-- 
+1.6.5
+
+
+
+
+From antony.blakey at gmail.com  Wed Oct 21 13:40:16 2009
+From: antony.blakey at gmail.com (Antony Blakey)
+Date: Thu, 22 Oct 2009 00:10:16 +1030
+Subject: [ragel-users] How do I act on eof in state charts
+Message-ID: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+
+Hi,
+
+I (a Ragel newb) have a state chart for consuming smalltalk string  
+literals (single quotes, any body, double single quotes is an embedded  
+quote), like this:
+
+string_literal_body =
+   start: (
+     "'" -> seen_quote |
+     [^'] -> start
+   ),
+   seen_quote: (
+     "'" -> start |
+     [^'] @{ fhold; } -> final
+   );
+string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+
+The problem occurs when a string literal ends at eof. How do I specify  
+the eof 'match' in the seen_quote state such that all the leaving- 
+transition actions that are in place above the string_literal are  
+executed, such as the 'puts' on the 'string_literal' machine. I don't  
+want to manually duplicate the parent code because multiple machines  
+reference string_literal, with different leaving-transition actions.
+
+I couldn't get it to work using priorities - the terminator needs  
+lookahead to disambiguate; the following doesn't work:
+
+string_literal = "'" [^']* ( "''" [^']* )* '"'
+
+Antony Blakey
+--------------------------
+CTO, Linkuistics Pty Ltd
+Ph: 0438 840 787
+
+Lack of will power has caused more failure than lack of intelligence  
+or ability.
+  -- Flower A. Newhouse
+
+
+
+
+From antony.blakey at gmail.com  Thu Oct 22 00:07:46 2009
+From: antony.blakey at gmail.com (Antony Blakey)
+Date: Thu, 22 Oct 2009 10:37:46 +1030
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+Message-ID: <2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+
+
+On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+
+> string_literal_body =
+>  start: (
+>    "'" -> seen_quote |
+>    [^'] -> start
+>  ),
+>  seen_quote: (
+>    "'" -> start |
+>    [^'] @{ fhold; } -> final
+>  );
+> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+>
+> The problem occurs when a string literal ends at eof. How do I  
+> specify the eof 'match' in the seen_quote state such that all the  
+> leaving-transition actions that are in place above the  
+> string_literal are executed, such as the 'puts' on the  
+> 'string_literal' machine. I don't want to manually duplicate the  
+> parent code because multiple machines reference string_literal, with  
+> different leaving-transition actions.
+>
+> I couldn't get it to work using priorities - the terminator needs  
+> lookahead to disambiguate; the following doesn't work:
+>
+> string_literal = "'" [^']* ( "''" [^']* )* '"'
+
+I ended up doing this:
+
+   string_literal_unqoted = "'" [^']* "'" ;
+   string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+0) % { puts "string_literal" };
+
+which works. I would have thought that this:
+
+   string_literal = string_literal_unqoted string_literal_unqoted** %  
+{ puts "string_literal" };
+
+would work, but '**' doesn't work for me - if I use a main like this:
+
+   main := space* ( string_literal space* )* ;
+
+then I get two string_literals from 'a''b' rather than one, while the  
+explicit priorities do give me one string_literal.
+
+Of course this works as well:
+
+   main := space* ( string_literal <: space* )* ;
+
+but given the pervasiveness of whitespace handling in my grammar (a  
+full Smalltalk parser) it's a real PITA because everything you want  
+greedy consumption for has to be thus annotated wherever it is used.
+
+Still, I'm interested in how you specify EOF transitions in an  
+explicit state machine. I also had success appending a 0 onto the  
+input for use as an EOF marker that can be matched in the state  
+machine, but I'm not sure yet if/how that will interfere with true EOF  
+functioning.
+
+Antony Blakey
+-------------
+CTO, Linkuistics Pty Ltd
+Ph: 0438 840 787
+
+In anything at all, perfection is finally attained not when there is  
+no longer anything to add, but when there is no longer anything to  
+take away.
+   -- Antoine de Saint-Exupery
+
+
+
+
+
+From thurston at complang.org  Fri Oct 23 01:33:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 21:33:14 -0400
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from
+ GIT).
+In-Reply-To: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+References: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+Message-ID: <4AE107DA.4020003@complang.org>
+
+Applied (along with the other two). Thanks!
+
+-Adrian
+
+Diego Elio 'Flameeyes' Pettenò wrote:
+> With this change, ragel can find the generated files even when doing
+> out-of-tree builds.
+> ---
+>  ragel/Makefile.am |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/ragel/Makefile.am b/ragel/Makefile.am
+> index beb1f9d..db3610c 100644
+> --- a/ragel/Makefile.am
+> +++ b/ragel/Makefile.am
+> @@ -47,6 +47,6 @@ rlparse.cpp: rlparse.kl rlparse.kh
+>  rlscan.cpp: rlparse.h
+>  
+>  rlscan.cpp: rlscan.rl
+> -	ragel -G2 -o $@ $<
+> +	ragel -G2 -I$(builddir) -o $@ $<
+>  
+>  endif
+
+
+
+From thurston at complang.org  Fri Oct 23 01:46:12 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 21:46:12 -0400
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+Message-ID: <4AE10AE4.6060303@complang.org>
+
+Hi Antony
+
+You can do this:
+
+       seen_quote: (
+               "'" -> start |
+               [^'] @{ fhold; } -> final
+               ) >eof(here);
+
+If you don't like putting the action after the closing brace you can do 
+this.
+
+       seen_quote: "" $eof(here) (
+               "'" -> start |
+               [^'] @{ fhold; } -> final
+               );
+
+-Adrian
+
+Antony Blakey wrote:
+> Hi,
+> 
+> I (a Ragel newb) have a state chart for consuming smalltalk string  
+> literals (single quotes, any body, double single quotes is an embedded  
+> quote), like this:
+> 
+> string_literal_body =
+>    start: (
+>      "'" -> seen_quote |
+>      [^'] -> start
+>    ),
+>    seen_quote: (
+>      "'" -> start |
+>      [^'] @{ fhold; } -> final
+>    );
+> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+> 
+> The problem occurs when a string literal ends at eof. How do I specify  
+> the eof 'match' in the seen_quote state such that all the leaving- 
+> transition actions that are in place above the string_literal are  
+> executed, such as the 'puts' on the 'string_literal' machine. I don't  
+> want to manually duplicate the parent code because multiple machines  
+> reference string_literal, with different leaving-transition actions.
+> 
+> I couldn't get it to work using priorities - the terminator needs  
+> lookahead to disambiguate; the following doesn't work:
+> 
+> string_literal = "'" [^']* ( "''" [^']* )* '"'
+> 
+> Antony Blakey
+> --------------------------
+> CTO, Linkuistics Pty Ltd
+> Ph: 0438 840 787
+> 
+> Lack of will power has caused more failure than lack of intelligence  
+> or ability.
+>   -- Flower A. Newhouse
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Fri Oct 23 02:04:24 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 22 Oct 2009 22:04:24 -0400
+Subject: [ragel-users] How do I act on eof in state charts
+In-Reply-To: <2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+References: <DB73D528-3A82-414A-8F15-427C8FC38910@gmail.com>
+	<2BC60EB7-7673-479C-BF61-7C081D75F5DA@gmail.com>
+Message-ID: <4AE10F28.4050309@complang.org>
+
+If you are unioning tokens together and then doing a kleene star then 
+you could do this;
+
+     action lit {}
+     action space {}
+
+     string_literal = ( "'" ( [^'] | "''" )* "'" ) %lit;
+     ws = ' ' @space;
+
+     main := ( ws | string_literal )**;
+
+If you're not and you want to make yourself a self-contained string lit 
+that is safe to use regardless which operation it is used in next, then 
+do the following (you seem to have something like this already).
+
+     action lit {}
+     action space {}
+
+     string_literal = ( "'" ( [^'] | "''" $1 )* "'" ) %0 %lit;
+     ws = ' ' @space;
+
+     main := ws string_literal ( ws | string_literal )*;
+
+-Adrian
+
+Antony Blakey wrote:
+> On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+> 
+>> string_literal_body =
+>>  start: (
+>>    "'" -> seen_quote |
+>>    [^'] -> start
+>>  ),
+>>  seen_quote: (
+>>    "'" -> start |
+>>    [^'] @{ fhold; } -> final
+>>  );
+>> string_literal = "'" string_literal_body %{ puts "string_literal" } ;
+>>
+>> The problem occurs when a string literal ends at eof. How do I  
+>> specify the eof 'match' in the seen_quote state such that all the  
+>> leaving-transition actions that are in place above the  
+>> string_literal are executed, such as the 'puts' on the  
+>> 'string_literal' machine. I don't want to manually duplicate the  
+>> parent code because multiple machines reference string_literal, with  
+>> different leaving-transition actions.
+>>
+>> I couldn't get it to work using priorities - the terminator needs  
+>> lookahead to disambiguate; the following doesn't work:
+>>
+>> string_literal = "'" [^']* ( "''" [^']* )* '"'
+> 
+> I ended up doing this:
+> 
+>    string_literal_unqoted = "'" [^']* "'" ;
+>    string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+> 0) % { puts "string_literal" };
+> 
+> which works. I would have thought that this:
+> 
+>    string_literal = string_literal_unqoted string_literal_unqoted** %  
+> { puts "string_literal" };
+> 
+> would work, but '**' doesn't work for me - if I use a main like this:
+> 
+>    main := space* ( string_literal space* )* ;
+> 
+> then I get two string_literals from 'a''b' rather than one, while the  
+> explicit priorities do give me one string_literal.
+> 
+> Of course this works as well:
+> 
+>    main := space* ( string_literal <: space* )* ;
+> 
+> but given the pervasiveness of whitespace handling in my grammar (a  
+> full Smalltalk parser) it's a real PITA because everything you want  
+> greedy consumption for has to be thus annotated wherever it is used.
+> 
+> Still, I'm interested in how you specify EOF transitions in an  
+> explicit state machine. I also had success appending a 0 onto the  
+> input for use as an EOF marker that can be matched in the state  
+> machine, but I'm not sure yet if/how that will interfere with true EOF  
+> functioning.
+> 
+> Antony Blakey
+> -------------
+> CTO, Linkuistics Pty Ltd
+> Ph: 0438 840 787
+> 
+> In anything at all, perfection is finally attained not when there is  
+> no longer anything to add, but when there is no longer anything to  
+> take away.
+>    -- Antoine de Saint-Exupery
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Fri Oct 23 10:50:36 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Fri, 23 Oct 2009 12:50:36 +0200
+Subject: [ragel-users] [PATCH] Fix out-of-tree builds for Ragel (from
+ GIT).
+In-Reply-To: <4AE107DA.4020003@complang.org>
+References: <1255614930-6447-1-git-send-email-flameeyes@gmail.com>
+	<4AE107DA.4020003@complang.org>
+Message-ID: <1256295036.4446.50.camel@yamato>
+
+Il giorno Thu, 22/10/2009 alle 21.33 -0400, Adrian Thurston ha scritto:
+> Applied (along with the other two). Thanks! 
+
+Thank you :)
+
+Is there a new release coming by chance? I've finally implemented a new
+fully Ragel-based for RTSP/HTTP in feng, but it needs the include fix
+that is only in trunk for now. Before merging in our master branch I'd
+like to have the released ragel to build them fine.
+
+Thanks!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From web at t-0.be  Wed Oct 28 14:55:23 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 16:55:23 +0200
+Subject: [ragel-users] union operator and thread-local variables
+Message-ID: <4AE85B5B.2010400@t-0.be>
+
+Hello. I would like to parse a date which can be in one of 
+several forms and I want to get the number of a month in a variable.
+
+My problem is that for some input, the month is parsed by both 
+alternatives, but I need to get the correct value. If I could 
+detect which "thread" I am in, I could throw away the other 
+values in an @lerr handler.
+
+This machine demonstrates what I want:
+
+%%{
+     machine test;
+
+     action in { puts("mon begins", fpc); }
+     action out { puts("mon ends", fpc); }
+     action fail { puts("thread failed", fpc); }
+
+     i = digit+;
+     day = i " ";
+     mon = i >in %out " ";
+     time = (i ":" i) @lerr(fail);
+     stamp
+         = day mon time
+         | mon time
+         ;
+
+     main := stamp "\n" >{ puts("done"); };
+}%%
+
+Is there another way to do this?
+
+Thanks,
+Devin Bayer
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 15:00:36 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 11:00:36 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE85B5B.2010400@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>
+Message-ID: <4AE85C94.6030108@esentire.com>
+
+My suggestion is to store away values as you parse and then act when you 
+get to the end of a 'stamp' using a leaving action. That way only one 
+action will happen, unless there is ambiguity between the forms. You can 
+check for ambiguity by looking at a graphviz rendering. If you see 
+transitions with both actions in them then you have ambiguity.
+
+-Adrian
+
+Devin Bayer wrote:
+> Hello. I would like to parse a date which can be in one of 
+> several forms and I want to get the number of a month in a variable.
+> 
+> My problem is that for some input, the month is parsed by both 
+> alternatives, but I need to get the correct value. If I could 
+> detect which "thread" I am in, I could throw away the other 
+> values in an @lerr handler.
+> 
+> This machine demonstrates what I want:
+> 
+> %%{
+>      machine test;
+> 
+>      action in { puts("mon begins", fpc); }
+>      action out { puts("mon ends", fpc); }
+>      action fail { puts("thread failed", fpc); }
+> 
+>      i = digit+;
+>      day = i " ";
+>      mon = i >in %out " ";
+>      time = (i ":" i) @lerr(fail);
+>      stamp
+>          = day mon time
+>          | mon time
+>          ;
+> 
+>      main := stamp "\n" >{ puts("done"); };
+> }%%
+> 
+> Is there another way to do this?
+> 
+> Thanks,
+> Devin Bayer
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From web at t-0.be  Wed Oct 28 15:27:30 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 17:27:30 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE85C94.6030108@esentire.com>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+Message-ID: <4AE862E2.8010605@t-0.be>
+
+Adrian Thurston wrote:
+> My suggestion is to store away values as you parse and then act when you 
+> get to the end of a 'stamp' using a leaving action. That way only one 
+> action will happen,
+
+Hi. Thanks for the suggestion, but I don't understand how to 
+implement it.
+
+(1) How do I "store away values" without using an action?
+(2) When storing values, both the correct and incorrect values 
+will be stored.  Which values do I use when leaving stamp?
+
+Thanks,
+Devin Bayer
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 15:32:08 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 11:32:08 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE862E2.8010605@t-0.be>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+	<4AE862E2.8010605@t-0.be>
+Message-ID: <4AE863F8.3050600@esentire.com>
+
+Store away to different variables using different actions.
+
+-Adrian
+
+Devin Bayer wrote:
+> Adrian Thurston wrote:
+>> My suggestion is to store away values as you parse and then act when you 
+>> get to the end of a 'stamp' using a leaving action. That way only one 
+>> action will happen,
+> 
+> Hi. Thanks for the suggestion, but I don't understand how to 
+> implement it.
+> 
+> (1) How do I "store away values" without using an action?
+> (2) When storing values, both the correct and incorrect values 
+> will be stored.  Which values do I use when leaving stamp?
+> 
+> Thanks,
+> Devin Bayer
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+
+From web at t-0.be  Wed Oct 28 16:40:15 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 18:40:15 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE863F8.3050600@esentire.com>
+References: <4AE85B5B.2010400@t-0.be> <4AE85C94.6030108@esentire.com>
+	<4AE862E2.8010605@t-0.be> <4AE863F8.3050600@esentire.com>
+Message-ID: <657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+
+
+On Wed, 2009-10-28, at 17:32, Adrian Thurston wrote:
+
+> Store away to different variables using different actions.
+
+In my real grammar I have a pattern that occurs in several parallel  
+machines and I need to extract several substrings from that pattern.  
+Using a separate action for every substring and every parent machine  
+would make my grammar unusable.
+
+Even so, it seems the 'mon' expression will always use the same  
+actions. How can I use different actions on different invocations?
+
+I thought about:
+
+	m1 = a1 mon >{ in = "m1" } b1;
+	m2 = a2 mon >{ in = "m2" } b1;
+
+but this will not work if the 'mon' machines overlap.
+
+That's why I thought about thread-local variables.  If we have local  
+error actions can't we export some local context?
+
+Thanks,
+Devin
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 17:20:59 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 13:20:59 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>
+	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>
+	<4AE863F8.3050600@esentire.com>
+	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+Message-ID: <4AE87D7B.3000308@esentire.com>
+
+I would make
+
+mon1 = ...
+mon2 = ...
+mon3 = ...
+.
+.
+.
+
+For all the possibly interfering invocations you need.
+
+> That's why I thought about thread-local variables.  If we have local  
+> error actions can't we export some local context?
+
+Ragel builds DFAs from the grammar, so the 'threads' are switched 
+between at each character. Any kind of local context switch that occurs 
+on each state change would be way too costly. Better to try to parse 
+pattern one, stop, rewind, try pattern two, and so on or to make the 
+'threads' use different data.
+
+
+
+From web at t-0.be  Wed Oct 28 18:48:19 2009
+From: web at t-0.be (Devin Bayer)
+Date: Wed, 28 Oct 2009 20:48:19 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE87D7B.3000308@esentire.com>
+References: <4AE85B5B.2010400@t-0.be>
+	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>
+	<4AE863F8.3050600@esentire.com>
+	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>
+	<4AE87D7B.3000308@esentire.com>
+Message-ID: <6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+
+
+On Wed, 2009-10-28, at 19:20, Adrian Thurston wrote:
+
+>> That's why I thought about thread-local variables.  If we have local
+>> error actions can't we export some local context?
+>
+> Ragel builds DFAs from the grammar, so the 'threads' are switched
+> between at each character. Any kind of local context switch that  
+> occurs
+> on each state change would be way too costly.
+
+I think it would only involve setting one integer before each action,  
+and this doesn't seem costly at first glance.  For this example,  
+action 'c' would be called twice, and 'thread' would be set to 1 or  
+2.  When we finish one alternative, the correct value of 'c' is used.
+
+action c { c[thread] += fc; }
+action a { puts c[thread]; }
+action b { puts c[thread]; }
+
+c = any any $act;
+a = c "Y";
+b = c "X";
+main : thread=1 a %out
+      | thread=2 b %out
+      ;
+
+Comments?
+
+> Better to try to parse pattern one, stop, rewind, try pattern two,  
+> and so on or to make the
+> 'threads' use different data.
+
+This could work, but
+
+(1) requires more boilerplate
+(2) is less efficient
+(3) doesn't work in a sub-machine, since it requires fcall/fgoto
+
+- Devin
+
+
+
+From adrian.thurston at esentire.com  Wed Oct 28 19:20:39 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 28 Oct 2009 15:20:39 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>
+	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+Message-ID: <4AE89987.5070607@esentire.com>
+
+When I speak about 'threads' in Ragel it is at a conceptual level. It is 
+not the same as an operating system thread. In ragel, a thread's only 
+state is the current state variable, which indicating that the state 
+machine runtime is attempting to match a defined pattern. There can be 
+many such patterns that is is attempting to match. This precludes 
+storage of any kind of thread identifier at runtime that is associated 
+with the current state. Instead, it would have to be handled at 
+compile-time, through action rewriting. This is far beyond the scope of 
+the current implementation. Instead the solution is to achieve the same 
+thing by hand, as I previously described.
+
+> (1) requires more boilerplate
+Yes. Such is life. A previously proposed macro system for ragel would 
+relieve this somewhat, but so does relaxing a little bit and moving on 
+to more concrete problems ;)
+
+> (2) is less efficient
+No, would be more efficient.
+
+> (3) doesn't work in a sub-machine, since it requires fcall/fgoto
+No, does not require fcall/fgoto.
+
+
+
+From web at t-0.be  Thu Oct 29 08:36:19 2009
+From: web at t-0.be (Devin Bayer)
+Date: Thu, 29 Oct 2009 10:36:19 +0200
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE89987.5070607@esentire.com>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>
+	<4AE89987.5070607@esentire.com>
+Message-ID: <4AE95403.8090403@t-0.be>
+
+Hi Adrian:
+
+After our discussion I think I can express this more clearly. 
+Ragel works well to recognize my grammar but doesn't expose the 
+primitive constructs required to determine context, which is 
+important for extracting values from the input stream.
+
+Workarounds are available but they require an unmaintainable 
+amount of copy & pasting and are less efficient, since they use 
+backtracking or duplication of all shared states. A macro 
+language would improve the situation, but it would only hide the 
+complexity.
+
+My proposal would make ragel easier to use. Constructs like 
+matching text before ']]>', which the manual admits cannot be 
+expressed using ragel's RE operators, would become simpler.
+
+Each state is in one or more threads.  It doesn't require any 
+runtime overhead to make this information available and I don't 
+see any major hurdles with keeping track of the information in 
+the compiler.  It doesn't require action rewriting, just building 
+one more piece of data.
+
+So my concern is not about implementation, but that you don't 
+recognize the value of this feature.
+
+Thanks,
+Devin
+
+
+
+From adrian.thurston at esentire.com  Thu Oct 29 12:39:55 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Thu, 29 Oct 2009 08:39:55 -0400
+Subject: [ragel-users] union operator and thread-local variables
+In-Reply-To: <4AE95403.8090403@t-0.be>
+References: <4AE85B5B.2010400@t-0.be>	<4AE85C94.6030108@esentire.com>	<4AE862E2.8010605@t-0.be>	<4AE863F8.3050600@esentire.com>	<657E860C-6CDF-49BE-82F4-344B4870AC5B@t-0.be>	<4AE87D7B.3000308@esentire.com>	<6EAC0702-22C9-496A-8860-2197DB0D70A5@t-0.be>	<4AE89987.5070607@esentire.com>
+	<4AE95403.8090403@t-0.be>
+Message-ID: <4AE98D1B.3060007@esentire.com>
+
+I do recognize the value of such a feature, and I would like to add 
+features that make programming in Ragel a better experience, however, 
+the feature that you describe is just not possible in Ragel. A mapping 
+from the current input character and current state to some thread 
+context is beyond the limits of the DFA execution model, to which the 
+Ragel compiler is confined.
+
+-Adrian
+
+Devin Bayer wrote:
+> Hi Adrian:
+> 
+> After our discussion I think I can express this more clearly. 
+> Ragel works well to recognize my grammar but doesn't expose the 
+> primitive constructs required to determine context, which is 
+> important for extracting values from the input stream.
+> 
+> Workarounds are available but they require an unmaintainable 
+> amount of copy & pasting and are less efficient, since they use 
+> backtracking or duplication of all shared states. A macro 
+> language would improve the situation, but it would only hide the 
+> complexity.
+> 
+> My proposal would make ragel easier to use. Constructs like 
+> matching text before ']]>', which the manual admits cannot be 
+> expressed using ragel's RE operators, would become simpler.
+> 
+> Each state is in one or more threads.  It doesn't require any 
+> runtime overhead to make this information available and I don't 
+> see any major hurdles with keeping track of the information in 
+> the compiler.  It doesn't require action rewriting, just building 
+> one more piece of data.
+> 
+> So my concern is not about implementation, but that you don't 
+> recognize the value of this feature.
+> 
+> Thanks,
+> Devin
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+
+

@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> parsing a netstring
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20parsing%20a%20netstring&In-Reply-To=%3CE84884A6-D742-4337-86B0-A2EB92196C5D%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002159.html">
+   <LINK REL="Next"  HREF="002161.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>parsing a netstring</H1>
+    <B>Chuck Remes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20parsing%20a%20netstring&In-Reply-To=%3CE84884A6-D742-4337-86B0-A2EB92196C5D%40mac.com%3E"
+       TITLE="parsing a netstring">cremes.devl... at mac.com
+       </A><BR>
+    <I>Sun Oct  7 18:16:27 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002159.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+        <LI>Next message: <A HREF="002161.html">[ragel-users] parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#397">[ date ]</a>
+              <a href="thread.html#397">[ thread ]</a>
+              <a href="subject.html#397">[ subject ]</a>
+              <a href="author.html#397">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I'm suddenly finding all sorts of uses for ragel!
+
+I want to write a parser for netstrings. The definition of a  
+netstring is pretty simple. It comes in the following format:
+
+size_in_decimal':''string array size_in_decimal bytes long'','
+
+I wrote a machine to parse through this and capture every byte, but  
+I'm unclear how to terminate my get_string machine. Right now I have  
+it call the action store_string as a finishing action for each byte  
+processed. The action stores the byte and increments a counter  
+variable. When the counter variable exceeds the number of bytes to be  
+processed, I want to advance out of that machine and move to the next  
+machine to confirm the byte array was terminated properly.
+
+I'm not sure I'm doing this correctly. From the docs (section 6.5) it  
+appears using a 'semantic condition' would make sense here, but that  
+part of the documentation is unclear to me so I'm using this  
+alternate methodology. Am I on the right track? Also, is there a way  
+to skip 'N' bytes forward instead of copying them one by one into a  
+new array (super slow!)? I'm thinking I can directly modify the 'p'  
+variable but I'm not sure this is the right way.
+
+Secondly, I'm not sure how to capture errors. I'm already using the  
+form '@action' to do some work in a machine. Can I specify an error  
+action using the same operator in the same machine? E.g - get_size =  
+( digit @store_size @err(size_error) )+;
+
+Thanks for any input. My sample machine is listed below.
+
+%%{
+	machine parse_netstring;
+
+	# snipped out some actions for the sake of brevity
+
+	action store_size {
+		size = ( size * 10 ) + fc; # accumulate string length
+	};
+
+	action alloc_buffer {
+		buffer = Array.new(size);
+		i = 0;
+	};
+
+	action store_string {
+		buffer[i] = fc;
+		i = i + 1;
+		fnext get_string_terminator if i &gt; size;
+	};
+
+	get_size = ( digit &gt;validate_not_zero ) . ( digit @store_size )*;
+
+	get_delimeter = ( ':' @alloc_buffer );
+
+	get_string = ( any @store_string )*;
+
+	get_netstring_terminator = ',' @finalize;
+
+	main := get_size . get_delimeter . get_string;
+}%%
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002159.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+	<LI>Next message: <A HREF="002161.html">[ragel-users] parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#397">[ date ]</a>
+              <a href="thread.html#397">[ thread ]</a>
+              <a href="subject.html#397">[ subject ]</a>
+              <a href="author.html#397">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

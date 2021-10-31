@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm] segfault during iter on stdin [noob]
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20segfault%20during%20iter%20on%20stdin%20%5Bnoob%5D&In-Reply-To=%3Cadc7de21af709981557fda9d1c4325d0%40verpeteren.nl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="000178.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm] segfault during iter on stdin [noob]</H1>
+    <B>peter.reijnders at verpeteren.nl</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20segfault%20during%20iter%20on%20stdin%20%5Bnoob%5D&In-Reply-To=%3Cadc7de21af709981557fda9d1c4325d0%40verpeteren.nl%3E"
+       TITLE="[colm] segfault during iter on stdin [noob]">peter.reijnders at verpeteren.nl
+       </A><BR>
+    <I>Wed Jan 17 13:08:17 UTC 2018</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000178.html">[colm] segfault during iter on stdin [noob]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello
+
+I tried to pickup colm because I realy like its potential.
+Due to the lack of examples and documentation I am fiddeling along and I 
+am currently stuck with a simple task.
+
+I try to parse a simple list with bullets and get a segfault.
+
+
+
+A simple markdown file 'input.md':
+
+```
+* A list:
+	* thing 1
+	* thing 2:
+		* thing 2a
+	* thing 3
+
+* Another list:
+	* thang 1
+	* thang 2:
+		* thang 2a
+	* thang 3
+```
+
+A simple script 'bullets.lm':
+
+```colm
+#!/usr/bin/env colm
+
+lex
+	#ignore 			/space+/
+	literal 			`* `: `\n `\t
+	token ws	 		/ ' ' /
+	token bullet		/ '*' /
+	token colon 		/ ':' /
+	token newline 		/ '\n' /
+	token tab 			/ 't' /
+	token indent 		/ tab* /
+	token identifier	/[a-zA-Z_]+/
+end
+
+def item
+	[bullet ws+ identifier ws* newline]
+|<i>	[bullet ws+ itemlist]
+</I>
+def itemlist
+	[identifier ws* colon ws* newline itemlist]
+
+def itemlists
+	[itemlist newline+ itemlists]
+|<i>	[itemlist]
+</I>|<i>	[]
+</I>
+parse Input: itemlists[ stdin ]
+
+for Id: itemlist in Input {
+	print( Id.identifier )
+}
+```
+
+It compiles without problems, but crashes in the for loop.
+
+```bash
+$colm bullets.lm
+$gdb ./bullets
+...
+(gdb) run &lt;input.md
+Starting program: /redacted/bullets &lt;input.md
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, psp=0x7fffffffbdc8, 
+iter=0x55555576c160, try_first=1)
+     at iter.c:363
+363		if ( try_first &amp;&amp; ( iter-&gt;ref.kid-&gt;tree-&gt;id == iter-&gt;search_id || 
+any_tree ) ) {
+(gdb) bt
+#0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160,
+     try_first=1) at iter.c:363
+#1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160)
+     at iter.c:401
+#2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010, 
+exec=0x7fffffffe080, sp=0x55555576c160,
+     instr=0x555555758736 &lt;parser_rootCode+54&gt; &quot;\270\r&quot;) at 
+bytecode.c:1998
+#3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+exec=0x7fffffffe080,
+     code=0x555555758700 &lt;parser_rootCode&gt; &quot;\378\b\001&quot;) at 
+bytecode.c:413
+#4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218, argl=0x0)
+     at program.c:218
+#5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218) at program.c:227
+#6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+bullets.c:799
+(gdb)
+```
+
+What am I doing wrong?
+I am using a freshly cloned colm version '83e3cbcb25' and gcc version 
+'(Debian 6.3.0-18) 6.3.0 20170516'.
+.
+I'd apreciate some tips.
+
+Peter Reijnders
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000178.html">[colm] segfault during iter on stdin [noob]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

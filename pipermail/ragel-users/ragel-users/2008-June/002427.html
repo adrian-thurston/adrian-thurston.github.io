@@ -1,0 +1,330 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Newbie question: an extended comma or tab separated (CSV/TSV) 	Ragel scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Newbie%20question%3A%20an%20extended%20comma%20or%20tab%20separated%20%28CSV/TSV%29%20%0A%09Ragel%20scanner&In-Reply-To=%3C851c4d19-2b2f-45b3-bed3-2e3ff96a3f2a%40m36g2000hse.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002426.html">
+   <LINK REL="Next"  HREF="002428.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Newbie question: an extended comma or tab separated (CSV/TSV) 	Ragel scanner</H1>
+    <B>Heiko</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Newbie%20question%3A%20an%20extended%20comma%20or%20tab%20separated%20%28CSV/TSV%29%20%0A%09Ragel%20scanner&In-Reply-To=%3C851c4d19-2b2f-45b3-bed3-2e3ff96a3f2a%40m36g2000hse.googlegroups.com%3E"
+       TITLE="Newbie question: an extended comma or tab separated (CSV/TSV) 	Ragel scanner">heiko.pael... at gmail.com
+       </A><BR>
+    <I>Sun Jun 29 13:24:48 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002426.html">[ragel-users] Newbie question: an extended comma or tab separated (CSV/TSV) Ragel  scanner
+</A></li>
+        <LI>Next message: <A HREF="002428.html">[ragel-users] Re: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2427">[ date ]</a>
+              <a href="thread.html#2427">[ thread ]</a>
+              <a href="subject.html#2427">[ subject ]</a>
+              <a href="author.html#2427">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Erich,
+
+many thanks!
+I had a look at your code, but realise that you are using a Ragel
+state machine, whereas I am trying to use a scanner.
+Also, for full CSV files, there is the complication that quoted items
+can contain newline characters, which need to be treated separately.
+Do you have any idea why my implementation swallows one character
+after a newline \n, but not after \r?
+
+Many thanks for your help!
+
+Cheers,
+Heiko
+
+
+On Jun 28, 5:01 pm, Erich Ocean &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">er... at atlasocean.com</A>&gt; wrote:
+&gt;<i> Heiko,
+</I>&gt;<i>
+</I>&gt;<i> Not sure if this will help, but this is from a PDF 1.4 parsing machine  
+</I>&gt;<i> I wrote years ago:
+</I>&gt;<i>
+</I>&gt;<i> %% PDFParsingMachine
+</I>&gt;<i>
+</I>&gt;<i> alphtype unsigned char;
+</I>&gt;<i>
+</I>&gt;<i> # the whitespace, eol, delimiter, regular, and comment machines
+</I>&gt;<i>
+</I>&gt;<i> # whitespace in a PDF file includes the NULL character,
+</I>&gt;<i> # and consecutive whitespace is treated as one
+</I>&gt;<i> whitespace = /[\t\f\n\r\0 ]/ ;
+</I>&gt;<i>
+</I>&gt;<i> eol = /[\r\n]/ | '\r\n' ;
+</I>&gt;<i>
+</I>&gt;<i> delimiter = [()&lt;&gt;\[\]{}/%] ;
+</I>&gt;<i>
+</I>&gt;<i> regular = any - ( whitespace | delimiter ) ;
+</I>&gt;<i>
+</I>&gt;<i> # The priority bump on the terminator of the comments brings us
+</I>&gt;<i> # out of the extend* which matches everything.
+</I>&gt;<i> comment = '%' . extend* $0 . eol @1 ;
+</I>&gt;<i>
+</I>&gt;<i> #
+</I>&gt;<i> # (Other machines not shown.)
+</I>&gt;<i> #
+</I>&gt;<i>
+</I>&gt;<i> main := (
+</I>&gt;<i>         whitespace |
+</I>&gt;<i>         comment |
+</I>&gt;<i>         boolean |
+</I>&gt;<i>         number |
+</I>&gt;<i>         hexString |
+</I>&gt;<i>         name |
+</I>&gt;<i>         literalString |
+</I>&gt;<i>         beginArray |
+</I>&gt;<i>         endArray |
+</I>&gt;<i>         beginDict |
+</I>&gt;<i>         endDict |
+</I>&gt;<i>         pdfNull |
+</I>&gt;<i>         stream |
+</I>&gt;<i>         beginIndirectObject |
+</I>&gt;<i>         endIndirectObject |
+</I>&gt;<i>         indirectObjectReference |
+</I>&gt;<i>         beginXref |
+</I>&gt;<i>         beginTrailer |
+</I>&gt;<i>         beginStartxref |
+</I>&gt;<i>         beginFree |
+</I>&gt;<i>         beginInUse )**;
+</I>&gt;<i>
+</I>&gt;<i> %%
+</I>&gt;<i>
+</I>&gt;<i> Best, Erich
+</I>&gt;<i>
+</I>&gt;<i> On Jun 28, 2008, at 8:52 AM, Heiko wrote:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt; Dear list members,
+</I>&gt;<i>
+</I>&gt;<i> &gt; I am trying to implement a CSV scanner based on the fantastic Ragel,
+</I>&gt;<i> &gt; with a small few modifications to the standard:
+</I>&gt;<i>
+</I>&gt;<i> &gt; - it should work for different types of Unix/Mac/Windows line endings
+</I>&gt;<i> &gt; ( \n, \r, \r\n)
+</I>&gt;<i> &gt; - it should use both commas and tabs as item separators
+</I>&gt;<i> &gt; - it should honour quoted values
+</I>&gt;<i> &gt; - it should collapse multiple empty lines into single line
+</I>&gt;<i> &gt; separators ...
+</I>&gt;<i>
+</I>&gt;<i> &gt; I have written the following ragel code (below) to accomplish this,
+</I>&gt;<i> &gt; but there is a problem that I cannot locate ...
+</I>&gt;<i> &gt; When the line endings are \r (CR), everything seems to work fine,
+</I>&gt;<i> &gt; however, if they are \n (LF), the first character of the next field is
+</I>&gt;<i> &gt; swallowed by the scanner ....
+</I>&gt;<i> &gt; I am pulling my hair out, and suspect it has to do with ambiguities in
+</I>&gt;<i> &gt; the definition of the scanner. I am also unsure as to which transition
+</I>&gt;<i> &gt; action I should choose (currently '@').
+</I>&gt;<i>
+</I>&gt;<i> &gt; Does anyone have any ideas?
+</I>&gt;<i>
+</I>&gt;<i> &gt; Cheers,
+</I>&gt;<i> &gt; Heiko
+</I>&gt;<i>
+</I>&gt;<i> &gt; //
+</I>&gt;<i> &gt; //  csv_parse.m
+</I>&gt;<i> &gt; //  RagelCsv
+</I>&gt;<i> &gt; //
+</I>&gt;<i> &gt; //
+</I>&gt;<i>
+</I>&gt;<i> &gt; #define HPDEBUG 1
+</I>&gt;<i> &gt; #import &lt;Foundation/Foundation.h&gt;
+</I>&gt;<i>
+</I>&gt;<i> &gt; void csv_parse(unsigned char *input, size_t len, NSMutableArray
+</I>&gt;<i> &gt; **parsedData, long *maxcols, long *nlines, long *nrecords) {
+</I>&gt;<i> &gt;    long tempmaxcols=0, tempnrecords=0;
+</I>&gt;<i> &gt;    int cs=0, act, curline = 1; //ragel variables to keep states
+</I>&gt;<i> &gt;    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+</I>&gt;<i> &gt; for Scanner
+</I>&gt;<i> &gt;    unsigned char *p = input, *pe = input + len; //ragel variables to
+</I>&gt;<i> &gt; keep track of position in stream
+</I>&gt;<i> &gt;    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+</I>&gt;<i> &gt; elements from each row/record
+</I>&gt;<i> &gt;    NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+</I>&gt;<i> &gt; Array of row arrays
+</I>&gt;<i> &gt;    NSString *coldata; //string that holds entry in field
+</I>&gt;<i> &gt;    NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+</I>&gt;<i> &gt; *)input];
+</I>&gt;<i>
+</I>&gt;<i> &gt; //Discussion
+</I>&gt;<i> &gt; //On UNIX, text file line-endings are terminated with a newline (n),
+</I>&gt;<i> &gt; also referred to as a linefeed (LF).
+</I>&gt;<i> &gt; //On Windows, line-endings are terminated with a combination of a
+</I>&gt;<i> &gt; carriage return (r) and a newline(n), also referred to as CR/LF.
+</I>&gt;<i> &gt; //On the Mac Classic, line-endings are terminated with a single
+</I>&gt;<i> &gt; carriage return (CR). (Mac OS X uses the UNIX convention.)
+</I>&gt;<i>
+</I>&gt;<i> &gt; //A line is delimited by any of these characters, the longest possible
+</I>&gt;<i> &gt; sequence being preferred to any shorter:
+</I>&gt;<i> &gt; //U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+</I>&gt;<i> &gt; LF) //U+2029 (Unicode paragraph separator)
+</I>&gt;<i> &gt; // \r\n, in that order (also known as CRLF)
+</I>&gt;<i>
+</I>&gt;<i> &gt; //append end of line if not present so we can obtain all records.
+</I>&gt;<i> &gt; [row autorelease];
+</I>&gt;<i>
+</I>&gt;<i> &gt; %%{
+</I>&gt;<i> &gt;    machine csv_scan;
+</I>&gt;<i> &gt;    alphtype unsigned char;
+</I>&gt;<i>
+</I>&gt;<i> &gt;    newline =('\r\n') | ('\n') | ('\r') %{
+</I>&gt;<i> &gt;         curline += 1;
+</I>&gt;<i> &gt;    };
+</I>&gt;<i> &gt;    multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
+</I>&gt;<i> &gt; +  @{
+</I>&gt;<i> &gt;         curline += 1;
+</I>&gt;<i> &gt;    };
+</I>&gt;<i>
+</I>&gt;<i> &gt;    ws = ' ';
+</I>&gt;<i> &gt;    Separator = [,\t];
+</I>&gt;<i> &gt;    UnQuotedValue = [^ \t&quot;,\r\n].[^&quot;\t,\r\n]*;
+</I>&gt;<i> &gt;    QuotedChar = ( '&quot;&quot;' | [^&quot;] | (newline|multiline) );
+</I>&gt;<i> &gt;    QuotedValue = '&quot;' . QuotedChar* . '&quot;';
+</I>&gt;<i>
+</I>&gt;<i> &gt;    main := |*
+</I>&gt;<i> &gt;      ws;
+</I>&gt;<i> &gt;      multiline     @{
+</I>&gt;<i> &gt;            if ([coldata length]==0)
+</I>&gt;<i> &gt;                    coldata=(NSString *)[NSNull null];
+</I>&gt;<i> &gt;            [row addObject:coldata];
+</I>&gt;<i> &gt;            coldata=nil;
+</I>&gt;<i> &gt;            tempnrecords++;
+</I>&gt;<i> &gt;            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+</I>&gt;<i> &gt;            [tempParsedData addObject:row];
+</I>&gt;<i> &gt;            if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+</I>&gt;<i> &gt;            row=[NSMutableArray array];
+</I>&gt;<i> &gt;            if (HPDEBUG) NSLog(@&quot;multiline&quot;);
+</I>&gt;<i> &gt;      };
+</I>&gt;<i> &gt;      newline  @{
+</I>&gt;<i> &gt;            if ([coldata length]==0)
+</I>&gt;<i> &gt;                    coldata=(NSString *)[NSNull null];
+</I>&gt;<i> &gt;            [row addObject:coldata];
+</I>&gt;<i> &gt;            coldata=nil;
+</I>&gt;<i> &gt;            tempnrecords++;
+</I>&gt;<i> &gt;            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+</I>&gt;<i> &gt;            [tempParsedData addObject:row];
+</I>&gt;<i> &gt;            if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+</I>&gt;<i> &gt;            row=[NSMutableArray array];
+</I>&gt;<i> &gt;            if (HPDEBUG) NSLog(@&quot;newline&quot;);
+</I>&gt;<i> &gt;      };
+</I>&gt;<i> &gt;      Separator {
+</I>&gt;<i> &gt;            if ([coldata length]==0)
+</I>&gt;<i> &gt;                    coldata=(NSString *)[NSNull null];
+</I>&gt;<i> &gt;            [row addObject:coldata];
+</I>&gt;<i> &gt;            tempnrecords++;
+</I>&gt;<i> &gt;            coldata=nil;
+</I>&gt;<i> &gt; if (HPDEBUG) NSLog(@&quot;separator&quot;);
+</I>&gt;<i> &gt;      };
+</I>&gt;<i>
+</I>&gt;<i> &gt;      UnQuotedValue {
+</I>&gt;<i> &gt;          unsigned char ch, *endp;
+</I>&gt;<i> &gt;          int datalen;
+</I>&gt;<i> &gt;          datalen = tokend - tokstart;
+</I>&gt;<i> &gt;          endp = tokend - 1;
+</I>&gt;<i> &gt;          while(datalen&gt;0) {
+</I>&gt;<i> &gt;              ch = *endp--;
+</I>&gt;<i> &gt; /*              if (ch==' ' || ch=='\t') {*/
+</I>&gt;<i> &gt;              if (ch==' ') {
+</I>&gt;<i> &gt;                  datalen--;
+</I>&gt;<i> &gt;              } else {
+</I>&gt;<i> &gt;                  break;
+</I>&gt;<i> &gt;              }
+</I>&gt;<i> &gt;          }
+</I>&gt;<i>
+</I>&gt;<i> &gt;          if (datalen==0) {
+</I>&gt;<i> &gt;                            coldata = (NSString *)[NSNull null];
+</I>&gt;<i> &gt;          } else {
+</I>&gt;<i> &gt;                            coldata=[NSString stringWithString:[tempInputString
+</I>&gt;<i> &gt; substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+</I>&gt;<i> &gt;          }
+</I>&gt;<i> &gt;     if (HPDEBUG)                             NSLog(@&quot;Unquoted value: %@&quot;,coldata);
+</I>&gt;<i> &gt;      };
+</I>&gt;<i> &gt;      QuotedValue {
+</I>&gt;<i> &gt;          unsigned char ch, *start_p, *wptr, *rptr;
+</I>&gt;<i> &gt;          int rest, datalen;
+</I>&gt;<i> &gt;          start_p = wptr = tokstart;
+</I>&gt;<i> &gt;          rptr = tokstart + 1;
+</I>&gt;<i> &gt;          rest = tokend - tokstart - 2;
+</I>&gt;<i> &gt;          datalen = 0;
+</I>&gt;<i> &gt;          while(rest&gt;0) {
+</I>&gt;<i> &gt;              ch = *rptr++;
+</I>&gt;<i> &gt;              if (ch=='&quot;') {
+</I>&gt;<i> &gt;                rptr++;
+</I>&gt;<i> &gt;                rest--;
+</I>&gt;<i> &gt;              }
+</I>&gt;<i> &gt;              *wptr++ = ch;
+</I>&gt;<i> &gt;              datalen++;
+</I>&gt;<i> &gt;              rest--;
+</I>&gt;<i> &gt;          }
+</I>&gt;<i> &gt;              tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+</I>&gt;<i> &gt; reset tempInputString after messing with chars in input
+</I>&gt;<i> &gt;              coldata=[NSString stringWithString:[tempInputString
+</I>&gt;<i> &gt; substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+</I>&gt;<i> &gt;    if (HPDEBUG)                                            NSLog(@&quot;  Quoted value: %@&quot;,coldata);
+</I>&gt;<i> &gt;       };
+</I>&gt;<i> &gt;    *|;
+</I>&gt;<i> &gt; }%%
+</I>&gt;<i> &gt; %% write data nofinal;
+</I>&gt;<i>
+</I>&gt;<i> &gt; %%write init;
+</I>&gt;<i> &gt; %%write exec;
+</I>&gt;<i> &gt; %%write eof;
+</I>&gt;<i>
+</I>&gt;<i> &gt;    if(row) {
+</I>&gt;<i> &gt; //   [tempParsedData addObject:row];
+</I>&gt;<i> &gt; //   if ([row count] &gt;tempmaxcols) tempmaxcols=[row count];
+</I>&gt;<i> &gt; //   [row autorelease];
+</I>&gt;<i> &gt;      row=nil;
+</I>&gt;<i> &gt;      }
+</I>&gt;<i>
+</I>&gt;<i> &gt;    *parsedData=tempParsedData;
+</I>&gt;<i>
+</I>&gt;<i> &gt; if ( cs == csv_scan_error ) {
+</I>&gt;<i> &gt;           NSLog(@&quot;CSVscan parse error on line %d.&quot;, curline);
+</I>&gt;<i> &gt;        }
+</I>&gt;<i>
+</I>&gt;<i> &gt;    *nrecords=tempnrecords;
+</I>&gt;<i> &gt;    *nlines=curline-1;
+</I>&gt;<i> &gt;    *maxcols=tempmaxcols;
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002426.html">[ragel-users] Newbie question: an extended comma or tab separated (CSV/TSV) Ragel  scanner
+</A></li>
+	<LI>Next message: <A HREF="002428.html">[ragel-users] Re: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2427">[ date ]</a>
+              <a href="thread.html#2427">[ thread ]</a>
+              <a href="subject.html#2427">[ subject ]</a>
+              <a href="author.html#2427">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

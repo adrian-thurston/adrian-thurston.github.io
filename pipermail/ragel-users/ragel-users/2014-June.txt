@@ -1,0 +1,1812 @@
+From jhaberman at gmail.com  Sat Jun 28 08:40:22 2014
+From: jhaberman at gmail.com (Josh Haberman)
+Date: Sat, 28 Jun 2014 01:40:22 -0700
+Subject: [ragel-users] "scanner error"
+Message-ID: <CAOM7maz-NFL7oWUuCDGPkcnxbsmPwM80OyAX6CyJbrzo2xEiQQ@mail.gmail.com>
+
+I was trying out Ragel for the first time today and run into the
+somewhat perplexing error message "scanner error".
+
+Since the code contains a comment questioning whether this error is
+reachable, I wanted to give you a repro that reaches it -- here's my
+reduced test case:
+
+%%machine m;
+%%write
+%%write
+
+$ ragel -C -o test.out test.rl
+test.rl:2:10: scanner error
+
+This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+
+Josh
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 13:46:27 2014
+From: thurston at complang.org (thurston)
+Date: Sat, 28 Jun 2014 09:46:27 -0400
+Subject: [ragel-users] "scanner error"
+Message-ID: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+
+Hi Josh, those are unterminated write statements. Two percents begin ragel code.
+
+
+-------- Original message --------
+From: Josh Haberman <jhaberman at gmail.com> 
+Date:06-28-2014  4:40 AM  (GMT-05:00) 
+To: ragel-users at complang.org 
+Subject: [ragel-users] "scanner error" 
+
+I was trying out Ragel for the first time today and run into the
+somewhat perplexing error message "scanner error".
+
+Since the code contains a comment questioning whether this error is
+reachable, I wanted to give you a repro that reaches it -- here's my
+reduced test case:
+
+%%machine m;
+%%write
+%%write
+
+$ ragel -C -o test.out test.rl
+test.rl:2:10: scanner error
+
+This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+
+Josh
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20140628/179e55eb/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jhaberman at gmail.com  Sat Jun 28 15:47:33 2014
+From: jhaberman at gmail.com (Josh Haberman)
+Date: Sat, 28 Jun 2014 08:47:33 -0700
+Subject: [ragel-users] "scanner error"
+In-Reply-To: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+References: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+Message-ID: <CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+
+HI Adrian,
+
+I wasn't meaning to suggest that my test case was valid Ragel input. I
+sent the repro because the Ragel source contains this comment where
+this error message is generated:
+
+  /* Machine failed before finding a token. I'm not yet sure if this
+   * is reachable. */
+  scan_error() << "scanner error" << endl;
+  exit(1);
+
+Since you weren't sure whether this error is reachable, I thought it
+would be useful to you to know that it is indeed reachable, and to
+have a repro for how it can be reached.
+
+Also, the error message "scanner error" isn't a very useful
+diagnostic; I was hoping that a repro would make it easier to emit an
+error message that helps the user know what they did wrong.
+
+It also refers to a source location that doesn't actually exist
+(test.rl:2:10) -- in my test input, line 2 only has 7 columns.
+
+Hope this is helpful,
+Josh
+
+On Sat, Jun 28, 2014 at 6:46 AM, thurston <thurston at complang.org> wrote:
+> Hi Josh, those are unterminated write statements. Two percents begin ragel
+> code.
+>
+>
+> -------- Original message --------
+> From: Josh Haberman
+> Date:06-28-2014 4:40 AM (GMT-05:00)
+> To: ragel-users at complang.org
+> Subject: [ragel-users] "scanner error"
+>
+> I was trying out Ragel for the first time today and run into the
+> somewhat perplexing error message "scanner error".
+>
+> Since the code contains a comment questioning whether this error is
+> reachable, I wanted to give you a repro that reaches it -- here's my
+> reduced test case:
+>
+> %%machine m;
+> %%write
+> %%write
+>
+> $ ragel -C -o test.out test.rl
+> test.rl:2:10: scanner error
+>
+> This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+>
+> Josh
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 16:43:24 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 12:43:24 -0400
+Subject: [ragel-users] "scanner error"
+In-Reply-To: <CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+References: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+	<CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+Message-ID: <53AEF0AC.9@complang.org>
+
+Oh sorry I misunderstood. I get it now. Thanks for the report.
+
+-Adrian
+
+On 14-06-28 11:47 AM, Josh Haberman wrote:
+> HI Adrian,
+>
+> I wasn't meaning to suggest that my test case was valid Ragel input. I
+> sent the repro because the Ragel source contains this comment where
+> this error message is generated:
+>
+>    /* Machine failed before finding a token. I'm not yet sure if this
+>     * is reachable. */
+>    scan_error() << "scanner error" << endl;
+>    exit(1);
+>
+> Since you weren't sure whether this error is reachable, I thought it
+> would be useful to you to know that it is indeed reachable, and to
+> have a repro for how it can be reached.
+>
+> Also, the error message "scanner error" isn't a very useful
+> diagnostic; I was hoping that a repro would make it easier to emit an
+> error message that helps the user know what they did wrong.
+>
+> It also refers to a source location that doesn't actually exist
+> (test.rl:2:10) -- in my test input, line 2 only has 7 columns.
+>
+> Hope this is helpful,
+> Josh
+>
+> On Sat, Jun 28, 2014 at 6:46 AM, thurston <thurston at complang.org> wrote:
+>> Hi Josh, those are unterminated write statements. Two percents begin ragel
+>> code.
+>>
+>>
+>> -------- Original message --------
+>> From: Josh Haberman
+>> Date:06-28-2014 4:40 AM (GMT-05:00)
+>> To: ragel-users at complang.org
+>> Subject: [ragel-users] "scanner error"
+>>
+>> I was trying out Ragel for the first time today and run into the
+>> somewhat perplexing error message "scanner error".
+>>
+>> Since the code contains a comment questioning whether this error is
+>> reachable, I wanted to give you a repro that reaches it -- here's my
+>> reduced test case:
+>>
+>> %%machine m;
+>> %%write
+>> %%write
+>>
+>> $ ragel -C -o test.out test.rl
+>> test.rl:2:10: scanner error
+>>
+>> This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+>>
+>> Josh
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 22:43:17 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:43:17 -0400
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+Message-ID: <53AF4505.6010507@complang.org>
+
+Hi Iñaki,
+
+Using conditionals is one way. I'm not sure I fully understand your use 
+case, but I think you can also make use of the ability to enter into any 
+named instantiation. All machine instances are defined in the data 
+section as constant values. It's just a matter of setting the current 
+state to the appropriate value.
+
+-Adrian
+
+On 14-04-10 04:52 PM, Iñaki Baz Castillo wrote:
+> 2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+>> Hi,
+>>
+>> I'm building a parser for a protocol message similar to HTTP (let's
+>> say: a main header and N key: value separated by CRLF until a final
+>> double CRLF). My concern is:
+>>
+>> - I parse the messages in a "Dispatcher" module that just needs to
+>> parse a few fields in each message.
+>> - Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+>> - And the Worker must parse it again, but in this case I need all the
+>> fields parsed.
+>>
+>> Note that during the Worker's parsing, a C++ complex object is build
+>> with all the parsed fields mapped into member variables, so I don't
+>> want to play with those complex objects in the Dispatcher module.
+>>
+>> How could I reuse the same Ragel machine for both cases? Of course I
+>> would like something like:
+>>
+>>
+>>
+>> %%{
+>>    machine Parser;
+>>
+>>    [...]
+>>
+>>    if (dispatcher) {
+>>      main :=  xxxxxxx
+>>    }
+>>    else {
+>>      main := yyyyyyy
+>>    }
+>>
+>> }%%
+>
+>
+>
+> Mmm, I think using the "when" statement is the way to go :)
+>
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Jun 28 22:53:32 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:53:32 -0400
+Subject: [ragel-users] Parsing a stream in Go
+In-Reply-To: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+References: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+Message-ID: <53AF476C.8000407@complang.org>
+
+Hi, the test case directory is the best place to look.
+
+Adrian
+
+On 14-04-10 09:08 PM, Evan Nemerson wrote:
+> I've been trying to figure out how to parse a stream in Go without much
+> luck.  Does anyone have an example they could share, or perhaps some
+> documentation?
+>
+>
+> -Evan
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 22:57:15 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:57:15 -0400
+Subject: [ragel-users] space bug space bug space bug
+In-Reply-To: <CAEy3c_TQSNosiXO0wYgq0fJrQrT+2EMUjSZt+auG8biCKnFSOg@mail.gmail.com>
+References: <CAEy3c_TQSNosiXO0wYgq0fJrQrT+2EMUjSZt+auG8biCKnFSOg@mail.gmail.com>
+Message-ID: <53AF484B.3010502@complang.org>
+
+Hi Laurent,
+
+The te variable points (indexes) one past the end of the token buffer. 
+This is true in all languages. To use it in a ruby array index you need 
+to subtract 1.
+
+Regards,
+  Adrian
+
+On 14-05-12 10:10 AM, Laurent Laborde wrote:
+> Friendly greetings !
+>
+> I'm trying to use ragel with ruby as target but i have a problem that
+> drive me crazy since many days.
+>
+> Here is the code : https://gist.github.com/ker2x/a86b1f6fc0de6a9c1f2e
+>
+> and the output
+>
+> [{:type=>:NUMBER, :name=>"+1 "}, {:type=>:SPACE, :name=>" 2"},
+> {:type=>:NUMBER, :name=>"2 "}, {:type=>:SPACE, :name=>" -"},
+> {:type=>:NUMBER, :name=>"-3 "}, {:type=>:SPACE, :name=>" 4"},
+> {:type=>:NUMBER, :name=>"4 "}, {:type=>:SPACE, :name=>" p"}]
+>
+> there is an extra char everywhere.
+> Somehow, with this simplified version, it works when catching "print".
+> On a bigger version (that recognize string) i have to do "print " (with
+> an extra space)
+>
+> What's happening ?
+> Thank you very much.
+>
+> (i asked on irc for a few days but it's idle)
+>
+>
+>
+> --
+> Laurent "ker2x" Laborde
+> Bigdata hacker @ Ebuzzing
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 29 14:55:29 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Jun 2014 10:55:29 -0400
+Subject: [ragel-users] How to check if a list of strings exist?
+In-Reply-To: <BAY175-W16E890D7567AA91999527080320@phx.gbl>
+References: <BAY175-W16E890D7567AA91999527080320@phx.gbl>
+Message-ID: <53B028E1.5080809@complang.org>
+
+Hi Dinesh,
+
+The basic approach would be to write a parser for headers and union the 
+pattern for header names with specific header name values. Have a look 
+at mailbox1.rl in the test case directory. It is close to what you want.
+
+Regards,
+  Adrian
+
+
+
+On 14-05-19 03:36 PM, dinesh rtp wrote:
+> Hi,
+>
+> I am new to ragel and finding it difficult to solve this problem.
+>
+> I need to check if certain headers exists in the input to ragel machine.
+> The easier way is to parse header and check if the header I am looking
+> for is present or not. The problem with this, I need to compare every
+> header that is present in the input to figure if the headers I  am
+> looking for is present. Is there a way in ragel to say "Given a list of
+> headers are these headers present in any order" ?
+>
+> For example:
+>
+> Input:
+>
+> |Content-Description: Delivery report
+> Content-Type: message/delivery-status
+>
+> Reporting-MTA: dns; xxx
+> Arrival-Date: Fri, 04 May 2012 15:25:09 +0200
+>
+> Final-Recipient: rfc822; test-dsn-failure at gmail.com
+> Status: 5.1.1
+> Action: failed
+> Last-Attempt-Date: Fri, 04 May 2012 15:25:09 +0200
+> Diagnostic-Code: smtp; 550-5.1.1 The email account that you tried to reach does not exist. Please try
+> 550-5.1.1 double-checking the recipient's email addressfor  typosor
+> 550-5.1.1  unnecessary spaces.  Learn  more at
+> 550  5.1.1  http://support.google.com/mail/bin/answer.py?answer=6596  t12si10077186weq.36
+> |
+>
+> |I just need to check if the headers:|
+> |Reporting-MTA:|
+> |Final-Recipient:|
+> Status:
+> Action:
+>
+> are present.
+>
+> For now I have come with the following:
+>
+> key = print - [:];
+> action headerName {headerName.append(1,fc);}
+> action onHeader {
+>      if (headerName.compare("Reporting-MTA") == 0) {
+>          cout << "Reporting-MTA header is present" << endl;
+>      } else if ...
+> }
+> header = key+ @headerName ':' @onHeader;
+>
+> Is there a easier way to check if these headers exist?
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 29 15:01:53 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Jun 2014 11:01:53 -0400
+Subject: [ragel-users] Can someone supply a Simple example of C# Ragel
+ State machine code
+In-Reply-To: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+References: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+Message-ID: <53B02A61.4040006@complang.org>
+
+This was created by the C# test case translator. You need TXL and GMCS 
+in order for the C# test cases to be created.
+
+-Adrian
+
+On 14-05-30 03:39 PM, Jerry wrote:
+> I am attempting to use QFSM which outputs in Ragel but is C based so I
+> need to see if I can create a template for easy conversion of the QFSM
+> Ragel output to C#. A simple example would be a great start.
+>
+> Thanks
+>
+> Jerry
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+/*
+ * @LANG: csharp
+ * @GENERATED: yes
+ */
+using System;
+// Disables lots of warnings that appear in the test suite
+#pragma warning disable 0168, 0169, 0219, 0162, 0414
+namespace Test {
+class atoi1_csharp
+{
+	bool neg;
+	int val;
+	%%{
+	    machine atoi1_csharp;
+	    action begin {
+	        neg = false;
+	        val = 0;
+	    }
+	    action see_neg {
+	        neg = true;
+	    }
+	    action add_digit {
+	        val = val * 10 + (fc - 48);
+	    }
+	    action finish {
+	        if (neg)
+	        {
+	            val = - 1 * val;
+	        }
+	    }
+	    action print {
+	        Console.Write (val);
+	        Console.Write ("\n");
+	    }
+	    atoi = (('-' @ see_neg | '+') ? (digit @ add_digit) +) > begin % finish;
+	    main := atoi '\n' @ print;
+	}%%
+
+	int cs;
+	%% write data;
+
+	void init()
+	{
+		val = 0;
+		neg = false;
+		%% write init;
+	}
+
+	void exec( char[] data, int len )
+	{
+		int p = 0;
+		int pe = len;
+		int eof = len;
+		string _s;
+		%% write exec;
+	}
+
+	void finish( )
+	{
+		if ( cs >= atoi1_csharp_first_final )
+			Console.WriteLine( "ACCEPT" );
+		else
+			Console.WriteLine( "FAIL" );
+	}
+
+	static readonly string[] inp = {
+		"1\n",
+		"12\n",
+		"222222\n",
+		"+2123\n",
+		"213 3213\n",
+		"-12321\n",
+		"--123\n",
+		"-99\n",
+		" -3000\n",
+	};
+
+	static readonly int inplen = 9;
+
+	public static void Main (string[] args)
+	{
+		atoi1_csharp machine = new atoi1_csharp();
+		for ( int i = 0; i < inplen; i++ ) {
+			machine.init();
+			machine.exec( inp[i].ToCharArray(), inp[i].Length );
+			machine.finish();
+		}
+	}
+}
+}
+/* _____OUTPUT_____
+1
+ACCEPT
+12
+ACCEPT
+222222
+ACCEPT
+2123
+ACCEPT
+FAIL
+-12321
+ACCEPT
+FAIL
+-99
+ACCEPT
+FAIL
+_____OUTPUT_____ */
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From drwar2000 at yahoo.com  Sun Jun 29 22:02:28 2014
+From: drwar2000 at yahoo.com (Jerry)
+Date: Sun, 29 Jun 2014 15:02:28 -0700
+Subject: [ragel-users] Can someone supply a Simple example of C# Ragel
+	State machine code
+In-Reply-To: <53B02A61.4040006@complang.org>
+References: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+	<53B02A61.4040006@complang.org>
+Message-ID: <1404079348.98261.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+
+Adrian
+
+Ragel is absolutely incredible.   
+
+Thanks for the file. 
+Jerry 
+
+
+On Sunday, June 29, 2014 11:01 AM, Adrian Thurston <thurston at complang.org> wrote:
+  
+
+
+This was created by the C# test case translator. You need TXL and GMCS 
+in order for the C# test cases to be created.
+
+-Adrian
+
+
+On 14-05-30 03:39 PM, Jerry wrote:
+> I am attempting to use QFSM which outputs in Ragel but is C based so I
+> need to see if I can create a template for easy conversion of the QFSM
+> Ragel output to C#. A simple example would be a great start.
+>
+> Thanks
+>
+> Jerry
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20140629/21e2f43a/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tim at goddard.net.nz  Mon Jun 30 02:19:31 2014
+From: tim at goddard.net.nz (Tim Goddard)
+Date: Mon, 30 Jun 2014 14:19:31 +1200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+Message-ID: <1506269.QQUhfCaTAP@thorn>
+
+Sounds like you have a common language, but want two separate sets of actions.
+
+You can include a file within a ragel machine - I'd write the grammar in one 
+file, then declare the "main" object and actions within two separate parsers.
+
+Cheers,
+
+Tim
+
+On Thu, 10 Apr 2014 22:52:41 Iñaki Baz Castillo wrote:
+> 2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+> > Hi,
+> > 
+> > I'm building a parser for a protocol message similar to HTTP (let's
+> > say: a main header and N key: value separated by CRLF until a final
+> > double CRLF). My concern is:
+> > 
+> > - I parse the messages in a "Dispatcher" module that just needs to
+> > parse a few fields in each message.
+> > - Then the Dispatcher passes the message to a Worker thread via UNIX
+> > Socket. - And the Worker must parse it again, but in this case I need all
+> > the fields parsed.
+> > 
+> > Note that during the Worker's parsing, a C++ complex object is build
+> > with all the parsed fields mapped into member variables, so I don't
+> > want to play with those complex objects in the Dispatcher module.
+> > 
+> > How could I reuse the same Ragel machine for both cases? Of course I
+> > would like something like:
+> > 
+> > 
+> > 
+> > %%{
+> > 
+> >   machine Parser;
+> >   
+> >   [...]
+> >   
+> >   if (dispatcher) {
+> >   
+> >     main :=  xxxxxxx
+> >   
+> >   }
+> >   else {
+> >   
+> >     main := yyyyyyy
+> >   
+> >   }
+> > 
+> > }%%
+> 
+> Mmm, I think using the "when" statement is the way to go :)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Mon Jun 30 02:49:34 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Sun, 29 Jun 2014 19:49:34 -0700
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <1506269.QQUhfCaTAP@thorn>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+Message-ID: <20140630024934.GA26472@wilbur.25thandClement.com>
+
+2014-04-10 22:08 GMT+02:00 I?aki Baz Castillo <ibc at aliax.net>:
+> Hi,
+> 
+> I'm building a parser for a protocol message similar to HTTP (let's
+> say: a main header and N key: value separated by CRLF until a final
+> double CRLF). My concern is:
+> 
+> - I parse the messages in a "Dispatcher" module that just needs to
+> parse a few fields in each message.
+> - Then the Dispatcher passes the message to a Worker thread via UNIX
+> Socket. - And the Worker must parse it again, but in this case I need all
+> the fields parsed.
+> 
+> Note that during the Worker's parsing, a C++ complex object is build
+> with all the parsed fields mapped into member variables, so I don't
+> want to play with those complex objects in the Dispatcher module.
+> 
+> How could I reuse the same Ragel machine for both cases?
+<snip>
+
+Here's an example from my own code. For various reasons (expediency,
+simplicity) I used different machines to parse individual headers. But they
+all use the same library of tokenization sub-machines.
+
+The first machine is the basic library. You could put this in a separate
+file, but mine is in the same file as everything else HTTP/RTSP-related. The
+second and third machines are parser examples. Note that most of the context
+is missing, so you won't be able to copy+paste this. For example, I have a
+basic tokenizer written in pure C (which follows DJB's algorithm for
+structured MIME header parsing) which emits tagged characters as short
+integers (e.g. an escaped or quoted character will have a high bit set).
+This made it easier for me to handle things like quoted strings and
+parenthetical comments. Although, I wrote this years ago and today I might
+find it easier to handle those problems with Ragel's fcall and fgoto
+statments. But the truly beautiful thing about Ragel is how it allows you to
+mix-and-match approaches. So there's really no wrong way. And I would
+counsel a novice to avoid attempts at Ragel-purity--i.e. trying to do
+everything in Ragel, such as handle recursive structures directly in Ragel.
+You can do it (and I do it in some other stuff, like my Flash FLV, Microsoft
+ASF, and SMTP parsers), but it's not something worth struggling over.
+
+%%{
+	machine tokenizer;
+
+	crlf = [\r\n];
+	lwsp = [ \t];
+
+	qdigit  = (0x0130 - 0x0139);
+	qxdigit = (0x0141 - 0x0146) | (0x0161 - 0x0166) | qdigit;
+
+	digits  = digit | qdigit;
+	xdigits = xdigit | qxdigit;
+
+	qalpha = (0x0141 - 0x015a) | (0x0161 | 0x017a);
+
+	action num_begin { num = 0; }
+	action num_write { num *= 10; num += (0xff & fc) - '0'; }
+
+	action hex_begin { num = 0; }
+	action hex_write { num <<= 4; num += ((0xff & fc) > '9')? (10 + (tolower((0xff & fc)) - 'a')) : (0xff & fc) - '0'; }
+
+	action str_begin {
+		str = 0;
+		if ((error = obs_new(obs, 0)))
+			goto error;
+	}
+
+	action str_write {
+		if ((error = obs_putc(obs, 0xff & fc)))
+			goto error;
+	}
+
+	action str_end { str = obs_top(obs); }
+}%%
+
+
+%%{
+	machine x_sessioncookie_parser;
+	alphtype short;
+
+	include tokenizer;
+
+	action oops {
+		rtsp_badparse("x-sessioncookie", src, len, p);
+		error = EINVAL;
+		goto error;
+	}
+
+	token = (alnum | "+" | "/")+ >str_begin $str_write %str_end %{ hdr->token = str; };
+
+	main := (token lwsp*) $!oops;
+
+	write data;
+}%%
+
+
+%%{
+	machine content_type_parser;
+	alphtype short;
+
+	getkey (0xff & (*fpc));	# Mask high-order bits.
+
+	include tokenizer;
+
+	action oops {
+		rtsp_badparse("Content-Type", src, len, p);
+		error = EINVAL;
+		goto error;
+	}
+
+	equal = lwsp** "=" lwsp**;
+
+	reg_name = (alnum | [!#$&.+\-\^_]){1,127}; # RFC 4288 4.2
+
+	charset = "charset" equal reg_name >str_begin $str_write %str_end %{ hdr->charset = str; };
+	boundary = "boundary" equal reg_name >str_begin $str_write %str_end %{ hdr->boundary = str; };
+
+	attrib = (charset | boundary)? <: ^";"**;
+
+	type = reg_name >str_begin $str_write %str_end %{ hdr->type = str; };
+	subtype = reg_name >str_begin $str_write %str_end %{ hdr->subtype = str; };
+
+	main := (type "/" subtype lwsp** (";" lwsp** attrib)*) $!oops;
+
+	write data;
+}%%
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jhaberman at gmail.com  Sat Jun 28 08:40:22 2014
+From: jhaberman at gmail.com (Josh Haberman)
+Date: Sat, 28 Jun 2014 01:40:22 -0700
+Subject: [ragel-users] "scanner error"
+Message-ID: <CAOM7maz-NFL7oWUuCDGPkcnxbsmPwM80OyAX6CyJbrzo2xEiQQ@mail.gmail.com>
+
+I was trying out Ragel for the first time today and run into the
+somewhat perplexing error message "scanner error".
+
+Since the code contains a comment questioning whether this error is
+reachable, I wanted to give you a repro that reaches it -- here's my
+reduced test case:
+
+%%machine m;
+%%write
+%%write
+
+$ ragel -C -o test.out test.rl
+test.rl:2:10: scanner error
+
+This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+
+Josh
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 13:46:27 2014
+From: thurston at complang.org (thurston)
+Date: Sat, 28 Jun 2014 09:46:27 -0400
+Subject: [ragel-users] "scanner error"
+Message-ID: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+
+Hi Josh, those are unterminated write statements. Two percents begin ragel code.
+
+
+-------- Original message --------
+From: Josh Haberman <jhaberman at gmail.com> 
+Date:06-28-2014  4:40 AM  (GMT-05:00) 
+To: ragel-users at complang.org 
+Subject: [ragel-users] "scanner error" 
+
+I was trying out Ragel for the first time today and run into the
+somewhat perplexing error message "scanner error".
+
+Since the code contains a comment questioning whether this error is
+reachable, I wanted to give you a repro that reaches it -- here's my
+reduced test case:
+
+%%machine m;
+%%write
+%%write
+
+$ ragel -C -o test.out test.rl
+test.rl:2:10: scanner error
+
+This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+
+Josh
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20140628/179e55eb/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jhaberman at gmail.com  Sat Jun 28 15:47:33 2014
+From: jhaberman at gmail.com (Josh Haberman)
+Date: Sat, 28 Jun 2014 08:47:33 -0700
+Subject: [ragel-users] "scanner error"
+In-Reply-To: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+References: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+Message-ID: <CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+
+HI Adrian,
+
+I wasn't meaning to suggest that my test case was valid Ragel input. I
+sent the repro because the Ragel source contains this comment where
+this error message is generated:
+
+  /* Machine failed before finding a token. I'm not yet sure if this
+   * is reachable. */
+  scan_error() << "scanner error" << endl;
+  exit(1);
+
+Since you weren't sure whether this error is reachable, I thought it
+would be useful to you to know that it is indeed reachable, and to
+have a repro for how it can be reached.
+
+Also, the error message "scanner error" isn't a very useful
+diagnostic; I was hoping that a repro would make it easier to emit an
+error message that helps the user know what they did wrong.
+
+It also refers to a source location that doesn't actually exist
+(test.rl:2:10) -- in my test input, line 2 only has 7 columns.
+
+Hope this is helpful,
+Josh
+
+On Sat, Jun 28, 2014 at 6:46 AM, thurston <thurston at complang.org> wrote:
+> Hi Josh, those are unterminated write statements. Two percents begin ragel
+> code.
+>
+>
+> -------- Original message --------
+> From: Josh Haberman
+> Date:06-28-2014 4:40 AM (GMT-05:00)
+> To: ragel-users at complang.org
+> Subject: [ragel-users] "scanner error"
+>
+> I was trying out Ragel for the first time today and run into the
+> somewhat perplexing error message "scanner error".
+>
+> Since the code contains a comment questioning whether this error is
+> reachable, I wanted to give you a repro that reaches it -- here's my
+> reduced test case:
+>
+> %%machine m;
+> %%write
+> %%write
+>
+> $ ragel -C -o test.out test.rl
+> test.rl:2:10: scanner error
+>
+> This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+>
+> Josh
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 16:43:24 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 12:43:24 -0400
+Subject: [ragel-users] "scanner error"
+In-Reply-To: <CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+References: <xesd5oeck49hhwhax0q119rh.1403962230671@email.android.com>
+	<CAOM7maw6B=t6M0bcrd7wkhin2+inGE1Bt08oLO202Co4fygrwA@mail.gmail.com>
+Message-ID: <53AEF0AC.9@complang.org>
+
+Oh sorry I misunderstood. I get it now. Thanks for the report.
+
+-Adrian
+
+On 14-06-28 11:47 AM, Josh Haberman wrote:
+> HI Adrian,
+>
+> I wasn't meaning to suggest that my test case was valid Ragel input. I
+> sent the repro because the Ragel source contains this comment where
+> this error message is generated:
+>
+>    /* Machine failed before finding a token. I'm not yet sure if this
+>     * is reachable. */
+>    scan_error() << "scanner error" << endl;
+>    exit(1);
+>
+> Since you weren't sure whether this error is reachable, I thought it
+> would be useful to you to know that it is indeed reachable, and to
+> have a repro for how it can be reached.
+>
+> Also, the error message "scanner error" isn't a very useful
+> diagnostic; I was hoping that a repro would make it easier to emit an
+> error message that helps the user know what they did wrong.
+>
+> It also refers to a source location that doesn't actually exist
+> (test.rl:2:10) -- in my test input, line 2 only has 7 columns.
+>
+> Hope this is helpful,
+> Josh
+>
+> On Sat, Jun 28, 2014 at 6:46 AM, thurston <thurston at complang.org> wrote:
+>> Hi Josh, those are unterminated write statements. Two percents begin ragel
+>> code.
+>>
+>>
+>> -------- Original message --------
+>> From: Josh Haberman
+>> Date:06-28-2014 4:40 AM (GMT-05:00)
+>> To: ragel-users at complang.org
+>> Subject: [ragel-users] "scanner error"
+>>
+>> I was trying out Ragel for the first time today and run into the
+>> somewhat perplexing error message "scanner error".
+>>
+>> Since the code contains a comment questioning whether this error is
+>> reachable, I wanted to give you a repro that reaches it -- here's my
+>> reduced test case:
+>>
+>> %%machine m;
+>> %%write
+>> %%write
+>>
+>> $ ragel -C -o test.out test.rl
+>> test.rl:2:10: scanner error
+>>
+>> This repro is for 6.8 (git appears to be 6.7 -- source repo is older?)
+>>
+>> Josh
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 22:43:17 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:43:17 -0400
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+Message-ID: <53AF4505.6010507@complang.org>
+
+Hi Iñaki,
+
+Using conditionals is one way. I'm not sure I fully understand your use 
+case, but I think you can also make use of the ability to enter into any 
+named instantiation. All machine instances are defined in the data 
+section as constant values. It's just a matter of setting the current 
+state to the appropriate value.
+
+-Adrian
+
+On 14-04-10 04:52 PM, Iñaki Baz Castillo wrote:
+> 2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+>> Hi,
+>>
+>> I'm building a parser for a protocol message similar to HTTP (let's
+>> say: a main header and N key: value separated by CRLF until a final
+>> double CRLF). My concern is:
+>>
+>> - I parse the messages in a "Dispatcher" module that just needs to
+>> parse a few fields in each message.
+>> - Then the Dispatcher passes the message to a Worker thread via UNIX Socket.
+>> - And the Worker must parse it again, but in this case I need all the
+>> fields parsed.
+>>
+>> Note that during the Worker's parsing, a C++ complex object is build
+>> with all the parsed fields mapped into member variables, so I don't
+>> want to play with those complex objects in the Dispatcher module.
+>>
+>> How could I reuse the same Ragel machine for both cases? Of course I
+>> would like something like:
+>>
+>>
+>>
+>> %%{
+>>    machine Parser;
+>>
+>>    [...]
+>>
+>>    if (dispatcher) {
+>>      main :=  xxxxxxx
+>>    }
+>>    else {
+>>      main := yyyyyyy
+>>    }
+>>
+>> }%%
+>
+>
+>
+> Mmm, I think using the "when" statement is the way to go :)
+>
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Jun 28 22:53:32 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:53:32 -0400
+Subject: [ragel-users] Parsing a stream in Go
+In-Reply-To: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+References: <1397178505.30412.21.camel@hoplite.sd.cox.net>
+Message-ID: <53AF476C.8000407@complang.org>
+
+Hi, the test case directory is the best place to look.
+
+Adrian
+
+On 14-04-10 09:08 PM, Evan Nemerson wrote:
+> I've been trying to figure out how to parse a stream in Go without much
+> luck.  Does anyone have an example they could share, or perhaps some
+> documentation?
+>
+>
+> -Evan
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Jun 28 22:57:15 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Jun 2014 18:57:15 -0400
+Subject: [ragel-users] space bug space bug space bug
+In-Reply-To: <CAEy3c_TQSNosiXO0wYgq0fJrQrT+2EMUjSZt+auG8biCKnFSOg@mail.gmail.com>
+References: <CAEy3c_TQSNosiXO0wYgq0fJrQrT+2EMUjSZt+auG8biCKnFSOg@mail.gmail.com>
+Message-ID: <53AF484B.3010502@complang.org>
+
+Hi Laurent,
+
+The te variable points (indexes) one past the end of the token buffer. 
+This is true in all languages. To use it in a ruby array index you need 
+to subtract 1.
+
+Regards,
+  Adrian
+
+On 14-05-12 10:10 AM, Laurent Laborde wrote:
+> Friendly greetings !
+>
+> I'm trying to use ragel with ruby as target but i have a problem that
+> drive me crazy since many days.
+>
+> Here is the code : https://gist.github.com/ker2x/a86b1f6fc0de6a9c1f2e
+>
+> and the output
+>
+> [{:type=>:NUMBER, :name=>"+1 "}, {:type=>:SPACE, :name=>" 2"},
+> {:type=>:NUMBER, :name=>"2 "}, {:type=>:SPACE, :name=>" -"},
+> {:type=>:NUMBER, :name=>"-3 "}, {:type=>:SPACE, :name=>" 4"},
+> {:type=>:NUMBER, :name=>"4 "}, {:type=>:SPACE, :name=>" p"}]
+>
+> there is an extra char everywhere.
+> Somehow, with this simplified version, it works when catching "print".
+> On a bigger version (that recognize string) i have to do "print " (with
+> an extra space)
+>
+> What's happening ?
+> Thank you very much.
+>
+> (i asked on irc for a few days but it's idle)
+>
+>
+>
+> --
+> Laurent "ker2x" Laborde
+> Bigdata hacker @ Ebuzzing
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 29 14:55:29 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Jun 2014 10:55:29 -0400
+Subject: [ragel-users] How to check if a list of strings exist?
+In-Reply-To: <BAY175-W16E890D7567AA91999527080320@phx.gbl>
+References: <BAY175-W16E890D7567AA91999527080320@phx.gbl>
+Message-ID: <53B028E1.5080809@complang.org>
+
+Hi Dinesh,
+
+The basic approach would be to write a parser for headers and union the 
+pattern for header names with specific header name values. Have a look 
+at mailbox1.rl in the test case directory. It is close to what you want.
+
+Regards,
+  Adrian
+
+
+
+On 14-05-19 03:36 PM, dinesh rtp wrote:
+> Hi,
+>
+> I am new to ragel and finding it difficult to solve this problem.
+>
+> I need to check if certain headers exists in the input to ragel machine.
+> The easier way is to parse header and check if the header I am looking
+> for is present or not. The problem with this, I need to compare every
+> header that is present in the input to figure if the headers I  am
+> looking for is present. Is there a way in ragel to say "Given a list of
+> headers are these headers present in any order" ?
+>
+> For example:
+>
+> Input:
+>
+> |Content-Description: Delivery report
+> Content-Type: message/delivery-status
+>
+> Reporting-MTA: dns; xxx
+> Arrival-Date: Fri, 04 May 2012 15:25:09 +0200
+>
+> Final-Recipient: rfc822; test-dsn-failure at gmail.com
+> Status: 5.1.1
+> Action: failed
+> Last-Attempt-Date: Fri, 04 May 2012 15:25:09 +0200
+> Diagnostic-Code: smtp; 550-5.1.1 The email account that you tried to reach does not exist. Please try
+> 550-5.1.1 double-checking the recipient's email addressfor  typosor
+> 550-5.1.1  unnecessary spaces.  Learn  more at
+> 550  5.1.1  http://support.google.com/mail/bin/answer.py?answer=6596  t12si10077186weq.36
+> |
+>
+> |I just need to check if the headers:|
+> |Reporting-MTA:|
+> |Final-Recipient:|
+> Status:
+> Action:
+>
+> are present.
+>
+> For now I have come with the following:
+>
+> key = print - [:];
+> action headerName {headerName.append(1,fc);}
+> action onHeader {
+>      if (headerName.compare("Reporting-MTA") == 0) {
+>          cout << "Reporting-MTA header is present" << endl;
+>      } else if ...
+> }
+> header = key+ @headerName ':' @onHeader;
+>
+> Is there a easier way to check if these headers exist?
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jun 29 15:01:53 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Jun 2014 11:01:53 -0400
+Subject: [ragel-users] Can someone supply a Simple example of C# Ragel
+ State machine code
+In-Reply-To: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+References: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+Message-ID: <53B02A61.4040006@complang.org>
+
+This was created by the C# test case translator. You need TXL and GMCS 
+in order for the C# test cases to be created.
+
+-Adrian
+
+On 14-05-30 03:39 PM, Jerry wrote:
+> I am attempting to use QFSM which outputs in Ragel but is C based so I
+> need to see if I can create a template for easy conversion of the QFSM
+> Ragel output to C#. A simple example would be a great start.
+>
+> Thanks
+>
+> Jerry
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+/*
+ * @LANG: csharp
+ * @GENERATED: yes
+ */
+using System;
+// Disables lots of warnings that appear in the test suite
+#pragma warning disable 0168, 0169, 0219, 0162, 0414
+namespace Test {
+class atoi1_csharp
+{
+	bool neg;
+	int val;
+	%%{
+	    machine atoi1_csharp;
+	    action begin {
+	        neg = false;
+	        val = 0;
+	    }
+	    action see_neg {
+	        neg = true;
+	    }
+	    action add_digit {
+	        val = val * 10 + (fc - 48);
+	    }
+	    action finish {
+	        if (neg)
+	        {
+	            val = - 1 * val;
+	        }
+	    }
+	    action print {
+	        Console.Write (val);
+	        Console.Write ("\n");
+	    }
+	    atoi = (('-' @ see_neg | '+') ? (digit @ add_digit) +) > begin % finish;
+	    main := atoi '\n' @ print;
+	}%%
+
+	int cs;
+	%% write data;
+
+	void init()
+	{
+		val = 0;
+		neg = false;
+		%% write init;
+	}
+
+	void exec( char[] data, int len )
+	{
+		int p = 0;
+		int pe = len;
+		int eof = len;
+		string _s;
+		%% write exec;
+	}
+
+	void finish( )
+	{
+		if ( cs >= atoi1_csharp_first_final )
+			Console.WriteLine( "ACCEPT" );
+		else
+			Console.WriteLine( "FAIL" );
+	}
+
+	static readonly string[] inp = {
+		"1\n",
+		"12\n",
+		"222222\n",
+		"+2123\n",
+		"213 3213\n",
+		"-12321\n",
+		"--123\n",
+		"-99\n",
+		" -3000\n",
+	};
+
+	static readonly int inplen = 9;
+
+	public static void Main (string[] args)
+	{
+		atoi1_csharp machine = new atoi1_csharp();
+		for ( int i = 0; i < inplen; i++ ) {
+			machine.init();
+			machine.exec( inp[i].ToCharArray(), inp[i].Length );
+			machine.finish();
+		}
+	}
+}
+}
+/* _____OUTPUT_____
+1
+ACCEPT
+12
+ACCEPT
+222222
+ACCEPT
+2123
+ACCEPT
+FAIL
+-12321
+ACCEPT
+FAIL
+-99
+ACCEPT
+FAIL
+_____OUTPUT_____ */
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From drwar2000 at yahoo.com  Sun Jun 29 22:02:28 2014
+From: drwar2000 at yahoo.com (Jerry)
+Date: Sun, 29 Jun 2014 15:02:28 -0700
+Subject: [ragel-users] Can someone supply a Simple example of C# Ragel
+	State machine code
+In-Reply-To: <53B02A61.4040006@complang.org>
+References: <1401478765.1703.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+	<53B02A61.4040006@complang.org>
+Message-ID: <1404079348.98261.YahooMailNeo@web160803.mail.bf1.yahoo.com>
+
+Adrian
+
+Ragel is absolutely incredible.   
+
+Thanks for the file. 
+Jerry 
+
+
+On Sunday, June 29, 2014 11:01 AM, Adrian Thurston <thurston at complang.org> wrote:
+  
+
+
+This was created by the C# test case translator. You need TXL and GMCS 
+in order for the C# test cases to be created.
+
+-Adrian
+
+
+On 14-05-30 03:39 PM, Jerry wrote:
+> I am attempting to use QFSM which outputs in Ragel but is C based so I
+> need to see if I can create a template for easy conversion of the QFSM
+> Ragel output to C#. A simple example would be a great start.
+>
+> Thanks
+>
+> Jerry
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20140629/21e2f43a/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tim at goddard.net.nz  Mon Jun 30 02:19:31 2014
+From: tim at goddard.net.nz (Tim Goddard)
+Date: Mon, 30 Jun 2014 14:19:31 +1200
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+Message-ID: <1506269.QQUhfCaTAP@thorn>
+
+Sounds like you have a common language, but want two separate sets of actions.
+
+You can include a file within a ragel machine - I'd write the grammar in one 
+file, then declare the "main" object and actions within two separate parsers.
+
+Cheers,
+
+Tim
+
+On Thu, 10 Apr 2014 22:52:41 Iñaki Baz Castillo wrote:
+> 2014-04-10 22:08 GMT+02:00 Iñaki Baz Castillo <ibc at aliax.net>:
+> > Hi,
+> > 
+> > I'm building a parser for a protocol message similar to HTTP (let's
+> > say: a main header and N key: value separated by CRLF until a final
+> > double CRLF). My concern is:
+> > 
+> > - I parse the messages in a "Dispatcher" module that just needs to
+> > parse a few fields in each message.
+> > - Then the Dispatcher passes the message to a Worker thread via UNIX
+> > Socket. - And the Worker must parse it again, but in this case I need all
+> > the fields parsed.
+> > 
+> > Note that during the Worker's parsing, a C++ complex object is build
+> > with all the parsed fields mapped into member variables, so I don't
+> > want to play with those complex objects in the Dispatcher module.
+> > 
+> > How could I reuse the same Ragel machine for both cases? Of course I
+> > would like something like:
+> > 
+> > 
+> > 
+> > %%{
+> > 
+> >   machine Parser;
+> >   
+> >   [...]
+> >   
+> >   if (dispatcher) {
+> >   
+> >     main :=  xxxxxxx
+> >   
+> >   }
+> >   else {
+> >   
+> >     main := yyyyyyy
+> >   
+> >   }
+> > 
+> > }%%
+> 
+> Mmm, I think using the "when" statement is the way to go :)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From william at 25thandClement.com  Mon Jun 30 02:49:34 2014
+From: william at 25thandClement.com (William Ahern)
+Date: Sun, 29 Jun 2014 19:49:34 -0700
+Subject: [ragel-users] Conditional parsing
+In-Reply-To: <1506269.QQUhfCaTAP@thorn>
+References: <CALiegfnLD-ZGgUKq9e-_20A3pZez8tX8s9VGyyFst3ppQnZrVA@mail.gmail.com>
+	<CALiegf=ATav8+RsnN1=TM=9REoBaKAw20Z5TxnrKpziz=gPLbw@mail.gmail.com>
+	<1506269.QQUhfCaTAP@thorn>
+Message-ID: <20140630024934.GA26472@wilbur.25thandClement.com>
+
+2014-04-10 22:08 GMT+02:00 I?aki Baz Castillo <ibc at aliax.net>:
+> Hi,
+> 
+> I'm building a parser for a protocol message similar to HTTP (let's
+> say: a main header and N key: value separated by CRLF until a final
+> double CRLF). My concern is:
+> 
+> - I parse the messages in a "Dispatcher" module that just needs to
+> parse a few fields in each message.
+> - Then the Dispatcher passes the message to a Worker thread via UNIX
+> Socket. - And the Worker must parse it again, but in this case I need all
+> the fields parsed.
+> 
+> Note that during the Worker's parsing, a C++ complex object is build
+> with all the parsed fields mapped into member variables, so I don't
+> want to play with those complex objects in the Dispatcher module.
+> 
+> How could I reuse the same Ragel machine for both cases?
+<snip>
+
+Here's an example from my own code. For various reasons (expediency,
+simplicity) I used different machines to parse individual headers. But they
+all use the same library of tokenization sub-machines.
+
+The first machine is the basic library. You could put this in a separate
+file, but mine is in the same file as everything else HTTP/RTSP-related. The
+second and third machines are parser examples. Note that most of the context
+is missing, so you won't be able to copy+paste this. For example, I have a
+basic tokenizer written in pure C (which follows DJB's algorithm for
+structured MIME header parsing) which emits tagged characters as short
+integers (e.g. an escaped or quoted character will have a high bit set).
+This made it easier for me to handle things like quoted strings and
+parenthetical comments. Although, I wrote this years ago and today I might
+find it easier to handle those problems with Ragel's fcall and fgoto
+statments. But the truly beautiful thing about Ragel is how it allows you to
+mix-and-match approaches. So there's really no wrong way. And I would
+counsel a novice to avoid attempts at Ragel-purity--i.e. trying to do
+everything in Ragel, such as handle recursive structures directly in Ragel.
+You can do it (and I do it in some other stuff, like my Flash FLV, Microsoft
+ASF, and SMTP parsers), but it's not something worth struggling over.
+
+%%{
+	machine tokenizer;
+
+	crlf = [\r\n];
+	lwsp = [ \t];
+
+	qdigit  = (0x0130 - 0x0139);
+	qxdigit = (0x0141 - 0x0146) | (0x0161 - 0x0166) | qdigit;
+
+	digits  = digit | qdigit;
+	xdigits = xdigit | qxdigit;
+
+	qalpha = (0x0141 - 0x015a) | (0x0161 | 0x017a);
+
+	action num_begin { num = 0; }
+	action num_write { num *= 10; num += (0xff & fc) - '0'; }
+
+	action hex_begin { num = 0; }
+	action hex_write { num <<= 4; num += ((0xff & fc) > '9')? (10 + (tolower((0xff & fc)) - 'a')) : (0xff & fc) - '0'; }
+
+	action str_begin {
+		str = 0;
+		if ((error = obs_new(obs, 0)))
+			goto error;
+	}
+
+	action str_write {
+		if ((error = obs_putc(obs, 0xff & fc)))
+			goto error;
+	}
+
+	action str_end { str = obs_top(obs); }
+}%%
+
+
+%%{
+	machine x_sessioncookie_parser;
+	alphtype short;
+
+	include tokenizer;
+
+	action oops {
+		rtsp_badparse("x-sessioncookie", src, len, p);
+		error = EINVAL;
+		goto error;
+	}
+
+	token = (alnum | "+" | "/")+ >str_begin $str_write %str_end %{ hdr->token = str; };
+
+	main := (token lwsp*) $!oops;
+
+	write data;
+}%%
+
+
+%%{
+	machine content_type_parser;
+	alphtype short;
+
+	getkey (0xff & (*fpc));	# Mask high-order bits.
+
+	include tokenizer;
+
+	action oops {
+		rtsp_badparse("Content-Type", src, len, p);
+		error = EINVAL;
+		goto error;
+	}
+
+	equal = lwsp** "=" lwsp**;
+
+	reg_name = (alnum | [!#$&.+\-\^_]){1,127}; # RFC 4288 4.2
+
+	charset = "charset" equal reg_name >str_begin $str_write %str_end %{ hdr->charset = str; };
+	boundary = "boundary" equal reg_name >str_begin $str_write %str_end %{ hdr->boundary = str; };
+
+	attrib = (charset | boundary)? <: ^";"**;
+
+	type = reg_name >str_begin $str_write %str_end %{ hdr->type = str; };
+	subtype = reg_name >str_begin $str_write %str_end %{ hdr->subtype = str; };
+
+	main := (type "/" subtype lwsp** (";" lwsp** attrib)*) $!oops;
+
+	write data;
+}%%
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Writing a Telnet parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Writing%20a%20Telnet%20parser&In-Reply-To=%3C4CA80C45.5030605%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="002924.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Writing a Telnet parser</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Writing%20a%20Telnet%20parser&In-Reply-To=%3C4CA80C45.5030605%40complang.org%3E"
+       TITLE="[ragel-users] Writing a Telnet parser">thurston at complang.org
+       </A><BR>
+    <I>Sun Oct  3 04:53:25 UTC 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="002924.html">[ragel-users] Writing a Telnet parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2923">[ date ]</a>
+              <a href="thread.html#2923">[ thread ]</a>
+              <a href="subject.html#2923">[ subject ]</a>
+              <a href="author.html#2923">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Try refactoring your grammar:
+
+plain_text = [a-z];
+something_else = ^plain_text;
+
+main := (
+	plain_text+ %{ end_of_plain_text(); } |
+	something_else+
+)*;
+
+On 10-09-29 05:39 PM, Jonathan Castello wrote:
+&gt;<i> I have, actually. If I have &quot;plain_text %leaving&quot;, the leaving action
+</I>&gt;<i> is still executed after every plain_text character, as the generated
+</I>&gt;<i> graph seems to indicate. If I put %leaving after the telnet_stream
+</I>&gt;<i> itself, the graph suggests that it's only executed on EOF, which will
+</I>&gt;<i> never occur as I am processing a potentially infinite network stream.
+</I>&gt;<i> (Because of this, I explicitly set eof = NULL in the code before &quot;%%
+</I>&gt;<i> write init&quot;, as the documentation suggests.)
+</I>&gt;<i>
+</I>&gt;<i> ~Jonathan
+</I>&gt;<i>
+</I>&gt;<i> On Wed, Sep 29, 2010 at 10:43 AM, Adrian Thurston
+</I>&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">adrian.thurston at esentire.com</A>&gt;  wrote:
+</I>&gt;&gt;<i> Have you tried leaving actions? It sounds like that is what you want.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On 10-09-29 10:34 AM, Jonathan Castello wrote:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Hi Adrian,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Thanks for your help. Actually, I know how I want to buffer them; the
+</I>&gt;&gt;&gt;<i> problem is actually extracting them when I want to. I need some way to
+</I>&gt;&gt;&gt;<i> extract the characters only when the next character isn't plain_text
+</I>&gt;&gt;&gt;<i> or there is no next character. I've tried adding an entry action to
+</I>&gt;&gt;&gt;<i> cr_sequence and iac_sequence, but that doesn't work when you reach the
+</I>&gt;&gt;&gt;<i> end of the subject data without seeing a CR or IAC. What I was hoping
+</I>&gt;&gt;&gt;<i> to do is maintain a 'left' pointer to the first plain_text character,
+</I>&gt;&gt;&gt;<i> and use fpc as the 'right' pointer when I reach the last contiguous
+</I>&gt;&gt;&gt;<i> plain_text character. Then I would pass the left pointer and the
+</I>&gt;&gt;&gt;<i> length of that contiguous stretch (fpc-left) to the user-provided
+</I>&gt;&gt;&gt;<i> callback.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I could copy each character to a temporary buffer, but I was hoping to
+</I>&gt;&gt;&gt;<i> avoid extra allocations. I want to just pass pointers into the
+</I>&gt;&gt;&gt;<i> original block of text being parsed, so the calling code can do any
+</I>&gt;&gt;&gt;<i> copying and allocating required. My entry action attempt was the
+</I>&gt;&gt;&gt;<i> closest I could get: it would properly fire before a non plain_text
+</I>&gt;&gt;&gt;<i> sequence, but the major issue is that it wouldn't fire at all when it
+</I>&gt;&gt;&gt;<i> reached the end of the subject line.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Thanks again,
+</I>&gt;&gt;&gt;<i> ~Jonathan
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> On Wed, Sep 29, 2010 at 10:07 AM, Adrian Thurston
+</I>&gt;&gt;&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">adrian.thurston at esentire.com</A>&gt;    wrote:
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Hi Jonathan,
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Ragel does not do any buffering of text for you. It's up to you to decide
+</I>&gt;&gt;&gt;&gt;<i> how you want to do that, then implement it yourself. There are a couple
+</I>&gt;&gt;&gt;&gt;<i> options. You can copy text to a buffer as you move over characters, or
+</I>&gt;&gt;&gt;&gt;<i> you
+</I>&gt;&gt;&gt;&gt;<i> can extract them from the input buffer when you need them. The first
+</I>&gt;&gt;&gt;&gt;<i> approach is simpler and guaranteed to work without hitches. The second
+</I>&gt;&gt;&gt;&gt;<i> technique is faster, but you have to consider buffer block boundaries.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> -Adrian
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> On 10-09-28 08:30 PM, Jonathan Castello wrote:
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> Hello,
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> I'm building a Telnet parser using Ragel, and I'm having an issue
+</I>&gt;&gt;&gt;&gt;&gt;<i> making the actions do what I want. I've pasted the machine definition
+</I>&gt;&gt;&gt;&gt;&gt;<i> to a gist: <A HREF="http://gist.github.com/602242">http://gist.github.com/602242</A>
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> The issue is a little hard for me to describe, so I'll try to
+</I>&gt;&gt;&gt;&gt;&gt;<i> illustrate it as best as I can. If I have a stream of input, and some
+</I>&gt;&gt;&gt;&gt;&gt;<i> part of it is &quot;abcdef&lt;IAC&gt;&lt;GA&gt;ghi&quot; (where&lt;x&gt;      is a mnemonic for a
+</I>&gt;&gt;&gt;&gt;&gt;<i> single byte), I want to emit events as such: text(&quot;abcdef&quot;),
+</I>&gt;&gt;&gt;&gt;&gt;<i> command(&quot;&lt;GA&gt;&quot;), text(&quot;ghi&quot;). The caller provides callbacks, and I
+</I>&gt;&gt;&gt;&gt;&gt;<i> would pass the data to them as I interpret it.
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> The problem is that I can't figure out how to define actions that
+</I>&gt;&gt;&gt;&gt;&gt;<i> would only trigger when the next character doesn't match plain_text
+</I>&gt;&gt;&gt;&gt;&gt;<i> (or there's no more data left to parse in that particular packet), so
+</I>&gt;&gt;&gt;&gt;&gt;<i> I can get that full stretch of characters. At the moment, I can only
+</I>&gt;&gt;&gt;&gt;&gt;<i> get text(&quot;a&quot;), text(&quot;b&quot;), text(&quot;c&quot;) etc. to work, i.e. one plain_text
+</I>&gt;&gt;&gt;&gt;&gt;<i> match at a time.
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> I suspect the problem is that cr_sequence and iac_sequence are
+</I>&gt;&gt;&gt;&gt;&gt;<i> supposed to behave this way - they, too, match singular &quot;terms&quot; each
+</I>&gt;&gt;&gt;&gt;&gt;<i> time before returning to the start - but here I am, wanting to give
+</I>&gt;&gt;&gt;&gt;&gt;<i> plain_text special treatment. Am I even coming at this from the right
+</I>&gt;&gt;&gt;&gt;&gt;<i> angle?
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> Thanks in advance for any advice!
+</I>&gt;&gt;&gt;&gt;&gt;<i> ~Jonathan Castello
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;&gt;&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="002924.html">[ragel-users] Writing a Telnet parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2923">[ date ]</a>
+              <a href="thread.html#2923">[ thread ]</a>
+              <a href="subject.html#2923">[ subject ]</a>
+              <a href="author.html#2923">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

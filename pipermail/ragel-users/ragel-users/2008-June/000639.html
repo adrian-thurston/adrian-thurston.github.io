@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: two state machines
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20two%20state%20machines&In-Reply-To=%3C17201dc70806070917u7ac6236arc0e761820547f466%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000638.html">
+   <LINK REL="Next"  HREF="000640.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: two state machines</H1>
+    <B>massimiliano cialdi</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20two%20state%20machines&In-Reply-To=%3C17201dc70806070917u7ac6236arc0e761820547f466%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: two state machines">cia... at gmail.com
+       </A><BR>
+    <I>Sat Jun  7 16:17:01 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000638.html">two state machines
+</A></li>
+        <LI>Next message: <A HREF="000640.html">[ragel-users] Re: two state machines
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#639">[ date ]</a>
+              <a href="thread.html#639">[ thread ]</a>
+              <a href="subject.html#639">[ subject ]</a>
+              <a href="author.html#639">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sat, Jun 7, 2008 at 7:39 AM, mitchell &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">mforal.n... at gmail.com</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> Untested, but it's an idea I had:
+</I>
+I tried the same thing, and I have some doubt
+
+here is my source (is only a simplified example of my really need):
+----------------------------8&lt;-------------------------------------
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+%%{
+	# test for dua FSM definition
+	# I want to match a pattern like A&quot;12345FFF01&quot;B ( or A&quot;99FFFFF99&quot;B or
+A&quot;321FFFFF14&quot;B )
+	# once take the substring between quotes I want to pass it to FSM1
+that match exacly
+	
+	machine test1;
+	
+	action copycar
+	{
+		printf(&quot;%c\n&quot;,fc);
+		// populating FN
+		*fn = fc;
+		fn++;
+	}
+	
+	action error
+	{
+		printf(&quot;error %d, %c\n&quot;,cs,fc);
+		fbreak;
+	}
+	
+	action endpt1
+	{
+		printf(&quot;OK\n%s\n&quot;, FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		fgoto FSM1;
+	}
+		
+	action endsubstr
+	{
+		// placing null termination to substring in FN
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		// substring matches
+		printf(&quot;OK pt2\n&quot;);
+	}
+	
+	FSM1 := '12345FFF' @!error @endpt2 &gt;~{printf(&quot;*** %d %c %s ***\n&quot;,cs,
+fc, fpc);};
+	
+	main := ( 'A&quot;' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+@endsubstr digit{2}  '&quot;B' ) @!error @endpt1 ;
+	
+}%%
+
+%% write data;
+
+
+void parse(char *buf)
+{
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	
+	char FN[16];
+	char *fn;
+	
+	// FN is the container fo the substring
+	fn = FN;
+	%% write init;
+	%% write exec;
+}
+
+int main( int argc, char **argv )
+{
+	if ( argc &gt; 1 ) {
+		parse(argv[1]);
+	}
+	return 0;
+}
+
+----------------------------8&lt;-------------------------------------
+
+if you try to execute it fails:
+
+test A\&quot;12345FFF01\&quot;B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+error 0, 2
+
+but the string exactly match the pattern (as can be seen in line &quot;***
+15 1 12345FFF ***&quot;)
+
+so now try to change the pattern of FSM1 as follow (we delete '1'):
+	FSM1 := '2345FFF' @!error @endpt2 &gt;~{printf(&quot;*** %d %c %s ***\n&quot;,cs,
+fc, fpc);};
+
+and retry to execute:
+
+test A\&quot;12345FFF01\&quot;B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+OK pt2
+
+now it report the string matching but we had changed the pattern.
+It seems that it skip the first character after fgoto.
+
+so I tried another way.
+lets use originale FSM1 definition (pattern '12345FFF'), but change
+action endpt1 to add an fhold statement as follow:
+
+	action endpt1
+	{
+		printf(&quot;OK\n%s\n&quot;, FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		// fhold is translated in C as p--;
+		fhold;		
+		fgoto FSM1;
+	}
+
+and let execute:
+
+test A\&quot;12345FFF01\&quot;B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15   ***
+OK pt2
+
+it seems to work, but action to-state start of FSM1 fails, it cannot
+print neither fc character nor pfc string...
+
+is this the right way to do this?
+
+thanks
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">cia... at gmail.com</A>
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">massimiliano.cia... at powersoft.it</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000638.html">two state machines
+</A></li>
+	<LI>Next message: <A HREF="000640.html">[ragel-users] Re: two state machines
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#639">[ date ]</a>
+              <a href="thread.html#639">[ thread ]</a>
+              <a href="subject.html#639">[ subject ]</a>
+              <a href="author.html#639">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

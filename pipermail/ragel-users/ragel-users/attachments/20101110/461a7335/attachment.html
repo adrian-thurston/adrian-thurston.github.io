@@ -1,0 +1,95 @@
+<tt>
+It&nbsp;works&nbsp;after&nbsp;I&nbsp;specified&nbsp;the&nbsp;priority!&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks.&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;2010/11/10&nbsp;Adrian&nbsp;Thurston&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:adrian.thurston@esentire.com&quot;&gt;adrian.thurston@esentire.com&lt;/a&gt;&gt;&lt;/span&gt;&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex;&quot;&gt;Define:&lt;br&gt;<br>
+&lt;br&gt;<br>
+colon&nbsp;=&nbsp;&#39;:&#39;&nbsp;@(colon,&nbsp;1);&lt;br&gt;<br>
+else_colon&nbsp;=&nbsp;&#39;:&#39;&nbsp;@(colon,&nbsp;0);&lt;br&gt;<br>
+&lt;br&gt;<br>
+Then&nbsp;use&nbsp;colon&nbsp;in&nbsp;the&nbsp;named&nbsp;headers&nbsp;and&nbsp;else_colon&nbsp;in&nbsp;the&nbsp;final&nbsp;case.&lt;br&gt;<br>
+&lt;br&gt;<br>
+-Adrian&lt;div&gt;&lt;div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+On&nbsp;10-11-09&nbsp;12:07&nbsp;AM,&nbsp;hongbin&nbsp;kou&nbsp;wrote:&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&gt;&lt;div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;<br>
+Now&nbsp;I’m&nbsp;using&nbsp;ragel&nbsp;to&nbsp;build&nbsp;a&nbsp;http&nbsp;parser.&lt;br&gt;<br>
+&lt;br&gt;<br>
+One&nbsp;requirement&nbsp;of&nbsp;the&nbsp;parser&nbsp;is&nbsp;to&nbsp;parse&nbsp;all&nbsp;the&nbsp;http&nbsp;headers,&nbsp;which&lt;br&gt;<br>
+would&nbsp;be&nbsp;used&nbsp;by&nbsp;another&nbsp;module.&lt;br&gt;<br>
+&lt;br&gt;<br>
+For&nbsp;some&nbsp;common&nbsp;headers,&nbsp;the&nbsp;header&nbsp;value&nbsp;would&nbsp;be&nbsp;parsed&nbsp;directly&nbsp;by&lt;br&gt;<br>
+ragel.&lt;br&gt;<br>
+&lt;br&gt;<br>
+For&nbsp;other&nbsp;headers,&nbsp;only&nbsp;mark&nbsp;the&nbsp;header&nbsp;name&nbsp;and&nbsp;value.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Here&nbsp;is&nbsp;my&nbsp;ragel&nbsp;script:&lt;br&gt;<br>
+&lt;br&gt;<br>
+message_header&nbsp;=(&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(&quot;Content-Length&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;digit+&nbsp;$on_content_length)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Transfer-Encoding&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;(&quot;Chunked&quot;i&nbsp;%&lt;br&gt;<br>
+{request-&gt;transfer_encoding&nbsp;=&nbsp;HTTP_TE_CHUNKED;}&nbsp;|&nbsp;any*&nbsp;&gt;&nbsp;start_TE&nbsp;%&lt;br&gt;<br>
+finish_TE))&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Connection&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;(&quot;Keep-alive&quot;i&nbsp;%&lt;br&gt;<br>
+{request-&gt;connection&nbsp;=&nbsp;HTTP_CONNECTION_KEEP_ALIVE;}&nbsp;|&nbsp;&quot;Close&quot;i&nbsp;%&lt;br&gt;<br>
+{request-&gt;connection&nbsp;=&nbsp;HTTP_CONNECTION_CLOSE;}))&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Host&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_host&lt;br&gt;<br>
+%*finish_host*&nbsp;%/break_host)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Accept&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_accept&nbsp;%&lt;br&gt;<br>
+finish_accept&nbsp;%/break_accept)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Accept-Charset&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&lt;br&gt;<br>
+ &gt;start_accept_charset&nbsp;%&nbsp;finish_accept_charset&nbsp;%/break_accept_charset)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Accept-Encoding&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&lt;br&gt;<br>
+ &gt;start_accept_encoding&nbsp;%&nbsp;finish_accept_encoding&nbsp;%/break_accept_encoding)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Accept-Language&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&lt;br&gt;<br>
+ &gt;start_accept_language&nbsp;%&nbsp;finish_accept_language&nbsp;%/break_accept_language)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;User-Agent&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&lt;br&gt;<br>
+ &gt;start_user_agent&nbsp;%&nbsp;finish_user_agent&nbsp;%/break_user_agent)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;Referer&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;&gt;start_referer&nbsp;%&lt;br&gt;<br>
+finish_referer&nbsp;%/break_referer)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;(&quot;X-Forward-For&quot;i&nbsp;&quot;:&quot;&nbsp;LWS*&nbsp;field_content&lt;br&gt;<br>
+ &gt;start_x_forward_for&nbsp;%&nbsp;finish_x_forward_for&nbsp;%/break_x_forward_for)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|&nbsp;((token)&nbsp;&gt;start_header_name&nbsp;%finish_header_name&lt;br&gt;<br>
+%/break_header_name&quot;:&quot;&nbsp;LWS*&nbsp;field_content&nbsp;%&nbsp;*header_end*)&lt;br&gt;<br>
+&lt;br&gt;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;)&nbsp;:&gt;CRLF;&lt;br&gt;<br>
+&lt;br&gt;<br>
+Here&nbsp;there&nbsp;is&nbsp;a&nbsp;nondeterminism&nbsp;between&nbsp;token&nbsp;and&nbsp;the&nbsp;common&nbsp;header&nbsp;names.&lt;br&gt;<br>
+&lt;br&gt;<br>
+For&nbsp;example,&nbsp;when&nbsp;a&nbsp;Host&nbsp;header&nbsp;value&nbsp;finished,&nbsp;the&nbsp;header’s&nbsp;action&lt;br&gt;<br>
+finish_host&nbsp;and&nbsp;the&nbsp;“token”&nbsp;action&nbsp;header_end&nbsp;will&nbsp;be&nbsp;triggered.&lt;br&gt;<br>
+&lt;br&gt;<br>
+How&nbsp;can&nbsp;I&nbsp;resolve&nbsp;this&nbsp;kind&nbsp;of&nbsp;problem?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+Hongbin.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;&lt;/div&gt;&lt;/div&gt;<br>
+_______________________________________________&lt;br&gt;<br>
+ragel-users&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:ragel-users@complang.org&quot;&nbsp;target=&quot;_blank&quot;&gt;ragel-users@complang.org&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.complang.org/mailman/listinfo/ragel-users&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.complang.org/mailman/listinfo/ragel-users&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;<br>
+&lt;br&gt;<br>
+_______________________________________________&lt;br&gt;<br>
+ragel-users&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:ragel-users@complang.org&quot;&nbsp;target=&quot;_blank&quot;&gt;ragel-users@complang.org&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.complang.org/mailman/listinfo/ragel-users&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.complang.org/mailman/listinfo/ragel-users&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

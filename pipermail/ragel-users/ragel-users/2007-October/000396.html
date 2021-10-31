@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: tuning/optimizing scanners
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20tuning/optimizing%20scanners&In-Reply-To=%3C240251949-1191611038-cardhu_decombobulator_blackberry.rim.net-1515613405-%40bxe033.bisx.prod.on.blackberry%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000395.html">
+   <LINK REL="Next"  HREF="000397.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: tuning/optimizing scanners</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20tuning/optimizing%20scanners&In-Reply-To=%3C240251949-1191611038-cardhu_decombobulator_blackberry.rim.net-1515613405-%40bxe033.bisx.prod.on.blackberry%3E"
+       TITLE="[ragel-users] Re: tuning/optimizing scanners">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Oct  5 19:04:03 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000395.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+        <LI>Next message: <A HREF="000397.html">parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#396">[ date ]</a>
+              <a href="thread.html#396">[ thread ]</a>
+              <a href="subject.html#396">[ subject ]</a>
+              <a href="author.html#396">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Chuck,
+
+Those switches are new with 5.24. They pass a number of tests, but are not heavily tested. 
+By mutually exclusive I meant that the patterns do not overlap. For example,
+
+'a';
+'b';
+
+are mutually exclusive, but
+
+'a';
+any;
+
+are not. On second thought I'm not sure if it would be worth the effort to refactor in your case, as the time is probably dominated by the basic iterations of the driver and the gains from mutually exclusive patterns are very small. 
+
+Adrian
+
+-----Original Message-----
+From: Chuck Remes &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">cremes.devlist at mac.com</A>&gt;
+
+Date: Fri, 5 Oct 2007 13:04:29 
+To:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+Subject: [ragel-users] Re: tuning/optimizing scanners
+
+
+
+The -F1 option is what I was missing! Initially I stayed away from  
+those switches due to a note in the docs about not all of them being  
+supported for the ruby target. I wanted correctness before I wanted  
+speed.
+
+Generating the code with that option resulted in a significant  
+performance improvement. My baseline testcase went from 50 seconds  
+(wall clock time) to 28 seconds. That's more than adequate for right  
+now.
+
+Now that I have my feet wet with ragel I'll be more comfortable  
+trying things like generating the C code and interfacing to it from  
+my ruby code.
+
+Adrian, thanks for a great tool.
+
+Another question before I drop this line of inquiry. What did you  
+mean by &quot;make the patterns mutually exclusive?&quot; So I can understand  
+it better, please provide an example of a non-exclusive set and a  
+mutually exclusive set of patterns.
+
+cr
+
+On Oct 5, 2007, at 11:45 AM, Adrian Thurston wrote:
+
+&gt;<i> Hmmm, the -F1 option should be the fastest and you may get some  
+</I>&gt;<i> marginal
+</I>&gt;<i> speedups if you make the patterns mutually exclusive and as greedy as
+</I>&gt;<i> possible, but I suppose I'd have to suggest using C if real speed is
+</I>&gt;<i> what you're after.
+</I>&gt;<i>
+</I>&gt;<i> Adrian
+</I>&gt;<i>
+</I>&gt;<i> Chuck Remes wrote:
+</I>&gt;&gt;<i> Adrian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am using ragel 5.24 so I can have ruby support.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On Oct 5, 2007, at 11:13 AM, Adrian Thurston wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Hi Chuck,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> The parsing methodology looks fine to me. There is no undue
+</I>&gt;&gt;&gt;<i> backtracking.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> What version of Ragel are you using?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> -Adrian
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Chuck Remes wrote:
+</I>&gt;&gt;&gt;&gt;<i> I've written a log parsing tool using ragel and ruby. I'm using the
+</I>&gt;&gt;&gt;&gt;<i> scanner construct to perform the parsing, but things appear to be
+</I>&gt;&gt;&gt;&gt;<i> running very slowly. I fear I may have chosen the wrong methodology
+</I>&gt;&gt;&gt;&gt;<i> to parse the log. (And yes, I know ruby isn't the quickest language
+</I>&gt;&gt;&gt;&gt;<i> out there...) :-)
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> The log in question is a set of key/value pairs that look like this
+</I>&gt;&gt;&gt;&gt;<i> (this is one line):
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Oct  1 09:50:33.37204 [29193]: {market = ICE | type = order |
+</I>&gt;&gt;&gt;&gt;<i> order_id = 4 | buy = 1 | price = 80.83 | volume = 1 | date =
+</I>&gt;&gt;&gt;&gt;<i> 2007-10-01 | time = 09:50:33.37201 | metadata = {l={f=Quote|g=4| 
+</I>&gt;&gt;&gt;&gt;<i> j=1|
+</I>&gt;&gt;&gt;&gt;<i> sid=8290182729}|ac=289182|cf=2881|ca= 289182}}
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> I'm uninterested in the date and other data at the line start, so I
+</I>&gt;&gt;&gt;&gt;<i> throw it away. I primarily search for the key (e.g. 'market = ')  
+</I>&gt;&gt;&gt;&gt;<i> and
+</I>&gt;&gt;&gt;&gt;<i> then fgoto another machine to parse the value. Upon hitting a pipe
+</I>&gt;&gt;&gt;&gt;<i> character, I fgoto main again and look for another key. I pasted  
+</I>&gt;&gt;&gt;&gt;<i> in a
+</I>&gt;&gt;&gt;&gt;<i> section of the machine below to illustrate.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Is this the correct approach? Is there a superior method for  
+</I>&gt;&gt;&gt;&gt;<i> rapidly
+</I>&gt;&gt;&gt;&gt;<i> parsing long text strings? Be gentle with me... I'm new to this
+</I>&gt;&gt;&gt;&gt;<i> stuff.
+</I>&gt;&gt;<i> [snip]
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> &gt;&gt;
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000395.html">[ragel-users] Re: tuning/optimizing scanners
+</A></li>
+	<LI>Next message: <A HREF="000397.html">parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#396">[ date ]</a>
+              <a href="thread.html#396">[ thread ]</a>
+              <a href="subject.html#396">[ subject ]</a>
+              <a href="author.html#396">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

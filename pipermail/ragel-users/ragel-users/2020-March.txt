@@ -1,0 +1,256 @@
+From daniel at beecham.se  Sun Mar  1 04:59:38 2020
+From: daniel at beecham.se (Daniel Beecham)
+Date: Sun, 1 Mar 2020 10:59:38 +0100
+Subject: [ragel-users] Intermediate match wrongly assumed as valid
+In-Reply-To: <CALiegfkRywaE-HWksB=Bg0jnf3SAFRq1b8Vovw6aWn2Fj1ZZbQ@mail.gmail.com>
+References: <CALiegfkRywaE-HWksB=Bg0jnf3SAFRq1b8Vovw6aWn2Fj1ZZbQ@mail.gmail.com>
+Message-ID: <CAAVTe0YNheMUJVpso=JRb-j2TUyzTkQYx9-kLydsf2=zO-8c1A@mail.gmail.com>
+
+The problem is that a finite state machine, having read the "3", cannot
+know if the parser is "done" or not - only that it in a certain state. You
+have a couple of options that I know:
+
+* Add some "end-of-string" sentinel value (like a null terminator)
+* Use first_final instead of state transition actions
+* Use EOF actions
+
+For the 'first_final' method, you would essentially do something like what
+is described in the ragel guide:
+
+parser_parse(&parser, str, strlen(str));
+if ( parser.cs < %%{ write first_final; }%% ) {
+  printf("parsing failed\n");
+}
+
+The downside with this is that partial reads are no longer supported, e.g.
+when
+* reading larger data sets, like reading network logs from a file
+* reading data over a network or some serial communication
+
+a normal loop over these might look like
+
+char buf[BUFLEN];
+bytes_read = read(fd, &buf, BUFLEN);
+while (bytes_read > 0) {
+  parser_parse(&parser, buf, bytes_read);
+  bytes_read = read(fd, &buf, BUFLEN);
+}
+
+and a certain read might have read exactly 3 characters, "123", but you
+don't know if the next read will get you "456789" or EOF - but "cs" is in a
+final state.
+
+In the first method, you would define a parser like
+
+foo = ('123' 0) | ('12345' 0)
+
+then the finishing state action would occur on the null terminator. You
+would call your parser like
+
+parser_parse(&parser, str, strlen(str)+1);
+
+or, while over a network, you could do
+
+char buf[BUFLEN];
+bytes_read = read(fd, &buf, BUFLEN);
+while (bytes_read > 0) {
+  parser_parse(&parser, buf, bytes_read);
+  bytes_read = read(fd, &buf, BUFLEN):
+}
+if (0 == bytes_read) {
+  // read EOF
+  parser_parse(&parser, (char[]){0}, 1);
+}
+
+the downside is that adding null terminators to the parser reduces the
+extensibility of the parser; it's harder to add the parser as a "sub
+parser" of another parser.
+
+EOF actions are run when 'p == pe == eof'. These are essentially the same
+as adding a null terminator to the parser since you need to know in advance
+that you've hit the EOF - but you move the action from a final state
+transition to an EOF action. I've not really used eof actions that much
+because I find them slightly wierd to use, but someone can fill in on the
+details.
+
+On Sat, Feb 29, 2020 at 1:05 AM Iñaki Baz Castillo <ibc at aliax.net> wrote:
+
+> Hi,
+>
+> After many years using my Ragel based IPv6 parser, I've found a bug. I
+> think I've also understood the problem and simplified the code as much
+> as possible.
+>
+> Let's assume this simple grammar:
+>
+> --------------------
+> foo = "12345" | "123";
+> -------------------
+>
+> The parser.rl has a function that receives a char* data pointer and a
+> size_t len. It includes the Ragel %% lines as usual. At the end of the
+> function it checks:
+>
+> --------------------
+> // Ensure that the parsing has consumed all the given length.
+> if (len == p - data)
+>   return true;
+> else
+>   return false;
+> --------------------
+>
+> The problem is that, when the input is "1234", the parser returns true.
+>
+> I think I understand the problem:
+>
+> - The parser first matches "123" which is valid.
+> - It continues and matches "1234".
+> - At this time it has consumed 4 chars.
+> - It exits now because there is no more chars in the input.
+> - However it did match "123" so the Ragel action was executed.
+>
+> May I know how to avoid this problem and make the parser function
+> return false in this case?
+>
+> Thanks a lot.
+>
+>
+>
+> --
+> Iñaki Baz Castillo
+> <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20200301/a2e213e5/attachment.html>
+
+From ibc at aliax.net  Sun Mar  1 17:01:34 2020
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 1 Mar 2020 23:01:34 +0100
+Subject: [ragel-users] Intermediate match wrongly assumed as valid
+In-Reply-To: <CAAVTe0YNheMUJVpso=JRb-j2TUyzTkQYx9-kLydsf2=zO-8c1A@mail.gmail.com>
+References: <CALiegfkRywaE-HWksB=Bg0jnf3SAFRq1b8Vovw6aWn2Fj1ZZbQ@mail.gmail.com>
+ <CAAVTe0YNheMUJVpso=JRb-j2TUyzTkQYx9-kLydsf2=zO-8c1A@mail.gmail.com>
+Message-ID: <CALiegf=OfWmDat1eiCq_CKQ6e5r+nC-FjR2yUCcLSuAPdPRncg@mail.gmail.com>
+
+Thanks a lot, Daniel. Very useful and nicely explained.
+
+On Sun, 1 Mar 2020 at 10:59, Daniel Beecham <daniel at beecham.se> wrote:
+>
+> The problem is that a finite state machine, having read the "3", cannot know if the parser is "done" or not - only that it in a certain state. You have a couple of options that I know:
+>
+> * Add some "end-of-string" sentinel value (like a null terminator)
+> * Use first_final instead of state transition actions
+> * Use EOF actions
+>
+> For the 'first_final' method, you would essentially do something like what is described in the ragel guide:
+>
+> parser_parse(&parser, str, strlen(str));
+> if ( parser.cs < %%{ write first_final; }%% ) {
+>   printf("parsing failed\n");
+> }
+>
+> The downside with this is that partial reads are no longer supported, e.g. when
+> * reading larger data sets, like reading network logs from a file
+> * reading data over a network or some serial communication
+>
+> a normal loop over these might look like
+>
+> char buf[BUFLEN];
+> bytes_read = read(fd, &buf, BUFLEN);
+> while (bytes_read > 0) {
+>   parser_parse(&parser, buf, bytes_read);
+>   bytes_read = read(fd, &buf, BUFLEN);
+> }
+>
+> and a certain read might have read exactly 3 characters, "123", but you don't know if the next read will get you "456789" or EOF - but "cs" is in a final state.
+>
+> In the first method, you would define a parser like
+>
+> foo = ('123' 0) | ('12345' 0)
+>
+> then the finishing state action would occur on the null terminator. You would call your parser like
+>
+> parser_parse(&parser, str, strlen(str)+1);
+>
+> or, while over a network, you could do
+>
+> char buf[BUFLEN];
+> bytes_read = read(fd, &buf, BUFLEN);
+> while (bytes_read > 0) {
+>   parser_parse(&parser, buf, bytes_read);
+>   bytes_read = read(fd, &buf, BUFLEN):
+> }
+> if (0 == bytes_read) {
+>   // read EOF
+>   parser_parse(&parser, (char[]){0}, 1);
+> }
+>
+> the downside is that adding null terminators to the parser reduces the extensibility of the parser; it's harder to add the parser as a "sub parser" of another parser.
+>
+> EOF actions are run when 'p == pe == eof'. These are essentially the same as adding a null terminator to the parser since you need to know in advance that you've hit the EOF - but you move the action from a final state transition to an EOF action. I've not really used eof actions that much because I find them slightly wierd to use, but someone can fill in on the details.
+>
+> On Sat, Feb 29, 2020 at 1:05 AM Iñaki Baz Castillo <ibc at aliax.net> wrote:
+>>
+>> Hi,
+>>
+>> After many years using my Ragel based IPv6 parser, I've found a bug. I
+>> think I've also understood the problem and simplified the code as much
+>> as possible.
+>>
+>> Let's assume this simple grammar:
+>>
+>> --------------------
+>> foo = "12345" | "123";
+>> -------------------
+>>
+>> The parser.rl has a function that receives a char* data pointer and a
+>> size_t len. It includes the Ragel %% lines as usual. At the end of the
+>> function it checks:
+>>
+>> --------------------
+>> // Ensure that the parsing has consumed all the given length.
+>> if (len == p - data)
+>>   return true;
+>> else
+>>   return false;
+>> --------------------
+>>
+>> The problem is that, when the input is "1234", the parser returns true.
+>>
+>> I think I understand the problem:
+>>
+>> - The parser first matches "123" which is valid.
+>> - It continues and matches "1234".
+>> - At this time it has consumed 4 chars.
+>> - It exits now because there is no more chars in the input.
+>> - However it did match "123" so the Ragel action was executed.
+>>
+>> May I know how to avoid this problem and make the parser function
+>> return false in this case?
+>>
+>> Thanks a lot.
+>>
+>>
+>>
+>> --
+>> Iñaki Baz Castillo
+>> <ibc at aliax.net>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+

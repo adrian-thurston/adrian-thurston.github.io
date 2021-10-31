@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Priority issues when doing a street name parser
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Priority%20issues%20when%20doing%20a%20street%20name%20parser&In-Reply-To=%3Cb78c39a60909241220y6fae4077o9d01b2424fcceb33%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001003.html">
+   <LINK REL="Next"  HREF="001005.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Priority issues when doing a street name parser</H1>
+    <B>William Lachance</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Priority%20issues%20when%20doing%20a%20street%20name%20parser&In-Reply-To=%3Cb78c39a60909241220y6fae4077o9d01b2424fcceb33%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Priority issues when doing a street name parser">wrlach at gmail.com
+       </A><BR>
+    <I>Thu Sep 24 19:20:25 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001003.html">[ragel-users] Priority issues when doing a street name parser
+</A></li>
+        <LI>Next message: <A HREF="001005.html">[ragel-users] Priority issues when doing a street name parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1004">[ date ]</a>
+              <a href="thread.html#1004">[ thread ]</a>
+              <a href="subject.html#1004">[ subject ]</a>
+              <a href="author.html#1004">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+Trying to unpack what you're saying-- do you mean I should try to
+define a scanner (as defined in section 6.3 of the manual) which tries
+the various possibilities for street names (in order from most
+preferred to least)?
+
+So one might have
+
+main := |*
+   streetNameWithSuffixAndDirection;
+   streetNameWithDirection;
+
+
+
+
+2009/9/23 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurston at complang.org</A>&gt;:
+&gt;<i> Hi William,
+</I>&gt;<i>
+</I>&gt;<i> I think what you need is a traditional lexer. See section 6.3 of the manual.
+</I>&gt;<i>
+</I>&gt;<i> -Adrian
+</I>&gt;<i>
+</I>&gt;<i> William Lachance wrote:
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm trying to construct a parser for street addresses using Ragel.
+</I>&gt;&gt;<i> That is to say, a machine that will take a free form address like
+</I>&gt;&gt;<i> &quot;5553 Barrington Street NW&quot; and parse out the individual components
+</I>&gt;&gt;<i> (street number, name, suffix, direction). Everything was going
+</I>&gt;&gt;<i> swimmingly until I started to try to add support for street names with
+</I>&gt;&gt;<i> multiple tokens in them (e.g. &quot;Bella Vista Avenue NW&quot;)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Right now my main machine looks like this:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> streetNumber = (digit+ &gt;getStartStr %endNumber);
+</I>&gt;&gt;<i> streetName = (alpha+ (space+ alpha+)*) &gt;getStartStr %endName;
+</I>&gt;&gt;<i> suffixFull = space+ suffix
+</I>&gt;&gt;<i> dirFull = space+ direction
+</I>&gt;&gt;<i> main := (streetNumber alpha? space+)? streetName suffixFull? dirFull?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The suffix and dir expressions are really long and boring
+</I>&gt;&gt;<i> concatenations like this:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> directionWest = (&quot;w&quot;i|&quot;west&quot;i) &gt;getStartStr %endDirWest;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Anyway, the problem with this simple regular expression is that it
+</I>&gt;&gt;<i> doesn't give up on parsing the streetName when it begins parsing the
+</I>&gt;&gt;<i> direction and suffix. So in the above example, it will correctly parse
+</I>&gt;&gt;<i> &quot;Bella Vista&quot;, but then overwrite it with &quot;Avenue&quot;, and later &quot;NW&quot;. I
+</I>&gt;&gt;<i> thought that perhaps adding a few &quot;:&gt;&gt;&quot;'s (to stop the processing of
+</I>&gt;&gt;<i> the streetname when suffixes and directions appear) would help:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> main := (streetNumber alpha? space+)? streetName :&gt;&gt; suffixFull? :&gt;&gt; dirFull? 0;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Unfortunately, that seems to have the side effect of terminating
+</I>&gt;&gt;<i> parsing of the street name prematurely (bringing us back to square
+</I>&gt;&gt;<i> one).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> It _seems_ like what I'm doing should be straightforward. Basically
+</I>&gt;&gt;<i> the rule should be: &quot;keep on parsing the street until you find a token
+</I>&gt;&gt;<i> that unambiguously matches a suffix and/or direction; at that point,
+</I>&gt;&gt;<i> stop, only keeping the previous tokens&quot;. Surely there's a way of
+</I>&gt;&gt;<i> expressing that in Ragel?
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+William Lachance
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">wrlach at gmail.com</A>
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001003.html">[ragel-users] Priority issues when doing a street name parser
+</A></li>
+	<LI>Next message: <A HREF="001005.html">[ragel-users] Priority issues when doing a street name parser
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1004">[ date ]</a>
+              <a href="thread.html#1004">[ thread ]</a>
+              <a href="subject.html#1004">[ subject ]</a>
+              <a href="author.html#1004">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Any%20suggestions%20on%20implementing%20SMTP%20protocol%20inRagel%3F&In-Reply-To=%3CD130FCE8-7AD9-4E4F-94BD-A3B1F25FF76C%40atlasocean.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002372.html">
+   <LINK REL="Next"  HREF="002371.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?</H1>
+    <B>Erich Ocean</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Any%20suggestions%20on%20implementing%20SMTP%20protocol%20inRagel%3F&In-Reply-To=%3CD130FCE8-7AD9-4E4F-94BD-A3B1F25FF76C%40atlasocean.com%3E"
+       TITLE="[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?">er... at atlasocean.com
+       </A><BR>
+    <I>Wed May 14 14:22:02 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002372.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+        <LI>Next message: <A HREF="002371.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2373">[ date ]</a>
+              <a href="thread.html#2373">[ thread ]</a>
+              <a href="subject.html#2373">[ subject ]</a>
+              <a href="author.html#2373">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 13, 2008, at 11:09 PM, Zed A. Shaw wrote:
+
+&gt;<i> On Tue, 13 May 2008 06:43:39 -0700
+</I>&gt;<i> Erich Ocean &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">er... at atlasocean.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Ross,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Statecharts are trivial to code by hand, using case and switch
+</I>&gt;&gt;<i> statements, and result in roughly the same amount of code as a
+</I>&gt;&gt;<i> straight Ragel implementation would. In addition, the hand-coded
+</I>&gt;&gt;<i> variants are more flexible, since you can implement the full &quot;spec&quot;  
+</I>&gt;&gt;<i> as
+</I>&gt;&gt;<i> designed by Harel. You can also easily embed Ragel regex-style
+</I>&gt;&gt;<i> machines in the various states as needed when you hand code, and
+</I>&gt;&gt;<i> Adrian's code generation approach makes that particularly easy.
+</I>&gt;<i>
+</I>&gt;<i> It is easy to code simple ones, but hand-coded ones have the following
+</I>&gt;<i> limitations:
+</I>&gt;<i>
+</I>&gt;<i> 1) Nobody can read the mass of case/switch crap later on, not even the
+</I>&gt;<i> dude who wrote it initially.
+</I>&gt;<i> 2) Debugging them is a pain in the ass, usually involving tracing
+</I>&gt;<i> statements.
+</I>&gt;<i> 3) The compiler can't tell you if you have cycles, invalid
+</I>&gt;<i> transitions, and doesn't minimize your states.  Ragel does all that.
+</I>&gt;<i> 4) You can't generate dot graphs from your stuff.
+</I>
+I have not uncovered the limitations with hand-coding statecharts  
+described by Zed. My guess is that we learned different strategies for  
+implementing them. Here's who I learned from:
+
+	Constructing the User Interface with Statecharts
+	by Ian Horrocks, Addison-Wesley, 1999
+
+	<A HREF="http://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782">http://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782</A>
+
+The book is out of print, and a guy at work recently bought a used  
+copy for $100 (it originally sold for $40, I think). The book is  
+oriented towards writing the control layer in MVC software, but you  
+can use statecharts anywhere. I use them in all three layers, client,  
+server, and with databases. Basically, whenever the control logic  
+degenerates to testing boolean flags* and changing behavior as a  
+result, I immediately switch to statecharts because I know the  
+resulting code will:
+
+1. accurately reflect the control code as designed by me
+2. be easy to debug and _verify_ using &quot;white box&quot; techniques
+3. be easily enhanced over the lifetime of the system**
+
+* The first boolean flag in code is usually a harbinger of more  
+boolean flags to come. By switching to statecharts early, I can handle  
+enhanced logic later in-stride and without impacting my schedule/budget.
+
+** Ragel is particularly ill-suited to implementing statecharts that  
+are modified over time, precisely _because_ it minimizes states. You  
+don't want states combined or minimized because it makes it very  
+difficult to extend and modify objects whose state is archived (e.g.  
+in a database, on disk, whatever). Zed might not have run into this  
+problem yet because he writes clients and servers in-sync, and they  
+start with &quot;fresh state&quot; at each startup. Long-running systems can't  
+rely on that behavior because they have persistent state.
+
+There is a wide sense among programmers that state machines, including  
+statecharts, make code hard to understand. I have no idea why this is  
+the case, since my experience is the complete opposite.
+
+As evidence, the first thing I do when working with a new library/API  
+is to document what the API does with statecharts, where the &quot;events&quot;  
+are function calls into the APIs (including pseudo-function calls if  
+the API exposes data-as-symbols). I then translate that statecharts to  
+code (in mock object fashion) and do &quot;forwarding&quot; calls to the real  
+API during development. This has had two major advantages:
+
+1. I can quickly and easily understand how the underlying API &quot;works&quot;  
+from an external perspective, and _test those assumptions_ quickly and  
+easily.
+2. By running my own code against the mock object(s) (I call the mock  
+objects constructed in this fashion &quot;state guards&quot;), I can be sure  
+that I'm using the API consistently and within specifications at all  
+times. An unhandled &quot;event&quot; (aka function call) in my state guard is  
+evidence that I did something out-of-order, such as calling library  
+code before calling the libraries &quot;init&quot; function.
+
+I can't think of a higher complement to the understandability of  
+statecharts than that. I find most code horrendously hard to read,  
+regardless of how it was implemented. Statecharts remove all of that  
+for me, quickly and easily, and forever. With stateguards and the  
+graphical statechart diagrams, I can answer any question about the  
+behavior of the API years down the road in seconds. _No other approach  
+I've discovered can make that claim._
+
+Zed makes good points based on his experience, and rather than try and  
+refute each of them based on mine, I'll just quote from the book  
+mentioned above. If the claims look good to you, I recommend tracking  
+down the book and giving it a whirl. I can personally vouch for all of  
+the benefits (as well as the limitations) given for statecharts.
+
+Best, Erich
+
+ From __Constructing the User Interface with Statecharts__ by Ian  
+Horrocks, Addison-Wesley, 1999:
+
+Advantages of the statechart approach
+=====================================
+
+General
+-------
+
+- a low number of bugs
+- a language independent notation
+- complicated user interfaces can be developed with ease
+- the speed of user interface development is not reduced
+- the performance of the software is not affected
+- statecharts are easier to understand than code alone
+
+Design
+------
+
+- the designs are precise and consistent
+- the designs are modular
+- the designs are compact
+- the designs are kept up-to-date
+- the designs can be reused
+
+
+Coding
+------
+
+- simple and consistent code
+- no requirements work during the coding phase
+- the code is easy to debug
+- the code facilitates walk-throughs
+
+Testing
+-------
+
+- unit testing is thorough
+- regression testing is efficient and effective
+- the unit test cases are compact
+
+Maintenance
+-----------
+
+- faults can be traced easily
+- changes are local in effect
+- very big changes to a user interface are relatively easy to achieve
+- it is easy to maintain unfamiliar software
+- estimates are more accurate
+
+Some possible limitations of the statechart approach
+====================================================
+
+- translating a statechart to code is boring
+- the code may not adhere to the design (if you modify the code  
+without updating the design)
+- the code can be indecipherable to people not familiar with the  
+statechart notation
+- the method will take a reasonable amount of time to learn
+- developers, particularly weak developers, may resist the technique  
+because of its rigour
+
+&gt;<i> Now, what I've done in the past to remove 1-3 is to use statecharts
+</I>&gt;<i> implemented as C macros and function call semantics.  You should also
+</I>&gt;<i> go grab:
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="http://www.quantum-leaps.com/">http://www.quantum-leaps.com/</A>
+</I>&gt;<i>
+</I>&gt;<i> Ignore the hyperbole about &quot;quantum programming&quot; and just buy the
+</I>&gt;<i> book. Miro Samek knows tons and tons and tons about doing statecharts
+</I>&gt;<i> in hand-coded C++ and is also able to explain many concepts about
+</I>&gt;<i> hierarchical FSM.
+</I>&gt;<i>
+</I>&gt;<i> But still, it's a pain in the ass compared to using Ragel.
+</I>&gt;<i>
+</I>&gt;&gt;<i> Bottom-line: hand-code statecharts. The hard part is creating the
+</I>&gt;&gt;<i> statecharts themselves (I use OmniGraffle), not coding them up.
+</I>&gt;<i>
+</I>&gt;<i> That's only because the distance from drawing to implementation is so
+</I>&gt;<i> wide.  When you use Ragel the same syntax produces the diagram and the
+</I>&gt;<i> code, so the distance is much shorter.
+</I>&gt;<i>
+</I>&gt;&gt;<i> That said, I wouldn't create a protocol handler without them. They  
+</I>&gt;&gt;<i> are
+</I>&gt;&gt;<i> extraordinarily efficient, **easy** to debug, and quick to modify. I
+</I>&gt;&gt;<i> create and modify statechart-based code daily at my day job, and use
+</I>&gt;&gt;<i> statecharts on my own projects.
+</I>&gt;<i>
+</I>&gt;<i> I totally agree with this.  Servers that don't have them are so much
+</I>&gt;<i> harder to use.  I'm working on a new HTTP server/proxy and I'm totally
+</I>&gt;<i> taking the methods I worked up for Utu in this one.  It's so much
+</I>&gt;<i> easier.
+</I>&gt;<i>
+</I>&gt;&gt;<i> Zed Shaw has done some work with Ragel and statecharts if you still
+</I>&gt;&gt;<i> want to go down that path:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	<A HREF="http://www.zedshaw.com/tips/ragel_state_charts.html">http://www.zedshaw.com/tips/ragel_state_charts.html</A>
+</I>&gt;<i>
+</I>&gt;<i> I'll be doing a new one of that for my new web server project.  Stay
+</I>&gt;<i> tuned, I'll drop an announce here.
+</I>&gt;<i>
+</I>&gt;<i> -- 
+</I>&gt;<i> Zed A. Shaw
+</I>&gt;<i> - Hate: <A HREF="http://savingtheinternetwithhate.com/">http://savingtheinternetwithhate.com/</A>
+</I>&gt;<i> - Good: <A HREF="http://www.zedshaw.com/">http://www.zedshaw.com/</A>
+</I>&gt;<i> - Evil: <A HREF="http://yearofevil.com/">http://yearofevil.com/</A>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002372.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+	<LI>Next message: <A HREF="002371.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2373">[ date ]</a>
+              <a href="thread.html#2373">[ thread ]</a>
+              <a href="subject.html#2373">[ subject ]</a>
+              <a href="author.html#2373">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

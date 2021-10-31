@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem with long alphabet type
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20long%20alphabet%20type&In-Reply-To=%3C46E954F4.90209%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000346.html">
+   <LINK REL="Next"  HREF="002111.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem with long alphabet type</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20long%20alphabet%20type&In-Reply-To=%3C46E954F4.90209%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Problem with long alphabet type">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Sep 13 15:19:16 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000346.html">Problem with long alphabet type
+</A></li>
+        <LI>Next message: <A HREF="002111.html">[ragel-users] Re: Problem with long alphabet type
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2110">[ date ]</a>
+              <a href="thread.html#2110">[ thread ]</a>
+              <a href="subject.html#2110">[ subject ]</a>
+              <a href="author.html#2110">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+Semantic conditions don't work with the long type. If this isn't already
+documented somewhere it should be. Also, there should be an error
+emitted. Sorry about that.
+
+The semantic condition feature requires that Ragel be able to allocate
+characters from the alphabet space. Ragel uses these allocated
+characters to express &quot;character c with cond1 true&quot; or &quot;c with cond1
+false.&quot; But internally Ragel uses longs to store characters and so if
+your alphabet type is long there is no more room left in the alphabet
+space to allocate from.
+
+Adrian
+
+Elmin wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I'm working on a project where I need to run tests on Unicode code
+</I>&gt;<i> points -- my idea was to decode them from UTF-8 first, then store them
+</I>&gt;<i> in an array of long integers and run that array through the FSM to
+</I>&gt;<i> validate/parse it.  I'm using semantic conditions to check the
+</I>&gt;<i> categories of the symbols.  The problem is that when I set the
+</I>&gt;<i> alphabet type to &quot;long&quot; or &quot;unsigned long&quot; I get compiler warnings:
+</I>&gt;<i> 
+</I>&gt;<i> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+</I>&gt;<i> C90
+</I>&gt;<i> longtest.c:109: warning: this decimal constant is unsigned only in ISO
+</I>&gt;<i> C90
+</I>&gt;<i> longtest.rl:9: warning: integer constant is too large for 'long' type
+</I>&gt;<i> 
+</I>&gt;<i> Also, the FSMs don't seem to work as expected.  Here's the sample
+</I>&gt;<i> program I wrote to isolate the issue somewhat, which is pretty similar
+</I>&gt;<i> to the semantic conditions example from the guide:
+</I>&gt;<i> 
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>   machine longtest;
+</I>&gt;<i> 
+</I>&gt;<i> action rec_num { i = 0; n = fc-'0'; }
+</I>&gt;<i> action test_len { i++ &lt; n }
+</I>&gt;<i>   main := (
+</I>&gt;<i> 'd'
+</I>&gt;<i> [0-9] @rec_num
+</I>&gt;<i> ':'
+</I>&gt;<i> ( [a-z] when test_len )*
+</I>&gt;<i> )**;
+</I>&gt;<i> 
+</I>&gt;<i>   write data;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> int main(int argc, char *argv[])
+</I>&gt;<i> {
+</I>&gt;<i>   long data[] = {'d', '2', ':', 'c', 'z'};
+</I>&gt;<i>   long *p = data, *pe = data+5;
+</I>&gt;<i>   int cs, i, n;
+</I>&gt;<i> 
+</I>&gt;<i>   %% write init;
+</I>&gt;<i>   %% write exec;
+</I>&gt;<i> 
+</I>&gt;<i>   if (cs == longtest_error &amp;&amp; *p != 0)
+</I>&gt;<i>     {
+</I>&gt;<i>       printf(&quot;Error: %i\n&quot;, (int)*p);
+</I>&gt;<i>     }
+</I>&gt;<i>   else
+</I>&gt;<i>     printf(&quot;No Error!\n&quot;);
+</I>&gt;<i> 
+</I>&gt;<i>   return 0;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> It should print &quot;No Error!&quot;  It does, if the alphabet type is set to
+</I>&gt;<i> anything smaller than &quot;long&quot;, but in the form above it always prints
+</I>&gt;<i> &quot;Error: 99&quot; -- anyone have any ideas?  It almost seems like Ragel is
+</I>&gt;<i> using the wrong limits or something.  This is on OS X 10.4 on PPC, and
+</I>&gt;<i> I saw the same behavior with Ragel versions 5.19 and 5.23.  The
+</I>&gt;<i> compiler is GCC 4.0.1.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Elmin
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070913/c5c3971a/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070913/c5c3971a/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000346.html">Problem with long alphabet type
+</A></li>
+	<LI>Next message: <A HREF="002111.html">[ragel-users] Re: Problem with long alphabet type
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2110">[ date ]</a>
+              <a href="thread.html#2110">[ thread ]</a>
+              <a href="subject.html#2110">[ subject ]</a>
+              <a href="author.html#2110">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

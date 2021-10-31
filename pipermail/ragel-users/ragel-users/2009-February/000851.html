@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel Ruby generated code uses singleton class so	it's not thread safe
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20Ruby%20generated%20code%20uses%20singleton%20class%20so%0A%09it%27s%20not%20thread%20safe&In-Reply-To=%3Ccc1f582e0902040649x456dadabm69f9d43f4560ae9e%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000858.html">
+   <LINK REL="Next"  HREF="000852.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel Ruby generated code uses singleton class so	it's not thread safe</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%20Ruby%20generated%20code%20uses%20singleton%20class%20so%0A%09it%27s%20not%20thread%20safe&In-Reply-To=%3Ccc1f582e0902040649x456dadabm69f9d43f4560ae9e%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Ragel Ruby generated code uses singleton class so	it's not thread safe">ibc at aliax.net
+       </A><BR>
+    <I>Wed Feb  4 14:49:03 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000858.html">[ragel-users] Setting the &quot;main := XXXX&quot; value dynamically	[SOLVED]
+</A></li>
+        <LI>Next message: <A HREF="000852.html">[ragel-users] Ragel Ruby generated code uses singleton class so	it's not thread safe [INVALID]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#851">[ date ]</a>
+              <a href="thread.html#851">[ thread ]</a>
+              <a href="subject.html#851">[ subject ]</a>
+              <a href="author.html#851">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, i'm using Ragel parser generating Ruby code. The generated code
+uses a Class instead of an instance, and that class has lots of
+attributes and methods. Something like:
+
+--------------
+class MyParser
+
+   class &lt;&lt; self
+       attr_accessor :_machine_trans_keys
+       private :_machine_trans_keys, :_machine_trans_keys=
+   end
+
+ self._machine_trans_keys = [
+       0, 0, 9, 34, 10, 10,
+       9, 32, 9, 34, -64,
+       126, -128, -65, -128, -65,
+       -128, -65, -128, -65, -128, -65,
+       10, 10, 9, 32, 13,
+       13, 10, 10, 0, 127,
+       0, 0, 0
+   ]
+
+ ...
+ ...
+
+ def self.run_machine(data)
+     ...
+ end
+
+end
+-------------
+
+
+So I wonder how could I use this class into a threaded program. A Ruby
+singleton class is the Class itself, so if a running thread modifies
+some Class attribute then all the other threads will see that change (error!!!).
+
+As an ilustration, please run the following Ruby code:
+
+-----------------------
+#!/usr/bin/env ruby
+
+class Test
+
+	class &lt;&lt; self
+		attr_accessor :my_string
+	end
+
+	self.my_string = &quot;initial value&quot;
+
+end
+
+t1 = Thread.new(Test) do |test|
+	puts &quot;--- I'm thread 1:&quot;
+	puts &quot;---   Writting: my_string = 'new value'&quot;
+	test.my_string = &quot;new value&quot;
+	puts &quot;---   Reading:  my_string = #{test.my_string}&quot;
+end
+
+sleep 0.5
+
+t2 = Thread.new(Test) do |test|
+	puts &quot;--- I'm thread 2:&quot;
+	puts &quot;---   Reading:  my_string = #{test.my_string}&quot;
+end
+
+t1.join
+t2.join
+-----------------------
+
+
+This will generate the following output:
+--------------------
+--- I'm thread 1:
+---   Writting: my_string = 'new value'
+---   Reading:  my_string = new value
+--- I'm thread 2:
+---   Reading:  my_string = new value
+-------------------
+
+As you can see, when thread2 gets the value of &quot;my_string&quot; it is &quot;new
+value&quot;, the value set previously by thread1.
+AFAIK there is no way to avoid this problem since &quot;Test&quot; is a class,
+not an instance (we are using the Singleton mode).
+
+
+Now imagine that instead of Test we use MyParser with Ragel code
+generated (Singleton class again). We would have the same problem.
+
+
+Why does the Ruby generated code make use of Singleton class instead
+of creating instance methods and attributes?
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000858.html">[ragel-users] Setting the &quot;main := XXXX&quot; value dynamically	[SOLVED]
+</A></li>
+	<LI>Next message: <A HREF="000852.html">[ragel-users] Ragel Ruby generated code uses singleton class so	it's not thread safe [INVALID]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#851">[ date ]</a>
+              <a href="thread.html#851">[ thread ]</a>
+              <a href="subject.html#851">[ subject ]</a>
+              <a href="author.html#851">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

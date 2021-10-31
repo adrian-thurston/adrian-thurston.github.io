@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Matching characters written as hex codes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Matching%20characters%20written%20as%20hex%20codes&In-Reply-To=%3Cda41fc59-31f2-4fdd-bf6c-07bd4e689c96%40a1g2000hsb.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000676.html">
+   <LINK REL="Next"  HREF="000678.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Matching characters written as hex codes</H1>
+    <B>Macy</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Matching%20characters%20written%20as%20hex%20codes&In-Reply-To=%3Cda41fc59-31f2-4fdd-bf6c-07bd4e689c96%40a1g2000hsb.googlegroups.com%3E"
+       TITLE="Matching characters written as hex codes">macyg... at gmail.com
+       </A><BR>
+    <I>Sun Jun  1 20:06:01 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000676.html">[ragel-users] Matching characters written as hex codes
+</A></li>
+        <LI>Next message: <A HREF="000678.html">[ragel-users] Re: Matching characters written as hex codes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#677">[ date ]</a>
+              <a href="thread.html#677">[ thread ]</a>
+              <a href="subject.html#677">[ subject ]</a>
+              <a href="author.html#677">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+
+On Jun 1, 10:13 pm, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Macy wrote:
+</I>&gt;<i> &gt; bom = 0xFE 0xFF @{ fprintf(stderr, &quot;\nGot BOM UTF16&quot;); };  -&gt; doesn't
+</I>&gt;<i> &gt; match
+</I>&gt;<i>
+</I>&gt;<i> This one should work.
+</I>&gt;<i>
+</I>
+This example doesn't work for me. Perhaps I'm doing something wrong...
+
+-------------
+(begin)-----------------------------------------------------
+#include &lt;stdio.h&gt;
+
+%%{
+
+machine test;
+
+action error { fprintf(stderr,&quot;\nError!\n&quot;); }
+bom_utf16_le = 0xFE 0xFF @{ fprintf(stderr, &quot;\nGot BOM UTF16 le&quot;); };
+bom_utf16_be = 0xFF 0xFE @{ fprintf(stderr, &quot;\nGot BOM UTF16 be&quot;); };
+
+}%%
+
+int main()
+{
+	int cs;
+	char* buf = &quot;\xFF\xFE&quot;;
+	char* p = buf;
+	char* pe = buf + 2;
+	char* eof = pe;
+
+	%%{
+		write data;
+		write init;
+		main := (bom_utf16_le | bom_utf16_be) $err(error);
+		write exec;
+	}%%
+
+    return 0;
+}
+-------------
+(end)-----------------------------------------------------
+
+$ ragel -C test.rl &amp;&amp; gcc test.c -o test &amp;&amp; ./test
+
+Error!
+$
+
+rlgen-dot doesn't work for some reason, it crashes.
+
+$ ragel -x test.rl &gt; test.xml &amp;&amp; rlgen-dot test.xml
+digraph test {
+        rankdir=LR;
+        node [ shape = point ];
+        ENTRY;
+        en_1;
+        eof_1;
+        eof_2;
+        eof_3;
+        node [ shape = circle, height = 0.2 ];
+        err_1 [ label=&quot;&quot;];
+        err_2 [ label=&quot;&quot;];
+        err_3 [ label=&quot;&quot;];
+        err_4 [ label=&quot;&quot;];
+        node [ fixedsize = true, height = 0.65, shape =
+doublecircle ];
+        4;
+        node [ shape = circle ];
+Segmentation fault (core dumped)
+
+$ gdb `which rlgen-dot` core
+[.............]
+[New process 18840]
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+52      ../common/common.h: No such file or directory.
+        in ../common/common.h
+(gdb) bt
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+#1  0x000000000040311b in GraphvizDotGen::ONCHAR (this=0x1b6e270,
+lowKey=@0x7fffc4b4b850, highKey=@0x7fffc4b4b840) at gvdotgen.cpp:136
+#2  0x0000000000403924 in GraphvizDotGen::writeTransList
+(this=0x1b6e270, state=0x1b6ea68) at gvdotgen.cpp:188
+#3  0x0000000000404015 in GraphvizDotGen::writeDotFile
+(this=0x1b6e270) at gvdotgen.cpp:284
+#4  0x00000000004043e3 in GraphvizDotGen::finishRagelDef
+(this=0x1b6e270) at gvdotgen.cpp:325
+#5  0x0000000000412ea7 in Parser::parseLangEl (this=0x7fffc4b4d1d0,
+type=195, token=0x7fffc4b4c0d0) at xmlparse.kl:132
+#6  0x00000000004159ff in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, tok=@0x7fffc4b4c0d0) at xmlparse.kl:960
+#7  0x0000000000415b0d in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, col=1, line=84) at xmlparse.kl:972
+#8  0x0000000000410f47 in xml_parse (input=@0x1b68010,
+fileName=0x7fffc4b4ec8e &quot;test.xml&quot;, outputActive=false,
+wantComplete=false) at xmlscan.rl:265
+#9  0x0000000000402821 in main (argc=2, argv=0x7fffc4b4d488) at
+main.cpp:225
+
+$ ragel -v
+Ragel State Machine Compiler version 6.2 March 2008
+Copyright (c) 2001-2007 by Adrian Thurston
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000676.html">[ragel-users] Matching characters written as hex codes
+</A></li>
+	<LI>Next message: <A HREF="000678.html">[ragel-users] Re: Matching characters written as hex codes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#677">[ date ]</a>
+              <a href="thread.html#677">[ thread ]</a>
+              <a href="subject.html#677">[ subject ]</a>
+              <a href="author.html#677">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

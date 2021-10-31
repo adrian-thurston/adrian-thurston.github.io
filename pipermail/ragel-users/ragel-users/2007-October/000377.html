@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> ruby code generation question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20ruby%20code%20generation%20question&In-Reply-To=%3C5C1E4D66-55D0-4F32-A8CA-15876FD5E9E4%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002139.html">
+   <LINK REL="Next"  HREF="002141.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>ruby code generation question</H1>
+    <B>Chuck Remes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20ruby%20code%20generation%20question&In-Reply-To=%3C5C1E4D66-55D0-4F32-A8CA-15876FD5E9E4%40mac.com%3E"
+       TITLE="ruby code generation question">cremes.devl... at mac.com
+       </A><BR>
+    <I>Thu Oct  4 15:14:34 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002139.html">[ragel-users] Re: Ruby and Java code generation
+</A></li>
+        <LI>Next message: <A HREF="002141.html">ruby code generation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#377">[ date ]</a>
+              <a href="thread.html#377">[ thread ]</a>
+              <a href="subject.html#377">[ subject ]</a>
+              <a href="author.html#377">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I'm writing a scanner using Ragel and Ruby, but I'm coming up against  
+a problem that I can't seem to figure out. If I try to wrap the  
+machine in a class, I get a peculiar error that it can't figure out.  
+Here's a bit of sample code to illustrate.
+
+#
+# @LANG: ruby
+#
+
+
+%%{
+     machine orcscanner;
+
+     letters = [a-zA-Z]+;
+     numbers = [0-9]+;
+     spaces = [ \t\n]+;
+     other = [\[:\.\]\-=|]+;
+
+     main := |*
+
+             ( numbers | letters | spaces | '{' | '}' | other );
+
+     *|;
+
+}%%
+
+%% write data;
+
+
+   def parse_line(data)
+     p = 0;
+     pe = data.length;
+     cs = 0;
+     tokstart = 0;
+     tokend = 0;
+     act = 0;
+
+     %% write init;
+     %% write exec;
+     %% write eof;
+
+     if cs == orcscanner_error
+       puts &quot;SCANNER_ERROR&quot;
+     end
+
+   end
+
+
+
+inp = [
+                 &quot;76 } sadf&quot;,
+                 &quot;Oct  1 09:50:33.37204 [29193]: {test text}&quot;
+]
+
+inp.each { |str|
+                 puts &quot;input = #{str}&quot;
+                 parse_line(str)
+         }
+
+This all works just fine (though it does nothing). If I wrap it in a  
+class I get an error:
+
+class SomeClass
+
+&lt;code listed above&gt;
+
+inp = [
+                 &quot;76 } sadf&quot;,
+                 &quot;Oct  1 09:50:33.37204 [29193]: {test text}&quot;
+]
+
+t = SomeClass.new
+
+inp.each { |str|
+                 puts &quot;input = #{str}&quot;
+                 t.parse_line(str)
+         }
+
+end
+
+Here's the error I get:
+
+t.rb:146:in `parse_line': undefined local variable or method  
+`orcscanner_start' for #&lt;SomeClass:0x1cac0&gt; (NameError)
+         from t.rb:322
+         from t.rb:320:in `each'
+         from t.rb:320
+
+Looking at the ruby code I see that orcscanner_start is defined like so:
+
+class &lt;&lt; self
+         attr_accessor :orcscanner_start
+end
+self.orcscanner_start = 1;
+
+This is adding a class method #orcscanner_start to the current class  
+(self). I guess it works fine when adding to Object (the default  
+class) but not my custom class. Why? What am I doing wrong?
+
+The reason I want to do this is so my ragel actions can call methods  
+or access variables that are part of my custom class. I have things  
+nicely encapsulated.
+
+Thanks for any help or pointers.
+
+cr
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002139.html">[ragel-users] Re: Ruby and Java code generation
+</A></li>
+	<LI>Next message: <A HREF="002141.html">ruby code generation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#377">[ date ]</a>
+              <a href="thread.html#377">[ thread ]</a>
+              <a href="subject.html#377">[ subject ]</a>
+              <a href="author.html#377">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

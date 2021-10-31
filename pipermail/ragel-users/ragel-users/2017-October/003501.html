@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel] Handling non-determinism with backtracking
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel%5D%20Handling%20non-determinism%20with%20backtracking&In-Reply-To=%3C59D92BD2.1060604%40openfortress.nl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003500.html">
+   <LINK REL="Next"  HREF="003503.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel] Handling non-determinism with backtracking</H1>
+    <B>Rick van Rein</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel%5D%20Handling%20non-determinism%20with%20backtracking&In-Reply-To=%3C59D92BD2.1060604%40openfortress.nl%3E"
+       TITLE="[ragel] Handling non-determinism with backtracking">rick at openfortress.nl
+       </A><BR>
+    <I>Sat Oct  7 19:32:34 UTC 2017</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003500.html">[ragel] Binary data and bits
+</A></li>
+        <LI>Next message: <A HREF="003503.html">[ragel] Handling non-determinism with backtracking
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3501">[ date ]</a>
+              <a href="thread.html#3501">[ thread ]</a>
+              <a href="subject.html#3501">[ subject ]</a>
+              <a href="author.html#3501">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+I finally have a good application of Ragel :-D and really enjoy
+capturing aspects of email grammar into orthogonal regular expressions!
+
+I am working on a Lenient DKIM extension, and need to detect email
+headers and MIME structure and body parts for that purpose.  Since MIME
+bodies are the only recursive bits in email syntax, Ragel appears to be
+an excellent tool.
+
+MIME body parts are separated with --boundary, which I have expressed as
+the following form, where the boundary_string will become a comparison
+with a previously collected string.  At any point in a message, there is
+no more than one candidate boundary_string to compare to.
+
+mime_multipart_boundary =
+    crlf
+    '-'{2}
+    boundary_string
+    lin_wsp*
+    crlf ;
+
+I would like to backtrack when the boundary_string or other parts of
+this rule mismatch.  In my current syntax there is a
+non-deterministically combining alternative for the last boundary
+string, which I expect to merge with the one above without further
+problems, and otherwise I might do it manually,
+
+mime_multipart_terminal =
+    crlf
+    '-'{2}
+    boundary_string
+    '-'{2}
+    lin_wsp*
+    crlf ;
+
+But when these get together with normal text (that might follow the same
+format) I get uncertain about how to arrange backtracking when the
+boundary_string or other parts of the mime_multipart_boundary or
+_terminal mismatch:
+
+mime_multipart_content =
+    mime_illegal_text?
+    ( mime_multipart_boundary . mime_bodypart ) +
+    mime_multipart_terminal
+    mime_illegal_text? ;
+
+Ideally, at least if Ragel is intended as I understand it, the
+alternative recongition as mime_bodypart should be orthogonal, and so I
+would like to have a way of backtracking into it.  My reading of the
+manual says this is not possible in an orthogonal way, but only through
+in-situ cross-links and structural changes.
+
+If this is indeed not orthogonal, then I would suggest a feature to make
+this possible -- such as an action to execute on mismatches, and a way
+to rerun a parallel expression without involving the current one,
+perhaps.  That might bring about a state explosion, so it may need some
+cleverness :)
+
+
+Other than this, I found Ragel to be really, really helpful by allowing
+me to add constraints orthogonally, like in
+
+whatever_content_wants &amp; utf8char* ;
+
+where utf8char bans illegal and longer-than-usual sequences,
+
+utf8char =
+    0x00..0x7f |
+    0xc2..0xdf . 0x80..0xbf |
+    0xe0       . 0xa0..0xbf . 0x80..0xbf |
+    0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+    0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+
+Thank you for that bright approach!
+
+
+Cheers,
+ -Rick
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003500.html">[ragel] Binary data and bits
+</A></li>
+	<LI>Next message: <A HREF="003503.html">[ragel] Handling non-determinism with backtracking
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3501">[ date ]</a>
+              <a href="thread.html#3501">[ thread ]</a>
+              <a href="subject.html#3501">[ subject ]</a>
+              <a href="author.html#3501">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

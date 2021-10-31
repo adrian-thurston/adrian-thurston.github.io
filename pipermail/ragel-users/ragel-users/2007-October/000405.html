@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [newbie] parsing CSS style
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bnewbie%5D%20parsing%20CSS%20style&In-Reply-To=%3C1192695167.303804.101830%40v29g2000prd.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002167.html">
+   <LINK REL="Next"  HREF="002169.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[newbie] parsing CSS style</H1>
+    <B>Mat|</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bnewbie%5D%20parsing%20CSS%20style&In-Reply-To=%3C1192695167.303804.101830%40v29g2000prd.googlegroups.com%3E"
+       TITLE="[newbie] parsing CSS style">delgad... at caramail.com
+       </A><BR>
+    <I>Thu Oct 18 08:12:47 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002167.html">[ragel-users] for 6.0: going back to 3.X semantics for &gt;, %, err
+</A></li>
+        <LI>Next message: <A HREF="002169.html">[ragel-users] [newbie] parsing CSS style
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#405">[ date ]</a>
+              <a href="thread.html#405">[ thread ]</a>
+              <a href="subject.html#405">[ subject ]</a>
+              <a href="author.html#405">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+I am just discovering ragel and I after some time trying to
+understand how I could use it for my needs, I would like to
+write a CSS style parser as an exercise and I come up
+with some questions.
+
+The input string is in the following form :
+
+min-width: 100px; background: green;
+
+for example.
+
+Here is some code from my .rl file :
+
+%%{
+      machine CSSStyle;
+      alphtype char;
+
+      action token { free(tk); tk = (char *) calloc(fpc-tk_start+1,
+sizeof(char)); std::strncpy(tk, tk_start, fpc-tk_start); }
+      action style_item_value { free(tk2); tk2 = (char *) calloc(fpc-
+tk_start+1, sizeof(char)); std::strncpy(tk2, tk_start, fpc-tk_start);
+listener.style_item_value(tk2); }
+      action unit { free(tk2); tk2=(char *) calloc(fpc-tk_start+1,
+sizeof(char)); std::strncpy(tk2, tk_start, fpc-tk_start); }
+      action style_item { style_item = (char *) calloc(fpc-tk_start+1,
+sizeof(char)); std::strncpy(style_item, tk_start, fpc-tk_start);
+listener.style_item(style_item); free(style_item); }
+      action style_item_size { listener.style_item_size(std::atoi(tk),
+tk2); }
+
+      number =  digit+ &gt;{tk_start = fpc;} %token;
+      style_item = (alpha | '-')+ &gt;{tk_start=fpc;} %style_item;
+      style_item_value = (alpha)+ &gt;{tk_start=fpc;} %style_item_value;
+      unit = (&quot;em&quot;|&quot;px&quot;) &gt;{tk_start=fpc;} %unit;
+      size = number unit %style_item_size;
+      style = space* style_item space* &quot;:&quot; space* (size |
+style_item_value) space* &quot;;&quot;;
+
+      main := style+;
+  }%%
+
+My questions are :
+
+- knowing that my target language is C++, is there a way to do
+something simpler in my actions ? For the moment I use some
+variables like tk and tk2 in a class and I have to reallocate them
+with &quot;calloc&quot;...
+
+- I have got a problem (maybe more than one but I could only
+detect one !) with my machines, indeed in my expressions I always
+have a terminating &quot;;&quot; character but for some reason the style_item
+action is executed even if there is no terminating &quot;;&quot;. For example,
+if I use &quot;background: green&quot; as an input string, the style_item is
+going to be executed but it should not because there is no &quot;;&quot; at
+the end.
+
+Can someone help ?
+
+Thanks in advance!!!
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002167.html">[ragel-users] for 6.0: going back to 3.X semantics for &gt;, %, err
+</A></li>
+	<LI>Next message: <A HREF="002169.html">[ragel-users] [newbie] parsing CSS style
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#405">[ date ]</a>
+              <a href="thread.html#405">[ thread ]</a>
+              <a href="subject.html#405">[ subject ]</a>
+              <a href="author.html#405">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

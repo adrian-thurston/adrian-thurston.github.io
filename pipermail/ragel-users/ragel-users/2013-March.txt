@@ -1,0 +1,1574 @@
+From thurston at complang.org  Wed Mar  6 02:44:31 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 05 Mar 2013 21:44:31 -0500
+Subject: [ragel-users] additional plans for 7.0
+Message-ID: <5136AD8F.7040802@complang.org>
+
+Ragel 7 includes a new implementation of conditions. This has 
+necessitated major changes to the code generators.
+
+While I'm at it, I'm want to take a new approach to code generation. The 
+plan is to generate an intermediate language, then transform that to the 
+various languages that ragel supports.
+
+The transformation will be implemented in Colm.
+
+http://www.complang.org/colm/
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed Mar  6 16:02:12 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Wed, 6 Mar 2013 17:02:12 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+
+Do you plan to use an intermediate language that is already available? E.g. 
+s.th. like CIL: 
+http://www.ecma-international.org/publications/standards/Ecma-335.htm)?
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pazzodalegare at gmail.com  Wed Mar  6 20:42:41 2013
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Wed, 6 Mar 2013 21:42:41 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <CAAbqRXVHmHQfvimfN0jtO=T6JJoc6HSbRj0SxDGvcm4-VgaXrw@mail.gmail.com>
+
+Thank you Adrian for your wonderful work!
+pz
+
+
+Il giorno mercoledì 6 marzo 2013, Adrian Thurston ha scritto:
+
+> Ragel 7 includes a new implementation of conditions. This has necessitated
+> major changes to the code generators.
+>
+> While I'm at it, I'm want to take a new approach to code generation. The
+> plan is to generate an intermediate language, then transform that to the
+> various languages that ragel supports.
+>
+> The transformation will be implemented in Colm.
+>
+> http://www.complang.org/colm/
+>
+> -Adrian
+>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130306/684e8cea/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Mar  8 02:57:55 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 21:57:55 -0500
+Subject: [ragel-users] A generic eof action from a ragel scanner
+In-Reply-To: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+References: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+Message-ID: <513953B3.9000300@complang.org>
+
+There is no native mechanism to express EOF within a scanner. Since your 
+grammar doesn't require a scanner (no backtracking will ever take 
+place), you can kleene star a union of tokens and then wrap that in an 
+eof action. Like this:
+
+main := ( ' ' %{} | '\t' %{} | [0-9]+ %{})** $eof {};
+
+Just note you will be forced to use one character of lookahead. The 
+scanner eliminates lookahead whenever possible.
+
+Another option is to send the null character to the state machine, then 
+write scanner pattern for that.
+
+Regards,
+  Adrian
+
+On 13-02-19 10:14 AM, gonzalo diethelm wrote:
+> I am playing with a typical toy calculator written with ragel and lemon,
+> in C. The scanner is defined like this:
+>
+>    main := |*
+>
+>      number => num_tok;
+>
+>      '('    => lparen_tok;
+>
+>      ')'    => rparen_tok;
+>
+>      '+'    => plus_tok;
+>
+>      '-'    => minus_tok;
+>
+>      '*'    => mul_tok;
+>
+>      '/'    => div_tok;
+>
+>      '^'    => pow_tok;
+>
+>      ws;
+>
+>    *|;
+>
+> Each of the *_tok actions calls the lemon-generated parser. For example:
+>
+>    action pow_tok    { CalcParser(parser, TOKEN_POW, 0); }
+>
+>    action num_tok    { CalcParser(parser, TOKEN_NUM, get_num(ts, te)); }
+>
+> The idea is to pass each argv[] character as a separate expression to
+> compute. So this execution:
+>
+> ./calc 2+3*4 7-5 “2   +    4”
+>
+> Should output three lines:
+>
+> 14
+>
+> 2
+>
+> 6
+>
+> Since the lemon parser has to be informed about the EOF condition, what
+> I am doing is manually informing the parser of this condition right when
+> I have finished processing each one of the argv[] arguments:
+>
+> calc_exec(argv[i], strlen(argv[i]));
+>
+> …
+>
+> void calc_exec (const char* data, int len)
+>
+> {
+>
+>      const char* p = data;
+>
+>      const char* pe = data + len;  // Should this be len+1?
+>
+>      const char* eof = pe;
+>
+>      %% write exec;
+>
+>      /* Make sure we inform the parser we saw the whole input */
+>
+>      CalcParser(parser, 0, 0);
+>
+> }
+>
+> But what I would really like to do is to add a “generic EOF action” to
+> the scanner, that issued this final call to the parser:
+>
+>    ??? %eof(CalcParser(parser, 0, 0);)
+>
+> I have not been able to found how to specify this “generic EOF action”
+> to my ragel scanner. Is this even possible? Is it the right approach?
+>
+> Thanks for any help. And thanks for the great tool that ragel is.
+>
+> --
+>
+> Gonzalo Diethelm
+>
+> DCV Chile
+>
+> ------------------------------------------------------------------------
+>
+> Declaración de confidencialidad: Este Mensaje esta destinado para el uso
+> de la o las personas o entidades a quien ha sido dirigido y puede
+> contener información reservada y confidencial que no puede ser
+> divulgada, difundida, ni aprovechada en forma alguna. El uso no
+> autorizado de la información contenida en este correo podrá ser
+> sancionado de conformidad con la ley chilena. Si usted ha recibido este
+> correo electrónico por error, le pedimos eliminarlo junto con los
+> archivos adjuntos y avisar inmediatamente al remitente, respondiendo
+> este mensaje.
+>
+> Disclosure: This Message is to be used by the individual, individuals or
+> entities that it is addressed to and may include private and
+> confidential information that may not be disclosed, made public nor used
+> in any way at all. Unauthorized use of the information in this
+> electronic mail message may be subject to the penalties set forth by
+> Chilean law. If you have received this electronic mail message in error,
+> we ask you to destroy the message and its attached file(s) and to
+> immediately notify the sender by answering this message.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:09:40 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:09:40 -0500
+Subject: [ragel-users] ragel 6.8 released
+In-Reply-To: <5B425CF7231840AEA9E39A16067A325D@localdomain>
+References: <51199C41.4070000@complang.org>
+	<5B425CF7231840AEA9E39A16067A325D@localdomain>
+Message-ID: <51395674.5080107@complang.org>
+
+Thanks Josef, I just updated the homepage.
+
+On 13-02-24 06:23 AM, ragel-user at jgoettgens.de wrote:
+> Hi,
+>
+> I have updated the native Windows binaries for Ragel 6.8. The binaries
+> and the (slightly) modified sources can be found here:
+>
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2012.7z
+>
+> The project now uses Visual Studio 2012 such that you now need the
+> latest runtime libraries for Visual Studio 2012 in case Ragel doesn't
+> want to start.
+>
+> There are a few small changes to calm the Microsoft compiler and the
+> path hack introduced for vs. 6.7 is still in place. Let me know about
+> any problems as I did not yet have the time for intense testing.
+>
+> jg
+>
+> ---
+> Not sent from my iWuddaYaCallit.
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:20:16 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:20:16 -0500
+Subject: [ragel-users] Rule skipped.
+In-Reply-To: <CANDuHTJ-uo4L=OyueRX9VVJYJod45aRLZ6tyh+99=tYiuNR8aA@mail.gmail.com>
+References: <CANDuHTJ-uo4L=OyueRX9VVJYJod45aRLZ6tyh+99=tYiuNR8aA@mail.gmail.com>
+Message-ID: <513958F0.2050001@complang.org>
+
+I'm not sure why that might be happening. I'm not able to reproduce the 
+behaviour. Can you post the complete program?
+
+-Adrian
+
+On 13-03-04 09:34 AM, Alessio Giovanni Baroni wrote:
+> Hi to all,
+>
+> I have the following definitions:
+>
+> %%{
+>
+> machine oolang_lexer;
+>
+> alphtype unsigned char;
+>
+> main := |*
+>
+>      (0x01 .. 0x20)+ => { cout << "foo" << endl; };
+>
+>      [a-zA-Z_][a-zA-Z0-9_]* => {
+>      tok = IDENTIFIER;
+>      yylval = string (ts, te - ts).c_str ();
+>      fbreak;
+>      };
+>
+> *|;
+>
+> }%%
+>
+> If the input contains "abc def", the readed token is "abcdef" without
+> space, but it never print
+> "foo" on terminal. Why? I don't know .....
+>
+> Thanks.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:26:43 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:26:43 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+Message-ID: <51395A73.8030103@complang.org>
+
+At this point I'm not sure. The intermediate language would need common 
+high-level constructs such as if blocks, while loops, arrays, etc. CIL 
+seems to be targeted at machine code.
+
+On 13-03-06 11:02 AM, ragel-user at jgoettgens.de wrote:
+> Do you plan to use an intermediate language that is already available?
+> E.g. s.th. like CIL:
+> http://www.ecma-international.org/publications/standards/Ecma-335.htm)
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Fri Mar  8 11:21:50 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Fri, 8 Mar 2013 12:21:50 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <51395A73.8030103@complang.org>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+Message-ID: <49C6F99445224776BAE7EC83C3E988F9@localdomain>
+
+Yes, but does it hurt? My understanding is that you are using a 
+transformation tool anyway. Personally I would say that a lower level 
+description is a perfect match for an FSM, which would also give you more 
+freedom to implement the characterics of a higher level language. If the 
+intermediate language is already at a fairly high level, anything derived 
+from that probably soon faces the problem of the lowest common denominator.
+
+There are decompilers available for CIL that typically generate C# code. As 
+a start, one could look at them to see how they deal with the code 
+generation.
+
+I have not looked at Colm yet, but some time ago I played with txl. Txl 
+seems to be more suitable for text based transformations. Working with CIL 
+probably asks for implementing sequences of tree transformations at a binary 
+level until you arrive at something that can easily be printed out as native 
+source code.
+
+This way one could easily support native looking C++, Lisp, or FORTRAN 77 
+(not really). CIL byte code is more or less language independent.
+
+I would have a personal interest in this kind of low level stuff, so I could 
+contribute more than usual.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar  9 15:30:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 09 Mar 2013 10:30:37 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <49C6F99445224776BAE7EC83C3E988F9@localdomain>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+Message-ID: <513B559D.2050906@complang.org>
+
+If the intermediate language doesn't have high-level constructs then 
+we're going to be compiling them out, only to have to bring them back 
+for the transformation to the target languages (C, Java, Ruby, etc). 
+That strikes me as the wrong approach.
+
+On 13-03-08 06:21 AM, ragel-user at jgoettgens.de wrote:
+> Yes, but does it hurt? My understanding is that you are using a
+> transformation tool anyway. Personally I would say that a lower level
+> description is a perfect match for an FSM, which would also give you
+> more freedom to implement the characterics of a higher level language.
+> If the intermediate language is already at a fairly high level, anything
+> derived from that probably soon faces the problem of the lowest common
+> denominator.
+>
+> There are decompilers available for CIL that typically generate C# code.
+> As a start, one could look at them to see how they deal with the code
+> generation.
+>
+> I have not looked at Colm yet, but some time ago I played with txl. Txl
+> seems to be more suitable for text based transformations. Working with
+> CIL probably asks for implementing sequences of tree transformations at
+> a binary level until you arrive at something that can easily be printed
+> out as native source code.
+>
+> This way one could easily support native looking C++, Lisp, or FORTRAN
+> 77 (not really). CIL byte code is more or less language independent.
+>
+> I would have a personal interest in this kind of low level stuff, so I
+> could contribute more than usual.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From antage at gmail.com  Sat Mar  9 16:25:41 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Sat, 9 Mar 2013 20:25:41 +0400
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+
+On Wed, Mar 6, 2013 at 6:44 AM, Adrian Thurston <thurston at complang.org>wrote:
+
+> The transformation will be implemented in Colm.
+>
+> http://www.complang.org/colm/
+>
+
+Any plans for Colm manual?
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130309/da3cc455/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Mar  9 16:28:38 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 09 Mar 2013 11:28:38 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+References: <5136AD8F.7040802@complang.org>
+	<CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+Message-ID: <513B6336.9010109@complang.org>
+
+Plans, yes :) I can't say exactly when it will happen though. Right now 
+I'm giving it a self-hosted grammar. After that I want to make a few 
+tweaks to the language, then documentation will be next.
+
+On 13-03-09 11:25 AM, Anton Ageev wrote:
+> On Wed, Mar 6, 2013 at 6:44 AM, Adrian Thurston <thurston at complang.org
+> <mailto:thurston at complang.org>> wrote:
+>
+>     The transformation will be implemented in Colm.
+>
+>     http://www.complang.org/colm/
+>
+>
+> Any plans for Colm manual?
+>
+> --
+> WBR, Anton
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sat Mar  9 21:13:10 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 9 Mar 2013 22:13:10 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <513B559D.2050906@complang.org>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain><51395A73.8030103@complang.org><49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+Message-ID: <F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+
+I see your point. I'd tend to think that the source code is unlikely to look 
+like human written code anyway. So why not use to s.th that is closer to the 
+machine (20 different branch instructions may even look cool). In a way one 
+would always have to think in terms of s.th like an assembler language and 
+the translations to a higher level language would be for practical purposes 
+only.
+
+Do you have s.th. like the following in mind? An abstract loop declaration 
+could be mapped in C++ either to individual statements or s.th. that uses an 
+STL algorithm (e.g. for_each). In a way there would be a bunch of higher 
+level building blocks, maybe sometimes with more than 1 option for a single 
+language. So the intermediate language would specify the algorithm 
+essentially in terms of these building blocks.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From b at bvanderveen.com  Sat Mar  9 22:49:46 2013
+From: b at bvanderveen.com (Benjamin van der Veen)
+Date: Sat, 9 Mar 2013 14:49:46 -0800
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+	<F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+Message-ID: <E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+
+
+
+On Mar 9, 2013, at 13:13, <ragel-user at jgoettgens.de> wrote:
+
+> s.th 
+
+Pardon my ignorance, but what is s.th? It's a bit tough to Google. ;)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dan.kortschak at adelaide.edu.au  Sat Mar  9 23:10:40 2013
+From: dan.kortschak at adelaide.edu.au (Dan Kortschak)
+Date: Sat, 9 Mar 2013 23:10:40 +0000
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+	<F37C0BB10A1146418A3CF3D488C7DC70@localdomain>,
+	<E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+Message-ID: <24637E5C-E45A-44FA-BE1D-4DFECC67E1BE@adelaide.edu.au>
+
+My guess: "some thing"
+
+>> Pardon my ignorance, but what is s.th? It's a bit tough to Google. ;)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Mar 10 00:39:33 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 10 Mar 2013 00:39:33 +0000
+Subject: [ragel-users] additional plans for 7.0
+Message-ID: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+
+You got it. Write out ragel implementations in some generic algol-like language, then translate that to the various languages that ragel supports. The coder writing the translator does not need to understand ragel semantics in depth, only the mapping from the intermediate language to the target language.
+
+Adrian
+------Original Message------
+From: ragel-user at jgoettgens.de
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: Re: [ragel-users] additional plans for 7.0
+Sent: Mar 9, 2013 4:13 PM
+
+I see your point. I'd tend to think that the source code is unlikely to look 
+like human written code anyway. So why not use to s.th that is closer to the 
+machine (20 different branch instructions may even look cool). In a way one 
+would always have to think in terms of s.th like an assembler language and 
+the translations to a higher level language would be for practical purposes 
+only.
+
+Do you have s.th. like the following in mind? An abstract loop declaration 
+could be mapped in C++ either to individual statements or s.th. that uses an 
+STL algorithm (e.g. for_each). In a way there would be a bunch of higher 
+level building blocks, maybe sometimes with more than 1 option for a single 
+language. So the intermediate language would specify the algorithm 
+essentially in terms of these building blocks.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Mar 10 14:07:26 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 10 Mar 2013 15:07:26 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+References: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+Message-ID: <8B36C03E79414F90B4D1133AB16C421D@localdomain>
+
+Adrian, what would you be offering to a language implementer? I'd prefer an 
+AST for simplicity :), but I fear you would prefer the intermediate plain 
+text language only. Implementers are then supposed to use a tool like txl 
+(or colm) to generate their target language.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Mar 10 14:23:25 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 10 Mar 2013 10:23:25 -0400
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <8B36C03E79414F90B4D1133AB16C421D@localdomain>
+References: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+	<8B36C03E79414F90B4D1133AB16C421D@localdomain>
+Message-ID: <513C975D.3070805@complang.org>
+
+Colm can generate a C++ interface to the input grammar. You can either 
+use the Colm transformation language or write C++ code that traverses 
+the intermediate language parse tree.
+
+On 13-03-10 10:07 AM, ragel-user at jgoettgens.de wrote:
+> Adrian, what would you be offering to a language implementer? I'd prefer
+> an AST for simplicity :), but I fear you would prefer the intermediate
+> plain text language only. Implementers are then supposed to use a tool
+> like txl (or colm) to generate their target language.
+>
+> jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ellis.breen at gmail.com  Tue Mar 19 12:20:51 2013
+From: ellis.breen at gmail.com (Ellis Breen)
+Date: Tue, 19 Mar 2013 12:20:51 +0000
+Subject: [ragel-users] Expressing PCREs in Ragel
+Message-ID: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+
+Hi all,
+
+Is there a semantic element, preprocessor or component that will allow me
+to express standard PCREs in Ragel?
+
+I'm not trying to implement a regex engine, but to find the intersection of
+two PCRE search patterns. I believe I've managed to do this by manually
+rewriting PCREs into Ragel format, but I'd like to automate the process, as
+I have a large number of PCREs to compare.
+
+Any hints on how I can do this with Ragel, or an alternative?
+
+This appears to be about the closest I've found to what I need.
+
+Many thanks,
+
+Ellis
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130319/c595a810/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon Mar 25 02:35:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Mar 2013 22:35:37 -0400
+Subject: [ragel-users] Expressing PCREs in Ragel
+In-Reply-To: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+References: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+Message-ID: <514FB7F9.1090907@complang.org>
+
+Not that I'm aware of.
+
+You'll need some parse/transform pass for PCRE to ragel. I'm no expert 
+on PCRE syntax, so I can't really comment on how difficult it will be.
+
+I can say PCRE and ragel use different implementation techniques though, 
+so you may run into some road blocks on those grounds. Ragel is pure 
+DFA, while PCRE uses some mix of DFA and an interpretor that backtracks.
+
+-Adrian
+
+On 13-03-19 08:20 AM, Ellis Breen wrote:
+> Hi all,
+>
+> Is there a semantic element, preprocessor or component that will allow
+> me to express standard PCREs in Ragel?
+>
+> I'm not trying to implement a regex engine, but to find the intersection
+> of two PCRE search patterns. I believe I've managed to do this by
+> manually rewriting PCREs into Ragel format, but I'd like to automate the
+> process, as I have a large number of PCREs to compare.
+>
+> Any hints on how I can do this with Ragel, or an alternative?
+>
+> This appears to be about the closest I've found to what I need.
+>
+> Many thanks,
+>
+> Ellis
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Mar  6 02:44:31 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 05 Mar 2013 21:44:31 -0500
+Subject: [ragel-users] additional plans for 7.0
+Message-ID: <5136AD8F.7040802@complang.org>
+
+Ragel 7 includes a new implementation of conditions. This has 
+necessitated major changes to the code generators.
+
+While I'm at it, I'm want to take a new approach to code generation. The 
+plan is to generate an intermediate language, then transform that to the 
+various languages that ragel supports.
+
+The transformation will be implemented in Colm.
+
+http://www.complang.org/colm/
+
+-Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed Mar  6 16:02:12 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Wed, 6 Mar 2013 17:02:12 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+
+Do you plan to use an intermediate language that is already available? E.g. 
+s.th. like CIL: 
+http://www.ecma-international.org/publications/standards/Ecma-335.htm)?
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pazzodalegare at gmail.com  Wed Mar  6 20:42:41 2013
+From: pazzodalegare at gmail.com (Pazzo Da Legare)
+Date: Wed, 6 Mar 2013 21:42:41 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <CAAbqRXVHmHQfvimfN0jtO=T6JJoc6HSbRj0SxDGvcm4-VgaXrw@mail.gmail.com>
+
+Thank you Adrian for your wonderful work!
+pz
+
+
+Il giorno mercoledì 6 marzo 2013, Adrian Thurston ha scritto:
+
+> Ragel 7 includes a new implementation of conditions. This has necessitated
+> major changes to the code generators.
+>
+> While I'm at it, I'm want to take a new approach to code generation. The
+> plan is to generate an intermediate language, then transform that to the
+> various languages that ragel supports.
+>
+> The transformation will be implemented in Colm.
+>
+> http://www.complang.org/colm/
+>
+> -Adrian
+>
+> ______________________________**_________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/**mailman/listinfo/ragel-users<http://www.complang.org/mailman/listinfo/ragel-users>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130306/684e8cea/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Mar  8 02:57:55 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 21:57:55 -0500
+Subject: [ragel-users] A generic eof action from a ragel scanner
+In-Reply-To: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+References: <4F4FDE116B345144A888AD9C186FE3128AF69B@aowmail1.dcv.net>
+Message-ID: <513953B3.9000300@complang.org>
+
+There is no native mechanism to express EOF within a scanner. Since your 
+grammar doesn't require a scanner (no backtracking will ever take 
+place), you can kleene star a union of tokens and then wrap that in an 
+eof action. Like this:
+
+main := ( ' ' %{} | '\t' %{} | [0-9]+ %{})** $eof {};
+
+Just note you will be forced to use one character of lookahead. The 
+scanner eliminates lookahead whenever possible.
+
+Another option is to send the null character to the state machine, then 
+write scanner pattern for that.
+
+Regards,
+  Adrian
+
+On 13-02-19 10:14 AM, gonzalo diethelm wrote:
+> I am playing with a typical toy calculator written with ragel and lemon,
+> in C. The scanner is defined like this:
+>
+>    main := |*
+>
+>      number => num_tok;
+>
+>      '('    => lparen_tok;
+>
+>      ')'    => rparen_tok;
+>
+>      '+'    => plus_tok;
+>
+>      '-'    => minus_tok;
+>
+>      '*'    => mul_tok;
+>
+>      '/'    => div_tok;
+>
+>      '^'    => pow_tok;
+>
+>      ws;
+>
+>    *|;
+>
+> Each of the *_tok actions calls the lemon-generated parser. For example:
+>
+>    action pow_tok    { CalcParser(parser, TOKEN_POW, 0); }
+>
+>    action num_tok    { CalcParser(parser, TOKEN_NUM, get_num(ts, te)); }
+>
+> The idea is to pass each argv[] character as a separate expression to
+> compute. So this execution:
+>
+> ./calc 2+3*4 7-5 “2   +    4”
+>
+> Should output three lines:
+>
+> 14
+>
+> 2
+>
+> 6
+>
+> Since the lemon parser has to be informed about the EOF condition, what
+> I am doing is manually informing the parser of this condition right when
+> I have finished processing each one of the argv[] arguments:
+>
+> calc_exec(argv[i], strlen(argv[i]));
+>
+> …
+>
+> void calc_exec (const char* data, int len)
+>
+> {
+>
+>      const char* p = data;
+>
+>      const char* pe = data + len;  // Should this be len+1?
+>
+>      const char* eof = pe;
+>
+>      %% write exec;
+>
+>      /* Make sure we inform the parser we saw the whole input */
+>
+>      CalcParser(parser, 0, 0);
+>
+> }
+>
+> But what I would really like to do is to add a “generic EOF action” to
+> the scanner, that issued this final call to the parser:
+>
+>    ??? %eof(CalcParser(parser, 0, 0);)
+>
+> I have not been able to found how to specify this “generic EOF action”
+> to my ragel scanner. Is this even possible? Is it the right approach?
+>
+> Thanks for any help. And thanks for the great tool that ragel is.
+>
+> --
+>
+> Gonzalo Diethelm
+>
+> DCV Chile
+>
+> ------------------------------------------------------------------------
+>
+> Declaración de confidencialidad: Este Mensaje esta destinado para el uso
+> de la o las personas o entidades a quien ha sido dirigido y puede
+> contener información reservada y confidencial que no puede ser
+> divulgada, difundida, ni aprovechada en forma alguna. El uso no
+> autorizado de la información contenida en este correo podrá ser
+> sancionado de conformidad con la ley chilena. Si usted ha recibido este
+> correo electrónico por error, le pedimos eliminarlo junto con los
+> archivos adjuntos y avisar inmediatamente al remitente, respondiendo
+> este mensaje.
+>
+> Disclosure: This Message is to be used by the individual, individuals or
+> entities that it is addressed to and may include private and
+> confidential information that may not be disclosed, made public nor used
+> in any way at all. Unauthorized use of the information in this
+> electronic mail message may be subject to the penalties set forth by
+> Chilean law. If you have received this electronic mail message in error,
+> we ask you to destroy the message and its attached file(s) and to
+> immediately notify the sender by answering this message.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:09:40 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:09:40 -0500
+Subject: [ragel-users] ragel 6.8 released
+In-Reply-To: <5B425CF7231840AEA9E39A16067A325D@localdomain>
+References: <51199C41.4070000@complang.org>
+	<5B425CF7231840AEA9E39A16067A325D@localdomain>
+Message-ID: <51395674.5080107@complang.org>
+
+Thanks Josef, I just updated the homepage.
+
+On 13-02-24 06:23 AM, ragel-user at jgoettgens.de wrote:
+> Hi,
+>
+> I have updated the native Windows binaries for Ragel 6.8. The binaries
+> and the (slightly) modified sources can be found here:
+>
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2012.7z
+>
+> The project now uses Visual Studio 2012 such that you now need the
+> latest runtime libraries for Visual Studio 2012 in case Ragel doesn't
+> want to start.
+>
+> There are a few small changes to calm the Microsoft compiler and the
+> path hack introduced for vs. 6.7 is still in place. Let me know about
+> any problems as I did not yet have the time for intense testing.
+>
+> jg
+>
+> ---
+> Not sent from my iWuddaYaCallit.
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:20:16 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:20:16 -0500
+Subject: [ragel-users] Rule skipped.
+In-Reply-To: <CANDuHTJ-uo4L=OyueRX9VVJYJod45aRLZ6tyh+99=tYiuNR8aA@mail.gmail.com>
+References: <CANDuHTJ-uo4L=OyueRX9VVJYJod45aRLZ6tyh+99=tYiuNR8aA@mail.gmail.com>
+Message-ID: <513958F0.2050001@complang.org>
+
+I'm not sure why that might be happening. I'm not able to reproduce the 
+behaviour. Can you post the complete program?
+
+-Adrian
+
+On 13-03-04 09:34 AM, Alessio Giovanni Baroni wrote:
+> Hi to all,
+>
+> I have the following definitions:
+>
+> %%{
+>
+> machine oolang_lexer;
+>
+> alphtype unsigned char;
+>
+> main := |*
+>
+>      (0x01 .. 0x20)+ => { cout << "foo" << endl; };
+>
+>      [a-zA-Z_][a-zA-Z0-9_]* => {
+>      tok = IDENTIFIER;
+>      yylval = string (ts, te - ts).c_str ();
+>      fbreak;
+>      };
+>
+> *|;
+>
+> }%%
+>
+> If the input contains "abc def", the readed token is "abcdef" without
+> space, but it never print
+> "foo" on terminal. Why? I don't know .....
+>
+> Thanks.
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Mar  8 03:26:43 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 07 Mar 2013 22:26:43 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+Message-ID: <51395A73.8030103@complang.org>
+
+At this point I'm not sure. The intermediate language would need common 
+high-level constructs such as if blocks, while loops, arrays, etc. CIL 
+seems to be targeted at machine code.
+
+On 13-03-06 11:02 AM, ragel-user at jgoettgens.de wrote:
+> Do you plan to use an intermediate language that is already available?
+> E.g. s.th. like CIL:
+> http://www.ecma-international.org/publications/standards/Ecma-335.htm)
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Fri Mar  8 11:21:50 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Fri, 8 Mar 2013 12:21:50 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <51395A73.8030103@complang.org>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+Message-ID: <49C6F99445224776BAE7EC83C3E988F9@localdomain>
+
+Yes, but does it hurt? My understanding is that you are using a 
+transformation tool anyway. Personally I would say that a lower level 
+description is a perfect match for an FSM, which would also give you more 
+freedom to implement the characterics of a higher level language. If the 
+intermediate language is already at a fairly high level, anything derived 
+from that probably soon faces the problem of the lowest common denominator.
+
+There are decompilers available for CIL that typically generate C# code. As 
+a start, one could look at them to see how they deal with the code 
+generation.
+
+I have not looked at Colm yet, but some time ago I played with txl. Txl 
+seems to be more suitable for text based transformations. Working with CIL 
+probably asks for implementing sequences of tree transformations at a binary 
+level until you arrive at something that can easily be printed out as native 
+source code.
+
+This way one could easily support native looking C++, Lisp, or FORTRAN 77 
+(not really). CIL byte code is more or less language independent.
+
+I would have a personal interest in this kind of low level stuff, so I could 
+contribute more than usual.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar  9 15:30:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 09 Mar 2013 10:30:37 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <49C6F99445224776BAE7EC83C3E988F9@localdomain>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+Message-ID: <513B559D.2050906@complang.org>
+
+If the intermediate language doesn't have high-level constructs then 
+we're going to be compiling them out, only to have to bring them back 
+for the transformation to the target languages (C, Java, Ruby, etc). 
+That strikes me as the wrong approach.
+
+On 13-03-08 06:21 AM, ragel-user at jgoettgens.de wrote:
+> Yes, but does it hurt? My understanding is that you are using a
+> transformation tool anyway. Personally I would say that a lower level
+> description is a perfect match for an FSM, which would also give you
+> more freedom to implement the characterics of a higher level language.
+> If the intermediate language is already at a fairly high level, anything
+> derived from that probably soon faces the problem of the lowest common
+> denominator.
+>
+> There are decompilers available for CIL that typically generate C# code.
+> As a start, one could look at them to see how they deal with the code
+> generation.
+>
+> I have not looked at Colm yet, but some time ago I played with txl. Txl
+> seems to be more suitable for text based transformations. Working with
+> CIL probably asks for implementing sequences of tree transformations at
+> a binary level until you arrive at something that can easily be printed
+> out as native source code.
+>
+> This way one could easily support native looking C++, Lisp, or FORTRAN
+> 77 (not really). CIL byte code is more or less language independent.
+>
+> I would have a personal interest in this kind of low level stuff, so I
+> could contribute more than usual.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From antage at gmail.com  Sat Mar  9 16:25:41 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Sat, 9 Mar 2013 20:25:41 +0400
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <5136AD8F.7040802@complang.org>
+References: <5136AD8F.7040802@complang.org>
+Message-ID: <CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+
+On Wed, Mar 6, 2013 at 6:44 AM, Adrian Thurston <thurston at complang.org>wrote:
+
+> The transformation will be implemented in Colm.
+>
+> http://www.complang.org/colm/
+>
+
+Any plans for Colm manual?
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130309/da3cc455/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Mar  9 16:28:38 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 09 Mar 2013 11:28:38 -0500
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+References: <5136AD8F.7040802@complang.org>
+	<CAFygSNkx5sChWbw=cJum_1WWgm1EtvU3Ox6URdSzRQj3xouUPQ@mail.gmail.com>
+Message-ID: <513B6336.9010109@complang.org>
+
+Plans, yes :) I can't say exactly when it will happen though. Right now 
+I'm giving it a self-hosted grammar. After that I want to make a few 
+tweaks to the language, then documentation will be next.
+
+On 13-03-09 11:25 AM, Anton Ageev wrote:
+> On Wed, Mar 6, 2013 at 6:44 AM, Adrian Thurston <thurston at complang.org
+> <mailto:thurston at complang.org>> wrote:
+>
+>     The transformation will be implemented in Colm.
+>
+>     http://www.complang.org/colm/
+>
+>
+> Any plans for Colm manual?
+>
+> --
+> WBR, Anton
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sat Mar  9 21:13:10 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 9 Mar 2013 22:13:10 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <513B559D.2050906@complang.org>
+References: <5136AD8F.7040802@complang.org><BAD5B8B6040E461D9694DD97850EA1ED@localdomain><51395A73.8030103@complang.org><49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+Message-ID: <F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+
+I see your point. I'd tend to think that the source code is unlikely to look 
+like human written code anyway. So why not use to s.th that is closer to the 
+machine (20 different branch instructions may even look cool). In a way one 
+would always have to think in terms of s.th like an assembler language and 
+the translations to a higher level language would be for practical purposes 
+only.
+
+Do you have s.th. like the following in mind? An abstract loop declaration 
+could be mapped in C++ either to individual statements or s.th. that uses an 
+STL algorithm (e.g. for_each). In a way there would be a bunch of higher 
+level building blocks, maybe sometimes with more than 1 option for a single 
+language. So the intermediate language would specify the algorithm 
+essentially in terms of these building blocks.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From b at bvanderveen.com  Sat Mar  9 22:49:46 2013
+From: b at bvanderveen.com (Benjamin van der Veen)
+Date: Sat, 9 Mar 2013 14:49:46 -0800
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+	<F37C0BB10A1146418A3CF3D488C7DC70@localdomain>
+Message-ID: <E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+
+
+
+On Mar 9, 2013, at 13:13, <ragel-user at jgoettgens.de> wrote:
+
+> s.th 
+
+Pardon my ignorance, but what is s.th? It's a bit tough to Google. ;)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dan.kortschak at adelaide.edu.au  Sat Mar  9 23:10:40 2013
+From: dan.kortschak at adelaide.edu.au (Dan Kortschak)
+Date: Sat, 9 Mar 2013 23:10:40 +0000
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+References: <5136AD8F.7040802@complang.org>
+	<BAD5B8B6040E461D9694DD97850EA1ED@localdomain>
+	<51395A73.8030103@complang.org>
+	<49C6F99445224776BAE7EC83C3E988F9@localdomain>
+	<513B559D.2050906@complang.org>
+	<F37C0BB10A1146418A3CF3D488C7DC70@localdomain>,
+	<E1936DDA-3804-4784-9B63-C3FD62E507C9@bvanderveen.com>
+Message-ID: <24637E5C-E45A-44FA-BE1D-4DFECC67E1BE@adelaide.edu.au>
+
+My guess: "some thing"
+
+>> Pardon my ignorance, but what is s.th? It's a bit tough to Google. ;)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Mar 10 00:39:33 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 10 Mar 2013 00:39:33 +0000
+Subject: [ragel-users] additional plans for 7.0
+Message-ID: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+
+You got it. Write out ragel implementations in some generic algol-like language, then translate that to the various languages that ragel supports. The coder writing the translator does not need to understand ragel semantics in depth, only the mapping from the intermediate language to the target language.
+
+Adrian
+------Original Message------
+From: ragel-user at jgoettgens.de
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: Re: [ragel-users] additional plans for 7.0
+Sent: Mar 9, 2013 4:13 PM
+
+I see your point. I'd tend to think that the source code is unlikely to look 
+like human written code anyway. So why not use to s.th that is closer to the 
+machine (20 different branch instructions may even look cool). In a way one 
+would always have to think in terms of s.th like an assembler language and 
+the translations to a higher level language would be for practical purposes 
+only.
+
+Do you have s.th. like the following in mind? An abstract loop declaration 
+could be mapped in C++ either to individual statements or s.th. that uses an 
+STL algorithm (e.g. for_each). In a way there would be a bunch of higher 
+level building blocks, maybe sometimes with more than 1 option for a single 
+language. So the intermediate language would specify the algorithm 
+essentially in terms of these building blocks.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Mar 10 14:07:26 2013
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 10 Mar 2013 15:07:26 +0100
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+References: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+Message-ID: <8B36C03E79414F90B4D1133AB16C421D@localdomain>
+
+Adrian, what would you be offering to a language implementer? I'd prefer an 
+AST for simplicity :), but I fear you would prefer the intermediate plain 
+text language only. Implementers are then supposed to use a tool like txl 
+(or colm) to generate their target language.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Mar 10 14:23:25 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 10 Mar 2013 10:23:25 -0400
+Subject: [ragel-users] additional plans for 7.0
+In-Reply-To: <8B36C03E79414F90B4D1133AB16C421D@localdomain>
+References: <1366136247-1362875974-cardhu_decombobulator_blackberry.rim.net-1328911177-@b12.c7.bise6.blackberry>
+	<8B36C03E79414F90B4D1133AB16C421D@localdomain>
+Message-ID: <513C975D.3070805@complang.org>
+
+Colm can generate a C++ interface to the input grammar. You can either 
+use the Colm transformation language or write C++ code that traverses 
+the intermediate language parse tree.
+
+On 13-03-10 10:07 AM, ragel-user at jgoettgens.de wrote:
+> Adrian, what would you be offering to a language implementer? I'd prefer
+> an AST for simplicity :), but I fear you would prefer the intermediate
+> plain text language only. Implementers are then supposed to use a tool
+> like txl (or colm) to generate their target language.
+>
+> jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ellis.breen at gmail.com  Tue Mar 19 12:20:51 2013
+From: ellis.breen at gmail.com (Ellis Breen)
+Date: Tue, 19 Mar 2013 12:20:51 +0000
+Subject: [ragel-users] Expressing PCREs in Ragel
+Message-ID: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+
+Hi all,
+
+Is there a semantic element, preprocessor or component that will allow me
+to express standard PCREs in Ragel?
+
+I'm not trying to implement a regex engine, but to find the intersection of
+two PCRE search patterns. I believe I've managed to do this by manually
+rewriting PCREs into Ragel format, but I'd like to automate the process, as
+I have a large number of PCREs to compare.
+
+Any hints on how I can do this with Ragel, or an alternative?
+
+This appears to be about the closest I've found to what I need.
+
+Many thanks,
+
+Ellis
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130319/c595a810/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon Mar 25 02:35:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Mar 2013 22:35:37 -0400
+Subject: [ragel-users] Expressing PCREs in Ragel
+In-Reply-To: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+References: <CAOnX+dRFUg0J1VDZ10pZnM51x3+PpYsTkk2ev8vs0fwpx+2Hzg@mail.gmail.com>
+Message-ID: <514FB7F9.1090907@complang.org>
+
+Not that I'm aware of.
+
+You'll need some parse/transform pass for PCRE to ragel. I'm no expert 
+on PCRE syntax, so I can't really comment on how difficult it will be.
+
+I can say PCRE and ragel use different implementation techniques though, 
+so you may run into some road blocks on those grounds. Ragel is pure 
+DFA, while PCRE uses some mix of DFA and an interpretor that backtracks.
+
+-Adrian
+
+On 13-03-19 08:20 AM, Ellis Breen wrote:
+> Hi all,
+>
+> Is there a semantic element, preprocessor or component that will allow
+> me to express standard PCREs in Ragel?
+>
+> I'm not trying to implement a regex engine, but to find the intersection
+> of two PCRE search patterns. I believe I've managed to do this by
+> manually rewriting PCREs into Ragel format, but I'd like to automate the
+> process, as I have a large number of PCREs to compare.
+>
+> Any hints on how I can do this with Ragel, or an alternative?
+>
+> This appears to be about the closest I've found to what I need.
+>
+> Many thanks,
+>
+> Ellis
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] How do I act on eof in state charts
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20do%20I%20act%20on%20eof%20in%20state%20charts&In-Reply-To=%3C4AE10F28.4050309%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002785.html">
+   <LINK REL="Next"  HREF="002787.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] How do I act on eof in state charts</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20do%20I%20act%20on%20eof%20in%20state%20charts&In-Reply-To=%3C4AE10F28.4050309%40complang.org%3E"
+       TITLE="[ragel-users] How do I act on eof in state charts">thurston at complang.org
+       </A><BR>
+    <I>Fri Oct 23 02:04:24 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002785.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+        <LI>Next message: <A HREF="002787.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2788">[ date ]</a>
+              <a href="thread.html#2788">[ thread ]</a>
+              <a href="subject.html#2788">[ subject ]</a>
+              <a href="author.html#2788">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>If you are unioning tokens together and then doing a kleene star then 
+you could do this;
+
+     action lit {}
+     action space {}
+
+     string_literal = ( &quot;'&quot; ( [^'] | &quot;''&quot; )* &quot;'&quot; ) %lit;
+     ws = ' ' @space;
+
+     main := ( ws | string_literal )**;
+
+If you're not and you want to make yourself a self-contained string lit 
+that is safe to use regardless which operation it is used in next, then 
+do the following (you seem to have something like this already).
+
+     action lit {}
+     action space {}
+
+     string_literal = ( &quot;'&quot; ( [^'] | &quot;''&quot; $1 )* &quot;'&quot; ) %0 %lit;
+     ws = ' ' @space;
+
+     main := ws string_literal ( ws | string_literal )*;
+
+-Adrian
+
+Antony Blakey wrote:
+&gt;<i> On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> string_literal_body =
+</I>&gt;&gt;<i>  start: (
+</I>&gt;&gt;<i>    &quot;'&quot; -&gt; seen_quote |
+</I>&gt;&gt;<i>    [^'] -&gt; start
+</I>&gt;&gt;<i>  ),
+</I>&gt;&gt;<i>  seen_quote: (
+</I>&gt;&gt;<i>    &quot;'&quot; -&gt; start |
+</I>&gt;&gt;<i>    [^'] @{ fhold; } -&gt; final
+</I>&gt;&gt;<i>  );
+</I>&gt;&gt;<i> string_literal = &quot;'&quot; string_literal_body %{ puts &quot;string_literal&quot; } ;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The problem occurs when a string literal ends at eof. How do I  
+</I>&gt;&gt;<i> specify the eof 'match' in the seen_quote state such that all the  
+</I>&gt;&gt;<i> leaving-transition actions that are in place above the  
+</I>&gt;&gt;<i> string_literal are executed, such as the 'puts' on the  
+</I>&gt;&gt;<i> 'string_literal' machine. I don't want to manually duplicate the  
+</I>&gt;&gt;<i> parent code because multiple machines reference string_literal, with  
+</I>&gt;&gt;<i> different leaving-transition actions.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I couldn't get it to work using priorities - the terminator needs  
+</I>&gt;&gt;<i> lookahead to disambiguate; the following doesn't work:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> string_literal = &quot;'&quot; [^']* ( &quot;''&quot; [^']* )* '&quot;'
+</I>&gt;<i> 
+</I>&gt;<i> I ended up doing this:
+</I>&gt;<i> 
+</I>&gt;<i>    string_literal_unqoted = &quot;'&quot; [^']* &quot;'&quot; ;
+</I>&gt;<i>    string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+</I>&gt;<i> 0) % { puts &quot;string_literal&quot; };
+</I>&gt;<i> 
+</I>&gt;<i> which works. I would have thought that this:
+</I>&gt;<i> 
+</I>&gt;<i>    string_literal = string_literal_unqoted string_literal_unqoted** %  
+</I>&gt;<i> { puts &quot;string_literal&quot; };
+</I>&gt;<i> 
+</I>&gt;<i> would work, but '**' doesn't work for me - if I use a main like this:
+</I>&gt;<i> 
+</I>&gt;<i>    main := space* ( string_literal space* )* ;
+</I>&gt;<i> 
+</I>&gt;<i> then I get two string_literals from 'a''b' rather than one, while the  
+</I>&gt;<i> explicit priorities do give me one string_literal.
+</I>&gt;<i> 
+</I>&gt;<i> Of course this works as well:
+</I>&gt;<i> 
+</I>&gt;<i>    main := space* ( string_literal &lt;: space* )* ;
+</I>&gt;<i> 
+</I>&gt;<i> but given the pervasiveness of whitespace handling in my grammar (a  
+</I>&gt;<i> full Smalltalk parser) it's a real PITA because everything you want  
+</I>&gt;<i> greedy consumption for has to be thus annotated wherever it is used.
+</I>&gt;<i> 
+</I>&gt;<i> Still, I'm interested in how you specify EOF transitions in an  
+</I>&gt;<i> explicit state machine. I also had success appending a 0 onto the  
+</I>&gt;<i> input for use as an EOF marker that can be matched in the state  
+</I>&gt;<i> machine, but I'm not sure yet if/how that will interfere with true EOF  
+</I>&gt;<i> functioning.
+</I>&gt;<i> 
+</I>&gt;<i> Antony Blakey
+</I>&gt;<i> -------------
+</I>&gt;<i> CTO, Linkuistics Pty Ltd
+</I>&gt;<i> Ph: 0438 840 787
+</I>&gt;<i> 
+</I>&gt;<i> In anything at all, perfection is finally attained not when there is  
+</I>&gt;<i> no longer anything to add, but when there is no longer anything to  
+</I>&gt;<i> take away.
+</I>&gt;<i>    -- Antoine de Saint-Exupery
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002785.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+	<LI>Next message: <A HREF="002787.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2788">[ date ]</a>
+              <a href="thread.html#2788">[ thread ]</a>
+              <a href="subject.html#2788">[ subject ]</a>
+              <a href="author.html#2788">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

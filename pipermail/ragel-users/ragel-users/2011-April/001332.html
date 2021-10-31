@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] access prefix
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20access%20prefix&In-Reply-To=%3C20110426234118.8266b370.ygrek%40autistici.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001331.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] access prefix</H1>
+    <B>ygrek</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20access%20prefix&In-Reply-To=%3C20110426234118.8266b370.ygrek%40autistici.org%3E"
+       TITLE="[ragel-users] access prefix">ygrek at autistici.org
+       </A><BR>
+    <I>Tue Apr 26 20:41:18 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001331.html">[ragel-users] access prefix
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1332">[ date ]</a>
+              <a href="thread.html#1332">[ thread ]</a>
+              <a href="subject.html#1332">[ subject ]</a>
+              <a href="author.html#1332">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, 26 Apr 2011 08:05:40 -0700
+Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">adrian.thurston at esentire.com</A>&gt; wrote:
+
+&gt;<i> Ya that's a perfectly reasonable way to do it. I'd like to design ragel 
+</I>&gt;<i> for the most common case. I *think* making pe, pe and eof local is more 
+</I>&gt;<i> common, but I could be wrong.
+</I>&gt;<i> 
+</I>&gt;<i> -Adrian
+</I>&gt;<i> 
+</I>&gt;<i> On 11-04-25 09:02 PM, Brian Maher wrote:
+</I>&gt;<i> &gt; [...]
+</I>&gt;<i> &gt; Although Adrian is right about p, pe, and eof being rather
+</I>&gt;<i> &gt; &quot;transient&quot;, I find it easier to write functions that take a single
+</I>&gt;<i> &gt; &quot;struct&quot; argument that manages the ragel state.  This way I can write
+</I>&gt;<i> &gt; a function called state_machine that encapsulates all my actions for
+</I>&gt;<i> &gt; the state machine, but ends up delegating each action to a function
+</I>&gt;<i> &gt; that takes the &quot;struct&quot; as an argument.  I just find this way of
+</I>&gt;<i> &gt; writing code is easier for me and my editor to digest.
+</I>
+Yes, this is exactly the reason for this question - I wanted to abstract over
+ragel machine invocation so that it is more lightweight to use. Flexibility
+is good and valuable, but the most popular case should be covered with least code.
+My goal is somthing like this :
+
+%%{
+machive smth;
+access state.;
+...
+}%%
+
+module ParseSomething = struct
+let init () =
+  let state = Ragel.init () in
+  %%write init;
+  state
+let parse state data =
+  %%write exec noprefix;
+  Ragel.is_finished state
+end
+
+With the module Ragel being reusable (in different projects).
+If p and pe variables are put in state then more common idioms can be reused, like
+
+  &gt;{Ragel.mark state} @{Ragel.extract state}
+
+and
+
+  module Ragel = struct
+  ...
+  let mark state = state.mark := state.p
+  let extract state = String.sub data state.mark (state.p - state.mark)
+  end
+
+When p and pe are kept local, all functions referencing them are also required to be local and
+that means quite a bit of copypaste code.
+So I think that having uniform way to gather all user-defined variables under single prefix
+is worthwhile (maybe some modifier to %access or another keyword).
+
+-- 
+ ygrek
+ <A HREF="http://ygrek.org.ua/">http://ygrek.org.ua/</A>
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001331.html">[ragel-users] access prefix
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1332">[ date ]</a>
+              <a href="thread.html#1332">[ thread ]</a>
+              <a href="subject.html#1332">[ subject ]</a>
+              <a href="author.html#1332">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

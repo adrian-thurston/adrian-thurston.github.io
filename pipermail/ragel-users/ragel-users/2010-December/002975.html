@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Mandelbug causing segfault
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Mandelbug%20causing%20segfault&In-Reply-To=%3C4D0A5A3C.4020307%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002969.html">
+   <LINK REL="Next"  HREF="002970.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Mandelbug causing segfault</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Mandelbug%20causing%20segfault&In-Reply-To=%3C4D0A5A3C.4020307%40esentire.com%3E"
+       TITLE="[ragel-users] Mandelbug causing segfault">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Thu Dec 16 18:28:12 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002969.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+        <LI>Next message: <A HREF="002970.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2975">[ date ]</a>
+              <a href="thread.html#2975">[ thread ]</a>
+              <a href="subject.html#2975">[ subject ]</a>
+              <a href="author.html#2975">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Mark, Thanks for reporting this. The bug has been recorded (in my 
+private tracker). Will aim to fix for 6.7.
+
+Thanks,
+  Adrian
+
+On 10-12-15 01:55 PM, Mark Tsuchida wrote:
+&gt;<i> Hi again,
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Dec 14, 2010 at 20:33, Mark Tsuchida&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">marktsuchida at gmail.com</A>&gt;  wrote:
+</I>&gt;&gt;<i> Dear Adrian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thank you for sharing this great tool.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am getting a segfault when running Ragel on my input file.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Below is the simplest input file I've been able to create that
+</I>&gt;&gt;<i> triggers the segfault (sorry it's still rather complex).
+</I>&gt;&gt;<i> Whether or not Ragel crashes seems to be (depending on other parts of
+</I>&gt;&gt;<i> the input file) sometimes sensitive to the names given to actions (or
+</I>&gt;&gt;<i> at least the length of those names), among other things. Any given
+</I>&gt;&gt;<i> input file always gives the same result (segfault or no crash),
+</I>&gt;&gt;<i> though.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Giving Ragel the -n or -m option appears to prevent the crash, at
+</I>&gt;&gt;<i> least with the input shown below.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Both version 6.6 and the svn head (r1683) experience the same issue.
+</I>&gt;&gt;<i> I'm on Mac OS X 10.6 and Regal was compiled with g++ 4.2.1 (Xcode
+</I>&gt;&gt;<i> 3.2.5) (arch is x86_64 (LP64)).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Please let me know if there is anything else I can provide to help
+</I>&gt;&gt;<i> track this down.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks,
+</I>&gt;&gt;<i> Mark
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> $ cat test.rl
+</I>&gt;&gt;<i> %%{
+</I>&gt;&gt;<i> machine test;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> action action1 {}
+</I>&gt;&gt;<i> action action2 {}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> nl = (&quot;\r\n&quot; | [\n\r]);
+</I>&gt;&gt;<i> kw = &quot;aaaaa&quot;;
+</I>&gt;&gt;<i> ident = &quot;bbbbb&quot; @action1;
+</I>&gt;&gt;<i> normal = (kw | ident);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> first = ([^\n\r] @action1)* . nl;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> cont = (
+</I>&gt;&gt;<i>     (&quot; &quot; @action1 when action1)* .
+</I>&gt;&gt;<i>     (((([^\n\r] @action1)*) . nl @action1) when action1)
+</I>&gt;&gt;<i> );
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> special = first (cont when action2)** ;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> main := (normal when action1) | (special when action1);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> }%%
+</I>&gt;&gt;<i> $ ragel test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -V test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -T0 test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -T1 test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -F0 test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -F1 test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -d test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -e test.rl
+</I>&gt;&gt;<i> Segmentation fault
+</I>&gt;&gt;<i> $ ragel -n test.rl  # succeeds
+</I>&gt;&gt;<i> $ ragel -m test.rl  # succeeds
+</I>&gt;&gt;<i> $
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Here is a stack trace from the svn head version (trunk @ r1683):
+</I>&gt;<i>
+</I>&gt;<i> (gdb) run test.rl
+</I>&gt;<i> Starting program: /Users/mark/devel/ragel/trunk/ragel/ragel test.rl
+</I>&gt;<i> Reading symbols for shared libraries ++. done
+</I>&gt;<i>
+</I>&gt;<i> Program received signal EXC_BAD_ACCESS, Could not access memory.
+</I>&gt;<i> Reason: KERN_INVALID_ADDRESS at address: 0x0000000000000048
+</I>&gt;<i> 0x00000001000161fb in NextTrans&lt;TransAp&gt;::load (this=0x7fff5fbfd788)
+</I>&gt;<i> at fsmgraph.h:782
+</I>&gt;<i> 782                             next = trans-&gt;next;
+</I>&gt;<i> (gdb) where
+</I>&gt;<i> #0  0x00000001000161fb in NextTrans&lt;TransAp&gt;::load
+</I>&gt;<i> (this=0x7fff5fbfd788) at fsmgraph.h:782
+</I>&gt;<i> #1  0x0000000100016255 in NextTrans&lt;TransAp&gt;::set
+</I>&gt;<i> (this=0x7fff5fbfd788, t=0x20) at fsmgraph.h:790
+</I>&gt;<i> #2  0x0000000100025612 in PairIter&lt;TransAp, StateCond&gt;::findNext
+</I>&gt;<i> (this=0x7fff5fbfd770) at fsmgraph.h:901
+</I>&gt;<i> #3  0x0000000100025dab in PairIter&lt;TransAp, StateCond&gt;::PairIter
+</I>&gt;<i> (this=0x7fff5fbfd770, list1=0x20, list2=0x10030c700) at fsmgraph.h:854
+</I>&gt;<i> #4  0x000000010002050a in FsmAp::findEmbedExpansions
+</I>&gt;<i> (this=0x1003085d0, expansionList=@0x7fff5fbfd9e0,
+</I>&gt;<i> destState=0x100309900, condAction=0x100301b60, sense=true) at
+</I>&gt;<i> fsmgraph.cpp:1298
+</I>&gt;<i> #5  0x0000000100021b28 in FsmAp::embedCondition (this=0x1003085d0,
+</I>&gt;<i> md=@0x7fff5fbfda50, state=0x100309900, condAction=0x100301b60,
+</I>&gt;<i> sense=true) at fsmgraph.cpp:1403
+</I>&gt;<i> #6  0x00000001000222f5 in FsmAp::embedCondition (this=0x1003085d0,
+</I>&gt;<i> state=0x100309900, condAction=0x100301b60, sense=true) at
+</I>&gt;<i> fsmgraph.cpp:1389
+</I>&gt;<i> #7  0x0000000100029e3a in FsmAp::allTransCondition (this=0x1003085d0,
+</I>&gt;<i> condAction=0x100301b60, sense=true) at fsmap.cpp:872
+</I>&gt;<i> #8  0x000000010000555a in FactorWithAug::assignConditions
+</I>&gt;<i> (this=0x100305f20, graph=0x1003085d0) at parsetree.cpp:1176
+</I>&gt;<i> #9  0x0000000100008f34 in FactorWithAug::walk (this=0x100305f20,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:1226
+</I>&gt;<i> #10 0x0000000100009660 in Term::walk (this=0x100306010,
+</I>&gt;<i> pd=0x1003006e0, lastInSeq=true) at parsetree.cpp:948
+</I>&gt;<i> #11 0x000000010000986b in Expression::walk (this=0x100306040,
+</I>&gt;<i> pd=0x1003006e0, lastInSeq=true) at parsetree.cpp:782
+</I>&gt;<i> #12 0x0000000100009a75 in Join::walk (this=0x100306070,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:598
+</I>&gt;<i> #13 0x0000000100008139 in Factor::walk (this=0x1003060a0,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:1790
+</I>&gt;<i> #14 0x0000000100008226 in FactorWithNeg::walk (this=0x100306100,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:1710
+</I>&gt;<i> #15 0x0000000100008c74 in FactorWithRep::walk (this=0x100306130,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:1624
+</I>&gt;<i> #16 0x0000000100008e1e in FactorWithAug::walk (this=0x100306180,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:1212
+</I>&gt;<i> #17 0x0000000100009660 in Term::walk (this=0x100306210,
+</I>&gt;<i> pd=0x1003006e0, lastInSeq=true) at parsetree.cpp:948
+</I>&gt;<i> #18 0x000000010000970b in Expression::walk (this=0x100306240,
+</I>&gt;<i> pd=0x1003006e0, lastInSeq=true) at parsetree.cpp:738
+</I>&gt;<i> #19 0x0000000100009a75 in Join::walk (this=0x100306270,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:598
+</I>&gt;<i> #20 0x0000000100009c94 in MachineDef::walk (this=0x1003062a0,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:533
+</I>&gt;<i> #21 0x0000000100007f33 in VarDef::walk (this=0x100306320,
+</I>&gt;<i> pd=0x1003006e0) at parsetree.cpp:94
+</I>&gt;<i> #22 0x000000010000d639 in ParseData::makeInstance (this=0x1003006e0,
+</I>&gt;<i> gdNode=0x1003062c0) at parsedata.cpp:1062
+</I>&gt;<i> #23 0x000000010000f648 in ParseData::makeAll (this=0x1003006e0) at
+</I>&gt;<i> parsedata.cpp:1189
+</I>&gt;<i> #24 0x0000000100010f4d in ParseData::prepareMachineGenTBWrapped
+</I>&gt;<i> (this=0x1003006e0, graphDictEl=0x0) at parsedata.cpp:1396
+</I>&gt;<i> #25 0x0000000100011040 in ParseData::prepareMachineGen
+</I>&gt;<i> (this=0x1003006e0, graphDictEl=0x0) at parsedata.cpp:1369
+</I>&gt;<i> #26 0x0000000100048d76 in InputData::prepareMachineGen
+</I>&gt;<i> (this=0x7fff5fbfe750) at inputdata.cpp:191
+</I>&gt;<i> #27 0x0000000100001e33 in process (id=@0x7fff5fbfe750) at main.cpp:478
+</I>&gt;<i> #28 0x00000001000029b2 in main (argc=2, argv=0x7fff5fbfe820) at main.cpp:559
+</I>&gt;<i> (gdb)
+</I>&gt;<i>
+</I>&gt;<i> Mark
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002969.html">[ragel-users] Mandelbug causing segfault
+</A></li>
+	<LI>Next message: <A HREF="002970.html">[ragel-users] [PATCH] Fix generated code for Ruby 1.9 compatibility.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2975">[ date ]</a>
+              <a href="thread.html#2975">[ thread ]</a>
+              <a href="subject.html#2975">[ subject ]</a>
+              <a href="author.html#2975">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,909 @@
+From sothy.e98 at gmail.com  Sun Oct  1 06:52:14 2017
+From: sothy.e98 at gmail.com (sothy shan)
+Date: Sun, 1 Oct 2017 08:52:14 +0200
+Subject: [ragel] Binary data and bits
+In-Reply-To: <1mtctvcnra8mnul9hu937nrb.1506785901318@email.android.com>
+References: <1mtctvcnra8mnul9hu937nrb.1506785901318@email.android.com>
+Message-ID: <CAHcF_0YzHV5C90EteN7dMGuC-DQZzTv6Skv40JTK3h6TQusjJw@mail.gmail.com>
+
+Hello,
+Thanks again  Adrain. In GTP protocol, I have some data (array of
+Information Element (IE)). Each IE  has around of 4 bytes. The data in the
+first byte is like that.
+In this case, I should use all times mask and shift the bits.
+
+Best regards
+Sothy
+
+On Sat, Sep 30, 2017 at 5:38 PM, Adrian Thurston <thurston at colm.net> wrote:
+
+> Looks like you accept all bytes so you don't really need ragel for that.
+> Just need to mask and shift the bits.
+>
+>
+>
+> --
+> Adrian D. Thurston
+> Chief Scientist
+> Colm Networks
+> http://colm.net
+>
+>
+> -------- Original message --------
+> From: sothy shan <sothy.e98 at gmail.com>
+> Date: 2017-09-30 6:43 AM (GMT-05:00)
+> To: ragel at colm.net
+> Subject: Re: [ragel] Binary data and bits
+>
+> Thanks Adrain,
+>
+> I am new to Ragel. I have one question.
+> One BYTE information: 010 1 1 000
+> I need to take firrst three bits into one int, other two bits are two
+> boolean values and other three are together for one int.
+>
+> How to write grammar for parsing this data?
+>
+> Thanks for your help.
+>
+> Best regards
+> Sothy
+>
+> On Fri, Sep 29, 2017 at 10:08 PM, Adrian Thurston <thurston at colm.net>
+> wrote:
+>
+>> Hi Sothy, you need to specify the grammar at the byte level. You can
+>> union bit patterns together, however.
+>>
+>> On 2017-09-27 15:35, sothy shan wrote:
+>>
+>> Hi,
+>> I need to parse 4 bytes of data and some bits of data has valid
+>> information.
+>> How can I go with Ragel?
+>> I am going to use Ragel with  C++.
+>>
+>> Best regards
+>> Sothy
+>>
+>>
+>> _______________________________________________
+>> ragel mailing listragel at colm.nethttp://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>>
+>>
+>> _______________________________________________
+>> ragel mailing list
+>> ragel at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>>
+>>
+>
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20171001/3a73f906/attachment.html>
+
+From rick at openfortress.nl  Sat Oct  7 19:32:34 2017
+From: rick at openfortress.nl (Rick van Rein)
+Date: Sat, 07 Oct 2017 21:32:34 +0200
+Subject: [ragel] Handling non-determinism with backtracking
+Message-ID: <59D92BD2.1060604@openfortress.nl>
+
+Hello,
+
+I finally have a good application of Ragel :-D and really enjoy
+capturing aspects of email grammar into orthogonal regular expressions!
+
+I am working on a Lenient DKIM extension, and need to detect email
+headers and MIME structure and body parts for that purpose.  Since MIME
+bodies are the only recursive bits in email syntax, Ragel appears to be
+an excellent tool.
+
+MIME body parts are separated with --boundary, which I have expressed as
+the following form, where the boundary_string will become a comparison
+with a previously collected string.  At any point in a message, there is
+no more than one candidate boundary_string to compare to.
+
+mime_multipart_boundary =
+    crlf
+    '-'{2}
+    boundary_string
+    lin_wsp*
+    crlf ;
+
+I would like to backtrack when the boundary_string or other parts of
+this rule mismatch.  In my current syntax there is a
+non-deterministically combining alternative for the last boundary
+string, which I expect to merge with the one above without further
+problems, and otherwise I might do it manually,
+
+mime_multipart_terminal =
+    crlf
+    '-'{2}
+    boundary_string
+    '-'{2}
+    lin_wsp*
+    crlf ;
+
+But when these get together with normal text (that might follow the same
+format) I get uncertain about how to arrange backtracking when the
+boundary_string or other parts of the mime_multipart_boundary or
+_terminal mismatch:
+
+mime_multipart_content =
+    mime_illegal_text?
+    ( mime_multipart_boundary . mime_bodypart ) +
+    mime_multipart_terminal
+    mime_illegal_text? ;
+
+Ideally, at least if Ragel is intended as I understand it, the
+alternative recongition as mime_bodypart should be orthogonal, and so I
+would like to have a way of backtracking into it.  My reading of the
+manual says this is not possible in an orthogonal way, but only through
+in-situ cross-links and structural changes.
+
+If this is indeed not orthogonal, then I would suggest a feature to make
+this possible -- such as an action to execute on mismatches, and a way
+to rerun a parallel expression without involving the current one,
+perhaps.  That might bring about a state explosion, so it may need some
+cleverness :)
+
+
+Other than this, I found Ragel to be really, really helpful by allowing
+me to add constraints orthogonally, like in
+
+whatever_content_wants & utf8char* ;
+
+where utf8char bans illegal and longer-than-usual sequences,
+
+utf8char =
+    0x00..0x7f |
+    0xc2..0xdf . 0x80..0xbf |
+    0xe0       . 0xa0..0xbf . 0x80..0xbf |
+    0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+    0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+
+Thank you for that bright approach!
+
+
+Cheers,
+ -Rick
+
+
+From space.ship.traveller at gmail.com  Sun Oct  8 21:34:54 2017
+From: space.ship.traveller at gmail.com (Samuel Williams)
+Date: Mon, 9 Oct 2017 10:34:54 +1300
+Subject: [ragel] Ragel sanitise output - memory leaks
+Message-ID: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+
+Here is some log output from a build which invokes ragel to generate
+several parsers. I've cut out (most) unimportant output.
+
+The source code for the parsers:
+https://github.com/kurocha/async-http/tree/master/source/Async/HTTP/V1
+
+The results from running Ragel several times with LLVM sanitisers:
+https://gist.github.com/ioquatix/2e50ffb09697107338f8f75083400143
+
+The main issue I can see are memory leaks, but there could be other issues.
+
+Since Ragel is a one-shot "compiler", perhaps it's not important to address
+these, except as a matter of correctness.
+
+I think there are potential problem with memory leaks and they might be
+covering up bigger issues - there might be cases where memory is being
+accessed incorrectly but it's not causing a crash because it's not freed at
+the right point etc.
+
+I'd suggest that if there is a test suite for Ragel, it's updated to run
+with the undefined behaviour sanitiser and address sanitiser - both provide
+useful output IMHO.
+
+Happy to provide more feedback.
+
+Kind regards,
+Samuel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20171009/4c9dead4/attachment.html>
+
+From thurston at colm.net  Wed Oct 18 21:41:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 18 Oct 2017 18:41:47 -0300
+Subject: [ragel] Handling non-determinism with backtracking
+In-Reply-To: <59D92BD2.1060604@openfortress.nl>
+References: <59D92BD2.1060604@openfortress.nl>
+Message-ID: <2c3cf86aecc954027492a2736fc12a89@mail.colm.net>
+
+Hi Rick,
+
+The last time I wrote a mime parser with ragel all the parser had to do 
+was to find the boundaries and possibly emit the parsed sections to a 
+chained to parser. When a boundary match failed the content matched so 
+far became an emitted text line and I could just use the prefix of the 
+boundary that matched so far.
+
+If you need to backtrack to parse see the section in the manual on 
+buffer boundaries and backtracking. It's not straightforward, but if the 
+common case is that you will match the text and only occasionally need 
+to backtrack it can be very fast.
+
+Glad you like the tool!
+
+Best regards,
+  Adrian
+
+On 2017-10-07 16:32, Rick van Rein wrote:
+> Hello,
+> 
+> I finally have a good application of Ragel :-D and really enjoy
+> capturing aspects of email grammar into orthogonal regular expressions!
+> 
+> I am working on a Lenient DKIM extension, and need to detect email
+> headers and MIME structure and body parts for that purpose.  Since MIME
+> bodies are the only recursive bits in email syntax, Ragel appears to be
+> an excellent tool.
+> 
+> MIME body parts are separated with --boundary, which I have expressed 
+> as
+> the following form, where the boundary_string will become a comparison
+> with a previously collected string.  At any point in a message, there 
+> is
+> no more than one candidate boundary_string to compare to.
+> 
+> mime_multipart_boundary =
+>     crlf
+>     '-'{2}
+>     boundary_string
+>     lin_wsp*
+>     crlf ;
+> 
+> I would like to backtrack when the boundary_string or other parts of
+> this rule mismatch.  In my current syntax there is a
+> non-deterministically combining alternative for the last boundary
+> string, which I expect to merge with the one above without further
+> problems, and otherwise I might do it manually,
+> 
+> mime_multipart_terminal =
+>     crlf
+>     '-'{2}
+>     boundary_string
+>     '-'{2}
+>     lin_wsp*
+>     crlf ;
+> 
+> But when these get together with normal text (that might follow the 
+> same
+> format) I get uncertain about how to arrange backtracking when the
+> boundary_string or other parts of the mime_multipart_boundary or
+> _terminal mismatch:
+> 
+> mime_multipart_content =
+>     mime_illegal_text?
+>     ( mime_multipart_boundary . mime_bodypart ) +
+>     mime_multipart_terminal
+>     mime_illegal_text? ;
+> 
+> Ideally, at least if Ragel is intended as I understand it, the
+> alternative recongition as mime_bodypart should be orthogonal, and so I
+> would like to have a way of backtracking into it.  My reading of the
+> manual says this is not possible in an orthogonal way, but only through
+> in-situ cross-links and structural changes.
+> 
+> If this is indeed not orthogonal, then I would suggest a feature to 
+> make
+> this possible -- such as an action to execute on mismatches, and a way
+> to rerun a parallel expression without involving the current one,
+> perhaps.  That might bring about a state explosion, so it may need some
+> cleverness :)
+> 
+> 
+> Other than this, I found Ragel to be really, really helpful by allowing
+> me to add constraints orthogonally, like in
+> 
+> whatever_content_wants & utf8char* ;
+> 
+> where utf8char bans illegal and longer-than-usual sequences,
+> 
+> utf8char =
+>     0x00..0x7f |
+>     0xc2..0xdf . 0x80..0xbf |
+>     0xe0       . 0xa0..0xbf . 0x80..0xbf |
+>     0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+>     0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+> 
+> Thank you for that bright approach!
+> 
+> 
+> Cheers,
+>  -Rick
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From will at autodeist.com  Sun Oct 22 14:12:47 2017
+From: will at autodeist.com (Will Dowling)
+Date: Sun, 22 Oct 2017 22:12:47 +0800
+Subject: [ragel] EOF actions question
+Message-ID: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+
+Hi folks,
+
+I’m a newcomer to ragel and was hoping someone can help me better understand when actions execute.
+Specifically, I’m not sure why an EOF final state action is not firing.
+
+Here’s a self-contained example of what I’m trying to achieve:
+https://gist.github.com/dowlingw/39953db1b166003c1474fa10a20616de
+
+In the example, I’m keeping track of the character pointer to extract the token when the machine is finished.
+This is modelled around how I’ve seen it done elsewhere, but maybe there’s a better way.
+
+From my understanding from the guide and looking at the graphviz output:
+
+%capture 	would never fire because the machine is at EOF, so never exits the userid machine
+@capture 	will work, but will execute every character the userid machine processes
+%/capture 	should(?) fire because the machine is in the userid state when it reaches EOF
+
+But the last one doesn’t appear to work the way I’d expect - so I’m probably misunderstanding things.
+
+If anyone is able to point me in the right direction, I’d be super grateful.
+(On the unlikely chance it’s something environmental, I’m running Ragel 6.10 on go1.8.3 darwin/amd64)
+
+In either case, thanks for maintaining an awesome tool!
+
+Cheers :)
+
+
+Will Dowling
+
+E: will at autodeist.com
+
+
+
+From thurston at colm.net  Tue Oct 24 21:52:32 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 24 Oct 2017 18:52:32 -0300
+Subject: [ragel] EOF actions question
+In-Reply-To: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+References: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+Message-ID: <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+
+Hi Will, you'll need to set the eof variable equal to pe on the buffer 
+block where you want to indicate EOF.
+
+On 2017-10-22 11:12, Will Dowling wrote:
+> Hi folks,
+> 
+> I’m a newcomer to ragel and was hoping someone can help me better
+> understand when actions execute.
+> Specifically, I’m not sure why an EOF final state action is not firing.
+> 
+> Here’s a self-contained example of what I’m trying to achieve:
+> https://gist.github.com/dowlingw/39953db1b166003c1474fa10a20616de
+> 
+> In the example, I’m keeping track of the character pointer to extract
+> the token when the machine is finished.
+> This is modelled around how I’ve seen it done elsewhere, but maybe
+> there’s a better way.
+> 
+> From my understanding from the guide and looking at the graphviz 
+> output:
+> 
+> %capture 	would never fire because the machine is at EOF, so never
+> exits the userid machine
+> @capture 	will work, but will execute every character the userid
+> machine processes
+> %/capture 	should(?) fire because the machine is in the userid state
+> when it reaches EOF
+> 
+> But the last one doesn’t appear to work the way I’d expect - so I’m
+> probably misunderstanding things.
+> 
+> If anyone is able to point me in the right direction, I’d be super 
+> grateful.
+> (On the unlikely chance it’s something environmental, I’m running
+> Ragel 6.10 on go1.8.3 darwin/amd64)
+> 
+> In either case, thanks for maintaining an awesome tool!
+> 
+> Cheers :)
+> 
+> 
+> Will Dowling
+> 
+> E: will at autodeist.com
+> 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From will at autodeist.com  Mon Oct 30 06:18:12 2017
+From: will at autodeist.com (Will Dowling)
+Date: Mon, 30 Oct 2017 14:18:12 +0800
+Subject: [ragel] EOF actions question
+In-Reply-To: <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+References: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+ <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+Message-ID: <87D0AF27-908C-42D5-8B87-58E6672E882E@autodeist.com>
+
+> Hi Will, you'll need to set the eof variable equal to pe on the buffer block where you want to indicate EOF.
+
+Thanks Adrian, that worked like a charm - misunderstood the documentation the first few times.
+
+Cheers :)
+
+
+Will Dowling
+
+E: will at autodeist.com
+
+
+
+From sothy.e98 at gmail.com  Sun Oct  1 06:52:14 2017
+From: sothy.e98 at gmail.com (sothy shan)
+Date: Sun, 1 Oct 2017 08:52:14 +0200
+Subject: [ragel] Binary data and bits
+In-Reply-To: <1mtctvcnra8mnul9hu937nrb.1506785901318@email.android.com>
+References: <1mtctvcnra8mnul9hu937nrb.1506785901318@email.android.com>
+Message-ID: <CAHcF_0YzHV5C90EteN7dMGuC-DQZzTv6Skv40JTK3h6TQusjJw@mail.gmail.com>
+
+Hello,
+Thanks again  Adrain. In GTP protocol, I have some data (array of
+Information Element (IE)). Each IE  has around of 4 bytes. The data in the
+first byte is like that.
+In this case, I should use all times mask and shift the bits.
+
+Best regards
+Sothy
+
+On Sat, Sep 30, 2017 at 5:38 PM, Adrian Thurston <thurston at colm.net> wrote:
+
+> Looks like you accept all bytes so you don't really need ragel for that.
+> Just need to mask and shift the bits.
+>
+>
+>
+> --
+> Adrian D. Thurston
+> Chief Scientist
+> Colm Networks
+> http://colm.net
+>
+>
+> -------- Original message --------
+> From: sothy shan <sothy.e98 at gmail.com>
+> Date: 2017-09-30 6:43 AM (GMT-05:00)
+> To: ragel at colm.net
+> Subject: Re: [ragel] Binary data and bits
+>
+> Thanks Adrain,
+>
+> I am new to Ragel. I have one question.
+> One BYTE information: 010 1 1 000
+> I need to take firrst three bits into one int, other two bits are two
+> boolean values and other three are together for one int.
+>
+> How to write grammar for parsing this data?
+>
+> Thanks for your help.
+>
+> Best regards
+> Sothy
+>
+> On Fri, Sep 29, 2017 at 10:08 PM, Adrian Thurston <thurston at colm.net>
+> wrote:
+>
+>> Hi Sothy, you need to specify the grammar at the byte level. You can
+>> union bit patterns together, however.
+>>
+>> On 2017-09-27 15:35, sothy shan wrote:
+>>
+>> Hi,
+>> I need to parse 4 bytes of data and some bits of data has valid
+>> information.
+>> How can I go with Ragel?
+>> I am going to use Ragel with  C++.
+>>
+>> Best regards
+>> Sothy
+>>
+>>
+>> _______________________________________________
+>> ragel mailing listragel at colm.nethttp://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>>
+>>
+>> _______________________________________________
+>> ragel mailing list
+>> ragel at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>>
+>>
+>
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20171001/3a73f906/attachment-0002.html>
+
+From rick at openfortress.nl  Sat Oct  7 19:32:34 2017
+From: rick at openfortress.nl (Rick van Rein)
+Date: Sat, 07 Oct 2017 21:32:34 +0200
+Subject: [ragel] Handling non-determinism with backtracking
+Message-ID: <59D92BD2.1060604@openfortress.nl>
+
+Hello,
+
+I finally have a good application of Ragel :-D and really enjoy
+capturing aspects of email grammar into orthogonal regular expressions!
+
+I am working on a Lenient DKIM extension, and need to detect email
+headers and MIME structure and body parts for that purpose.  Since MIME
+bodies are the only recursive bits in email syntax, Ragel appears to be
+an excellent tool.
+
+MIME body parts are separated with --boundary, which I have expressed as
+the following form, where the boundary_string will become a comparison
+with a previously collected string.  At any point in a message, there is
+no more than one candidate boundary_string to compare to.
+
+mime_multipart_boundary =
+    crlf
+    '-'{2}
+    boundary_string
+    lin_wsp*
+    crlf ;
+
+I would like to backtrack when the boundary_string or other parts of
+this rule mismatch.  In my current syntax there is a
+non-deterministically combining alternative for the last boundary
+string, which I expect to merge with the one above without further
+problems, and otherwise I might do it manually,
+
+mime_multipart_terminal =
+    crlf
+    '-'{2}
+    boundary_string
+    '-'{2}
+    lin_wsp*
+    crlf ;
+
+But when these get together with normal text (that might follow the same
+format) I get uncertain about how to arrange backtracking when the
+boundary_string or other parts of the mime_multipart_boundary or
+_terminal mismatch:
+
+mime_multipart_content =
+    mime_illegal_text?
+    ( mime_multipart_boundary . mime_bodypart ) +
+    mime_multipart_terminal
+    mime_illegal_text? ;
+
+Ideally, at least if Ragel is intended as I understand it, the
+alternative recongition as mime_bodypart should be orthogonal, and so I
+would like to have a way of backtracking into it.  My reading of the
+manual says this is not possible in an orthogonal way, but only through
+in-situ cross-links and structural changes.
+
+If this is indeed not orthogonal, then I would suggest a feature to make
+this possible -- such as an action to execute on mismatches, and a way
+to rerun a parallel expression without involving the current one,
+perhaps.  That might bring about a state explosion, so it may need some
+cleverness :)
+
+
+Other than this, I found Ragel to be really, really helpful by allowing
+me to add constraints orthogonally, like in
+
+whatever_content_wants & utf8char* ;
+
+where utf8char bans illegal and longer-than-usual sequences,
+
+utf8char =
+    0x00..0x7f |
+    0xc2..0xdf . 0x80..0xbf |
+    0xe0       . 0xa0..0xbf . 0x80..0xbf |
+    0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+    0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+
+Thank you for that bright approach!
+
+
+Cheers,
+ -Rick
+
+
+
+From space.ship.traveller at gmail.com  Sun Oct  8 21:34:54 2017
+From: space.ship.traveller at gmail.com (Samuel Williams)
+Date: Mon, 9 Oct 2017 10:34:54 +1300
+Subject: [ragel] Ragel sanitise output - memory leaks
+Message-ID: <CAHkN8V8x5W9Fz=Wi+DZvP7=jGQL22OoRhGbcsob3CGokGnyteQ@mail.gmail.com>
+
+Here is some log output from a build which invokes ragel to generate
+several parsers. I've cut out (most) unimportant output.
+
+The source code for the parsers:
+https://github.com/kurocha/async-http/tree/master/source/Async/HTTP/V1
+
+The results from running Ragel several times with LLVM sanitisers:
+https://gist.github.com/ioquatix/2e50ffb09697107338f8f75083400143
+
+The main issue I can see are memory leaks, but there could be other issues.
+
+Since Ragel is a one-shot "compiler", perhaps it's not important to address
+these, except as a matter of correctness.
+
+I think there are potential problem with memory leaks and they might be
+covering up bigger issues - there might be cases where memory is being
+accessed incorrectly but it's not causing a crash because it's not freed at
+the right point etc.
+
+I'd suggest that if there is a test suite for Ragel, it's updated to run
+with the undefined behaviour sanitiser and address sanitiser - both provide
+useful output IMHO.
+
+Happy to provide more feedback.
+
+Kind regards,
+Samuel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20171009/4c9dead4/attachment-0002.html>
+
+From thurston at colm.net  Wed Oct 18 21:41:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 18 Oct 2017 18:41:47 -0300
+Subject: [ragel] Handling non-determinism with backtracking
+In-Reply-To: <59D92BD2.1060604@openfortress.nl>
+References: <59D92BD2.1060604@openfortress.nl>
+Message-ID: <2c3cf86aecc954027492a2736fc12a89@mail.colm.net>
+
+Hi Rick,
+
+The last time I wrote a mime parser with ragel all the parser had to do 
+was to find the boundaries and possibly emit the parsed sections to a 
+chained to parser. When a boundary match failed the content matched so 
+far became an emitted text line and I could just use the prefix of the 
+boundary that matched so far.
+
+If you need to backtrack to parse see the section in the manual on 
+buffer boundaries and backtracking. It's not straightforward, but if the 
+common case is that you will match the text and only occasionally need 
+to backtrack it can be very fast.
+
+Glad you like the tool!
+
+Best regards,
+  Adrian
+
+On 2017-10-07 16:32, Rick van Rein wrote:
+> Hello,
+> 
+> I finally have a good application of Ragel :-D and really enjoy
+> capturing aspects of email grammar into orthogonal regular expressions!
+> 
+> I am working on a Lenient DKIM extension, and need to detect email
+> headers and MIME structure and body parts for that purpose.  Since MIME
+> bodies are the only recursive bits in email syntax, Ragel appears to be
+> an excellent tool.
+> 
+> MIME body parts are separated with --boundary, which I have expressed 
+> as
+> the following form, where the boundary_string will become a comparison
+> with a previously collected string.  At any point in a message, there 
+> is
+> no more than one candidate boundary_string to compare to.
+> 
+> mime_multipart_boundary =
+>     crlf
+>     '-'{2}
+>     boundary_string
+>     lin_wsp*
+>     crlf ;
+> 
+> I would like to backtrack when the boundary_string or other parts of
+> this rule mismatch.  In my current syntax there is a
+> non-deterministically combining alternative for the last boundary
+> string, which I expect to merge with the one above without further
+> problems, and otherwise I might do it manually,
+> 
+> mime_multipart_terminal =
+>     crlf
+>     '-'{2}
+>     boundary_string
+>     '-'{2}
+>     lin_wsp*
+>     crlf ;
+> 
+> But when these get together with normal text (that might follow the 
+> same
+> format) I get uncertain about how to arrange backtracking when the
+> boundary_string or other parts of the mime_multipart_boundary or
+> _terminal mismatch:
+> 
+> mime_multipart_content =
+>     mime_illegal_text?
+>     ( mime_multipart_boundary . mime_bodypart ) +
+>     mime_multipart_terminal
+>     mime_illegal_text? ;
+> 
+> Ideally, at least if Ragel is intended as I understand it, the
+> alternative recongition as mime_bodypart should be orthogonal, and so I
+> would like to have a way of backtracking into it.  My reading of the
+> manual says this is not possible in an orthogonal way, but only through
+> in-situ cross-links and structural changes.
+> 
+> If this is indeed not orthogonal, then I would suggest a feature to 
+> make
+> this possible -- such as an action to execute on mismatches, and a way
+> to rerun a parallel expression without involving the current one,
+> perhaps.  That might bring about a state explosion, so it may need some
+> cleverness :)
+> 
+> 
+> Other than this, I found Ragel to be really, really helpful by allowing
+> me to add constraints orthogonally, like in
+> 
+> whatever_content_wants & utf8char* ;
+> 
+> where utf8char bans illegal and longer-than-usual sequences,
+> 
+> utf8char =
+>     0x00..0x7f |
+>     0xc2..0xdf . 0x80..0xbf |
+>     0xe0       . 0xa0..0xbf . 0x80..0xbf |
+>     0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+>     0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+> 
+> Thank you for that bright approach!
+> 
+> 
+> Cheers,
+>  -Rick
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From will at autodeist.com  Sun Oct 22 14:12:47 2017
+From: will at autodeist.com (Will Dowling)
+Date: Sun, 22 Oct 2017 22:12:47 +0800
+Subject: [ragel] EOF actions question
+Message-ID: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+
+Hi folks,
+
+I’m a newcomer to ragel and was hoping someone can help me better understand when actions execute.
+Specifically, I’m not sure why an EOF final state action is not firing.
+
+Here’s a self-contained example of what I’m trying to achieve:
+https://gist.github.com/dowlingw/39953db1b166003c1474fa10a20616de
+
+In the example, I’m keeping track of the character pointer to extract the token when the machine is finished.
+This is modelled around how I’ve seen it done elsewhere, but maybe there’s a better way.
+
+From my understanding from the guide and looking at the graphviz output:
+
+%capture 	would never fire because the machine is at EOF, so never exits the userid machine
+@capture 	will work, but will execute every character the userid machine processes
+%/capture 	should(?) fire because the machine is in the userid state when it reaches EOF
+
+But the last one doesn’t appear to work the way I’d expect - so I’m probably misunderstanding things.
+
+If anyone is able to point me in the right direction, I’d be super grateful.
+(On the unlikely chance it’s something environmental, I’m running Ragel 6.10 on go1.8.3 darwin/amd64)
+
+In either case, thanks for maintaining an awesome tool!
+
+Cheers :)
+
+
+Will Dowling
+
+E: will at autodeist.com
+
+
+
+
+From thurston at colm.net  Tue Oct 24 21:52:32 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 24 Oct 2017 18:52:32 -0300
+Subject: [ragel] EOF actions question
+In-Reply-To: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+References: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+Message-ID: <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+
+Hi Will, you'll need to set the eof variable equal to pe on the buffer 
+block where you want to indicate EOF.
+
+On 2017-10-22 11:12, Will Dowling wrote:
+> Hi folks,
+> 
+> I’m a newcomer to ragel and was hoping someone can help me better
+> understand when actions execute.
+> Specifically, I’m not sure why an EOF final state action is not firing.
+> 
+> Here’s a self-contained example of what I’m trying to achieve:
+> https://gist.github.com/dowlingw/39953db1b166003c1474fa10a20616de
+> 
+> In the example, I’m keeping track of the character pointer to extract
+> the token when the machine is finished.
+> This is modelled around how I’ve seen it done elsewhere, but maybe
+> there’s a better way.
+> 
+> From my understanding from the guide and looking at the graphviz 
+> output:
+> 
+> %capture 	would never fire because the machine is at EOF, so never
+> exits the userid machine
+> @capture 	will work, but will execute every character the userid
+> machine processes
+> %/capture 	should(?) fire because the machine is in the userid state
+> when it reaches EOF
+> 
+> But the last one doesn’t appear to work the way I’d expect - so I’m
+> probably misunderstanding things.
+> 
+> If anyone is able to point me in the right direction, I’d be super 
+> grateful.
+> (On the unlikely chance it’s something environmental, I’m running
+> Ragel 6.10 on go1.8.3 darwin/amd64)
+> 
+> In either case, thanks for maintaining an awesome tool!
+> 
+> Cheers :)
+> 
+> 
+> Will Dowling
+> 
+> E: will at autodeist.com
+> 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From will at autodeist.com  Mon Oct 30 06:18:12 2017
+From: will at autodeist.com (Will Dowling)
+Date: Mon, 30 Oct 2017 14:18:12 +0800
+Subject: [ragel] EOF actions question
+In-Reply-To: <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+References: <E41843F7-325F-49E1-9794-E9C14A40DE45@autodeist.com>
+ <375ea0d30dcbd246a9afb29e43b8115b@mail.colm.net>
+Message-ID: <87D0AF27-908C-42D5-8B87-58E6672E882E@autodeist.com>
+
+> Hi Will, you'll need to set the eof variable equal to pe on the buffer block where you want to indicate EOF.
+
+Thanks Adrian, that worked like a charm - misunderstood the documentation the first few times.
+
+Cheers :)
+
+
+Will Dowling
+
+E: will at autodeist.com
+
+
+
+

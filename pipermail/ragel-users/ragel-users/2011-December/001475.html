@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Improving perf of the Java code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Improving%20perf%20of%20the%20Java%20code&In-Reply-To=%3C1324494295.7458.9.camel%40conrad-MacBookPro%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001474.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Improving perf of the Java code</H1>
+    <B>Conrad Steenberg</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Improving%20perf%20of%20the%20Java%20code&In-Reply-To=%3C1324494295.7458.9.camel%40conrad-MacBookPro%3E"
+       TITLE="[ragel-users] Improving perf of the Java code">conrad.steenberg at gmail.com
+       </A><BR>
+    <I>Wed Dec 21 19:04:55 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001474.html">[ragel-users] Improving perf of the Java code
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1475">[ date ]</a>
+              <a href="thread.html#1475">[ thread ]</a>
+              <a href="subject.html#1475">[ subject ]</a>
+              <a href="author.html#1475">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>My only experience is in porting the non-goto (-F0) ruby emitter, but in
+general I think if you know the target language it's actually quite easy
+to write a new emitter.
+
+In your case I think it will probably be easier to go that route than
+Ragel-&gt; C-&gt; bytecode.
+
+Conrad
+
+On Wed, 2011-12-21 at 12:52 -0600, Charles Oliver Nutter wrote:
+&gt;<i> Yeah, that's kinda what I was thinking. Specifically, my own JVM
+</I>&gt;<i> language that's a thin layer over JVM bytecode:
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="https://github.com/headius/bitescript/blob/master/examples/fib.bs">https://github.com/headius/bitescript/blob/master/examples/fib.bs</A>
+</I>&gt;<i> 
+</I>&gt;<i> The other though I had was emitting normal Java code that could be
+</I>&gt;<i> post-processed into a goto...i.e. emit calls like
+</I>&gt;<i> 
+</I>&gt;<i> _label(&quot;named label&quot;)
+</I>&gt;<i> 
+</I>&gt;<i> _goto(&quot;named label&quot;)
+</I>&gt;<i> 
+</I>&gt;<i> And post-process the bytecode to use JVM bytecode goto instead.
+</I>&gt;<i> 
+</I>&gt;<i> If we were able to emit something like that, how hard would it be to
+</I>&gt;<i> get the faster FSM forms ported to Java?
+</I>&gt;<i> 
+</I>&gt;<i> - Charlie
+</I>&gt;<i> 
+</I>&gt;<i> On Wed, Dec 21, 2011 at 11:02 AM, Conrad Steenberg
+</I>&gt;<i> &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">conrad.steenberg at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; Hi Charlie,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I addition to looking at a bytecode generator, you might also look at
+</I>&gt;<i> &gt; generating code for another JVM language that does have support for
+</I>&gt;<i> &gt; goto. That language might even be C, if you can get the resulting code
+</I>&gt;<i> &gt; to generate the JRuby objects you need.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; See <A HREF="http://en.wikipedia.org/wiki/List_of_JVM_languages">http://en.wikipedia.org/wiki/List_of_JVM_languages</A>
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; On Wed, 2011-12-21 at 00:30 -0600, Charles Oliver Nutter wrote:
+</I>&gt;<i> &gt;&gt; Hello!
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; I work on JRuby, the Ruby implementation for the JVM. As you may know,
+</I>&gt;<i> &gt;&gt; Ruby users have latched on to Ragel for a number of parser tasks, such
+</I>&gt;<i> &gt;&gt; as json, http, various markup languages, and so on.
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; I have spent the last day trying to optimize a Ragel-generated json
+</I>&gt;<i> &gt;&gt; parser used as an extension to JRuby, and despite my best efforts I
+</I>&gt;<i> &gt;&gt; can't get it more than about 2x slower than the version for C Ruby.
+</I>&gt;<i> &gt;&gt; This is especially poor considering the Ruby code that surrounds it
+</I>&gt;<i> &gt;&gt; should run significantly faster on JRuby, and it still doesn't make up
+</I>&gt;<i> &gt;&gt; the gap.
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; I'm wondering what, if anything, can be done to improve the
+</I>&gt;<i> &gt;&gt; performance of the generated Java code. I notice that Java is only
+</I>&gt;<i> &gt;&gt; supported in the simplest output form, presumably because of the lack
+</I>&gt;<i> &gt;&gt; of &quot;goto&quot;. I'm interested in exploring options to bring the Java code
+</I>&gt;<i> &gt;&gt; up to par with the generated code for other languages, perhaps by
+</I>&gt;<i> &gt;&gt; implementing it using raw JVM bytecode (using some assembly-like
+</I>&gt;<i> &gt;&gt; format like BiteScript or Jasmin) or by post-processing the compiled
+</I>&gt;<i> &gt;&gt; result to insert true gotos.
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; Any pointers on this? Any prior work or tips?
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; - Charlie
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; _______________________________________________
+</I>&gt;<i> &gt;&gt; ragel-users mailing list
+</I>&gt;<i> &gt;&gt; <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> &gt;&gt; <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; _______________________________________________
+</I>&gt;<i> &gt; ragel-users mailing list
+</I>&gt;<i> &gt; <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> &gt; <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 490 bytes
+Desc: This is a digitally signed message part
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20111221/644e38af/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20111221/644e38af/attachment.sig</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001474.html">[ragel-users] Improving perf of the Java code
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1475">[ date ]</a>
+              <a href="thread.html#1475">[ thread ]</a>
+              <a href="subject.html#1475">[ subject ]</a>
+              <a href="author.html#1475">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1155 @@
+From peter.reijnders at verpeteren.nl  Wed Jan 17 13:08:17 2018
+From: peter.reijnders at verpeteren.nl (peter.reijnders at verpeteren.nl)
+Date: Wed, 17 Jan 2018 14:08:17 +0100
+Subject: [colm] segfault during iter on stdin [noob]
+Message-ID: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+
+Hello
+
+I tried to pickup colm because I realy like its potential.
+Due to the lack of examples and documentation I am fiddeling along and I 
+am currently stuck with a simple task.
+
+I try to parse a simple list with bullets and get a segfault.
+
+
+
+A simple markdown file 'input.md':
+
+```
+* A list:
+	* thing 1
+	* thing 2:
+		* thing 2a
+	* thing 3
+
+* Another list:
+	* thang 1
+	* thang 2:
+		* thang 2a
+	* thang 3
+```
+
+A simple script 'bullets.lm':
+
+```colm
+#!/usr/bin/env colm
+
+lex
+	#ignore 			/space+/
+	literal 			`* `: `\n `\t
+	token ws	 		/ ' ' /
+	token bullet		/ '*' /
+	token colon 		/ ':' /
+	token newline 		/ '\n' /
+	token tab 			/ 't' /
+	token indent 		/ tab* /
+	token identifier	/[a-zA-Z_]+/
+end
+
+def item
+	[bullet ws+ identifier ws* newline]
+|	[bullet ws+ itemlist]
+
+def itemlist
+	[identifier ws* colon ws* newline itemlist]
+
+def itemlists
+	[itemlist newline+ itemlists]
+|	[itemlist]
+|	[]
+
+parse Input: itemlists[ stdin ]
+
+for Id: itemlist in Input {
+	print( Id.identifier )
+}
+```
+
+It compiles without problems, but crashes in the for loop.
+
+```bash
+$colm bullets.lm
+$gdb ./bullets
+...
+(gdb) run <input.md
+Starting program: /redacted/bullets <input.md
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, psp=0x7fffffffbdc8, 
+iter=0x55555576c160, try_first=1)
+     at iter.c:363
+363		if ( try_first && ( iter->ref.kid->tree->id == iter->search_id || 
+any_tree ) ) {
+(gdb) bt
+#0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160,
+     try_first=1) at iter.c:363
+#1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160)
+     at iter.c:401
+#2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010, 
+exec=0x7fffffffe080, sp=0x55555576c160,
+     instr=0x555555758736 <parser_rootCode+54> "\270\r") at 
+bytecode.c:1998
+#3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+exec=0x7fffffffe080,
+     code=0x555555758700 <parser_rootCode> "\378\b\001") at 
+bytecode.c:413
+#4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218, argl=0x0)
+     at program.c:218
+#5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218) at program.c:227
+#6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+bullets.c:799
+(gdb)
+```
+
+What am I doing wrong?
+I am using a freshly cloned colm version '83e3cbcb25' and gcc version 
+'(Debian 6.3.0-18) 6.3.0 20170516'.
+.
+I'd apreciate some tips.
+
+Peter Reijnders
+
+
+From thurston at colm.net  Sat Jan 20 19:11:18 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 20 Jan 2018 14:11:18 -0500
+Subject: [colm] segfault during iter on stdin [noob]
+In-Reply-To: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+References: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+Message-ID: <30cca42e823d35ff8fad438dbcdbdf71@mail.colm.net>
+
+Hi Peter,
+
+The program is segfaulting because parsing fails, Input comes back nil 
+and the for loop causes a crash. Colm does not handle bad programs 
+gracefully.
+
+If you compile the program using -D PARSE and then run it you'll gain 
+some insight into why parsing failed. Note that when compiling with -D 
+PARSE you also get lots of output concerning the parse of the colm 
+program.
+
+-Adrian
+
+On 2018-01-17 08:08, peter.reijnders at verpeteren.nl wrote:
+> Hello
+> 
+> I tried to pickup colm because I realy like its potential.
+> Due to the lack of examples and documentation I am fiddeling along and
+> I am currently stuck with a simple task.
+> 
+> I try to parse a simple list with bullets and get a segfault.
+> 
+> 
+> 
+> A simple markdown file 'input.md':
+> 
+> ```
+> * A list:
+> * thing 1
+> * thing 2:
+> 	* thing 2a
+> * thing 3
+> 
+> * Another list:
+> * thang 1
+> * thang 2:
+> 	* thang 2a
+> * thang 3
+> ```
+> 
+> A simple script 'bullets.lm':
+> 
+> ```colm
+> #!/usr/bin/env colm
+> 
+> lex
+> #ignore 			/space+/
+> literal 			`* `: `\n `\t
+> token ws	 		/ ' ' /
+> token bullet		/ '*' /
+> token colon 		/ ':' /
+> token newline 		/ '\n' /
+> token tab 			/ 't' /
+> token indent 		/ tab* /
+> token identifier	/[a-zA-Z_]+/
+> end
+> 
+> def item
+> [bullet ws+ identifier ws* newline]
+> |	[bullet ws+ itemlist]
+> 
+> def itemlist
+> [identifier ws* colon ws* newline itemlist]
+> 
+> def itemlists
+> [itemlist newline+ itemlists]
+> |	[itemlist]
+> |	[]
+> 
+> parse Input: itemlists[ stdin ]
+> 
+> for Id: itemlist in Input {
+> print( Id.identifier )
+> }
+> ```
+> 
+> It compiles without problems, but crashes in the for loop.
+> 
+> ```bash
+> $colm bullets.lm
+> $gdb ./bullets
+> ...
+> (gdb) run <input.md
+> Starting program: /redacted/bullets <input.md
+> 
+> Program received signal SIGSEGV, Segmentation fault.
+> 0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160, try_first=1)
+>     at iter.c:363
+> 363		if ( try_first && ( iter->ref.kid->tree->id == iter->search_id ||
+> any_tree ) ) {
+> (gdb) bt
+> #0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160,
+>     try_first=1) at iter.c:363
+> #1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160)
+>     at iter.c:401
+> #2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010,
+> exec=0x7fffffffe080, sp=0x55555576c160,
+>     instr=0x555555758736 <parser_rootCode+54> "\270\r") at 
+> bytecode.c:1998
+> #3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+> exec=0x7fffffffe080,
+>     code=0x555555758700 <parser_rootCode> "\378\b\001") at 
+> bytecode.c:413
+> #4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010,
+> argc=1, argv=0x7fffffffe218, argl=0x0)
+>     at program.c:218
+> #5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010,
+> argc=1, argv=0x7fffffffe218) at program.c:227
+> #6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+> bullets.c:799
+> (gdb)
+> ```
+> 
+> What am I doing wrong?
+> I am using a freshly cloned colm version '83e3cbcb25' and gcc version
+> '(Debian 6.3.0-18) 6.3.0 20170516'.
+> .
+> I'd apreciate some tips.
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+From peter.reijnders at verpeteren.nl  Wed Jan 24 09:40:12 2018
+From: peter.reijnders at verpeteren.nl (peter.reijnders at verpeteren.nl)
+Date: Wed, 24 Jan 2018 10:40:12 +0100
+Subject: [colm] noob question
+Message-ID: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+
+hai,
+
+I am still trying to figure out how to start with colm.
+I realy would like to understand the difference between the following 
+colm scripts.
+
+One can parse the input file, one does not.
+
+In my opinion, both are 'the same', I like to understand the difference, 
+or the best practice.
+Any help is apreciated.
+
+
+Peter Reijnders
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: does_not.lm
+URL: <http://www.colm.net/pipermail/colm/attachments/20180124/e5a653e4/attachment.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: does.lm
+URL: <http://www.colm.net/pipermail/colm/attachments/20180124/e5a653e4/attachment-0001.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: data.csv
+URL: <http://www.colm.net/pipermail/colm/attachments/20180124/e5a653e4/attachment-0002.ksh>
+
+From thurston at colm.net  Sat Jan 27 16:21:26 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 27 Jan 2018 11:21:26 -0500
+Subject: [colm] noob question
+In-Reply-To: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+References: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+Message-ID: <baf07dc1e9ad62c909391ab467738c32@mail.colm.net>
+
+Hi Peter, the reason is that backslash characters are not interpreted in 
+backtick literals. Maybe that could be a warning for colm to emit. 
+Detect that you tried.
+
+Another thing: generally it's a bad idea to define tokens that match a 
+zero-length string or a non-zero-length string. A zero-length token can 
+generate infite sequences of tokens. Consider if you were to put one in 
+a list. Colm should warn against this. It's been on the TODO list for 
+some time.
+
+Zero-length tokens do have their uses, but you should be certain you 
+need it. You don't want it cropping up accidentally.
+
+Adrian
+
+On 2018-01-24 04:40, peter.reijnders at verpeteren.nl wrote:
+> hai,
+> 
+> I am still trying to figure out how to start with colm.
+> I realy would like to understand the difference between the following
+> colm scripts.
+> 
+> One can parse the input file, one does not.
+> 
+> In my opinion, both are 'the same', I like to understand the
+> difference, or the best practice.
+> Any help is apreciated.
+> 
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+From konstantin at podsvirov.pro  Sat Jan 27 20:33:06 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Sat, 27 Jan 2018 23:33:06 +0300
+Subject: [colm] Add CMake project
+Message-ID: <1309771517085186@web20g.yandex.ru>
+
+Hello Adrian Thurston and list!
+
+My name is Konstantin.
+
+What about adding cross-platform build system like CMake (https://cmake.org)?
+
+This will help to solve the problem of porting the project on a non Unix-like systems.
+
+I have some ideas and results as well.
+
+You can see the proposed changes in your browser:
+
+http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+
+Or download using the version control system (branch `cmake`):
+
+git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+
+Here are my first results.
+
+Now implemented:
+- Bootstrap `colm` program from sources;
+- Install target `colm::coml` and `colm::libcolm`
+  via CMake's `colm` package.
+
+Shadow build support via CMake.
+
+Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+
+Detected issue when sizeof(word_t) < sizeof(void*).
+
+I want to see if I had kindred spirits and should I continue 
+this activity?
+
+Any questions and suggestions?
+
+Sorry for mistakes in text (I use translator).
+
+--
+Regards,
+Konstantin Podsvirov
+
+
+From thurston at colm.net  Sun Jan 28 15:46:05 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 28 Jan 2018 10:46:05 -0500
+Subject: [colm] Add CMake project
+In-Reply-To: <1309771517085186@web20g.yandex.ru>
+References: <1309771517085186@web20g.yandex.ru>
+Message-ID: <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+
+Hi Konstantin,
+
+Colm and ragel are both part of a larger ecosystem of (private) projects 
+that are all built around autotools. I use scripts to generate part of 
+build process, so standardizing on one build system makes sense for me. 
+I often recommend people use cygwin to build on windows. It's quite 
+good.
+
+Adrian
+
+On 2018-01-27 15:33, Konstantin Podsvirov wrote:
+> Hello Adrian Thurston and list!
+> 
+> My name is Konstantin.
+> 
+> What about adding cross-platform build system like CMake 
+> (https://cmake.org)?
+> 
+> This will help to solve the problem of porting the project on a non
+> Unix-like systems.
+> 
+> I have some ideas and results as well.
+> 
+> You can see the proposed changes in your browser:
+> 
+> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+> 
+> Or download using the version control system (branch `cmake`):
+> 
+> git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+> 
+> Here are my first results.
+> 
+> Now implemented:
+> - Bootstrap `colm` program from sources;
+> - Install target `colm::coml` and `colm::libcolm`
+>   via CMake's `colm` package.
+> 
+> Shadow build support via CMake.
+> 
+> Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+> 
+> Detected issue when sizeof(word_t) < sizeof(void*).
+> 
+> I want to see if I had kindred spirits and should I continue
+> this activity?
+> 
+> Any questions and suggestions?
+> 
+> Sorry for mistakes in text (I use translator).
+> 
+> --
+> Regards,
+> Konstantin Podsvirov
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+From konstantin at podsvirov.pro  Sun Jan 28 16:24:33 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Sun, 28 Jan 2018 19:24:33 +0300
+Subject: [colm] Add CMake project
+In-Reply-To: <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+References: <1309771517085186@web20g.yandex.ru>
+ <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+Message-ID: <3286861517156673@web2g.yandex.ru>
+
+Hi Adrian,
+
+28.01.2018, 18:46, "Adrian Thurston" <thurston at colm.net>:
+> Hi Konstantin,
+>
+> Colm and ragel are both part of a larger ecosystem of (private) projects
+> that are all built around autotools. I use scripts to generate part of
+> build process, so standardizing on one build system makes sense for me.
+> I often recommend people use cygwin to build on windows. It's quite
+> good.
+>
+> Adrian
+
+many projects now have multiple build systems. Different build system to solve the exact same problem and can exist together.
+
+Build system CMake is very popular and very flexible. It has good support in various IDE.
+
+Using popular build system may increase the popularity of your projects.
+
+Example for autotools:
+
+./autogen.sh
+./configure
+make
+make install
+
+Example for CMake:
+
+cmake .
+make
+make install
+
+You can see that after the configuration stage, both systems work identically.
+
+Adrian, from your answer, I do not understand, can I expect that you will merge my changes?
+
+In the future I plan to add a CMake build system in the project Ragel, too.
+
+> On 2018-01-27 15:33, Konstantin wrote Podsvirov:
+>> Hello Adrian Thurston and list!
+>>
+>> My name is Konstantin.
+>>
+>> What about adding cross-platform build system like CMake
+>> (https://cmake.org)?
+>>
+>> This will help to solve the problem of porting the project on a non
+>> Unix-like systems.
+>>
+>> I have some ideas and results as well.
+>>
+>> You can see the proposed changes in your browser:
+>>
+>> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+>>
+>> Or download using the version control system (branch `cmake`):
+>>
+>> git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+>>
+>> Here are my first results.
+>>
+>> Now implemented:
+>> - Bootstrap `colm` program from sources;
+>> - Install target `colm::coml` and `colm::libcolm`
+>> via CMake's `colm` package.
+>>
+>> Shadow build support via CMake.
+>>
+>> Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+>>
+>> Detected issue when sizeof(word_t) < sizeof(void*).
+>>
+>> I want to see if I had kindred spirits and should I continue
+>> this activity?
+>>
+>> Any questions and suggestions?
+>>
+>> Sorry for mistakes in text (I use translator).
+>>
+>> --
+>> Regards,
+>> Konstantin Podsvirov
+>>
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+Regards,
+Konstantin Podsvirov
+
+
+From thurston at colm.net  Wed Jan 31 17:09:21 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 31 Jan 2018 12:09:21 -0500
+Subject: [colm] git repository URIs
+Message-ID: <80c04e1a2995cfe36cc526af0801af7a@mail.colm.net>
+
+Hi, the git repository URIs have changed:
+
+git clone git://colm.net/colm.git
+git clone git://colm.net/ragel.git
+
+Cheers,
+  Adrian
+
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+http://colm.net/
+
+
+
+From peter.reijnders at verpeteren.nl  Wed Jan 17 13:08:17 2018
+From: peter.reijnders at verpeteren.nl (peter.reijnders at verpeteren.nl)
+Date: Wed, 17 Jan 2018 14:08:17 +0100
+Subject: [colm] segfault during iter on stdin [noob]
+Message-ID: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+
+Hello
+
+I tried to pickup colm because I realy like its potential.
+Due to the lack of examples and documentation I am fiddeling along and I 
+am currently stuck with a simple task.
+
+I try to parse a simple list with bullets and get a segfault.
+
+
+
+A simple markdown file 'input.md':
+
+```
+* A list:
+	* thing 1
+	* thing 2:
+		* thing 2a
+	* thing 3
+
+* Another list:
+	* thang 1
+	* thang 2:
+		* thang 2a
+	* thang 3
+```
+
+A simple script 'bullets.lm':
+
+```colm
+#!/usr/bin/env colm
+
+lex
+	#ignore 			/space+/
+	literal 			`* `: `\n `\t
+	token ws	 		/ ' ' /
+	token bullet		/ '*' /
+	token colon 		/ ':' /
+	token newline 		/ '\n' /
+	token tab 			/ 't' /
+	token indent 		/ tab* /
+	token identifier	/[a-zA-Z_]+/
+end
+
+def item
+	[bullet ws+ identifier ws* newline]
+|	[bullet ws+ itemlist]
+
+def itemlist
+	[identifier ws* colon ws* newline itemlist]
+
+def itemlists
+	[itemlist newline+ itemlists]
+|	[itemlist]
+|	[]
+
+parse Input: itemlists[ stdin ]
+
+for Id: itemlist in Input {
+	print( Id.identifier )
+}
+```
+
+It compiles without problems, but crashes in the for loop.
+
+```bash
+$colm bullets.lm
+$gdb ./bullets
+...
+(gdb) run <input.md
+Starting program: /redacted/bullets <input.md
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, psp=0x7fffffffbdc8, 
+iter=0x55555576c160, try_first=1)
+     at iter.c:363
+363		if ( try_first && ( iter->ref.kid->tree->id == iter->search_id || 
+any_tree ) ) {
+(gdb) bt
+#0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160,
+     try_first=1) at iter.c:363
+#1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010, 
+psp=0x7fffffffbdc8, iter=0x55555576c160)
+     at iter.c:401
+#2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010, 
+exec=0x7fffffffe080, sp=0x55555576c160,
+     instr=0x555555758736 <parser_rootCode+54> "\270\r") at 
+bytecode.c:1998
+#3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+exec=0x7fffffffe080,
+     code=0x555555758700 <parser_rootCode> "\378\b\001") at 
+bytecode.c:413
+#4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218, argl=0x0)
+     at program.c:218
+#5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010, argc=1, 
+argv=0x7fffffffe218) at program.c:227
+#6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+bullets.c:799
+(gdb)
+```
+
+What am I doing wrong?
+I am using a freshly cloned colm version '83e3cbcb25' and gcc version 
+'(Debian 6.3.0-18) 6.3.0 20170516'.
+.
+I'd apreciate some tips.
+
+Peter Reijnders
+
+
+
+From thurston at colm.net  Sat Jan 20 19:11:18 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 20 Jan 2018 14:11:18 -0500
+Subject: [colm] segfault during iter on stdin [noob]
+In-Reply-To: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+References: <adc7de21af709981557fda9d1c4325d0@verpeteren.nl>
+Message-ID: <30cca42e823d35ff8fad438dbcdbdf71@mail.colm.net>
+
+Hi Peter,
+
+The program is segfaulting because parsing fails, Input comes back nil 
+and the for loop causes a crash. Colm does not handle bad programs 
+gracefully.
+
+If you compile the program using -D PARSE and then run it you'll gain 
+some insight into why parsing failed. Note that when compiling with -D 
+PARSE you also get lots of output concerning the parse of the colm 
+program.
+
+-Adrian
+
+On 2018-01-17 08:08, peter.reijnders at verpeteren.nl wrote:
+> Hello
+> 
+> I tried to pickup colm because I realy like its potential.
+> Due to the lack of examples and documentation I am fiddeling along and
+> I am currently stuck with a simple task.
+> 
+> I try to parse a simple list with bullets and get a segfault.
+> 
+> 
+> 
+> A simple markdown file 'input.md':
+> 
+> ```
+> * A list:
+> * thing 1
+> * thing 2:
+> 	* thing 2a
+> * thing 3
+> 
+> * Another list:
+> * thang 1
+> * thang 2:
+> 	* thang 2a
+> * thang 3
+> ```
+> 
+> A simple script 'bullets.lm':
+> 
+> ```colm
+> #!/usr/bin/env colm
+> 
+> lex
+> #ignore 			/space+/
+> literal 			`* `: `\n `\t
+> token ws	 		/ ' ' /
+> token bullet		/ '*' /
+> token colon 		/ ':' /
+> token newline 		/ '\n' /
+> token tab 			/ 't' /
+> token indent 		/ tab* /
+> token identifier	/[a-zA-Z_]+/
+> end
+> 
+> def item
+> [bullet ws+ identifier ws* newline]
+> |	[bullet ws+ itemlist]
+> 
+> def itemlist
+> [identifier ws* colon ws* newline itemlist]
+> 
+> def itemlists
+> [itemlist newline+ itemlists]
+> |	[itemlist]
+> |	[]
+> 
+> parse Input: itemlists[ stdin ]
+> 
+> for Id: itemlist in Input {
+> print( Id.identifier )
+> }
+> ```
+> 
+> It compiles without problems, but crashes in the for loop.
+> 
+> ```bash
+> $colm bullets.lm
+> $gdb ./bullets
+> ...
+> (gdb) run <input.md
+> Starting program: /redacted/bullets <input.md
+> 
+> Program received signal SIGSEGV, Segmentation fault.
+> 0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160, try_first=1)
+>     at iter.c:363
+> 363		if ( try_first && ( iter->ref.kid->tree->id == iter->search_id ||
+> any_tree ) ) {
+> (gdb) bt
+> #0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160,
+>     try_first=1) at iter.c:363
+> #1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010,
+> psp=0x7fffffffbdc8, iter=0x55555576c160)
+>     at iter.c:401
+> #2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010,
+> exec=0x7fffffffe080, sp=0x55555576c160,
+>     instr=0x555555758736 <parser_rootCode+54> "\270\r") at 
+> bytecode.c:1998
+> #3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+> exec=0x7fffffffe080,
+>     code=0x555555758700 <parser_rootCode> "\378\b\001") at 
+> bytecode.c:413
+> #4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010,
+> argc=1, argv=0x7fffffffe218, argl=0x0)
+>     at program.c:218
+> #5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010,
+> argc=1, argv=0x7fffffffe218) at program.c:227
+> #6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+> bullets.c:799
+> (gdb)
+> ```
+> 
+> What am I doing wrong?
+> I am using a freshly cloned colm version '83e3cbcb25' and gcc version
+> '(Debian 6.3.0-18) 6.3.0 20170516'.
+> .
+> I'd apreciate some tips.
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Wed Jan 24 09:40:12 2018
+From: peter.reijnders at verpeteren.nl (peter.reijnders at verpeteren.nl)
+Date: Wed, 24 Jan 2018 10:40:12 +0100
+Subject: [colm] noob question
+Message-ID: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+
+hai,
+
+I am still trying to figure out how to start with colm.
+I realy would like to understand the difference between the following 
+colm scripts.
+
+One can parse the input file, one does not.
+
+In my opinion, both are 'the same', I like to understand the difference, 
+or the best practice.
+Any help is apreciated.
+
+
+Peter Reijnders
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: does_not.lm
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180124/e5a653e4/attachment-0006.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: does.lm
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180124/e5a653e4/attachment-0007.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: data.csv
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20180124/e5a653e4/attachment-0008.ksh>
+
+From thurston at colm.net  Sat Jan 27 16:21:26 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 27 Jan 2018 11:21:26 -0500
+Subject: [colm] noob question
+In-Reply-To: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+References: <95c754d902279f29d01fbbaec30693d3@verpeteren.nl>
+Message-ID: <baf07dc1e9ad62c909391ab467738c32@mail.colm.net>
+
+Hi Peter, the reason is that backslash characters are not interpreted in 
+backtick literals. Maybe that could be a warning for colm to emit. 
+Detect that you tried.
+
+Another thing: generally it's a bad idea to define tokens that match a 
+zero-length string or a non-zero-length string. A zero-length token can 
+generate infite sequences of tokens. Consider if you were to put one in 
+a list. Colm should warn against this. It's been on the TODO list for 
+some time.
+
+Zero-length tokens do have their uses, but you should be certain you 
+need it. You don't want it cropping up accidentally.
+
+Adrian
+
+On 2018-01-24 04:40, peter.reijnders at verpeteren.nl wrote:
+> hai,
+> 
+> I am still trying to figure out how to start with colm.
+> I realy would like to understand the difference between the following
+> colm scripts.
+> 
+> One can parse the input file, one does not.
+> 
+> In my opinion, both are 'the same', I like to understand the
+> difference, or the best practice.
+> Any help is apreciated.
+> 
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From konstantin at podsvirov.pro  Sat Jan 27 20:33:06 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Sat, 27 Jan 2018 23:33:06 +0300
+Subject: [colm] Add CMake project
+Message-ID: <1309771517085186@web20g.yandex.ru>
+
+Hello Adrian Thurston and list!
+
+My name is Konstantin.
+
+What about adding cross-platform build system like CMake (https://cmake.org)?
+
+This will help to solve the problem of porting the project on a non Unix-like systems.
+
+I have some ideas and results as well.
+
+You can see the proposed changes in your browser:
+
+http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+
+Or download using the version control system (branch `cmake`):
+
+git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+
+Here are my first results.
+
+Now implemented:
+- Bootstrap `colm` program from sources;
+- Install target `colm::coml` and `colm::libcolm`
+  via CMake's `colm` package.
+
+Shadow build support via CMake.
+
+Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+
+Detected issue when sizeof(word_t) < sizeof(void*).
+
+I want to see if I had kindred spirits and should I continue 
+this activity?
+
+Any questions and suggestions?
+
+Sorry for mistakes in text (I use translator).
+
+--
+Regards,
+Konstantin Podsvirov
+
+
+
+From thurston at colm.net  Sun Jan 28 15:46:05 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Sun, 28 Jan 2018 10:46:05 -0500
+Subject: [colm] Add CMake project
+In-Reply-To: <1309771517085186@web20g.yandex.ru>
+References: <1309771517085186@web20g.yandex.ru>
+Message-ID: <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+
+Hi Konstantin,
+
+Colm and ragel are both part of a larger ecosystem of (private) projects 
+that are all built around autotools. I use scripts to generate part of 
+build process, so standardizing on one build system makes sense for me. 
+I often recommend people use cygwin to build on windows. It's quite 
+good.
+
+Adrian
+
+On 2018-01-27 15:33, Konstantin Podsvirov wrote:
+> Hello Adrian Thurston and list!
+> 
+> My name is Konstantin.
+> 
+> What about adding cross-platform build system like CMake 
+> (https://cmake.org)?
+> 
+> This will help to solve the problem of porting the project on a non
+> Unix-like systems.
+> 
+> I have some ideas and results as well.
+> 
+> You can see the proposed changes in your browser:
+> 
+> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+> 
+> Or download using the version control system (branch `cmake`):
+> 
+> git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+> 
+> Here are my first results.
+> 
+> Now implemented:
+> - Bootstrap `colm` program from sources;
+> - Install target `colm::coml` and `colm::libcolm`
+>   via CMake's `colm` package.
+> 
+> Shadow build support via CMake.
+> 
+> Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+> 
+> Detected issue when sizeof(word_t) < sizeof(void*).
+> 
+> I want to see if I had kindred spirits and should I continue
+> this activity?
+> 
+> Any questions and suggestions?
+> 
+> Sorry for mistakes in text (I use translator).
+> 
+> --
+> Regards,
+> Konstantin Podsvirov
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From konstantin at podsvirov.pro  Sun Jan 28 16:24:33 2018
+From: konstantin at podsvirov.pro (Konstantin Podsvirov)
+Date: Sun, 28 Jan 2018 19:24:33 +0300
+Subject: [colm] Add CMake project
+In-Reply-To: <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+References: <1309771517085186@web20g.yandex.ru>
+ <29a11518cdb37bc34be1c8523e3a018a@mail.colm.net>
+Message-ID: <3286861517156673@web2g.yandex.ru>
+
+Hi Adrian,
+
+28.01.2018, 18:46, "Adrian Thurston" <thurston at colm.net>:
+> Hi Konstantin,
+>
+> Colm and ragel are both part of a larger ecosystem of (private) projects
+> that are all built around autotools. I use scripts to generate part of
+> build process, so standardizing on one build system makes sense for me.
+> I often recommend people use cygwin to build on windows. It's quite
+> good.
+>
+> Adrian
+
+many projects now have multiple build systems. Different build system to solve the exact same problem and can exist together.
+
+Build system CMake is very popular and very flexible. It has good support in various IDE.
+
+Using popular build system may increase the popularity of your projects.
+
+Example for autotools:
+
+./autogen.sh
+./configure
+make
+make install
+
+Example for CMake:
+
+cmake .
+make
+make install
+
+You can see that after the configuration stage, both systems work identically.
+
+Adrian, from your answer, I do not understand, can I expect that you will merge my changes?
+
+In the future I plan to add a CMake build system in the project Ragel, too.
+
+> On 2018-01-27 15:33, Konstantin wrote Podsvirov:
+>> Hello Adrian Thurston and list!
+>>
+>> My name is Konstantin.
+>>
+>> What about adding cross-platform build system like CMake
+>> (https://cmake.org)?
+>>
+>> This will help to solve the problem of porting the project on a non
+>> Unix-like systems.
+>>
+>> I have some ideas and results as well.
+>>
+>> You can see the proposed changes in your browser:
+>>
+>> http://git.podsvirov.pro/?p=dad/fix/colm.git;a=commitdiff;h=cmake
+>>
+>> Or download using the version control system (branch `cmake`):
+>>
+>> git clone -b cmake git://podsvirov.pro/dad/fix/colm.git
+>>
+>> Here are my first results.
+>>
+>> Now implemented:
+>> - Bootstrap `colm` program from sources;
+>> - Install target `colm::coml` and `colm::libcolm`
+>> via CMake's `colm` package.
+>>
+>> Shadow build support via CMake.
+>>
+>> Tested with MSYS2 and MinGW-w64 on Windows and with GCC on Linux.
+>>
+>> Detected issue when sizeof(word_t) < sizeof(void*).
+>>
+>> I want to see if I had kindred spirits and should I continue
+>> this activity?
+>>
+>> Any questions and suggestions?
+>>
+>> Sorry for mistakes in text (I use translator).
+>>
+>> --
+>> Regards,
+>> Konstantin Podsvirov
+>>
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+Regards,
+Konstantin Podsvirov
+
+
+
+From thurston at colm.net  Wed Jan 31 17:09:21 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 31 Jan 2018 12:09:21 -0500
+Subject: [colm] git repository URIs
+Message-ID: <80c04e1a2995cfe36cc526af0801af7a@mail.colm.net>
+
+Hi, the git repository URIs have changed:
+
+git clone git://colm.net/colm.git
+git clone git://colm.net/ragel.git
+
+Cheers,
+  Adrian
+
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+http://colm.net/
+
+
+
+

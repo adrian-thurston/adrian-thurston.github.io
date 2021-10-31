@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Transition actions on EOF handling
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Transition%20actions%20on%20EOF%20handling&In-Reply-To=%3C4685C850.20402%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000253.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Transition actions on EOF handling</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Transition%20actions%20on%20EOF%20handling&In-Reply-To=%3C4685C850.20402%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Transition actions on EOF handling">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sat Jun 30 03:04:48 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000253.html">Transition actions on EOF handling
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2017">[ date ]</a>
+              <a href="thread.html#2017">[ thread ]</a>
+              <a href="subject.html#2017">[ subject ]</a>
+              <a href="author.html#2017">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+One way to handle it is to send some EOF character (maybe zero) and then
+change main to
+
+main := char+ 0;
+
+Another way is to embed EOF actions which handle the last item.
+
+action act_e { printf(&quot;foo\n&quot;); }
+
+&quot;e&quot; %act_e %/act_e |
+
+Finally, if you don't need lookahead (in other words if a match can be
+declared on the last character of each item -- in other other words if
+no pattern is a prefix of some other pattern) then you can use the @
+action embedding operator to avoid this problem. This seems to be the
+case with this example, though if it has been elided it may not be.
+
+Cheers,
+ Adrian
+
+Alexander Strange wrote:
+&gt;<i> I wrote this program:
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> #include &lt;string.h&gt;
+</I>&gt;<i> %% machine romaji;
+</I>&gt;<i> %% write data;
+</I>&gt;<i> 
+</I>&gt;<i> int main(void)
+</I>&gt;<i> {
+</I>&gt;<i> 	char buf[1024];
+</I>&gt;<i> 	int ilen;
+</I>&gt;<i> 
+</I>&gt;<i> 	scanf(&quot;%s&quot;,buf);
+</I>&gt;<i> 	ilen = strlen(buf);
+</I>&gt;<i> 	{
+</I>&gt;<i> 		char *p = buf, *pe = &amp;buf[ilen], *m=&quot;qqq&quot;;
+</I>&gt;<i> 		int cs;
+</I>&gt;<i> 		%%{
+</I>&gt;<i> 			alphtype unsigned char;
+</I>&gt;<i> 
+</I>&gt;<i> 			action mora_out {printf(&quot;%s&quot;,m);}
+</I>&gt;<i> 
+</I>&gt;<i> 			mora = (&quot;a&quot; % {m=&quot;あ&quot;;} |
+</I>&gt;<i> 					&quot;e&quot; % {m=&quot;え&quot;;} |
+</I>&gt;<i> 					&quot;i&quot; % {m=&quot;い&quot;;} |
+</I>&gt;<i> 					&quot;o&quot; % {m=&quot;お&quot;;} |
+</I>&gt;<i> 					&quot;u&quot; % {m=&quot;う&quot;;} |
+</I>&gt;<i> 					&quot;ga&quot; % {m=&quot;が&quot;;} |
+</I>&gt;<i> 					&quot;ge&quot; % {m=&quot;げ&quot;;} |
+</I>&gt;<i> 					&quot;gi&quot; % {m=&quot;ぎ&quot;;} |
+</I>&gt;<i> 					&quot;go&quot; % {m=&quot;ご&quot;;} |
+</I>&gt;<i> 					&quot;gu&quot; % {m=&quot;ぐ&quot;;}) % mora_out;
+</I>&gt;<i> 
+</I>&gt;<i> 			char = mora;
+</I>&gt;<i> 
+</I>&gt;<i> 			main := char+;
+</I>&gt;<i> 		}%%
+</I>&gt;<i> 
+</I>&gt;<i> 		%% write init;
+</I>&gt;<i> 		%% write exec;
+</I>&gt;<i> 		%% write eof;
+</I>&gt;<i> 	}
+</I>&gt;<i> 	printf(&quot;\n&quot;);
+</I>&gt;<i> 	return 0;
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> and run it:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> ./r2h
+</I>&gt;<i> aei
+</I>&gt;<i> あえ
+</I>&gt;<i> 
+</I>&gt;<i> I don't blame you if you can't read the output, but there should be 3
+</I>&gt;<i> characters instead of two. The last one isn't firing, apparently
+</I>&gt;<i> because it reaches the end of the string. I've got the same problem
+</I>&gt;<i> (worked around) in Perian 1.0, which uses Ragel for the subtitle
+</I>&gt;<i> parsing. Is there a general way to handle this?
+</I>&gt;<i> 
+</I>&gt;<i> Also, how fast is Ragel for general text searches? At the expense of
+</I>&gt;<i> more tables and FSM purity, it could maybe implement something really
+</I>&gt;<i> fast like Boyer-Moore.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070629/bda5674c/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070629/bda5674c/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000253.html">Transition actions on EOF handling
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2017">[ date ]</a>
+              <a href="thread.html#2017">[ thread ]</a>
+              <a href="subject.html#2017">[ subject ]</a>
+              <a href="author.html#2017">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

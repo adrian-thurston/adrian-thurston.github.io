@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Ragel 6.8 broken in Go
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%206.8%20broken%20in%20Go&In-Reply-To=%3C52668F4A.9010606%40witmond.nl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001619.html">
+   <LINK REL="Next"  HREF="001615.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Ragel 6.8 broken in Go</H1>
+    <B>Guido Witmond</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Ragel%206.8%20broken%20in%20Go&In-Reply-To=%3C52668F4A.9010606%40witmond.nl%3E"
+       TITLE="[ragel-users] Ragel 6.8 broken in Go">guido at witmond.nl
+       </A><BR>
+    <I>Tue Oct 22 14:44:26 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001619.html">[ragel-users] 0x0E..0xFF produces &quot;lower end of range is greater then upper end&quot;
+</A></li>
+        <LI>Next message: <A HREF="001615.html">[ragel-users] Ragel 6.8 broken in Go
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1614">[ date ]</a>
+              <a href="thread.html#1614">[ thread ]</a>
+              <a href="subject.html#1614">[ subject ]</a>
+              <a href="author.html#1614">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+Thanks for developing Ragel.
+
+Being new, I tried the example from the user manual.
+
+It runs in C but it breaks in Go.
+
+I've run: ragel -Z -G2 main.rl &amp;&amp; go run main.go
+
+Results are:
+
+# command-line-arguments
+./main.go:66: goto tr0 jumps into block starting at ./main.go:39
+./main.go:71: goto tr3 jumps into block starting at ./main.go:48
+./main.go:72: goto st0 jumps into block starting at ./main.go:48
+... too many errors.
+
+It happens in a backported go-1.1.2 from Sid to Wheezy, 64bit
+and in go-1.02 on ubuntu 12.04 on 32bits.
+
+I've run the same program in C: number.rl
+
+   ragel number.rl &amp;&amp; gcc number.c &amp;&amp; ./a.out &quot;123.456e+789&quot;
+DGT: 1
+DGT: 2
+DGT: 3
+DEC: .
+enz...
+
+
+Is this a known problem? Do I (newbie) do something wrong?
+
+Regards, Guido.
+
+-------------- next part --------------
+package main
+import (
+	&quot;fmt&quot;
+)
+
+%%{
+	machine numbers;
+	action dgt      { fmt.Printf(&quot;DGT: %c\n&quot;, fc); }
+	action dec      { fmt.Printf(&quot;DEC: .\n&quot;); }
+	action exp      { fmt.Printf(&quot;EXP: %c\n&quot;, fc); }
+	action exp_sign { fmt.Printf(&quot;SGN: %c\n&quot;, fc); }
+	action number   { fmt.Printf(&quot;Number parsed&quot;); }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) %number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;
+
+func main() {
+	data := &quot;123.456e+789&quot; // data is the input to the state machine
+	cs := 0 // state 
+	p := 0 // data pointer (index into data)
+	pe := len(data)
+
+	%%	write init;
+	%%	write exec;
+
+	return
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: main.go
+Type: text/x-go
+Size: 2599 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.bin">http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.bin</A>&gt;
+-------------- next part --------------
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+
+%%{
+	machine numbers;
+
+	action dgt      { printf(&quot;DGT: %c\n&quot;, fc); }
+	action dec      { printf(&quot;DEC: .\n&quot;); }
+	action exp      { printf(&quot;EXP: %c\n&quot;, fc); }
+	action exp_sign { printf(&quot;SGN: %c\n&quot;, fc); }
+	action number   { res = 1; }
+
+	number = (
+		[0-9]+ $dgt ( '.' @dec [0-9]+ $dgt )?
+		( [eE] ( [+\-] $exp_sign )? [0-9]+ $exp )?
+	) $number;
+		
+	main := ( number '\n' )*;
+}%%
+
+%% write data;		
+
+int main( int argc, char **argv )
+{
+	int cs, res = 0;
+	if ( argc &gt; 1 ) {
+	   char *p = argv[1];
+	   char *pe = p + strlen(p) + 1;
+
+   	   %%	write init;
+	   %%	write exec;
+	   }
+	printf(&quot;result = %i\n&quot;, res );
+	return 0;
+}
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 897 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20131022/ec50e4df/attachment.sig</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001619.html">[ragel-users] 0x0E..0xFF produces &quot;lower end of range is greater then upper end&quot;
+</A></li>
+	<LI>Next message: <A HREF="001615.html">[ragel-users] Ragel 6.8 broken in Go
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1614">[ date ]</a>
+              <a href="thread.html#1614">[ thread ]</a>
+              <a href="subject.html#1614">[ subject ]</a>
+              <a href="author.html#1614">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,616 @@
+From nverwer at gmail.com  Wed Feb 19 16:19:14 2014
+From: nverwer at gmail.com (Nico Verwer)
+Date: Wed, 19 Feb 2014 16:19:14 +0000 (UTC)
+Subject: [ragel-users] Grammer containing union of many expressions
+Message-ID: <loom.20140219T170944-580@post.gmane.org>
+
+Hello Ragel users,
+
+I have a grammar that Ragel cannot generate (Java) code for. It just stops
+working without any (visible) error message.
+
+My grammar contains more than 30,000 rules of the form
+  nameX = "title 1" | "title 2" | ... ;
+and then one rule which is the union of all of the 32,000 nameX:
+  allOfThese = nameX | nameY | ... | nameZ ;
+
+It is the last rule (allOfThese) that makes Ragel crash.
+
+I am using Ragel on a windows (64-bit) machine, and the system logs only
+tells me that the application crashed.
+
+Would it help to compile Ragel on a unix machine (which I don't have access
+to at the moment) or under MinGW? Or will it never work with such an
+insanely large union?
+
+Your insights are much appreciated.
+
+Best regards,
+Nico Verwer
+
+(CAPTCHA on gmane says "short", which is not true of my grammar.)
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Feb 19 18:53:05 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 19 Feb 2014 18:53:05 +0000
+Subject: [ragel-users] Grammer containing union of many expressions
+Message-ID: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+
+You might try refactoring the strings to pull out common prefixes. When you're doing this, incrementally add in machines to see where the cost is. 
+------Original Message------
+From: Nico Verwer
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: [ragel-users] Grammer containing union of many expressions
+Sent: Feb 19, 2014 11:19 AM
+
+Hello Ragel users,
+
+I have a grammar that Ragel cannot generate (Java) code for. It just stops
+working without any (visible) error message.
+
+My grammar contains more than 30,000 rules of the form
+  nameX = "title 1" | "title 2" | ... ;
+and then one rule which is the union of all of the 32,000 nameX:
+  allOfThese = nameX | nameY | ... | nameZ ;
+
+It is the last rule (allOfThese) that makes Ragel crash.
+
+I am using Ragel on a windows (64-bit) machine, and the system logs only
+tells me that the application crashed.
+
+Would it help to compile Ragel on a unix machine (which I don't have access
+to at the moment) or under MinGW? Or will it never work with such an
+insanely large union?
+
+Your insights are much appreciated.
+
+Best regards,
+Nico Verwer
+
+(CAPTCHA on gmane says "short", which is not true of my grammar.)
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nverwer at gmail.com  Fri Feb 21 09:09:27 2014
+From: nverwer at gmail.com (Nico Verwer)
+Date: Fri, 21 Feb 2014 10:09:27 +0100
+Subject: [ragel-users] Grammer containing union of many expressions
+In-Reply-To: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+References: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+Message-ID: <530717C7.2020602@gmail.com>
+
+On 19-2-2014 19:53, Adrian Thurston wrote:
+> You might try refactoring the strings to pull out common prefixes. When you're doing this, incrementally add in machines to see where the cost is.
+> ------Original Message------
+>
+> I have a grammar that Ragel cannot generate (Java) code for. It just stops
+> working without any (visible) error message.
+>
+> My grammar contains more than 30,000 rules of the form
+>    nameX = "title 1" | "title 2" | ... ;
+> and then one rule which is the union of all of the 32,000 nameX:
+>    allOfThese = nameX | nameY | ... | nameZ ;
+>
+> It is the last rule (allOfThese) that makes Ragel crash.
+>
+I think pulling out common prefixes will help. I thought the parser 
+generator would do that, but now I understand it doesn't.
+Thanks for the suggestion!
+
+
+---
+This email is free from viruses and malware because avast! Antivirus protection is active.
+http://www.avast.com
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gpakosz at yahoo.fr  Sun Feb 23 21:40:59 2014
+From: gpakosz at yahoo.fr (=?ISO-8859-1?Q?Gr=E9gory_Pakosz?=)
+Date: Sun, 23 Feb 2014 22:40:59 +0100
+Subject: [ragel-users] When exactly is the eof variable required?
+Message-ID: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+
+Hello,
+
+I'm currently discovering Ragel and I am wondering when the eof
+variable is required?
+
+More exactly, I noticed in the following in the params.rl example:
+
+output = '-o' 0? string 0 @output;
+
+I understand the machines are defined to accept and consume NUL
+characters. This is the reason why the params_execute function is
+given strlen(argv[a])+1.
+
+However, if I change params.rl to:
+
+output = '-o' 0? string @output;
+
+Then Ragel starts making use of the eof variable, which params.rl
+doesn't define.
+
+Can someone please explain me why removing that 0 in the machine makes
+Ragel use the eof variable?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gpakosz at yahoo.fr  Sun Feb 23 21:45:41 2014
+From: gpakosz at yahoo.fr (=?ISO-8859-1?Q?Gr=E9gory_Pakosz?=)
+Date: Sun, 23 Feb 2014 22:45:41 +0100
+Subject: [ragel-users] Enabling / disabling transitions depending on host
+	language expression.
+Message-ID: <CAC_01E1EOf5QsYUXAdUGN9qeT+WcL4Hr8YJD5yDQ35mxHE5pDg@mail.gmail.com>
+
+Hello,
+
+With Ragel, is there a way to enable/disable transitions depending on
+the evaluation of an expression in the host language?
+
+I have the following in mind:
+
+main := m1 | m2 | m3
+
+And I would like to inhibit entering m1 or m2 or m3 depending on runtime state.
+Is this possible? If it's a wrong approach, what's the canonical Ragel
+approach then?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tim at goddard.net.nz  Sun Feb 23 23:10:13 2014
+From: tim at goddard.net.nz (Timothy Goddard)
+Date: Mon, 24 Feb 2014 12:10:13 +1300
+Subject: [ragel-users] Enabling / disabling transitions depending on
+ host language expression.
+Message-ID: <ugna2hkucqkh9r21y972ee1s.1393196886973@email.android.com>
+
+Yes, look for "semantic conditions" near the end of the ragel guide.
+
+
+Sent from Samsung Mobile
+
+-------- Original message --------
+From: Grégory Pakosz <gpakosz at yahoo.fr> 
+Date:  
+To: ragel-users at complang.org 
+Subject: [ragel-users] Enabling / disabling transitions depending on host
+ 	language expression. 
+ 
+Hello,
+
+With Ragel, is there a way to enable/disable transitions depending on
+the evaluation of an expression in the host language?
+
+I have the following in mind:
+
+main := m1 | m2 | m3
+
+And I would like to inhibit entering m1 or m2 or m3 depending on runtime state.
+Is this possible? If it's a wrong approach, what's the canonical Ragel
+approach then?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20140224/5e841306/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tim at goddard.net.nz  Mon Feb 24 02:28:45 2014
+From: tim at goddard.net.nz (Tim Goddard)
+Date: Mon, 24 Feb 2014 15:28:45 +1300
+Subject: [ragel-users] When exactly is the eof variable required?
+In-Reply-To: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+References: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+Message-ID: <63348233.XvRJIlXdaJ@thorn>
+
+I'm guessing that string can't include the null character, but can be of 
+variable length (kleene star, etc). When the expression ends with "string", 
+it could be cut short while still having a valid expression by the end of the 
+file, and need to take finishing actions when it sees the EOF. When the 
+expression ends with 0, an EOF could not mark the end of the expression 
+and cause any other action to be taken, so the eof mark is unused.
+
+The fact that it's a null character will be irrelevant - any character which 
+can't be in "string" would have the same effect.
+
+Cheers,
+
+Tim
+
+On Sun, 23 Feb 2014 22:40:59 Grégory Pakosz wrote:
+> Hello,
+> 
+> I'm currently discovering Ragel and I am wondering when the eof
+> variable is required?
+> 
+> More exactly, I noticed in the following in the params.rl example:
+> 
+> output = '-o' 0? string 0 @output;
+> 
+> I understand the machines are defined to accept and consume NUL
+> characters. This is the reason why the params_execute function is
+> given strlen(argv[a])+1.
+> 
+> However, if I change params.rl to:
+> 
+> output = '-o' 0? string @output;
+> 
+> Then Ragel starts making use of the eof variable, which params.rl
+> doesn't define.
+> 
+> Can someone please explain me why removing that 0 in the machine 
+makes
+> Ragel use the eof variable?
+> 
+> Thank you,
+> Gregory
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nverwer at gmail.com  Wed Feb 19 16:19:14 2014
+From: nverwer at gmail.com (Nico Verwer)
+Date: Wed, 19 Feb 2014 16:19:14 +0000 (UTC)
+Subject: [ragel-users] Grammer containing union of many expressions
+Message-ID: <loom.20140219T170944-580@post.gmane.org>
+
+Hello Ragel users,
+
+I have a grammar that Ragel cannot generate (Java) code for. It just stops
+working without any (visible) error message.
+
+My grammar contains more than 30,000 rules of the form
+  nameX = "title 1" | "title 2" | ... ;
+and then one rule which is the union of all of the 32,000 nameX:
+  allOfThese = nameX | nameY | ... | nameZ ;
+
+It is the last rule (allOfThese) that makes Ragel crash.
+
+I am using Ragel on a windows (64-bit) machine, and the system logs only
+tells me that the application crashed.
+
+Would it help to compile Ragel on a unix machine (which I don't have access
+to at the moment) or under MinGW? Or will it never work with such an
+insanely large union?
+
+Your insights are much appreciated.
+
+Best regards,
+Nico Verwer
+
+(CAPTCHA on gmane says "short", which is not true of my grammar.)
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Feb 19 18:53:05 2014
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 19 Feb 2014 18:53:05 +0000
+Subject: [ragel-users] Grammer containing union of many expressions
+Message-ID: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+
+You might try refactoring the strings to pull out common prefixes. When you're doing this, incrementally add in machines to see where the cost is. 
+------Original Message------
+From: Nico Verwer
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users
+Subject: [ragel-users] Grammer containing union of many expressions
+Sent: Feb 19, 2014 11:19 AM
+
+Hello Ragel users,
+
+I have a grammar that Ragel cannot generate (Java) code for. It just stops
+working without any (visible) error message.
+
+My grammar contains more than 30,000 rules of the form
+  nameX = "title 1" | "title 2" | ... ;
+and then one rule which is the union of all of the 32,000 nameX:
+  allOfThese = nameX | nameY | ... | nameZ ;
+
+It is the last rule (allOfThese) that makes Ragel crash.
+
+I am using Ragel on a windows (64-bit) machine, and the system logs only
+tells me that the application crashed.
+
+Would it help to compile Ragel on a unix machine (which I don't have access
+to at the moment) or under MinGW? Or will it never work with such an
+insanely large union?
+
+Your insights are much appreciated.
+
+Best regards,
+Nico Verwer
+
+(CAPTCHA on gmane says "short", which is not true of my grammar.)
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nverwer at gmail.com  Fri Feb 21 09:09:27 2014
+From: nverwer at gmail.com (Nico Verwer)
+Date: Fri, 21 Feb 2014 10:09:27 +0100
+Subject: [ragel-users] Grammer containing union of many expressions
+In-Reply-To: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+References: <342719223-1392835979-cardhu_decombobulator_blackberry.rim.net-916907990-@b11.c7.bise6.blackberry>
+Message-ID: <530717C7.2020602@gmail.com>
+
+On 19-2-2014 19:53, Adrian Thurston wrote:
+> You might try refactoring the strings to pull out common prefixes. When you're doing this, incrementally add in machines to see where the cost is.
+> ------Original Message------
+>
+> I have a grammar that Ragel cannot generate (Java) code for. It just stops
+> working without any (visible) error message.
+>
+> My grammar contains more than 30,000 rules of the form
+>    nameX = "title 1" | "title 2" | ... ;
+> and then one rule which is the union of all of the 32,000 nameX:
+>    allOfThese = nameX | nameY | ... | nameZ ;
+>
+> It is the last rule (allOfThese) that makes Ragel crash.
+>
+I think pulling out common prefixes will help. I thought the parser 
+generator would do that, but now I understand it doesn't.
+Thanks for the suggestion!
+
+
+---
+This email is free from viruses and malware because avast! Antivirus protection is active.
+http://www.avast.com
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gpakosz at yahoo.fr  Sun Feb 23 21:40:59 2014
+From: gpakosz at yahoo.fr (=?ISO-8859-1?Q?Gr=E9gory_Pakosz?=)
+Date: Sun, 23 Feb 2014 22:40:59 +0100
+Subject: [ragel-users] When exactly is the eof variable required?
+Message-ID: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+
+Hello,
+
+I'm currently discovering Ragel and I am wondering when the eof
+variable is required?
+
+More exactly, I noticed in the following in the params.rl example:
+
+output = '-o' 0? string 0 @output;
+
+I understand the machines are defined to accept and consume NUL
+characters. This is the reason why the params_execute function is
+given strlen(argv[a])+1.
+
+However, if I change params.rl to:
+
+output = '-o' 0? string @output;
+
+Then Ragel starts making use of the eof variable, which params.rl
+doesn't define.
+
+Can someone please explain me why removing that 0 in the machine makes
+Ragel use the eof variable?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gpakosz at yahoo.fr  Sun Feb 23 21:45:41 2014
+From: gpakosz at yahoo.fr (=?ISO-8859-1?Q?Gr=E9gory_Pakosz?=)
+Date: Sun, 23 Feb 2014 22:45:41 +0100
+Subject: [ragel-users] Enabling / disabling transitions depending on host
+	language expression.
+Message-ID: <CAC_01E1EOf5QsYUXAdUGN9qeT+WcL4Hr8YJD5yDQ35mxHE5pDg@mail.gmail.com>
+
+Hello,
+
+With Ragel, is there a way to enable/disable transitions depending on
+the evaluation of an expression in the host language?
+
+I have the following in mind:
+
+main := m1 | m2 | m3
+
+And I would like to inhibit entering m1 or m2 or m3 depending on runtime state.
+Is this possible? If it's a wrong approach, what's the canonical Ragel
+approach then?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tim at goddard.net.nz  Sun Feb 23 23:10:13 2014
+From: tim at goddard.net.nz (Timothy Goddard)
+Date: Mon, 24 Feb 2014 12:10:13 +1300
+Subject: [ragel-users] Enabling / disabling transitions depending on
+ host language expression.
+Message-ID: <ugna2hkucqkh9r21y972ee1s.1393196886973@email.android.com>
+
+Yes, look for "semantic conditions" near the end of the ragel guide.
+
+
+Sent from Samsung Mobile
+
+-------- Original message --------
+From: Grégory Pakosz <gpakosz at yahoo.fr> 
+Date:  
+To: ragel-users at complang.org 
+Subject: [ragel-users] Enabling / disabling transitions depending on host
+ 	language expression. 
+ 
+Hello,
+
+With Ragel, is there a way to enable/disable transitions depending on
+the evaluation of an expression in the host language?
+
+I have the following in mind:
+
+main := m1 | m2 | m3
+
+And I would like to inhibit entering m1 or m2 or m3 depending on runtime state.
+Is this possible? If it's a wrong approach, what's the canonical Ragel
+approach then?
+
+Thank you,
+Gregory
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20140224/5e841306/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tim at goddard.net.nz  Mon Feb 24 02:28:45 2014
+From: tim at goddard.net.nz (Tim Goddard)
+Date: Mon, 24 Feb 2014 15:28:45 +1300
+Subject: [ragel-users] When exactly is the eof variable required?
+In-Reply-To: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+References: <CAC_01E1RH_8=yG1nZgmah_wRaLinKgxjH3UqPgDzLBYVeu7q0w@mail.gmail.com>
+Message-ID: <63348233.XvRJIlXdaJ@thorn>
+
+I'm guessing that string can't include the null character, but can be of 
+variable length (kleene star, etc). When the expression ends with "string", 
+it could be cut short while still having a valid expression by the end of the 
+file, and need to take finishing actions when it sees the EOF. When the 
+expression ends with 0, an EOF could not mark the end of the expression 
+and cause any other action to be taken, so the eof mark is unused.
+
+The fact that it's a null character will be irrelevant - any character which 
+can't be in "string" would have the same effect.
+
+Cheers,
+
+Tim
+
+On Sun, 23 Feb 2014 22:40:59 Grégory Pakosz wrote:
+> Hello,
+> 
+> I'm currently discovering Ragel and I am wondering when the eof
+> variable is required?
+> 
+> More exactly, I noticed in the following in the params.rl example:
+> 
+> output = '-o' 0? string 0 @output;
+> 
+> I understand the machines are defined to accept and consume NUL
+> characters. This is the reason why the params_execute function is
+> given strlen(argv[a])+1.
+> 
+> However, if I change params.rl to:
+> 
+> output = '-o' 0? string @output;
+> 
+> Then Ragel starts making use of the eof variable, which params.rl
+> doesn't define.
+> 
+> Can someone please explain me why removing that 0 in the machine 
+makes
+> Ragel use the eof variable?
+> 
+> Thank you,
+> Gregory
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

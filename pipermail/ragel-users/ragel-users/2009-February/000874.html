@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] How to solve this Indetermination
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20to%20solve%20this%20Indetermination&In-Reply-To=%3C200902182328.12672.ibc%40aliax.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000875.html">
+   <LINK REL="Next"  HREF="000876.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] How to solve this Indetermination</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20to%20solve%20this%20Indetermination&In-Reply-To=%3C200902182328.12672.ibc%40aliax.net%3E"
+       TITLE="[ragel-users] How to solve this Indetermination">ibc at aliax.net
+       </A><BR>
+    <I>Wed Feb 18 22:28:12 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000875.html">[ragel-users] How to call an 'action' from other 'action' ?
+</A></li>
+        <LI>Next message: <A HREF="000876.html">[ragel-users] How to solve this Indetermination [SOLVED]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#874">[ date ]</a>
+              <a href="thread.html#874">[ thread ]</a>
+              <a href="subject.html#874">[ subject ]</a>
+              <a href="author.html#874">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, note this simple machine:
+
+%%{
+
+machine sip_uri;
+
+action _start { start = p }
+action _stop { stop = p-1 ; value = data[start..stop].pack('c*') ; }
+
+action set_userinfo { @userinfo = value ; puts &quot;---userinfo=#{@userinfo}---&quot; }
+action set_host { @host = value ; puts &quot;---host=#{@host}---&quot; }
+action set_port { @port = value ; puts &quot;---port=#{@port}---&quot; }
+
+user = [a-z]+ ;
+password = [a-z]+ ;
+userinfo = ( user ( &quot;:&quot; password )? &quot;@&quot; ) &gt;_start %_stop %set_userinfo ;
+host = [a-z]+ &gt;_start %_stop %set_host ;
+port = [0-9]+ &gt;_start %_stop %set_port ;
+uri = &quot;sip:&quot; userinfo? host ( &quot;:&quot; port )? ;
+main := uri '\0' ;
+
+}%%
+
+
+When I parse:  &quot;sip:ibc:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">xxxx at mydomain</A>&quot; I get this result:
+
+-------------
+Parsing 'sip:ibc:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">xxxx at mydomain</A>'...
+---host=ibc---          &lt;-------- WRONG !!!
+---userinfo=ibc:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">xxxx at ---</A>
+---host=mydomain---
+
+Finished: cs: 13  p: 22  pe: 22
+Parsing OK !
+-------------
+
+I really don't know why 'host' is set twice. I know that it's due to ( &quot;:&quot; 
+port )?. In case it doesn't exist in the grammar then 'host' is set just once 
+(with 'ibc:xxxx' value).
+
+Is there any trick to avoid this duplicate result? I've tryed everything I 
+know with no success.
+
+Thanks a lot foir any help.
+
+
+-- 
+Iñaki Baz Castillo
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000875.html">[ragel-users] How to call an 'action' from other 'action' ?
+</A></li>
+	<LI>Next message: <A HREF="000876.html">[ragel-users] How to solve this Indetermination [SOLVED]
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#874">[ date ]</a>
+              <a href="thread.html#874">[ thread ]</a>
+              <a href="subject.html#874">[ subject ]</a>
+              <a href="author.html#874">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

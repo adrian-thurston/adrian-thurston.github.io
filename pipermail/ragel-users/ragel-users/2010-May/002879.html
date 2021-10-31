@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem generating code.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20generating%20code.&In-Reply-To=%3C0443D29E-9840-4917-A04A-C37C3CEAF842%40senussi.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002878.html">
+   <LINK REL="Next"  HREF="002880.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem generating code.</H1>
+    <B>Husam Senussi</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20generating%20code.&In-Reply-To=%3C0443D29E-9840-4917-A04A-C37C3CEAF842%40senussi.com%3E"
+       TITLE="[ragel-users] Problem generating code.">husam at senussi.com
+       </A><BR>
+    <I>Sun May  9 20:43:02 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002878.html">[ragel-users] Breaking out of a scanner
+</A></li>
+        <LI>Next message: <A HREF="002880.html">[ragel-users] Problem generating code.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2879">[ date ]</a>
+              <a href="thread.html#2879">[ thread ]</a>
+              <a href="subject.html#2879">[ subject ]</a>
+              <a href="author.html#2879">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I'm trying to create RFC2822 parer but I'm having problem generating the code for some reason ragel keep running until I press CTRL C &quot;was running for 20 minutes&quot;, below
+the grammar I'm trying to use.
+
+
+%%{
+	machine rfc2822_header;
+	
+	# Common ABNF rules
+	cr				= &quot;\r&quot;;
+	lf				= &quot;\n&quot;;
+	crlf				= cr lf;
+	sp  				= &quot; &quot;;
+	tab 				= &quot;\t&quot;;
+	wsp				= (sp | tab);
+	obs_fws     		= wsp+ ( crlf wsp+ )*;
+	fws         			= ( ( wsp* crlf )? wsp+ ) | obs_fws;
+	NO_WS_CTL 	= 0x01..0x08 | &quot;\v&quot; | &quot;\f&quot; | 0x0e..0x1f | 0x7f;
+	
+	# Rules to consume comments
+	consumeAny       = any - (&quot;)&quot; | &quot;)&quot;) | &quot;(&quot; @{fcall consumeComments;};
+	consumeComments := consumeAny+ &quot;)&quot; $!{fhold; fret; };			
+	startComment     = &quot;(&quot; @{fcall consumeComments;};
+	CFWS             = ( fws? startComment )* ( ( fws? startComment ) | fws ); 
+
+	ctext 			= NO_WS_CTL | 0x21..0x27 | 0x2a..0x5b;
+	obs_char 		= 0x00..0x09 | &quot;\v&quot; | &quot;\f&quot; | 0x0e..0x7f;
+	obs_text 		= &quot;\n&quot;* &quot;\r&quot;* ( obs_char &quot;\n&quot;* &quot;\r&quot;* )*;
+	text 				= 0x01..0x09 | &quot;\v&quot; | &quot;\f&quot; | 0x0e..0x7f | obs_text;
+	obs_qp 			= &quot;\\&quot; 0x00..0x7f;
+	quoted_pair 		= ( &quot;\\&quot; text ) | obs_qp;
+	dtext 			= NO_WS_CTL | 0x21..0x5a;
+	dcontent 		= dtext | quoted_pair;
+	
+	atext 			= alpha | digit | &quot;!&quot; | &quot;#&quot; | &quot;$&quot; | &quot;%&quot; | &quot;&amp;&quot; | &quot;'&quot; | &quot;*&quot; | &quot;+&quot; | &quot;-&quot; | &quot;/&quot; | &quot;=&quot; | &quot;?&quot; | &quot;^&quot; | &quot;_&quot; | &quot;`&quot; | &quot;{&quot; | &quot;|&quot; | &quot;}&quot; | &quot;~&quot;;
+	dot_atom_text 	= atext+ ( &quot;.&quot; atext+ )*;
+	dot_atom 		= CFWS? dot_atom_text CFWS?;
+	qtext 			= NO_WS_CTL | &quot;!&quot; | 0x23..0x5b | 0x5d..0x7e;
+	qcontent 		= qtext | quoted_pair;
+	quoted_string 	= CFWS? &quot;\&quot;&quot; ( fws? qcontent )* fws? &quot;\&quot;&quot; CFWS?;
+	atom 			= CFWS? atext+ CFWS?;
+	word 			= atom | quoted_string;
+	
+	# Return-Path field.
+	domain_literal 	= CFWS? &quot;[&quot; ( fws? dcontent )* fws? &quot;]&quot; CFWS?;
+	obs_domain 		= atom ( &quot;.&quot; atom )*;
+	domain 			= dot_atom | domain_literal | obs_domain;
+	obs_domain_list = &quot;@&quot; domain ( ( CFWS | &quot;,&quot; )* CFWS? &quot;@&quot; domain )*;
+	obs_route 		= CFWS? obs_domain_list &quot;:&quot; CFWS?;
+	obs_local_part 	= word ( &quot;.&quot; word )*;
+	local_part 		= dot_atom | quoted_string | obs_local_part;
+	addr_spec 		= local_part &quot;@&quot; domain;
+	obs_angle_addr 	= CFWS? &quot;&lt;&quot; obs_route? addr_spec &quot;&gt;&quot; CFWS?;
+	obs_path 		= obs_angle_addr;
+	path 	   		= ( CFWS? &quot;&lt;&quot; ( CFWS? | addr_spec ) &quot;&gt;&quot; CFWS? ) | obs_path;
+	obs_return 		= &quot;Return-Path&quot; wsp* &quot;:&quot; path crlf;
+	
+	obs_fields	 = obs_return;
+	main  		:= obs_fields;
+}%%
+
+Thanks
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002878.html">[ragel-users] Breaking out of a scanner
+</A></li>
+	<LI>Next message: <A HREF="002880.html">[ragel-users] Problem generating code.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2879">[ date ]</a>
+              <a href="thread.html#2879">[ thread ]</a>
+              <a href="subject.html#2879">[ subject ]</a>
+              <a href="author.html#2879">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

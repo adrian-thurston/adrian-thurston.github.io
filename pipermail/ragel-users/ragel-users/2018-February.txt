@@ -1,0 +1,678 @@
+From xoru at onet.pl  Mon Feb  5 12:02:16 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 05 Feb 2018 13:02:16 +0100
+Subject: [ragel] simple identificators
+Message-ID: <172185080-4fb97d4c8bdd4eabb0ea451b040735d0@pmq2v.m5r2.onet>
+
+Hello,
+I need check, my string have only my identificators and only it or not.
+ 
+I wrote main :=  (space* myword+ )*
+ 
+but get chars not word
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180205/ce872ba6/attachment.html>
+
+From xoru at onet.pl  Mon Feb  5 12:06:51 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 05 Feb 2018 13:06:51 +0100
+Subject: [ragel] sample code
+Message-ID: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+
+How put "a ab abc \t abcd\n abcde"
+and get
+'a'
+'ab'
+'abc'
+'abcd'
+'abcde'
+When i use main := (space* wyraz )* i get only chars not words
+/* @LANG: c */ #include <stdio.h> #include <string.h> %%{ machine foo; action beginning { pocz = p; } action ending { printf("'%.*s'\n",(int)(p - pocz), pocz); } wyraz = [a-z]+ >beginning %ending; main := ( space* wyraz ) ; write data noerror nofinal; }%% int main(int argc, char **argv) { int cs = 0; char *pocz; if (argc > 1) { char *p = argv[1]; char *pe = p + strlen(p); char *eof = pe; %%write init; %%write exec; } return 0; }
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180205/55c90fdb/attachment.html>
+
+From thurston at colm.net  Wed Feb  7 16:08:54 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 07 Feb 2018 11:08:54 -0500
+Subject: [ragel] sample code
+In-Reply-To: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+References: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+Message-ID: <53ae405acc78abf17847b501effb2938@mail.colm.net>
+
+ 
+
+Hi, 
+
+It's because space* accepts the zero-length string. So "abc" is actually
+three words with zero-length whitespace in between. Well, technically
+it's both that and what you want, so you need to remove the ambiguity.
+What you need is more like this: 
+
+space* wyraz ( space+ wyraz )* 
+
+-Adrian 
+
+On 2018-02-05 07:06, xoru wrote: 
+
+> How put "a ab abc t abcdn abcde"
+> and get
+> 'a'
+> 'ab'
+> 'abc'
+> 'abcd'
+> 'abcde'
+> 
+> When i use main := (space* wyraz )* i get only chars not words
+> 
+> /* @LANG: c */
+> #include <stdio.h>
+> #include <string.h>
+> 
+> %%{
+> machine foo;
+> 
+> action beginning { pocz = p; }
+> action ending { printf("'%.*s'n",(int)(p - pocz), pocz); }
+> 
+> wyraz = [a-z]+ >beginning %ending;
+> main := ( space* wyraz ) ;
+> 
+> write data noerror nofinal;
+> }%%
+> 
+> int main(int argc, char **argv)
+> {
+> int cs = 0;
+> char *pocz;
+> 
+> if (argc > 1)
+> {
+> char *p = argv[1];
+> char *pe = p + strlen(p);
+> char *eof = pe;
+> %%write init;
+> %%write exec;
+> }
+> 
+> return 0;
+> }
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180207/0b02e767/attachment.html>
+
+From xoru at onet.pl  Mon Feb 12 08:58:19 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 12 Feb 2018 09:58:19 +0100
+Subject: [ragel] sample code
+Message-ID: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+
+Hi,
+ 
+Many thanks. This work fine. I would like to thank you very much for your help. I have been struggling with this problem for a long time. I will go from bison, because unfortunately when bison have mistakes it publish messages to stdout and I want to emmbeding them in the program. Do not they write anything in the ragel?
+ 
+I add a information if there is a problem or not.
+ 
+  if ( cs < %%{ write first_final; }%% )
+   {
+   printf("\x1B[31mProblem\x1B[0m [%d]\n", %%{ write error; }%%);
+   }
+this is correct?
+ 
+ 
+There is a phrase in the code:
+"write data noerror nofinal;"
+Is it correct?
+"noerror is neccesary? "nofinal" ?
+ 
+I working on comments but this is not important.
+You've helped me a lot, thank you.
+ 
+Marek Łukasz
+ 
+ 
+ 
+W dniu 2018-02-07 17:08:54 użytkownik Adrian Thurston <thurston at colm.net> napisał:
+Hi,
+It's because space* accepts the zero-length string. So "abc" is actually three words with zero-length whitespace in between. Well, technically it's both that and what you want, so you need to remove the ambiguity. What you need is more like this:
+space* wyraz ( space+ wyraz )*
+ 
+-Adrian
+On 2018-02-05 07:06, xoru wrote:
+How put "a ab abc \t abcd\n abcde"
+and get
+'a'
+'ab'
+'abc'
+'abcd'
+'abcde'
+When i use main := (space* wyraz )* i get only chars not words
+/* @LANG: c */ #include <stdio.h> #include <string.h> %%{ machine foo; action beginning { pocz = p; } action ending { printf("'%.*s'\n",(int)(p - pocz), pocz); } wyraz = [a-z]+ >beginning %ending; main := ( space* wyraz ) ; write data noerror nofinal; }%% int main(int argc, char **argv) { int cs = 0; char *pocz; if (argc > 1) { char *p = argv[1]; char *pe = p + strlen(p); char *eof = pe; %%write init; %%write exec; } return 0; }
+_______________________________________________ ragel mailing list ragel at colm.net http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180212/6528cf33/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: rl.2018-02-12.1518425844.tgz
+Type: application/x-compressed-tar
+Size: 842 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180212/6528cf33/attachment.bin>
+
+From thurston at colm.net  Wed Feb 21 04:12:42 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 20 Feb 2018 23:12:42 -0500
+Subject: [ragel] sample code
+In-Reply-To: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+References: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+Message-ID: <586b5b56f0804022f720807487629e09@mail.colm.net>
+
+ 
+
+Hi, that's right, ragel doesn't automatically print anything. 
+
+The code you have will print an error if the machine is not in a final
+state. If it is run at the end of the input then yes it is correct. 
+
+The noerror and nofinal modifiers just prevent the static integers
+representing those things from getting created. In your code you don't
+need them because you've used the write versions of those things
+instead. 
+
+On 2018-02-12 03:58, xoru wrote: 
+
+> Hi, 
+> 
+> Many thanks. This work fine. I would like to thank you very much for your help. I have been struggling with this problem for a long time. I will go from bison, because unfortunately when bison have mistakes it publish messages to stdout and I want to emmbeding them in the program. Do not they write anything in the ragel? 
+> 
+> I add a information if there is a problem or not. 
+> 
+> if ( cs < %%{ write first_final; }%% )
+> {
+> printf("x1B[31mProblemx1B[0m [%d]n", %%{ write error; }%%);
+> }
+> this is correct? 
+> 
+> There is a phrase in the code: 
+> "write data noerror nofinal;" 
+> Is it correct? 
+> "noerror is neccesary? "nofinal" ? 
+> 
+> I working on comments but this is not important. 
+> You've helped me a lot, thank you. 
+> 
+> Marek Łukasz 
+> 
+> W dniu 2018-02-07 17:08:54 użytkownik Adrian Thurston <thurston at colm.net> napisał: 
+> 
+> Hi, 
+> 
+> It's because space* accepts the zero-length string. So "abc" is actually three words with zero-length whitespace in between. Well, technically it's both that and what you want, so you need to remove the ambiguity. What you need is more like this: 
+> 
+> space* wyraz ( space+ wyraz )* 
+> 
+> -Adrian 
+> 
+> On 2018-02-05 07:06, xoru wrote: 
+> 
+> How put "a ab abc t abcdn abcde"
+> and get
+> 'a'
+> 'ab'
+> 'abc'
+> 'abcd'
+> 'abcde'
+> 
+> When i use main := (space* wyraz )* i get only chars not words
+> 
+> /* @LANG: c */
+> #include <stdio.h>
+> #include <string.h>
+> 
+> %%{
+> machine foo;
+> 
+> action beginning { pocz = p; }
+> action ending { printf("'%.*s'n",(int)(p - pocz), pocz); }
+> 
+> wyraz = [a-z]+ >beginning %ending;
+> main := ( space* wyraz ) ;
+> 
+> write data noerror nofinal;
+> }%%
+> 
+> int main(int argc, char **argv)
+> {
+> int cs = 0;
+> char *pocz;
+> 
+> if (argc > 1)
+> {
+> char *p = argv[1];
+> char *pe = p + strlen(p);
+> char *eof = pe;
+> %%write init;
+> %%write exec;
+> }
+> 
+> return 0;
+> }
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+
+_______________________________________________
+ragel mailing list
+ragel at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20180220/2822e6be/attachment.html>
+
+From qunying at yahoo.com  Mon Feb 26 23:42:08 2018
+From: qunying at yahoo.com (zhu qun-ying)
+Date: Mon, 26 Feb 2018 23:42:08 +0000 (UTC)
+Subject: [ragel] new to ragel, which version to use?
+References: <1105867769.4135733.1519688528289.ref@mail.yahoo.com>
+Message-ID: <1105867769.4135733.1519688528289@mail.yahoo.com>
+
+Hi,
+
+I am new to ragel, would like to know should I used ragel 6.10 stable version or the 7.0 development version?
+
+Will they behave differently from user point of view rather than internal working?
+
+-- qun-ying
+
+
+From thurston at colm.net  Tue Feb 27 20:33:03 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 27 Feb 2018 15:33:03 -0500
+Subject: [ragel] =?utf-8?q?new_to_ragel=2C_which_version_to_use=3F?=
+In-Reply-To: <1105867769.4135733.1519688528289@mail.yahoo.com>
+References: <1105867769.4135733.1519688528289.ref@mail.yahoo.com>
+ <1105867769.4135733.1519688528289@mail.yahoo.com>
+Message-ID: <27e1cf32fe1b2234f3bde972f8b49d8d@mail.colm.net>
+
+If you're new to ragel I would recommend version 6. There are additional 
+advanced features in 7 but it is not stable yet.
+
+On 2018-02-26 18:42, zhu qun-ying wrote:
+> Hi,
+> 
+> I am new to ragel, would like to know should I used ragel 6.10 stable
+> version or the 7.0 development version?
+> 
+> Will they behave differently from user point of view rather than
+> internal working?
+> 
+> -- qun-ying
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From xoru at onet.pl  Mon Feb  5 12:02:16 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 05 Feb 2018 13:02:16 +0100
+Subject: [ragel] simple identificators
+Message-ID: <172185080-4fb97d4c8bdd4eabb0ea451b040735d0@pmq2v.m5r2.onet>
+
+Hello,
+I need check, my string have only my identificators and only it or not.
+ 
+I wrote main :=  (space* myword+ )*
+ 
+but get chars not word
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180205/ce872ba6/attachment-0002.html>
+
+From xoru at onet.pl  Mon Feb  5 12:06:51 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 05 Feb 2018 13:06:51 +0100
+Subject: [ragel] sample code
+Message-ID: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+
+How put "a ab abc \t abcd\n abcde"
+and get
+'a'
+'ab'
+'abc'
+'abcd'
+'abcde'
+When i use main := (space* wyraz )* i get only chars not words
+/* @LANG: c */ #include <stdio.h> #include <string.h> %%{ machine foo; action beginning { pocz = p; } action ending { printf("'%.*s'\n",(int)(p - pocz), pocz); } wyraz = [a-z]+ >beginning %ending; main := ( space* wyraz ) ; write data noerror nofinal; }%% int main(int argc, char **argv) { int cs = 0; char *pocz; if (argc > 1) { char *p = argv[1]; char *pe = p + strlen(p); char *eof = pe; %%write init; %%write exec; } return 0; }
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180205/55c90fdb/attachment-0002.html>
+
+From thurston at colm.net  Wed Feb  7 16:08:54 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Wed, 07 Feb 2018 11:08:54 -0500
+Subject: [ragel] sample code
+In-Reply-To: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+References: <210801542-1c19d5f6421b9d62885775db8aaab951@pmq3v.m5r2.onet>
+Message-ID: <53ae405acc78abf17847b501effb2938@mail.colm.net>
+
+ 
+
+Hi, 
+
+It's because space* accepts the zero-length string. So "abc" is actually
+three words with zero-length whitespace in between. Well, technically
+it's both that and what you want, so you need to remove the ambiguity.
+What you need is more like this: 
+
+space* wyraz ( space+ wyraz )* 
+
+-Adrian 
+
+On 2018-02-05 07:06, xoru wrote: 
+
+> How put "a ab abc t abcdn abcde"
+> and get
+> 'a'
+> 'ab'
+> 'abc'
+> 'abcd'
+> 'abcde'
+> 
+> When i use main := (space* wyraz )* i get only chars not words
+> 
+> /* @LANG: c */
+> #include <stdio.h>
+> #include <string.h>
+> 
+> %%{
+> machine foo;
+> 
+> action beginning { pocz = p; }
+> action ending { printf("'%.*s'n",(int)(p - pocz), pocz); }
+> 
+> wyraz = [a-z]+ >beginning %ending;
+> main := ( space* wyraz ) ;
+> 
+> write data noerror nofinal;
+> }%%
+> 
+> int main(int argc, char **argv)
+> {
+> int cs = 0;
+> char *pocz;
+> 
+> if (argc > 1)
+> {
+> char *p = argv[1];
+> char *pe = p + strlen(p);
+> char *eof = pe;
+> %%write init;
+> %%write exec;
+> }
+> 
+> return 0;
+> }
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180207/0b02e767/attachment-0002.html>
+
+From xoru at onet.pl  Mon Feb 12 08:58:19 2018
+From: xoru at onet.pl (xoru)
+Date: Mon, 12 Feb 2018 09:58:19 +0100
+Subject: [ragel] sample code
+Message-ID: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+
+Hi,
+ 
+Many thanks. This work fine. I would like to thank you very much for your help. I have been struggling with this problem for a long time. I will go from bison, because unfortunately when bison have mistakes it publish messages to stdout and I want to emmbeding them in the program. Do not they write anything in the ragel?
+ 
+I add a information if there is a problem or not.
+ 
+  if ( cs < %%{ write first_final; }%% )
+   {
+   printf("\x1B[31mProblem\x1B[0m [%d]\n", %%{ write error; }%%);
+   }
+this is correct?
+ 
+ 
+There is a phrase in the code:
+"write data noerror nofinal;"
+Is it correct?
+"noerror is neccesary? "nofinal" ?
+ 
+I working on comments but this is not important.
+You've helped me a lot, thank you.
+ 
+Marek Łukasz
+ 
+ 
+ 
+W dniu 2018-02-07 17:08:54 użytkownik Adrian Thurston <thurston at colm.net> napisał:
+Hi,
+It's because space* accepts the zero-length string. So "abc" is actually three words with zero-length whitespace in between. Well, technically it's both that and what you want, so you need to remove the ambiguity. What you need is more like this:
+space* wyraz ( space+ wyraz )*
+ 
+-Adrian
+On 2018-02-05 07:06, xoru wrote:
+How put "a ab abc \t abcd\n abcde"
+and get
+'a'
+'ab'
+'abc'
+'abcd'
+'abcde'
+When i use main := (space* wyraz )* i get only chars not words
+/* @LANG: c */ #include <stdio.h> #include <string.h> %%{ machine foo; action beginning { pocz = p; } action ending { printf("'%.*s'\n",(int)(p - pocz), pocz); } wyraz = [a-z]+ >beginning %ending; main := ( space* wyraz ) ; write data noerror nofinal; }%% int main(int argc, char **argv) { int cs = 0; char *pocz; if (argc > 1) { char *p = argv[1]; char *pe = p + strlen(p); char *eof = pe; %%write init; %%write exec; } return 0; }
+_______________________________________________ ragel mailing list ragel at colm.net http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180212/6528cf33/attachment-0002.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: rl.2018-02-12.1518425844.tgz
+Type: application/x-compressed-tar
+Size: 842 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180212/6528cf33/attachment-0002.bin>
+
+From thurston at colm.net  Wed Feb 21 04:12:42 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 20 Feb 2018 23:12:42 -0500
+Subject: [ragel] sample code
+In-Reply-To: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+References: <64501849-1495a806b4f7d3b4847c2953464a1695@pmq1v.m5r2.onet>
+Message-ID: <586b5b56f0804022f720807487629e09@mail.colm.net>
+
+ 
+
+Hi, that's right, ragel doesn't automatically print anything. 
+
+The code you have will print an error if the machine is not in a final
+state. If it is run at the end of the input then yes it is correct. 
+
+The noerror and nofinal modifiers just prevent the static integers
+representing those things from getting created. In your code you don't
+need them because you've used the write versions of those things
+instead. 
+
+On 2018-02-12 03:58, xoru wrote: 
+
+> Hi, 
+> 
+> Many thanks. This work fine. I would like to thank you very much for your help. I have been struggling with this problem for a long time. I will go from bison, because unfortunately when bison have mistakes it publish messages to stdout and I want to emmbeding them in the program. Do not they write anything in the ragel? 
+> 
+> I add a information if there is a problem or not. 
+> 
+> if ( cs < %%{ write first_final; }%% )
+> {
+> printf("x1B[31mProblemx1B[0m [%d]n", %%{ write error; }%%);
+> }
+> this is correct? 
+> 
+> There is a phrase in the code: 
+> "write data noerror nofinal;" 
+> Is it correct? 
+> "noerror is neccesary? "nofinal" ? 
+> 
+> I working on comments but this is not important. 
+> You've helped me a lot, thank you. 
+> 
+> Marek Łukasz 
+> 
+> W dniu 2018-02-07 17:08:54 użytkownik Adrian Thurston <thurston at colm.net> napisał: 
+> 
+> Hi, 
+> 
+> It's because space* accepts the zero-length string. So "abc" is actually three words with zero-length whitespace in between. Well, technically it's both that and what you want, so you need to remove the ambiguity. What you need is more like this: 
+> 
+> space* wyraz ( space+ wyraz )* 
+> 
+> -Adrian 
+> 
+> On 2018-02-05 07:06, xoru wrote: 
+> 
+> How put "a ab abc t abcdn abcde"
+> and get
+> 'a'
+> 'ab'
+> 'abc'
+> 'abcd'
+> 'abcde'
+> 
+> When i use main := (space* wyraz )* i get only chars not words
+> 
+> /* @LANG: c */
+> #include <stdio.h>
+> #include <string.h>
+> 
+> %%{
+> machine foo;
+> 
+> action beginning { pocz = p; }
+> action ending { printf("'%.*s'n",(int)(p - pocz), pocz); }
+> 
+> wyraz = [a-z]+ >beginning %ending;
+> main := ( space* wyraz ) ;
+> 
+> write data noerror nofinal;
+> }%%
+> 
+> int main(int argc, char **argv)
+> {
+> int cs = 0;
+> char *pocz;
+> 
+> if (argc > 1)
+> {
+> char *p = argv[1];
+> char *pe = p + strlen(p);
+> char *eof = pe;
+> %%write init;
+> %%write exec;
+> }
+> 
+> return 0;
+> }
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+
+_______________________________________________
+ragel mailing list
+ragel at colm.net
+http://www.colm.net/cgi-bin/mailman/listinfo/ragel [1]
+
+ 
+
+Links:
+------
+[1] http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20180220/2822e6be/attachment-0002.html>
+
+From qunying at yahoo.com  Mon Feb 26 23:42:08 2018
+From: qunying at yahoo.com (zhu qun-ying)
+Date: Mon, 26 Feb 2018 23:42:08 +0000 (UTC)
+Subject: [ragel] new to ragel, which version to use?
+References: <1105867769.4135733.1519688528289.ref@mail.yahoo.com>
+Message-ID: <1105867769.4135733.1519688528289@mail.yahoo.com>
+
+Hi,
+
+I am new to ragel, would like to know should I used ragel 6.10 stable version or the 7.0 development version?
+
+Will they behave differently from user point of view rather than internal working?
+
+-- qun-ying
+
+
+
+From thurston at colm.net  Tue Feb 27 20:33:03 2018
+From: thurston at colm.net (Adrian Thurston)
+Date: Tue, 27 Feb 2018 15:33:03 -0500
+Subject: [ragel] =?utf-8?q?new_to_ragel=2C_which_version_to_use=3F?=
+In-Reply-To: <1105867769.4135733.1519688528289@mail.yahoo.com>
+References: <1105867769.4135733.1519688528289.ref@mail.yahoo.com>
+ <1105867769.4135733.1519688528289@mail.yahoo.com>
+Message-ID: <27e1cf32fe1b2234f3bde972f8b49d8d@mail.colm.net>
+
+If you're new to ragel I would recommend version 6. There are additional 
+advanced features in 7 but it is not stable yet.
+
+On 2018-02-26 18:42, zhu qun-ying wrote:
+> Hi,
+> 
+> I am new to ragel, would like to know should I used ragel 6.10 stable
+> version or the 7.0 development version?
+> 
+> Will they behave differently from user point of view rather than
+> internal working?
+> 
+> -- qun-ying
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+

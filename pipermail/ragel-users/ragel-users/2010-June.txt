@@ -1,0 +1,808 @@
+From brianp at brianp.net  Tue Jun 15 12:51:07 2010
+From: brianp at brianp.net (Brian Pane)
+Date: Tue, 15 Jun 2010 05:51:07 -0700
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Message-ID: <AANLkTinUtvY45qWbFHcVUx0e_RJAD3IE3cqzlB6xAxNR@mail.gmail.com>
+
+I made some Ragel grammars for HTML, CSS, and JavaScript as part of a
+project.  Just in case they're useful to anybody else out there, I've
+released them under the Apache license:
+
+http://github.com/brianpane/jitify-core (look in the src/core
+subdirectory for the *.rl files).
+
+Each is based on the corresponding language's spec, but modified to
+reduce nondeterminism and to try to be more forgiving of real-world
+content.  The grammars are by no means perfect, but they might serve
+as a decent starting point for other folks who need to parse those
+languages.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Jun 15 14:26:40 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 15 Jun 2010 14:26:40 +0000
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Message-ID: <58468591-1276612000-cardhu_decombobulator_blackberry.rim.net-784903486-@bda200.bisx.prod.on.blackberry>
+
+Thanks Brian! A link is on the way. 
+
+Adrian
+------Original Message------
+From: Brian Pane
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Sent: Jun 15, 2010 7:51 AM
+
+I made some Ragel grammars for HTML, CSS, and JavaScript as part of a
+project.  Just in case they're useful to anybody else out there, I've
+released them under the Apache license:
+
+http://github.com/brianpane/jitify-core (look in the src/core
+subdirectory for the *.rl files).
+
+Each is based on the corresponding language's spec, but modified to
+reduce nondeterminism and to try to be more forgiving of real-world
+content.  The grammars are by no means perfect, but they might serve
+as a decent starting point for other folks who need to parse those
+languages.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brimworks at gmail.com  Sun Jun 27 13:46:45 2010
+From: brimworks at gmail.com (Brian Maher)
+Date: Sun, 27 Jun 2010 06:46:45 -0700
+Subject: [ragel-users] EOF and token termination
+Message-ID: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+
+Hello Ragel Users,
+
+First, I just want to say that Ragel is an awesome tool, thank you
+Adrian for sharing this tool with the open source community!
+
+Recently I've been trying to write a grammar for which individual
+tokens may be pre-maturely terminated by EOF.  I came up with the
+following rather hacky solution below (emit the same action as though
+the token was "recognized", then fbreak so that only one token is
+guaranteed to be "seen").  The things that I don't like with this
+solution are that:
+
+  * I'm not keen on having to redundantly call the token's action in
+two places since a maintainer later on may forget to update one of the
+places where $eof(token_action) is done.
+
+  * te is not updated (although this isn't a big deal since I can just
+use p instead of relying on te, and if I really wanted to make a fuss
+about this I could always add $eof{te=p;}).
+
+One idea I had was to $eof{fgoto final;}, but that doesn't work since
+the "final" label is only defined within the context of state charts
+and can't be used as a "normal label".
+
+--------------example.rl
+
+#include <stdio.h>
+
+%% machine t;
+%% write data;
+
+#define INPUT "abcd"
+
+int main() {
+   char *ts, *te;
+   int   cs, act, i;
+   char *input = INPUT;
+   char *p     = input;
+   char *pe    = input + (sizeof(INPUT) - 1);
+   char *eof   = pe;
+
+   fprintf(stderr, "Input[");
+   fwrite(p, 1, pe-p, stderr);
+   fprintf(stderr, "]\n");
+
+   %%{
+       write init;
+
+       action text {
+           fprintf(stderr, "Text [%c]\n", *p);
+       }
+
+       action token {
+           fprintf(stderr, "Token[");
+           fwrite(ts, 1, p-ts, stderr);
+           fprintf(stderr, "]\n");
+       }
+
+       Token = "abc" "def" $eof(token) $eof{fbreak;};
+
+        main := |*
+           Token => token;
+           any   => text;
+       *|;
+       write exec;
+
+   }%%
+   fprintf(stderr, "end\n");
+   return 0;
+}
+
+--------------/example.rl
+
+Thanks!
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Mon Jun 28 17:21:15 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 28 Jun 2010 10:21:15 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+Message-ID: <4C28DA0B.9000305@esentire.com>
+
+Hi Brian,
+
+Just to be certain, you'd like a token at the end of the input to match 
+even if it is not in a final state?
+
+If that's the case, I'm sorry I don't have an elegant solution for you. 
+A state is either final or not, and what you need is to make all states 
+final when at the end of the input.
+
+-Adrian
+
+
+
+On 10-06-27 06:46 AM, Brian Maher wrote:
+> Hello Ragel Users,
+>
+> First, I just want to say that Ragel is an awesome tool, thank you
+> Adrian for sharing this tool with the open source community!
+>
+> Recently I've been trying to write a grammar for which individual
+> tokens may be pre-maturely terminated by EOF.  I came up with the
+> following rather hacky solution below (emit the same action as though
+> the token was "recognized", then fbreak so that only one token is
+> guaranteed to be "seen").  The things that I don't like with this
+> solution are that:
+>
+>    * I'm not keen on having to redundantly call the token's action in
+> two places since a maintainer later on may forget to update one of the
+> places where $eof(token_action) is done.
+>
+>    * te is not updated (although this isn't a big deal since I can just
+> use p instead of relying on te, and if I really wanted to make a fuss
+> about this I could always add $eof{te=p;}).
+>
+> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+> the "final" label is only defined within the context of state charts
+> and can't be used as a "normal label".
+>
+> --------------example.rl
+>
+> #include<stdio.h>
+>
+> %% machine t;
+> %% write data;
+>
+> #define INPUT "abcd"
+>
+> int main() {
+>     char *ts, *te;
+>     int   cs, act, i;
+>     char *input = INPUT;
+>     char *p     = input;
+>     char *pe    = input + (sizeof(INPUT) - 1);
+>     char *eof   = pe;
+>
+>     fprintf(stderr, "Input[");
+>     fwrite(p, 1, pe-p, stderr);
+>     fprintf(stderr, "]\n");
+>
+>     %%{
+>         write init;
+>
+>         action text {
+>             fprintf(stderr, "Text [%c]\n", *p);
+>         }
+>
+>         action token {
+>             fprintf(stderr, "Token[");
+>             fwrite(ts, 1, p-ts, stderr);
+>             fprintf(stderr, "]\n");
+>         }
+>
+>         Token = "abc" "def" $eof(token) $eof{fbreak;};
+>
+>          main := |*
+>             Token =>  token;
+>             any   =>  text;
+>         *|;
+>         write exec;
+>
+>     }%%
+>     fprintf(stderr, "end\n");
+>     return 0;
+> }
+>
+> --------------/example.rl
+>
+> Thanks!
+> -Brian
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brimworks at gmail.com  Tue Jun 29 13:52:07 2010
+From: brimworks at gmail.com (Brian Maher)
+Date: Tue, 29 Jun 2010 06:52:07 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+	<4C28DA0B.9000305@esentire.com>
+	<AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+Message-ID: <AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+
+On Mon, Jun 28, 2010 at 10:21 AM, Adrian Thurston wrote:
+> Just to be certain, you'd like a token at the end of the input to match even
+> if it is not in a final state?
+
+Yes.  Or to put it another way: I want to make eof be a valid final
+state kind of like what the $ in perl compatible regular expressions
+mean.
+
+> If that's the case, I'm sorry I don't have an elegant solution for you. A
+> state is either final or not, and what you need is to make all states final
+> when at the end of the input.
+
+Is there a way to say "make this state final when at the end of the
+input"?  `fgoto final;` was my attempt at doing this, but it didn't
+work ;-).
+
+Thanks for your help!
+
+Cheers,
+-Brian
+
+> On 10-06-27 06:46 AM, Brian Maher wrote:
+>>
+>> Hello Ragel Users,
+>>
+>> First, I just want to say that Ragel is an awesome tool, thank you
+>> Adrian for sharing this tool with the open source community!
+>>
+>> Recently I've been trying to write a grammar for which individual
+>> tokens may be pre-maturely terminated by EOF.  I came up with the
+>> following rather hacky solution below (emit the same action as though
+>> the token was "recognized", then fbreak so that only one token is
+>> guaranteed to be "seen").  The things that I don't like with this
+>> solution are that:
+>>
+>>   * I'm not keen on having to redundantly call the token's action in
+>> two places since a maintainer later on may forget to update one of the
+>> places where $eof(token_action) is done.
+>>
+>>   * te is not updated (although this isn't a big deal since I can just
+>> use p instead of relying on te, and if I really wanted to make a fuss
+>> about this I could always add $eof{te=p;}).
+>>
+>> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+>> the "final" label is only defined within the context of state charts
+>> and can't be used as a "normal label".
+>>
+>> --------------example.rl
+>>
+>> #include<stdio.h>
+>>
+>> %% machine t;
+>> %% write data;
+>>
+>> #define INPUT "abcd"
+>>
+>> int main() {
+>>    char *ts, *te;
+>>    int   cs, act, i;
+>>    char *input = INPUT;
+>>    char *p     = input;
+>>    char *pe    = input + (sizeof(INPUT) - 1);
+>>    char *eof   = pe;
+>>
+>>    fprintf(stderr, "Input[");
+>>    fwrite(p, 1, pe-p, stderr);
+>>    fprintf(stderr, "]\n");
+>>
+>>    %%{
+>>        write init;
+>>
+>>        action text {
+>>            fprintf(stderr, "Text [%c]\n", *p);
+>>        }
+>>
+>>        action token {
+>>            fprintf(stderr, "Token[");
+>>            fwrite(ts, 1, p-ts, stderr);
+>>            fprintf(stderr, "]\n");
+>>        }
+>>
+>>        Token = "abc" "def" $eof(token) $eof{fbreak;};
+>>
+>>         main := |*
+>>            Token =>  token;
+>>            any   =>  text;
+>>        *|;
+>>        write exec;
+>>
+>>    }%%
+>>    fprintf(stderr, "end\n");
+>>    return 0;
+>> }
+>>
+>> --------------/example.rl
+>>
+>> Thanks!
+>> -Brian
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+--
+Brian Maher >> Glory to God <<
+
+
+
+-- 
+Brian Maher >> Glory to God <<
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brianp at brianp.net  Tue Jun 15 12:51:07 2010
+From: brianp at brianp.net (Brian Pane)
+Date: Tue, 15 Jun 2010 05:51:07 -0700
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Message-ID: <AANLkTinUtvY45qWbFHcVUx0e_RJAD3IE3cqzlB6xAxNR@mail.gmail.com>
+
+I made some Ragel grammars for HTML, CSS, and JavaScript as part of a
+project.  Just in case they're useful to anybody else out there, I've
+released them under the Apache license:
+
+http://github.com/brianpane/jitify-core (look in the src/core
+subdirectory for the *.rl files).
+
+Each is based on the corresponding language's spec, but modified to
+reduce nondeterminism and to try to be more forgiving of real-world
+content.  The grammars are by no means perfect, but they might serve
+as a decent starting point for other folks who need to parse those
+languages.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Jun 15 14:26:40 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 15 Jun 2010 14:26:40 +0000
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Message-ID: <58468591-1276612000-cardhu_decombobulator_blackberry.rim.net-784903486-@bda200.bisx.prod.on.blackberry>
+
+Thanks Brian! A link is on the way. 
+
+Adrian
+------Original Message------
+From: Brian Pane
+Sender: ragel-users-bounces at complang.org
+To: ragel-users
+ReplyTo: ragel-users at complang.org
+Subject: [ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+Sent: Jun 15, 2010 7:51 AM
+
+I made some Ragel grammars for HTML, CSS, and JavaScript as part of a
+project.  Just in case they're useful to anybody else out there, I've
+released them under the Apache license:
+
+http://github.com/brianpane/jitify-core (look in the src/core
+subdirectory for the *.rl files).
+
+Each is based on the corresponding language's spec, but modified to
+reduce nondeterminism and to try to be more forgiving of real-world
+content.  The grammars are by no means perfect, but they might serve
+as a decent starting point for other folks who need to parse those
+languages.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brimworks at gmail.com  Sun Jun 27 13:46:45 2010
+From: brimworks at gmail.com (Brian Maher)
+Date: Sun, 27 Jun 2010 06:46:45 -0700
+Subject: [ragel-users] EOF and token termination
+Message-ID: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+
+Hello Ragel Users,
+
+First, I just want to say that Ragel is an awesome tool, thank you
+Adrian for sharing this tool with the open source community!
+
+Recently I've been trying to write a grammar for which individual
+tokens may be pre-maturely terminated by EOF.  I came up with the
+following rather hacky solution below (emit the same action as though
+the token was "recognized", then fbreak so that only one token is
+guaranteed to be "seen").  The things that I don't like with this
+solution are that:
+
+  * I'm not keen on having to redundantly call the token's action in
+two places since a maintainer later on may forget to update one of the
+places where $eof(token_action) is done.
+
+  * te is not updated (although this isn't a big deal since I can just
+use p instead of relying on te, and if I really wanted to make a fuss
+about this I could always add $eof{te=p;}).
+
+One idea I had was to $eof{fgoto final;}, but that doesn't work since
+the "final" label is only defined within the context of state charts
+and can't be used as a "normal label".
+
+--------------example.rl
+
+#include <stdio.h>
+
+%% machine t;
+%% write data;
+
+#define INPUT "abcd"
+
+int main() {
+   char *ts, *te;
+   int   cs, act, i;
+   char *input = INPUT;
+   char *p     = input;
+   char *pe    = input + (sizeof(INPUT) - 1);
+   char *eof   = pe;
+
+   fprintf(stderr, "Input[");
+   fwrite(p, 1, pe-p, stderr);
+   fprintf(stderr, "]\n");
+
+   %%{
+       write init;
+
+       action text {
+           fprintf(stderr, "Text [%c]\n", *p);
+       }
+
+       action token {
+           fprintf(stderr, "Token[");
+           fwrite(ts, 1, p-ts, stderr);
+           fprintf(stderr, "]\n");
+       }
+
+       Token = "abc" "def" $eof(token) $eof{fbreak;};
+
+        main := |*
+           Token => token;
+           any   => text;
+       *|;
+       write exec;
+
+   }%%
+   fprintf(stderr, "end\n");
+   return 0;
+}
+
+--------------/example.rl
+
+Thanks!
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Mon Jun 28 17:21:15 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 28 Jun 2010 10:21:15 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+Message-ID: <4C28DA0B.9000305@esentire.com>
+
+Hi Brian,
+
+Just to be certain, you'd like a token at the end of the input to match 
+even if it is not in a final state?
+
+If that's the case, I'm sorry I don't have an elegant solution for you. 
+A state is either final or not, and what you need is to make all states 
+final when at the end of the input.
+
+-Adrian
+
+
+
+On 10-06-27 06:46 AM, Brian Maher wrote:
+> Hello Ragel Users,
+>
+> First, I just want to say that Ragel is an awesome tool, thank you
+> Adrian for sharing this tool with the open source community!
+>
+> Recently I've been trying to write a grammar for which individual
+> tokens may be pre-maturely terminated by EOF.  I came up with the
+> following rather hacky solution below (emit the same action as though
+> the token was "recognized", then fbreak so that only one token is
+> guaranteed to be "seen").  The things that I don't like with this
+> solution are that:
+>
+>    * I'm not keen on having to redundantly call the token's action in
+> two places since a maintainer later on may forget to update one of the
+> places where $eof(token_action) is done.
+>
+>    * te is not updated (although this isn't a big deal since I can just
+> use p instead of relying on te, and if I really wanted to make a fuss
+> about this I could always add $eof{te=p;}).
+>
+> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+> the "final" label is only defined within the context of state charts
+> and can't be used as a "normal label".
+>
+> --------------example.rl
+>
+> #include<stdio.h>
+>
+> %% machine t;
+> %% write data;
+>
+> #define INPUT "abcd"
+>
+> int main() {
+>     char *ts, *te;
+>     int   cs, act, i;
+>     char *input = INPUT;
+>     char *p     = input;
+>     char *pe    = input + (sizeof(INPUT) - 1);
+>     char *eof   = pe;
+>
+>     fprintf(stderr, "Input[");
+>     fwrite(p, 1, pe-p, stderr);
+>     fprintf(stderr, "]\n");
+>
+>     %%{
+>         write init;
+>
+>         action text {
+>             fprintf(stderr, "Text [%c]\n", *p);
+>         }
+>
+>         action token {
+>             fprintf(stderr, "Token[");
+>             fwrite(ts, 1, p-ts, stderr);
+>             fprintf(stderr, "]\n");
+>         }
+>
+>         Token = "abc" "def" $eof(token) $eof{fbreak;};
+>
+>          main := |*
+>             Token =>  token;
+>             any   =>  text;
+>         *|;
+>         write exec;
+>
+>     }%%
+>     fprintf(stderr, "end\n");
+>     return 0;
+> }
+>
+> --------------/example.rl
+>
+> Thanks!
+> -Brian
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brimworks at gmail.com  Tue Jun 29 13:52:07 2010
+From: brimworks at gmail.com (Brian Maher)
+Date: Tue, 29 Jun 2010 06:52:07 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>
+	<4C28DA0B.9000305@esentire.com>
+	<AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+Message-ID: <AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+
+On Mon, Jun 28, 2010 at 10:21 AM, Adrian Thurston wrote:
+> Just to be certain, you'd like a token at the end of the input to match even
+> if it is not in a final state?
+
+Yes.  Or to put it another way: I want to make eof be a valid final
+state kind of like what the $ in perl compatible regular expressions
+mean.
+
+> If that's the case, I'm sorry I don't have an elegant solution for you. A
+> state is either final or not, and what you need is to make all states final
+> when at the end of the input.
+
+Is there a way to say "make this state final when at the end of the
+input"?  `fgoto final;` was my attempt at doing this, but it didn't
+work ;-).
+
+Thanks for your help!
+
+Cheers,
+-Brian
+
+> On 10-06-27 06:46 AM, Brian Maher wrote:
+>>
+>> Hello Ragel Users,
+>>
+>> First, I just want to say that Ragel is an awesome tool, thank you
+>> Adrian for sharing this tool with the open source community!
+>>
+>> Recently I've been trying to write a grammar for which individual
+>> tokens may be pre-maturely terminated by EOF.  I came up with the
+>> following rather hacky solution below (emit the same action as though
+>> the token was "recognized", then fbreak so that only one token is
+>> guaranteed to be "seen").  The things that I don't like with this
+>> solution are that:
+>>
+>>   * I'm not keen on having to redundantly call the token's action in
+>> two places since a maintainer later on may forget to update one of the
+>> places where $eof(token_action) is done.
+>>
+>>   * te is not updated (although this isn't a big deal since I can just
+>> use p instead of relying on te, and if I really wanted to make a fuss
+>> about this I could always add $eof{te=p;}).
+>>
+>> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+>> the "final" label is only defined within the context of state charts
+>> and can't be used as a "normal label".
+>>
+>> --------------example.rl
+>>
+>> #include<stdio.h>
+>>
+>> %% machine t;
+>> %% write data;
+>>
+>> #define INPUT "abcd"
+>>
+>> int main() {
+>>    char *ts, *te;
+>>    int   cs, act, i;
+>>    char *input = INPUT;
+>>    char *p     = input;
+>>    char *pe    = input + (sizeof(INPUT) - 1);
+>>    char *eof   = pe;
+>>
+>>    fprintf(stderr, "Input[");
+>>    fwrite(p, 1, pe-p, stderr);
+>>    fprintf(stderr, "]\n");
+>>
+>>    %%{
+>>        write init;
+>>
+>>        action text {
+>>            fprintf(stderr, "Text [%c]\n", *p);
+>>        }
+>>
+>>        action token {
+>>            fprintf(stderr, "Token[");
+>>            fwrite(ts, 1, p-ts, stderr);
+>>            fprintf(stderr, "]\n");
+>>        }
+>>
+>>        Token = "abc" "def" $eof(token) $eof{fbreak;};
+>>
+>>         main := |*
+>>            Token =>  token;
+>>            any   =>  text;
+>>        *|;
+>>        write exec;
+>>
+>>    }%%
+>>    fprintf(stderr, "end\n");
+>>    return 0;
+>> }
+>>
+>> --------------/example.rl
+>>
+>> Thanks!
+>> -Brian
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+--
+Brian Maher >> Glory to God <<
+
+
+
+-- 
+Brian Maher >> Glory to God <<
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

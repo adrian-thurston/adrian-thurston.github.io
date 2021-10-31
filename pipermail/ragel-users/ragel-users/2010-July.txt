@@ -1,0 +1,3644 @@
+From thurston at complang.org  Sun Jul  4 19:35:47 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 04 Jul 2010 12:35:47 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>	<4C28DA0B.9000305@esentire.com>	<AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+	<AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+Message-ID: <4C30E293.2020602@complang.org>
+
+There's no way to change the final-state property of a state. It's 
+decided at compile time.
+
+The fgoto final won't work because you're jumping out of the scanner and 
+it's the scanner actions that you want.
+
+-Adrian
+
+On 10-06-29 06:52 AM, Brian Maher wrote:
+> On Mon, Jun 28, 2010 at 10:21 AM, Adrian Thurston wrote:
+>> Just to be certain, you'd like a token at the end of the input to match even
+>> if it is not in a final state?
+>
+> Yes.  Or to put it another way: I want to make eof be a valid final
+> state kind of like what the $ in perl compatible regular expressions
+> mean.
+>
+>> If that's the case, I'm sorry I don't have an elegant solution for you. A
+>> state is either final or not, and what you need is to make all states final
+>> when at the end of the input.
+>
+> Is there a way to say "make this state final when at the end of the
+> input"?  `fgoto final;` was my attempt at doing this, but it didn't
+> work ;-).
+>
+> Thanks for your help!
+>
+> Cheers,
+> -Brian
+>
+>> On 10-06-27 06:46 AM, Brian Maher wrote:
+>>>
+>>> Hello Ragel Users,
+>>>
+>>> First, I just want to say that Ragel is an awesome tool, thank you
+>>> Adrian for sharing this tool with the open source community!
+>>>
+>>> Recently I've been trying to write a grammar for which individual
+>>> tokens may be pre-maturely terminated by EOF.  I came up with the
+>>> following rather hacky solution below (emit the same action as though
+>>> the token was "recognized", then fbreak so that only one token is
+>>> guaranteed to be "seen").  The things that I don't like with this
+>>> solution are that:
+>>>
+>>>    * I'm not keen on having to redundantly call the token's action in
+>>> two places since a maintainer later on may forget to update one of the
+>>> places where $eof(token_action) is done.
+>>>
+>>>    * te is not updated (although this isn't a big deal since I can just
+>>> use p instead of relying on te, and if I really wanted to make a fuss
+>>> about this I could always add $eof{te=p;}).
+>>>
+>>> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+>>> the "final" label is only defined within the context of state charts
+>>> and can't be used as a "normal label".
+>>>
+>>> --------------example.rl
+>>>
+>>> #include<stdio.h>
+>>>
+>>> %% machine t;
+>>> %% write data;
+>>>
+>>> #define INPUT "abcd"
+>>>
+>>> int main() {
+>>>     char *ts, *te;
+>>>     int   cs, act, i;
+>>>     char *input = INPUT;
+>>>     char *p     = input;
+>>>     char *pe    = input + (sizeof(INPUT) - 1);
+>>>     char *eof   = pe;
+>>>
+>>>     fprintf(stderr, "Input[");
+>>>     fwrite(p, 1, pe-p, stderr);
+>>>     fprintf(stderr, "]\n");
+>>>
+>>>     %%{
+>>>         write init;
+>>>
+>>>         action text {
+>>>             fprintf(stderr, "Text [%c]\n", *p);
+>>>         }
+>>>
+>>>         action token {
+>>>             fprintf(stderr, "Token[");
+>>>             fwrite(ts, 1, p-ts, stderr);
+>>>             fprintf(stderr, "]\n");
+>>>         }
+>>>
+>>>         Token = "abc" "def" $eof(token) $eof{fbreak;};
+>>>
+>>>          main := |*
+>>>             Token =>    token;
+>>>             any   =>    text;
+>>>         *|;
+>>>         write exec;
+>>>
+>>>     }%%
+>>>     fprintf(stderr, "end\n");
+>>>     return 0;
+>>> }
+>>>
+>>> --------------/example.rl
+>>>
+>>> Thanks!
+>>> -Brian
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+>
+> --
+> Brian Maher>>  Glory to God<<
+>
+>
+>
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dweidenkopf at cococorp.com  Mon Jul 12 16:56:45 2010
+From: dweidenkopf at cococorp.com (David Weidenkopf)
+Date: Mon, 12 Jul 2010 09:56:45 -0700
+Subject: [ragel-users] C enum usage in state machines and visualization
+	improvements
+Message-ID: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+
+Hello, I am a ragel noob. One observation I have as a new user is that the generated dot files would be better if they used more of the information provided in the source file. For example, why aren't the state names output instead of numbers? Or is there a way to get the state names used in the diagram? Finally, I read that it was possible to use a C enum to define events. Are there any examples of this available?
+
+Also, does anyone with experience with the ragel source have an idea of the feasibility of adding more features to the dot generation? For example, what about color coding events?
+
+Thanks in advance.
+
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pgervais at xplornet.com  Thu Jul 15 17:33:19 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Thu, 15 Jul 2010 13:33:19 -0400
+Subject: [ragel-users] Ragel BNF
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+
+I'm new to ragel. 
+
+Does anyone have a BNF language of the Ragel syntax?  It would be nice to
+know what the accepted language constructs are without to read through the
+ragel compiler  code. 
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100715/db2a467c/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From pgervais at xplornet.com  Thu Jul 15 17:51:25 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Thu, 15 Jul 2010 13:51:25 -0400
+Subject: [ragel-users] Decoding DNS protocol
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+
+I'm using ragel to decode protocols as a test of its capabilities.
+
+One of the protocols is DNS. 
+
+This protocol has a fixed set of fields followed by one or more optional
+fields. The count  of these optional fields are encoded within the fixed
+data field.
+
+ 
+
+Would the code below be the best way to do this ?Initial the dnsAnswer
+section called via fcall dnsAnswer.   It then sequentially processes all
+fields in the order given. In the last field, dnsAnswerResourceDataField  ,
+it gets the count of the number of answer fields included in the protocol,
+then perform a series of fgoto's until the dnsRecordCount is 0 at which time
+it returns. 
+
+ 
+
+ 
+
+dnsAnswer := (
+
+                                dnsAnswerNameField .
+
+                                dnsAnswerTypeField .
+
+                                dnsAnswerClassField .
+
+                                dnsAnswerTimeToLiveField .
+
+                                dnsAnswerResourceDataLengthField .
+
+                                dnsAnswerResourceDataField  @{ cout << "In
+dnsAnswer processing" << endl; if (fsm->getdnsAnswerRecordCount() > 0 ) {
+
+                                                fsm->dnsAnswerRecordCount--;
+
+                                                fgoto dnsAnswer; } else {
+
+                                                fret; }
+
+                }
+
+                );
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100715/4af75dbc/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Jul 16 05:42:12 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 15 Jul 2010 22:42:12 -0700
+Subject: [ragel-users] Ragel BNF
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+Message-ID: <4C3FF134.307@complang.org>
+
+Hi, sorry I don't have one.
+
+Adrian
+
+Pete Gervais wrote:
+> I’m new to ragel.
+> 
+> Does anyone have a BNF language of the Ragel syntax?  It would be nice 
+> to know what the accepted language constructs are without to read 
+> through the ragel compiler  code.
+> 
+>  
+> 
+>  
+> 
+>  
+> 
+> Regards,
+> 
+>  
+> 
+> Peter J. Gervais
+> 
+> President, Simtree Information Systems
+> 
+> 17621 Island Rd,
+> 
+> RR#2 , Martintown,
+> 
+> Martintown,Ont
+> 
+> K0C 1S0
+> 
+>  
+> 
+> Business: 613-938-6549
+> 
+> Cell: 613-864-7370
+> 
+> E-mail: pgervais at xplornet.com
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Jul 16 06:10:33 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 15 Jul 2010 23:10:33 -0700
+Subject: [ragel-users] Decoding DNS protocol
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+Message-ID: <4C3FF7D9.9050703@complang.org>
+
+I typically don't recommend Ragel for DNS due to it being a binary 
+protocol, but it can be done.
+
+With Ragel there are two ways to count things. You can use conditions to 
+check for the counters getting down to zero. The advantage of conditions 
+is that you can more freely use machines with with embedded conditions 
+in the construction of other machines.
+
+The other approach is the one you're taking, which is to count and 
+call/return in actions. This is generally easier to program, because it 
+more closely resembles standard programming practice. The downside is 
+that you lose the ability freely union and you have to be more careful 
+with the other operations. The call/return statements are best for high 
+level flow control and can get you into a bind when used for the inner 
+definitions of a grammar.
+
+All in all, you may find that a hand-written parser for DNS is faster 
+and simpler due to all the counting.
+
+-Adrian
+
+Pete Gervais wrote:
+> I’m using ragel to decode protocols as a test of its capabilities.
+> 
+> One of the protocols is DNS.
+> 
+> This protocol has a fixed set of fields followed by one or more optional 
+> fields. The count  of these optional fields are encoded within the fixed 
+> data field.
+> 
+>  
+> 
+> Would the code below be the best way to do this ?Initial the dnsAnswer 
+> section called via fcall dnsAnswer.   It then sequentially processes all 
+> fields in the order given. In the last field, 
+> dnsAnswerResourceDataField  , it gets the count of the number of answer 
+> fields included in the protocol, then perform a series of fgoto’s until 
+> the dnsRecordCount is 0 at which time it returns.
+> 
+>  
+> 
+>  
+> 
+> dnsAnswer := (
+> 
+>                                 dnsAnswerNameField .
+> 
+>                                 dnsAnswerTypeField .
+> 
+>                                 dnsAnswerClassField .
+> 
+>                                 dnsAnswerTimeToLiveField .
+> 
+>                                 dnsAnswerResourceDataLengthField .
+> 
+>                                 dnsAnswerResourceDataField  @{ cout << 
+> "In dnsAnswer processing" << endl; if (fsm->getdnsAnswerRecordCount() > 
+> 0 ) {
+> 
+>                                                 fsm->dnsAnswerRecordCount--;
+> 
+>                                                 fgoto dnsAnswer; } else {
+> 
+>                                                 fret; }
+> 
+>                 }
+> 
+>                 );
+> 
+>  
+> 
+>  
+> 
+>  
+> 
+> Regards,
+> 
+>  
+> 
+> Peter J. Gervais
+> 
+> President, Simtree Information Systems
+> 
+> 17621 Island Rd,
+> 
+> RR#2 , Martintown,
+> 
+> Martintown,Ont
+> 
+> K0C 1S0
+> 
+>  
+> 
+> Business: 613-938-6549
+> 
+> Cell: 613-864-7370
+> 
+> E-mail: pgervais at xplornet.com
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pgervais at xplornet.com  Tue Jul 20 15:53:21 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Tue, 20 Jul 2010 11:53:21 -0400
+Subject: [ragel-users] Error State
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+
+Gents,
+
+According to the ragel user guide:
+
+ 
+
+"Two variables are written that may be used to test the state of the machine
+after a buffer block
+
+has been processed. The name_error variable gives the id of the state that
+the machine moves
+
+into when it cannot find a valid transition to take. The machine immediately
+breaks out of the
+
+processing loop when It finds itself in the error state. The error variable
+can be compared to the
+
+current state to determine if the machine has failed to parse the input. If
+the machine is complete,
+
+that is from every state there is a transition to a proper state on every
+possible character of the
+
+alphabet, then no error state is required and this variable will be set to
+-1.
+
+ 
+
+The name_first_final variable stores the id of the first final state. All of
+the machine's states
+
+are sorted by their final state status before having their ids assigned.
+Checking if the machine has
+
+accepted its input can then be done by checking if the current state is
+greater-than or equal to the
+
+first final state."
+
+ 
+
+There are many examples shown that check to see if the machine has parsed
+the input correctly or something similar. 
+
+ 
+
+/* Did parsing succeed? */
+
+if ( cs < name_first_final  ) {
+
+result = ERR_PARSE_ERROR;
+
+goto fail;
+
+}
+
+ 
+
+The problem I have is no matter the final result, ( proper parse or not) ,
+the cs variable is always reset to 0 which ensures the test above always
+fails. . 
+
+If you look at the C code generated , its look like: 
+
+st0:
+
+                fsm->cs = 0; 
+
+                goto _out;
+
+ 
+
+This code gets called on valid exit or error . 
+
+ 
+
+Is there something that needs to done in order to get actual state where the
+error occurred?
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100720/86e49511/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alex.laslavic at turner.com  Tue Jul 20 18:56:57 2010
+From: alex.laslavic at turner.com (Alexander Laslavic)
+Date: Tue, 20 Jul 2010 14:56:57 -0400
+Subject: [ragel-users] Greedy star operator
+Message-ID: <C86B69B9.1E039%alex.laslavic@turner.com>
+
+This is a problem I come up against over and over again:
+
+    action start_text { printf("start_text") }
+    action end_text {printf("end_text")}
+
+    text = any**;
+    Text = text >start_text %end_text;
+
+    Element = Text;
+
+    main := Element*;
+
+
+Essentially, the start_text and end_text actions get called for every
+character.  If I take the star operator off of Element, it works fine, but
+if Element has a star operator, ragel is preferring to repeat the Element
+over repeating the any** in 'text'.
+
+Is there some way I am not aware of to get it to prefer the inner
+repitition?
+
+
+-- 
+Alex Laslavic
+Lead Engineer - Turner DMT
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jul 21 06:03:23 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 20 Jul 2010 23:03:23 -0700
+Subject: [ragel-users] Error State
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+Message-ID: <4C468DAB.2070009@complang.org>
+
+It must mean that you're using a scanner and that your patterns accept 
+the inputs that your testing. The scanner resets the state to the start 
+state every time a pattern is matched.
+
+-Adrian
+
+On 10-07-20 08:53 AM, Pete Gervais wrote:
+> Gents,
+>
+> According to the ragel user guide:
+>
+> /“Two variables are written that may be used to test the state of the
+> machine after a buffer block/
+>
+> /has been processed. The //name_error //variable gives the id of the
+> state that the machine moves/
+>
+> /into when it cannot find a valid transition to take. The machine
+> immediately breaks out of the/
+>
+> /processing loop when It finds itself in the error state. The error
+> variable can be compared to the/
+>
+> /current state to determine if the machine has failed to parse the
+> input. If the machine is complete,/
+>
+> /that is from every state there is a transition to a proper state on
+> every possible character of the/
+>
+> /alphabet, then no error state is required and this variable will be set
+> to -1./
+>
+> / /
+>
+> /The //name_first_final //variable stores the id of the first final
+> state. All of the machine's states/
+>
+> /are sorted by their final state status before having their ids
+> assigned. Checking if the machine has/
+>
+> /accepted its input can then be done by checking if the current state is
+> greater-than or equal to the/
+>
+> /first final state.”/
+>
+> There are many examples shown that check to see if the machine has
+> parsed the input correctly or something similar.
+>
+> /* Did parsing succeed? */
+>
+> if ( cs < name_first_final ) {
+>
+> result = ERR_PARSE_ERROR;
+>
+> goto fail;
+>
+> }
+>
+> The problem I have is no matter the final result, ( proper parse or not)
+> , the cs variable is always reset to 0 which ensures the test above
+> always fails. .
+>
+> If you look at the C code generated , its look like:
+>
+> st0:
+>
+> fsm->cs = 0;
+>
+> goto _out;
+>
+> This code gets called on valid exit or error .
+>
+> Is there something that needs to done in order to get actual state where
+> the error occurred?
+>
+> Regards,
+>
+> Peter J. Gervais
+>
+> President, Simtree Information Systems
+>
+> 17621 Island Rd,
+>
+> RR#2 , Martintown,
+>
+> Martintown,Ont
+>
+> K0C 1S0
+>
+> Business: 613-938-6549
+>
+> Cell: 613-864-7370
+>
+> E-mail: pgervais at xplornet.com
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jul 21 06:21:30 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 20 Jul 2010 23:21:30 -0700
+Subject: [ragel-users] Greedy star operator
+In-Reply-To: <C86B69B9.1E039%alex.laslavic@turner.com>
+References: <C86B69B9.1E039%alex.laslavic@turner.com>
+Message-ID: <4C4691EA.1060703@complang.org>
+
+Hi Alexander,
+
+You should use the * in text and ** in main on Element.
+
+Also, you'll get a warning about applying kleene star to a machine that 
+accepts the zero length word. Normally you don't want to do that because 
+it creates an ambiguity. You'll actually see evidence of the ambiguity 
+... start_test will get executed more than once.
+
+-Adrian
+
+On 10-07-20 11:56 AM, Alexander Laslavic wrote:
+> This is a problem I come up against over and over again:
+>
+>      action start_text { printf("start_text") }
+>      action end_text {printf("end_text")}
+>
+>      text = any**;
+>      Text = text>start_text %end_text;
+>
+>      Element = Text;
+>
+>      main := Element*;
+>
+>
+> Essentially, the start_text and end_text actions get called for every
+> character.  If I take the star operator off of Element, it works fine, but
+> if Element has a star operator, ragel is preferring to repeat the Element
+> over repeating the any** in 'text'.
+>
+> Is there some way I am not aware of to get it to prefer the inner
+> repitition?
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tobi at leetsoft.com  Tue Jul 27 01:15:47 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Mon, 26 Jul 2010 21:15:47 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+Message-ID: <AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+
+I've been working on a parser for simple template language. I'm using Ragel.
+
+The requirements are modest. I'm trying to find [[tags]] that can be
+embedded anywhere in the input string.
+
+I'm trying to parse a simple template language, something that can
+have tags such as {{foo}} embedded within HTML. I tried several
+approaches to parse this but had to resort to using a Ragel scanner
+and use the inefficient approach of only matching a single character
+as a "catch all". I feel this is the wrong way to go about this. I'm
+essentially abusing the longest-match bias of the scanner to implement
+my default rule ( it can only be 1 char long, so it should always be
+the last resort ).
+
+%%{
+
+ machine parser;
+
+ action start      { tokstart = p; }
+ action on_tag      { results << [:tag, data[tokstart..p]] }
+ action on_static  { results << [:static, data[p..p]] }
+
+ tag  = ('[[' lower+ ']]') >start @on_tag;
+
+ main := |*
+   tag;
+   any      => on_static;
+ *|;
+
+}%%
+
+( actions written in ruby, but should be easy to understand ).
+
+How would you go about writing a parser for such a simple language? Is
+Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+and nails if the syntax is unpredictable such as this.
+
+
+Regards
+-- tobi
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From judofyr at gmail.com  Tue Jul 27 07:42:22 2010
+From: judofyr at gmail.com (Magnus Holm)
+Date: Tue, 27 Jul 2010 09:42:22 +0200
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com> 
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+Message-ID: <AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+
+(A little off-topic, but whatever:
+
+So Liquid will finally get a proper parser? :-))
+
+// Magnus Holm
+
+
+
+On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+> I've been working on a parser for simple template language. I'm using Ragel.
+>
+> The requirements are modest. I'm trying to find [[tags]] that can be
+> embedded anywhere in the input string.
+>
+> I'm trying to parse a simple template language, something that can
+> have tags such as {{foo}} embedded within HTML. I tried several
+> approaches to parse this but had to resort to using a Ragel scanner
+> and use the inefficient approach of only matching a single character
+> as a "catch all". I feel this is the wrong way to go about this. I'm
+> essentially abusing the longest-match bias of the scanner to implement
+> my default rule ( it can only be 1 char long, so it should always be
+> the last resort ).
+>
+> %%{
+>
+>  machine parser;
+>
+>  action start      { tokstart = p; }
+>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>  action on_static  { results << [:static, data[p..p]] }
+>
+>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>
+>  main := |*
+>    tag;
+>    any      => on_static;
+>  *|;
+>
+> }%%
+>
+> ( actions written in ruby, but should be easy to understand ).
+>
+> How would you go about writing a parser for such a simple language? Is
+> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+> and nails if the syntax is unpredictable such as this.
+>
+>
+> Regards
+> -- tobi
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tobi at leetsoft.com  Tue Jul 27 22:54:32 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Tue, 27 Jul 2010 18:54:32 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+Message-ID: <AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+
+Depends on the answers in this thread I suppose :-)
+
+
+
+On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+> (A little off-topic, but whatever:
+>
+> So Liquid will finally get a proper parser? :-))
+>
+> // Magnus Holm
+>
+>
+>
+> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>> I've been working on a parser for simple template language. I'm using Ragel.
+>>
+>> The requirements are modest. I'm trying to find [[tags]] that can be
+>> embedded anywhere in the input string.
+>>
+>> I'm trying to parse a simple template language, something that can
+>> have tags such as {{foo}} embedded within HTML. I tried several
+>> approaches to parse this but had to resort to using a Ragel scanner
+>> and use the inefficient approach of only matching a single character
+>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>> essentially abusing the longest-match bias of the scanner to implement
+>> my default rule ( it can only be 1 char long, so it should always be
+>> the last resort ).
+>>
+>> %%{
+>>
+>>  machine parser;
+>>
+>>  action start      { tokstart = p; }
+>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>  action on_static  { results << [:static, data[p..p]] }
+>>
+>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>
+>>  main := |*
+>>    tag;
+>>    any      => on_static;
+>>  *|;
+>>
+>> }%%
+>>
+>> ( actions written in ruby, but should be easy to understand ).
+>>
+>> How would you go about writing a parser for such a simple language? Is
+>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>> and nails if the syntax is unpredictable such as this.
+>>
+>>
+>> Regards
+>> -- tobi
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From Alex.Laslavic at turner.com  Wed Jul 28 01:52:49 2010
+From: Alex.Laslavic at turner.com (Laslavic, Alex)
+Date: Tue, 27 Jul 2010 21:52:49 -0400
+Subject: [ragel-users] Parsing a template language
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+Message-ID: <CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+
+I'm actually working on a similar sounding task.  
+
+Try the strong subtraction operator
+Untested:
+
+main := |*
+  '[[' lower+ ']]' => action
+  ( any* -- '[[' ) => action
+*|;
+
+
+( any* -- '[[' ) will match the longest possible string that doesn't have '[[' as a substring.
+
+-----Original Message-----
+From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+Sent: Tue 7/27/2010 6:54 PM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Parsing a template language
+ 
+Depends on the answers in this thread I suppose :-)
+
+
+
+On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+> (A little off-topic, but whatever:
+>
+> So Liquid will finally get a proper parser? :-))
+>
+> // Magnus Holm
+>
+>
+>
+> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>> I've been working on a parser for simple template language. I'm using Ragel.
+>>
+>> The requirements are modest. I'm trying to find [[tags]] that can be
+>> embedded anywhere in the input string.
+>>
+>> I'm trying to parse a simple template language, something that can
+>> have tags such as {{foo}} embedded within HTML. I tried several
+>> approaches to parse this but had to resort to using a Ragel scanner
+>> and use the inefficient approach of only matching a single character
+>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>> essentially abusing the longest-match bias of the scanner to implement
+>> my default rule ( it can only be 1 char long, so it should always be
+>> the last resort ).
+>>
+>> %%{
+>>
+>>  machine parser;
+>>
+>>  action start      { tokstart = p; }
+>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>  action on_static  { results << [:static, data[p..p]] }
+>>
+>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>
+>>  main := |*
+>>    tag;
+>>    any      => on_static;
+>>  *|;
+>>
+>> }%%
+>>
+>> ( actions written in ruby, but should be easy to understand ).
+>>
+>> How would you go about writing a parser for such a simple language? Is
+>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>> and nails if the syntax is unpredictable such as this.
+>>
+>>
+>> Regards
+>> -- tobi
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100727/673d0c7a/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tobi at leetsoft.com  Thu Jul 29 04:40:58 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Thu, 29 Jul 2010 00:40:58 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+	<CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+Message-ID: <AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+
+Thanks Alex,
+
+I modified the code to your clever example. This almost works, however
+after running the any* scanner p will be advanced all the way to the
+end of {{, so the other rule will not match the tag correctly. Here is
+my current machine:
+
+
+      machine parser;
+
+      action start      { tokstart = p; }
+      action on_tag     { results << [:tag,    data[tokstart..p]] }
+      action on_static  { results << [:static, data[tokstart..p]] }
+
+      tag  = '{{' lower+ '}}' >start @on_tag;
+      html = (any* -- '{{')   >start @on_static;
+      EOF = 0;
+
+      main := |*
+        tag;
+        html;
+        EOF;
+      *|;
+
+Regards
+-- tobi
+
+
+
+On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+<Alex.Laslavic at turner.com> wrote:
+> I'm actually working on a similar sounding task.
+>
+> Try the strong subtraction operator
+> Untested:
+>
+> main := |*
+>   '[[' lower+ ']]' => action
+>   ( any* -- '[[' ) => action
+> *|;
+>
+>
+> ( any* -- '[[' ) will match the longest possible string that doesn't have
+> '[[' as a substring.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Tue 7/27/2010 6:54 PM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Depends on the answers in this thread I suppose :-)
+>
+>
+>
+> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>> (A little off-topic, but whatever:
+>>
+>> So Liquid will finally get a proper parser? :-))
+>>
+>> // Magnus Holm
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>>> I've been working on a parser for simple template language. I'm using
+>>> Ragel.
+>>>
+>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>> embedded anywhere in the input string.
+>>>
+>>> I'm trying to parse a simple template language, something that can
+>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>> approaches to parse this but had to resort to using a Ragel scanner
+>>> and use the inefficient approach of only matching a single character
+>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>> essentially abusing the longest-match bias of the scanner to implement
+>>> my default rule ( it can only be 1 char long, so it should always be
+>>> the last resort ).
+>>>
+>>> %%{
+>>>
+>>>  machine parser;
+>>>
+>>>  action start      { tokstart = p; }
+>>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>>  action on_static  { results << [:static, data[p..p]] }
+>>>
+>>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>>
+>>>  main := |*
+>>>    tag;
+>>>    any      => on_static;
+>>>  *|;
+>>>
+>>> }%%
+>>>
+>>> ( actions written in ruby, but should be easy to understand ).
+>>>
+>>> How would you go about writing a parser for such a simple language? Is
+>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>> and nails if the syntax is unpredictable such as this.
+>>>
+>>>
+>>> Regards
+>>> -- tobi
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From Alex.Laslavic at turner.com  Thu Jul 29 14:41:12 2010
+From: Alex.Laslavic at turner.com (Laslavic, Alex)
+Date: Thu, 29 Jul 2010 10:41:12 -0400
+Subject: [ragel-users] Parsing a template language
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com><AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com><CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+Message-ID: <CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+
+
+Keep in mind you can always muck with the location of 'p' in your input string.  There are ragel psudo functions ( fhold, fexec ) that do this for you, or you can always just do:
+
+  p = p - 2
+
+in your action code.  The above is in C, actually, i'm not sure how to do that with ruby.  Decrementing 'p' in ruby probably won't back it up along the string, but maybe 'fhold' or 'fexec' can help you.
+
+I have used the ( any* -- token ) trick to advance to the token, and then modify 'p' to get it back to the beginning of the token.
+
+Perhaps other in this list know a cleaner way to do this, but its what I've found that works.
+
+-----Original Message-----
+From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+Sent: Thu 7/29/2010 12:40 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Parsing a template language
+ 
+Thanks Alex,
+
+I modified the code to your clever example. This almost works, however
+after running the any* scanner p will be advanced all the way to the
+end of {{, so the other rule will not match the tag correctly. Here is
+my current machine:
+
+
+      machine parser;
+
+      action start      { tokstart = p; }
+      action on_tag     { results << [:tag,    data[tokstart..p]] }
+      action on_static  { results << [:static, data[tokstart..p]] }
+
+      tag  = '{{' lower+ '}}' >start @on_tag;
+      html = (any* -- '{{')   >start @on_static;
+      EOF = 0;
+
+      main := |*
+        tag;
+        html;
+        EOF;
+      *|;
+
+Regards
+-- tobi
+
+
+
+On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+<Alex.Laslavic at turner.com> wrote:
+> I'm actually working on a similar sounding task.
+>
+> Try the strong subtraction operator
+> Untested:
+>
+> main := |*
+>   '[[' lower+ ']]' => action
+>   ( any* -- '[[' ) => action
+> *|;
+>
+>
+> ( any* -- '[[' ) will match the longest possible string that doesn't have
+> '[[' as a substring.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Tue 7/27/2010 6:54 PM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Depends on the answers in this thread I suppose :-)
+>
+>
+>
+> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>> (A little off-topic, but whatever:
+>>
+>> So Liquid will finally get a proper parser? :-))
+>>
+>> // Magnus Holm
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>>> I've been working on a parser for simple template language. I'm using
+>>> Ragel.
+>>>
+>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>> embedded anywhere in the input string.
+>>>
+>>> I'm trying to parse a simple template language, something that can
+>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>> approaches to parse this but had to resort to using a Ragel scanner
+>>> and use the inefficient approach of only matching a single character
+>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>> essentially abusing the longest-match bias of the scanner to implement
+>>> my default rule ( it can only be 1 char long, so it should always be
+>>> the last resort ).
+>>>
+>>> %%{
+>>>
+>>>  machine parser;
+>>>
+>>>  action start      { tokstart = p; }
+>>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>>  action on_static  { results << [:static, data[p..p]] }
+>>>
+>>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>>
+>>>  main := |*
+>>>    tag;
+>>>    any      => on_static;
+>>>  *|;
+>>>
+>>> }%%
+>>>
+>>> ( actions written in ruby, but should be easy to understand ).
+>>>
+>>> How would you go about writing a parser for such a simple language? Is
+>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>> and nails if the syntax is unpredictable such as this.
+>>>
+>>>
+>>> Regards
+>>> -- tobi
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20100729/f114a1e9/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Jul 30 05:43:07 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 29 Jul 2010 22:43:07 -0700
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com><AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com><CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+	<CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+Message-ID: <4C52666B.9080208@complang.org>
+
+In Ruby 'p' is an integer that is used as an index into 'data'. You can 
+modify it as you can in C.
+
+-Adrian
+
+On 10-07-29 07:41 AM, Laslavic, Alex wrote:
+>
+> Keep in mind you can always muck with the location of 'p' in your input
+> string. There are ragel psudo functions ( fhold, fexec ) that do this
+> for you, or you can always just do:
+>
+> p = p - 2
+>
+> in your action code. The above is in C, actually, i'm not sure how to do
+> that with ruby. Decrementing 'p' in ruby probably won't back it up along
+> the string, but maybe 'fhold' or 'fexec' can help you.
+>
+> I have used the ( any* -- token ) trick to advance to the token, and
+> then modify 'p' to get it back to the beginning of the token.
+>
+> Perhaps other in this list know a cleaner way to do this, but its what
+> I've found that works.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Thu 7/29/2010 12:40 AM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Thanks Alex,
+>
+> I modified the code to your clever example. This almost works, however
+> after running the any* scanner p will be advanced all the way to the
+> end of {{, so the other rule will not match the tag correctly. Here is
+> my current machine:
+>
+>
+> machine parser;
+>
+> action start { tokstart = p; }
+> action on_tag { results << [:tag, data[tokstart..p]] }
+> action on_static { results << [:static, data[tokstart..p]] }
+>
+> tag = '{{' lower+ '}}' >start @on_tag;
+> html = (any* -- '{{') >start @on_static;
+> EOF = 0;
+>
+> main := |*
+> tag;
+> html;
+> EOF;
+> *|;
+>
+> Regards
+> -- tobi
+>
+>
+>
+> On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+> <Alex.Laslavic at turner.com> wrote:
+>  > I'm actually working on a similar sounding task.
+>  >
+>  > Try the strong subtraction operator
+>  > Untested:
+>  >
+>  > main := |*
+>  >   '[[' lower+ ']]' => action
+>  >   ( any* -- '[[' ) => action
+>  > *|;
+>  >
+>  >
+>  > ( any* -- '[[' ) will match the longest possible string that doesn't have
+>  > '[[' as a substring.
+>  >
+>  > -----Original Message-----
+>  > From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+>  > Sent: Tue 7/27/2010 6:54 PM
+>  > To: ragel-users at complang.org
+>  > Subject: Re: [ragel-users] Parsing a template language
+>  >
+>  > Depends on the answers in this thread I suppose :-)
+>  >
+>  >
+>  >
+>  > On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>  >> (A little off-topic, but whatever:
+>  >>
+>  >> So Liquid will finally get a proper parser? :-))
+>  >>
+>  >> // Magnus Holm
+>  >>
+>  >>
+>  >>
+>  >> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>  >>> I've been working on a parser for simple template language. I'm using
+>  >>> Ragel.
+>  >>>
+>  >>> The requirements are modest. I'm trying to find [[tags]] that can be
+>  >>> embedded anywhere in the input string.
+>  >>>
+>  >>> I'm trying to parse a simple template language, something that can
+>  >>> have tags such as {{foo}} embedded within HTML. I tried several
+>  >>> approaches to parse this but had to resort to using a Ragel scanner
+>  >>> and use the inefficient approach of only matching a single character
+>  >>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>  >>> essentially abusing the longest-match bias of the scanner to implement
+>  >>> my default rule ( it can only be 1 char long, so it should always be
+>  >>> the last resort ).
+>  >>>
+>  >>> %%{
+>  >>>
+>  >>>  machine parser;
+>  >>>
+>  >>>  action start      { tokstart = p; }
+>  >>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>  >>>  action on_static  { results << [:static, data[p..p]] }
+>  >>>
+>  >>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>  >>>
+>  >>>  main := |*
+>  >>>    tag;
+>  >>>    any      => on_static;
+>  >>>  *|;
+>  >>>
+>  >>> }%%
+>  >>>
+>  >>> ( actions written in ruby, but should be easy to understand ).
+>  >>>
+>  >>> How would you go about writing a parser for such a simple language? Is
+>  >>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>  >>> and nails if the syntax is unpredictable such as this.
+>  >>>
+>  >>>
+>  >>> Regards
+>  >>> -- tobi
+>  >>>
+>  >>> _______________________________________________
+>  >>> ragel-users mailing list
+>  >>> ragel-users at complang.org
+>  >>> http://www.complang.org/mailman/listinfo/ragel-users
+>  >>>
+>  >>
+>  >> _______________________________________________
+>  >> ragel-users mailing list
+>  >> ragel-users at complang.org
+>  >> http://www.complang.org/mailman/listinfo/ragel-users
+>  >>
+>  >
+>  > _______________________________________________
+>  > ragel-users mailing list
+>  > ragel-users at complang.org
+>  > http://www.complang.org/mailman/listinfo/ragel-users
+>  >
+>  >
+>  > _______________________________________________
+>  > ragel-users mailing list
+>  > ragel-users at complang.org
+>  > http://www.complang.org/mailman/listinfo/ragel-users
+>  >
+>  >
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Jul 30 05:42:51 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 29 Jul 2010 22:42:51 -0700
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>	<CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+Message-ID: <4C52665B.5020905@complang.org>
+
+Something like this might be what you want. It depends on how malformed 
+tags are to be dealt with. This machine just treats them as plain text. 
+They get broken down into separate tokens, but for most applications 
+that's not a problem.
+
+     main := |*
+         ( [^{]+ | '{' );
+         '{{' lower+ '}}';
+         0;
+     *|;
+
+-Adrian
+
+On 10-07-28 09:40 PM, Tobias Lütke wrote:
+> Thanks Alex,
+>
+> I modified the code to your clever example. This almost works, however
+> after running the any* scanner p will be advanced all the way to the
+> end of {{, so the other rule will not match the tag correctly. Here is
+> my current machine:
+>
+>
+>        machine parser;
+>
+>        action start      { tokstart = p; }
+>        action on_tag     { results<<  [:tag,    data[tokstart..p]] }
+>        action on_static  { results<<  [:static, data[tokstart..p]] }
+>
+>        tag  = '{{' lower+ '}}'>start @on_tag;
+>        html = (any* -- '{{')>start @on_static;
+>        EOF = 0;
+>
+>        main := |*
+>          tag;
+>          html;
+>          EOF;
+>        *|;
+>
+> Regards
+> -- tobi
+>
+>
+>
+> On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+> <Alex.Laslavic at turner.com>  wrote:
+>> I'm actually working on a similar sounding task.
+>>
+>> Try the strong subtraction operator
+>> Untested:
+>>
+>> main := |*
+>>    '[[' lower+ ']]' =>  action
+>>    ( any* -- '[[' ) =>  action
+>> *|;
+>>
+>>
+>> ( any* -- '[[' ) will match the longest possible string that doesn't have
+>> '[[' as a substring.
+>>
+>> -----Original Message-----
+>> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+>> Sent: Tue 7/27/2010 6:54 PM
+>> To: ragel-users at complang.org
+>> Subject: Re: [ragel-users] Parsing a template language
+>>
+>> Depends on the answers in this thread I suppose :-)
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm<judofyr at gmail.com>  wrote:
+>>> (A little off-topic, but whatever:
+>>>
+>>> So Liquid will finally get a proper parser? :-))
+>>>
+>>> // Magnus Holm
+>>>
+>>>
+>>>
+>>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke<tobi at leetsoft.com>  wrote:
+>>>> I've been working on a parser for simple template language. I'm using
+>>>> Ragel.
+>>>>
+>>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>>> embedded anywhere in the input string.
+>>>>
+>>>> I'm trying to parse a simple template language, something that can
+>>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>>> approaches to parse this but had to resort to using a Ragel scanner
+>>>> and use the inefficient approach of only matching a single character
+>>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>>> essentially abusing the longest-match bias of the scanner to implement
+>>>> my default rule ( it can only be 1 char long, so it should always be
+>>>> the last resort ).
+>>>>
+>>>> %%{
+>>>>
+>>>>   machine parser;
+>>>>
+>>>>   action start      { tokstart = p; }
+>>>>   action on_tag      { results<<  [:tag, data[tokstart..p]] }
+>>>>   action on_static  { results<<  [:static, data[p..p]] }
+>>>>
+>>>>   tag  = ('[[' lower+ ']]')>start @on_tag;
+>>>>
+>>>>   main := |*
+>>>>     tag;
+>>>>     any      =>  on_static;
+>>>>   *|;
+>>>>
+>>>> }%%
+>>>>
+>>>> ( actions written in ruby, but should be easy to understand ).
+>>>>
+>>>> How would you go about writing a parser for such a simple language? Is
+>>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>>> and nails if the syntax is unpredictable such as this.
+>>>>
+>>>>
+>>>> Regards
+>>>> -- tobi
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Jul  4 19:35:47 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 04 Jul 2010 12:35:47 -0700
+Subject: [ragel-users] EOF and token termination
+In-Reply-To: <AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+References: <AANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV@mail.gmail.com>	<4C28DA0B.9000305@esentire.com>	<AANLkTiktd-TI25G1_qh5EMbzvMuQu47e7Mth9lUWE38o@mail.gmail.com>
+	<AANLkTilL96IgEXgUBf04ol9SUao3bYqs6KJmh_ek-Eql@mail.gmail.com>
+Message-ID: <4C30E293.2020602@complang.org>
+
+There's no way to change the final-state property of a state. It's 
+decided at compile time.
+
+The fgoto final won't work because you're jumping out of the scanner and 
+it's the scanner actions that you want.
+
+-Adrian
+
+On 10-06-29 06:52 AM, Brian Maher wrote:
+> On Mon, Jun 28, 2010 at 10:21 AM, Adrian Thurston wrote:
+>> Just to be certain, you'd like a token at the end of the input to match even
+>> if it is not in a final state?
+>
+> Yes.  Or to put it another way: I want to make eof be a valid final
+> state kind of like what the $ in perl compatible regular expressions
+> mean.
+>
+>> If that's the case, I'm sorry I don't have an elegant solution for you. A
+>> state is either final or not, and what you need is to make all states final
+>> when at the end of the input.
+>
+> Is there a way to say "make this state final when at the end of the
+> input"?  `fgoto final;` was my attempt at doing this, but it didn't
+> work ;-).
+>
+> Thanks for your help!
+>
+> Cheers,
+> -Brian
+>
+>> On 10-06-27 06:46 AM, Brian Maher wrote:
+>>>
+>>> Hello Ragel Users,
+>>>
+>>> First, I just want to say that Ragel is an awesome tool, thank you
+>>> Adrian for sharing this tool with the open source community!
+>>>
+>>> Recently I've been trying to write a grammar for which individual
+>>> tokens may be pre-maturely terminated by EOF.  I came up with the
+>>> following rather hacky solution below (emit the same action as though
+>>> the token was "recognized", then fbreak so that only one token is
+>>> guaranteed to be "seen").  The things that I don't like with this
+>>> solution are that:
+>>>
+>>>    * I'm not keen on having to redundantly call the token's action in
+>>> two places since a maintainer later on may forget to update one of the
+>>> places where $eof(token_action) is done.
+>>>
+>>>    * te is not updated (although this isn't a big deal since I can just
+>>> use p instead of relying on te, and if I really wanted to make a fuss
+>>> about this I could always add $eof{te=p;}).
+>>>
+>>> One idea I had was to $eof{fgoto final;}, but that doesn't work since
+>>> the "final" label is only defined within the context of state charts
+>>> and can't be used as a "normal label".
+>>>
+>>> --------------example.rl
+>>>
+>>> #include<stdio.h>
+>>>
+>>> %% machine t;
+>>> %% write data;
+>>>
+>>> #define INPUT "abcd"
+>>>
+>>> int main() {
+>>>     char *ts, *te;
+>>>     int   cs, act, i;
+>>>     char *input = INPUT;
+>>>     char *p     = input;
+>>>     char *pe    = input + (sizeof(INPUT) - 1);
+>>>     char *eof   = pe;
+>>>
+>>>     fprintf(stderr, "Input[");
+>>>     fwrite(p, 1, pe-p, stderr);
+>>>     fprintf(stderr, "]\n");
+>>>
+>>>     %%{
+>>>         write init;
+>>>
+>>>         action text {
+>>>             fprintf(stderr, "Text [%c]\n", *p);
+>>>         }
+>>>
+>>>         action token {
+>>>             fprintf(stderr, "Token[");
+>>>             fwrite(ts, 1, p-ts, stderr);
+>>>             fprintf(stderr, "]\n");
+>>>         }
+>>>
+>>>         Token = "abc" "def" $eof(token) $eof{fbreak;};
+>>>
+>>>          main := |*
+>>>             Token =>    token;
+>>>             any   =>    text;
+>>>         *|;
+>>>         write exec;
+>>>
+>>>     }%%
+>>>     fprintf(stderr, "end\n");
+>>>     return 0;
+>>> }
+>>>
+>>> --------------/example.rl
+>>>
+>>> Thanks!
+>>> -Brian
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+>
+> --
+> Brian Maher>>  Glory to God<<
+>
+>
+>
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dweidenkopf at cococorp.com  Mon Jul 12 16:56:45 2010
+From: dweidenkopf at cococorp.com (David Weidenkopf)
+Date: Mon, 12 Jul 2010 09:56:45 -0700
+Subject: [ragel-users] C enum usage in state machines and visualization
+	improvements
+Message-ID: <3D05610F3AC2E047AACAA68F63DF908D02A8C35DCD@EXMBX13.exchhosting.com>
+
+Hello, I am a ragel noob. One observation I have as a new user is that the generated dot files would be better if they used more of the information provided in the source file. For example, why aren't the state names output instead of numbers? Or is there a way to get the state names used in the diagram? Finally, I read that it was possible to use a C enum to define events. Are there any examples of this available?
+
+Also, does anyone with experience with the ragel source have an idea of the feasibility of adding more features to the dot generation? For example, what about color coding events?
+
+Thanks in advance.
+
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pgervais at xplornet.com  Thu Jul 15 17:33:19 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Thu, 15 Jul 2010 13:33:19 -0400
+Subject: [ragel-users] Ragel BNF
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+
+I'm new to ragel. 
+
+Does anyone have a BNF language of the Ragel syntax?  It would be nice to
+know what the accepted language constructs are without to read through the
+ragel compiler  code. 
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100715/db2a467c/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From pgervais at xplornet.com  Thu Jul 15 17:51:25 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Thu, 15 Jul 2010 13:51:25 -0400
+Subject: [ragel-users] Decoding DNS protocol
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+
+I'm using ragel to decode protocols as a test of its capabilities.
+
+One of the protocols is DNS. 
+
+This protocol has a fixed set of fields followed by one or more optional
+fields. The count  of these optional fields are encoded within the fixed
+data field.
+
+ 
+
+Would the code below be the best way to do this ?Initial the dnsAnswer
+section called via fcall dnsAnswer.   It then sequentially processes all
+fields in the order given. In the last field, dnsAnswerResourceDataField  ,
+it gets the count of the number of answer fields included in the protocol,
+then perform a series of fgoto's until the dnsRecordCount is 0 at which time
+it returns. 
+
+ 
+
+ 
+
+dnsAnswer := (
+
+                                dnsAnswerNameField .
+
+                                dnsAnswerTypeField .
+
+                                dnsAnswerClassField .
+
+                                dnsAnswerTimeToLiveField .
+
+                                dnsAnswerResourceDataLengthField .
+
+                                dnsAnswerResourceDataField  @{ cout << "In
+dnsAnswer processing" << endl; if (fsm->getdnsAnswerRecordCount() > 0 ) {
+
+                                                fsm->dnsAnswerRecordCount--;
+
+                                                fgoto dnsAnswer; } else {
+
+                                                fret; }
+
+                }
+
+                );
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100715/4af75dbc/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Jul 16 05:42:12 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 15 Jul 2010 22:42:12 -0700
+Subject: [ragel-users] Ragel BNF
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJIoG9UbjKNFqMns9mMCFigBAAAAAA==@xplornet.com>
+Message-ID: <4C3FF134.307@complang.org>
+
+Hi, sorry I don't have one.
+
+Adrian
+
+Pete Gervais wrote:
+> I’m new to ragel.
+> 
+> Does anyone have a BNF language of the Ragel syntax?  It would be nice 
+> to know what the accepted language constructs are without to read 
+> through the ragel compiler  code.
+> 
+>  
+> 
+>  
+> 
+>  
+> 
+> Regards,
+> 
+>  
+> 
+> Peter J. Gervais
+> 
+> President, Simtree Information Systems
+> 
+> 17621 Island Rd,
+> 
+> RR#2 , Martintown,
+> 
+> Martintown,Ont
+> 
+> K0C 1S0
+> 
+>  
+> 
+> Business: 613-938-6549
+> 
+> Cell: 613-864-7370
+> 
+> E-mail: pgervais at xplornet.com
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Jul 16 06:10:33 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 15 Jul 2010 23:10:33 -0700
+Subject: [ragel-users] Decoding DNS protocol
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAIkcf7M2C8tNmC02TBYG1/EBAAAAAA==@xplornet.com>
+Message-ID: <4C3FF7D9.9050703@complang.org>
+
+I typically don't recommend Ragel for DNS due to it being a binary 
+protocol, but it can be done.
+
+With Ragel there are two ways to count things. You can use conditions to 
+check for the counters getting down to zero. The advantage of conditions 
+is that you can more freely use machines with with embedded conditions 
+in the construction of other machines.
+
+The other approach is the one you're taking, which is to count and 
+call/return in actions. This is generally easier to program, because it 
+more closely resembles standard programming practice. The downside is 
+that you lose the ability freely union and you have to be more careful 
+with the other operations. The call/return statements are best for high 
+level flow control and can get you into a bind when used for the inner 
+definitions of a grammar.
+
+All in all, you may find that a hand-written parser for DNS is faster 
+and simpler due to all the counting.
+
+-Adrian
+
+Pete Gervais wrote:
+> I’m using ragel to decode protocols as a test of its capabilities.
+> 
+> One of the protocols is DNS.
+> 
+> This protocol has a fixed set of fields followed by one or more optional 
+> fields. The count  of these optional fields are encoded within the fixed 
+> data field.
+> 
+>  
+> 
+> Would the code below be the best way to do this ?Initial the dnsAnswer 
+> section called via fcall dnsAnswer.   It then sequentially processes all 
+> fields in the order given. In the last field, 
+> dnsAnswerResourceDataField  , it gets the count of the number of answer 
+> fields included in the protocol, then perform a series of fgoto’s until 
+> the dnsRecordCount is 0 at which time it returns.
+> 
+>  
+> 
+>  
+> 
+> dnsAnswer := (
+> 
+>                                 dnsAnswerNameField .
+> 
+>                                 dnsAnswerTypeField .
+> 
+>                                 dnsAnswerClassField .
+> 
+>                                 dnsAnswerTimeToLiveField .
+> 
+>                                 dnsAnswerResourceDataLengthField .
+> 
+>                                 dnsAnswerResourceDataField  @{ cout << 
+> "In dnsAnswer processing" << endl; if (fsm->getdnsAnswerRecordCount() > 
+> 0 ) {
+> 
+>                                                 fsm->dnsAnswerRecordCount--;
+> 
+>                                                 fgoto dnsAnswer; } else {
+> 
+>                                                 fret; }
+> 
+>                 }
+> 
+>                 );
+> 
+>  
+> 
+>  
+> 
+>  
+> 
+> Regards,
+> 
+>  
+> 
+> Peter J. Gervais
+> 
+> President, Simtree Information Systems
+> 
+> 17621 Island Rd,
+> 
+> RR#2 , Martintown,
+> 
+> Martintown,Ont
+> 
+> K0C 1S0
+> 
+>  
+> 
+> Business: 613-938-6549
+> 
+> Cell: 613-864-7370
+> 
+> E-mail: pgervais at xplornet.com
+> 
+>  
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pgervais at xplornet.com  Tue Jul 20 15:53:21 2010
+From: pgervais at xplornet.com (Pete Gervais)
+Date: Tue, 20 Jul 2010 11:53:21 -0400
+Subject: [ragel-users] Error State
+Message-ID: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+
+Gents,
+
+According to the ragel user guide:
+
+ 
+
+"Two variables are written that may be used to test the state of the machine
+after a buffer block
+
+has been processed. The name_error variable gives the id of the state that
+the machine moves
+
+into when it cannot find a valid transition to take. The machine immediately
+breaks out of the
+
+processing loop when It finds itself in the error state. The error variable
+can be compared to the
+
+current state to determine if the machine has failed to parse the input. If
+the machine is complete,
+
+that is from every state there is a transition to a proper state on every
+possible character of the
+
+alphabet, then no error state is required and this variable will be set to
+-1.
+
+ 
+
+The name_first_final variable stores the id of the first final state. All of
+the machine's states
+
+are sorted by their final state status before having their ids assigned.
+Checking if the machine has
+
+accepted its input can then be done by checking if the current state is
+greater-than or equal to the
+
+first final state."
+
+ 
+
+There are many examples shown that check to see if the machine has parsed
+the input correctly or something similar. 
+
+ 
+
+/* Did parsing succeed? */
+
+if ( cs < name_first_final  ) {
+
+result = ERR_PARSE_ERROR;
+
+goto fail;
+
+}
+
+ 
+
+The problem I have is no matter the final result, ( proper parse or not) ,
+the cs variable is always reset to 0 which ensures the test above always
+fails. . 
+
+If you look at the C code generated , its look like: 
+
+st0:
+
+                fsm->cs = 0; 
+
+                goto _out;
+
+ 
+
+This code gets called on valid exit or error . 
+
+ 
+
+Is there something that needs to done in order to get actual state where the
+error occurred?
+
+ 
+
+ 
+
+ 
+
+Regards,
+
+ 
+
+Peter J. Gervais 
+
+President, Simtree Information Systems 
+
+17621 Island Rd, 
+
+RR#2 , Martintown, 
+
+Martintown,Ont
+
+K0C 1S0
+
+ 
+
+Business: 613-938-6549
+
+Cell: 613-864-7370
+
+E-mail: pgervais at xplornet.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100720/86e49511/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alex.laslavic at turner.com  Tue Jul 20 18:56:57 2010
+From: alex.laslavic at turner.com (Alexander Laslavic)
+Date: Tue, 20 Jul 2010 14:56:57 -0400
+Subject: [ragel-users] Greedy star operator
+Message-ID: <C86B69B9.1E039%alex.laslavic@turner.com>
+
+This is a problem I come up against over and over again:
+
+    action start_text { printf("start_text") }
+    action end_text {printf("end_text")}
+
+    text = any**;
+    Text = text >start_text %end_text;
+
+    Element = Text;
+
+    main := Element*;
+
+
+Essentially, the start_text and end_text actions get called for every
+character.  If I take the star operator off of Element, it works fine, but
+if Element has a star operator, ragel is preferring to repeat the Element
+over repeating the any** in 'text'.
+
+Is there some way I am not aware of to get it to prefer the inner
+repitition?
+
+
+-- 
+Alex Laslavic
+Lead Engineer - Turner DMT
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jul 21 06:03:23 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 20 Jul 2010 23:03:23 -0700
+Subject: [ragel-users] Error State
+In-Reply-To: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+References: <!&!AAAAAAAAAAAYAAAAAAAAAPLA3dQzd9JJunpBZgp5/fbCgAAAEAAAAJFBdwHzdBVEm7q677JYY0IBAAAAAA==@xplornet.com>
+Message-ID: <4C468DAB.2070009@complang.org>
+
+It must mean that you're using a scanner and that your patterns accept 
+the inputs that your testing. The scanner resets the state to the start 
+state every time a pattern is matched.
+
+-Adrian
+
+On 10-07-20 08:53 AM, Pete Gervais wrote:
+> Gents,
+>
+> According to the ragel user guide:
+>
+> /“Two variables are written that may be used to test the state of the
+> machine after a buffer block/
+>
+> /has been processed. The //name_error //variable gives the id of the
+> state that the machine moves/
+>
+> /into when it cannot find a valid transition to take. The machine
+> immediately breaks out of the/
+>
+> /processing loop when It finds itself in the error state. The error
+> variable can be compared to the/
+>
+> /current state to determine if the machine has failed to parse the
+> input. If the machine is complete,/
+>
+> /that is from every state there is a transition to a proper state on
+> every possible character of the/
+>
+> /alphabet, then no error state is required and this variable will be set
+> to -1./
+>
+> / /
+>
+> /The //name_first_final //variable stores the id of the first final
+> state. All of the machine's states/
+>
+> /are sorted by their final state status before having their ids
+> assigned. Checking if the machine has/
+>
+> /accepted its input can then be done by checking if the current state is
+> greater-than or equal to the/
+>
+> /first final state.”/
+>
+> There are many examples shown that check to see if the machine has
+> parsed the input correctly or something similar.
+>
+> /* Did parsing succeed? */
+>
+> if ( cs < name_first_final ) {
+>
+> result = ERR_PARSE_ERROR;
+>
+> goto fail;
+>
+> }
+>
+> The problem I have is no matter the final result, ( proper parse or not)
+> , the cs variable is always reset to 0 which ensures the test above
+> always fails. .
+>
+> If you look at the C code generated , its look like:
+>
+> st0:
+>
+> fsm->cs = 0;
+>
+> goto _out;
+>
+> This code gets called on valid exit or error .
+>
+> Is there something that needs to done in order to get actual state where
+> the error occurred?
+>
+> Regards,
+>
+> Peter J. Gervais
+>
+> President, Simtree Information Systems
+>
+> 17621 Island Rd,
+>
+> RR#2 , Martintown,
+>
+> Martintown,Ont
+>
+> K0C 1S0
+>
+> Business: 613-938-6549
+>
+> Cell: 613-864-7370
+>
+> E-mail: pgervais at xplornet.com
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jul 21 06:21:30 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 20 Jul 2010 23:21:30 -0700
+Subject: [ragel-users] Greedy star operator
+In-Reply-To: <C86B69B9.1E039%alex.laslavic@turner.com>
+References: <C86B69B9.1E039%alex.laslavic@turner.com>
+Message-ID: <4C4691EA.1060703@complang.org>
+
+Hi Alexander,
+
+You should use the * in text and ** in main on Element.
+
+Also, you'll get a warning about applying kleene star to a machine that 
+accepts the zero length word. Normally you don't want to do that because 
+it creates an ambiguity. You'll actually see evidence of the ambiguity 
+... start_test will get executed more than once.
+
+-Adrian
+
+On 10-07-20 11:56 AM, Alexander Laslavic wrote:
+> This is a problem I come up against over and over again:
+>
+>      action start_text { printf("start_text") }
+>      action end_text {printf("end_text")}
+>
+>      text = any**;
+>      Text = text>start_text %end_text;
+>
+>      Element = Text;
+>
+>      main := Element*;
+>
+>
+> Essentially, the start_text and end_text actions get called for every
+> character.  If I take the star operator off of Element, it works fine, but
+> if Element has a star operator, ragel is preferring to repeat the Element
+> over repeating the any** in 'text'.
+>
+> Is there some way I am not aware of to get it to prefer the inner
+> repitition?
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tobi at leetsoft.com  Tue Jul 27 01:15:47 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Mon, 26 Jul 2010 21:15:47 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+Message-ID: <AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+
+I've been working on a parser for simple template language. I'm using Ragel.
+
+The requirements are modest. I'm trying to find [[tags]] that can be
+embedded anywhere in the input string.
+
+I'm trying to parse a simple template language, something that can
+have tags such as {{foo}} embedded within HTML. I tried several
+approaches to parse this but had to resort to using a Ragel scanner
+and use the inefficient approach of only matching a single character
+as a "catch all". I feel this is the wrong way to go about this. I'm
+essentially abusing the longest-match bias of the scanner to implement
+my default rule ( it can only be 1 char long, so it should always be
+the last resort ).
+
+%%{
+
+ machine parser;
+
+ action start      { tokstart = p; }
+ action on_tag      { results << [:tag, data[tokstart..p]] }
+ action on_static  { results << [:static, data[p..p]] }
+
+ tag  = ('[[' lower+ ']]') >start @on_tag;
+
+ main := |*
+   tag;
+   any      => on_static;
+ *|;
+
+}%%
+
+( actions written in ruby, but should be easy to understand ).
+
+How would you go about writing a parser for such a simple language? Is
+Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+and nails if the syntax is unpredictable such as this.
+
+
+Regards
+-- tobi
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From judofyr at gmail.com  Tue Jul 27 07:42:22 2010
+From: judofyr at gmail.com (Magnus Holm)
+Date: Tue, 27 Jul 2010 09:42:22 +0200
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com> 
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+Message-ID: <AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+
+(A little off-topic, but whatever:
+
+So Liquid will finally get a proper parser? :-))
+
+// Magnus Holm
+
+
+
+On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+> I've been working on a parser for simple template language. I'm using Ragel.
+>
+> The requirements are modest. I'm trying to find [[tags]] that can be
+> embedded anywhere in the input string.
+>
+> I'm trying to parse a simple template language, something that can
+> have tags such as {{foo}} embedded within HTML. I tried several
+> approaches to parse this but had to resort to using a Ragel scanner
+> and use the inefficient approach of only matching a single character
+> as a "catch all". I feel this is the wrong way to go about this. I'm
+> essentially abusing the longest-match bias of the scanner to implement
+> my default rule ( it can only be 1 char long, so it should always be
+> the last resort ).
+>
+> %%{
+>
+>  machine parser;
+>
+>  action start      { tokstart = p; }
+>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>  action on_static  { results << [:static, data[p..p]] }
+>
+>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>
+>  main := |*
+>    tag;
+>    any      => on_static;
+>  *|;
+>
+> }%%
+>
+> ( actions written in ruby, but should be easy to understand ).
+>
+> How would you go about writing a parser for such a simple language? Is
+> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+> and nails if the syntax is unpredictable such as this.
+>
+>
+> Regards
+> -- tobi
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tobi at leetsoft.com  Tue Jul 27 22:54:32 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Tue, 27 Jul 2010 18:54:32 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+Message-ID: <AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+
+Depends on the answers in this thread I suppose :-)
+
+
+
+On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+> (A little off-topic, but whatever:
+>
+> So Liquid will finally get a proper parser? :-))
+>
+> // Magnus Holm
+>
+>
+>
+> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>> I've been working on a parser for simple template language. I'm using Ragel.
+>>
+>> The requirements are modest. I'm trying to find [[tags]] that can be
+>> embedded anywhere in the input string.
+>>
+>> I'm trying to parse a simple template language, something that can
+>> have tags such as {{foo}} embedded within HTML. I tried several
+>> approaches to parse this but had to resort to using a Ragel scanner
+>> and use the inefficient approach of only matching a single character
+>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>> essentially abusing the longest-match bias of the scanner to implement
+>> my default rule ( it can only be 1 char long, so it should always be
+>> the last resort ).
+>>
+>> %%{
+>>
+>>  machine parser;
+>>
+>>  action start      { tokstart = p; }
+>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>  action on_static  { results << [:static, data[p..p]] }
+>>
+>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>
+>>  main := |*
+>>    tag;
+>>    any      => on_static;
+>>  *|;
+>>
+>> }%%
+>>
+>> ( actions written in ruby, but should be easy to understand ).
+>>
+>> How would you go about writing a parser for such a simple language? Is
+>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>> and nails if the syntax is unpredictable such as this.
+>>
+>>
+>> Regards
+>> -- tobi
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From Alex.Laslavic at turner.com  Wed Jul 28 01:52:49 2010
+From: Alex.Laslavic at turner.com (Laslavic, Alex)
+Date: Tue, 27 Jul 2010 21:52:49 -0400
+Subject: [ragel-users] Parsing a template language
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+Message-ID: <CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+
+I'm actually working on a similar sounding task.  
+
+Try the strong subtraction operator
+Untested:
+
+main := |*
+  '[[' lower+ ']]' => action
+  ( any* -- '[[' ) => action
+*|;
+
+
+( any* -- '[[' ) will match the longest possible string that doesn't have '[[' as a substring.
+
+-----Original Message-----
+From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+Sent: Tue 7/27/2010 6:54 PM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Parsing a template language
+ 
+Depends on the answers in this thread I suppose :-)
+
+
+
+On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+> (A little off-topic, but whatever:
+>
+> So Liquid will finally get a proper parser? :-))
+>
+> // Magnus Holm
+>
+>
+>
+> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>> I've been working on a parser for simple template language. I'm using Ragel.
+>>
+>> The requirements are modest. I'm trying to find [[tags]] that can be
+>> embedded anywhere in the input string.
+>>
+>> I'm trying to parse a simple template language, something that can
+>> have tags such as {{foo}} embedded within HTML. I tried several
+>> approaches to parse this but had to resort to using a Ragel scanner
+>> and use the inefficient approach of only matching a single character
+>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>> essentially abusing the longest-match bias of the scanner to implement
+>> my default rule ( it can only be 1 char long, so it should always be
+>> the last resort ).
+>>
+>> %%{
+>>
+>>  machine parser;
+>>
+>>  action start      { tokstart = p; }
+>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>  action on_static  { results << [:static, data[p..p]] }
+>>
+>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>
+>>  main := |*
+>>    tag;
+>>    any      => on_static;
+>>  *|;
+>>
+>> }%%
+>>
+>> ( actions written in ruby, but should be easy to understand ).
+>>
+>> How would you go about writing a parser for such a simple language? Is
+>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>> and nails if the syntax is unpredictable such as this.
+>>
+>>
+>> Regards
+>> -- tobi
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100727/673d0c7a/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From tobi at leetsoft.com  Thu Jul 29 04:40:58 2010
+From: tobi at leetsoft.com (=?ISO-8859-1?Q?Tobias_L=FCtke?=)
+Date: Thu, 29 Jul 2010 00:40:58 -0400
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>
+	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>
+	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>
+	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>
+	<CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+Message-ID: <AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+
+Thanks Alex,
+
+I modified the code to your clever example. This almost works, however
+after running the any* scanner p will be advanced all the way to the
+end of {{, so the other rule will not match the tag correctly. Here is
+my current machine:
+
+
+      machine parser;
+
+      action start      { tokstart = p; }
+      action on_tag     { results << [:tag,    data[tokstart..p]] }
+      action on_static  { results << [:static, data[tokstart..p]] }
+
+      tag  = '{{' lower+ '}}' >start @on_tag;
+      html = (any* -- '{{')   >start @on_static;
+      EOF = 0;
+
+      main := |*
+        tag;
+        html;
+        EOF;
+      *|;
+
+Regards
+-- tobi
+
+
+
+On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+<Alex.Laslavic at turner.com> wrote:
+> I'm actually working on a similar sounding task.
+>
+> Try the strong subtraction operator
+> Untested:
+>
+> main := |*
+>   '[[' lower+ ']]' => action
+>   ( any* -- '[[' ) => action
+> *|;
+>
+>
+> ( any* -- '[[' ) will match the longest possible string that doesn't have
+> '[[' as a substring.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Tue 7/27/2010 6:54 PM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Depends on the answers in this thread I suppose :-)
+>
+>
+>
+> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>> (A little off-topic, but whatever:
+>>
+>> So Liquid will finally get a proper parser? :-))
+>>
+>> // Magnus Holm
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>>> I've been working on a parser for simple template language. I'm using
+>>> Ragel.
+>>>
+>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>> embedded anywhere in the input string.
+>>>
+>>> I'm trying to parse a simple template language, something that can
+>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>> approaches to parse this but had to resort to using a Ragel scanner
+>>> and use the inefficient approach of only matching a single character
+>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>> essentially abusing the longest-match bias of the scanner to implement
+>>> my default rule ( it can only be 1 char long, so it should always be
+>>> the last resort ).
+>>>
+>>> %%{
+>>>
+>>>  machine parser;
+>>>
+>>>  action start      { tokstart = p; }
+>>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>>  action on_static  { results << [:static, data[p..p]] }
+>>>
+>>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>>
+>>>  main := |*
+>>>    tag;
+>>>    any      => on_static;
+>>>  *|;
+>>>
+>>> }%%
+>>>
+>>> ( actions written in ruby, but should be easy to understand ).
+>>>
+>>> How would you go about writing a parser for such a simple language? Is
+>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>> and nails if the syntax is unpredictable such as this.
+>>>
+>>>
+>>> Regards
+>>> -- tobi
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From Alex.Laslavic at turner.com  Thu Jul 29 14:41:12 2010
+From: Alex.Laslavic at turner.com (Laslavic, Alex)
+Date: Thu, 29 Jul 2010 10:41:12 -0400
+Subject: [ragel-users] Parsing a template language
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com><AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com><CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+Message-ID: <CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+
+
+Keep in mind you can always muck with the location of 'p' in your input string.  There are ragel psudo functions ( fhold, fexec ) that do this for you, or you can always just do:
+
+  p = p - 2
+
+in your action code.  The above is in C, actually, i'm not sure how to do that with ruby.  Decrementing 'p' in ruby probably won't back it up along the string, but maybe 'fhold' or 'fexec' can help you.
+
+I have used the ( any* -- token ) trick to advance to the token, and then modify 'p' to get it back to the beginning of the token.
+
+Perhaps other in this list know a cleaner way to do this, but its what I've found that works.
+
+-----Original Message-----
+From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+Sent: Thu 7/29/2010 12:40 AM
+To: ragel-users at complang.org
+Subject: Re: [ragel-users] Parsing a template language
+ 
+Thanks Alex,
+
+I modified the code to your clever example. This almost works, however
+after running the any* scanner p will be advanced all the way to the
+end of {{, so the other rule will not match the tag correctly. Here is
+my current machine:
+
+
+      machine parser;
+
+      action start      { tokstart = p; }
+      action on_tag     { results << [:tag,    data[tokstart..p]] }
+      action on_static  { results << [:static, data[tokstart..p]] }
+
+      tag  = '{{' lower+ '}}' >start @on_tag;
+      html = (any* -- '{{')   >start @on_static;
+      EOF = 0;
+
+      main := |*
+        tag;
+        html;
+        EOF;
+      *|;
+
+Regards
+-- tobi
+
+
+
+On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+<Alex.Laslavic at turner.com> wrote:
+> I'm actually working on a similar sounding task.
+>
+> Try the strong subtraction operator
+> Untested:
+>
+> main := |*
+>   '[[' lower+ ']]' => action
+>   ( any* -- '[[' ) => action
+> *|;
+>
+>
+> ( any* -- '[[' ) will match the longest possible string that doesn't have
+> '[[' as a substring.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Tue 7/27/2010 6:54 PM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Depends on the answers in this thread I suppose :-)
+>
+>
+>
+> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>> (A little off-topic, but whatever:
+>>
+>> So Liquid will finally get a proper parser? :-))
+>>
+>> // Magnus Holm
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>>> I've been working on a parser for simple template language. I'm using
+>>> Ragel.
+>>>
+>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>> embedded anywhere in the input string.
+>>>
+>>> I'm trying to parse a simple template language, something that can
+>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>> approaches to parse this but had to resort to using a Ragel scanner
+>>> and use the inefficient approach of only matching a single character
+>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>> essentially abusing the longest-match bias of the scanner to implement
+>>> my default rule ( it can only be 1 char long, so it should always be
+>>> the last resort ).
+>>>
+>>> %%{
+>>>
+>>>  machine parser;
+>>>
+>>>  action start      { tokstart = p; }
+>>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>>>  action on_static  { results << [:static, data[p..p]] }
+>>>
+>>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>>>
+>>>  main := |*
+>>>    tag;
+>>>    any      => on_static;
+>>>  *|;
+>>>
+>>> }%%
+>>>
+>>> ( actions written in ruby, but should be easy to understand ).
+>>>
+>>> How would you go about writing a parser for such a simple language? Is
+>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>> and nails if the syntax is unpredictable such as this.
+>>>
+>>>
+>>> Regards
+>>> -- tobi
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20100729/f114a1e9/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Jul 30 05:43:07 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 29 Jul 2010 22:43:07 -0700
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com><AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com><AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com><AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com><CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+	<CB139CED0DA3B1459774AEB8842F78A702FE2424@ATLVMX02.turner.com>
+Message-ID: <4C52666B.9080208@complang.org>
+
+In Ruby 'p' is an integer that is used as an index into 'data'. You can 
+modify it as you can in C.
+
+-Adrian
+
+On 10-07-29 07:41 AM, Laslavic, Alex wrote:
+>
+> Keep in mind you can always muck with the location of 'p' in your input
+> string. There are ragel psudo functions ( fhold, fexec ) that do this
+> for you, or you can always just do:
+>
+> p = p - 2
+>
+> in your action code. The above is in C, actually, i'm not sure how to do
+> that with ruby. Decrementing 'p' in ruby probably won't back it up along
+> the string, but maybe 'fhold' or 'fexec' can help you.
+>
+> I have used the ( any* -- token ) trick to advance to the token, and
+> then modify 'p' to get it back to the beginning of the token.
+>
+> Perhaps other in this list know a cleaner way to do this, but its what
+> I've found that works.
+>
+> -----Original Message-----
+> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+> Sent: Thu 7/29/2010 12:40 AM
+> To: ragel-users at complang.org
+> Subject: Re: [ragel-users] Parsing a template language
+>
+> Thanks Alex,
+>
+> I modified the code to your clever example. This almost works, however
+> after running the any* scanner p will be advanced all the way to the
+> end of {{, so the other rule will not match the tag correctly. Here is
+> my current machine:
+>
+>
+> machine parser;
+>
+> action start { tokstart = p; }
+> action on_tag { results << [:tag, data[tokstart..p]] }
+> action on_static { results << [:static, data[tokstart..p]] }
+>
+> tag = '{{' lower+ '}}' >start @on_tag;
+> html = (any* -- '{{') >start @on_static;
+> EOF = 0;
+>
+> main := |*
+> tag;
+> html;
+> EOF;
+> *|;
+>
+> Regards
+> -- tobi
+>
+>
+>
+> On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+> <Alex.Laslavic at turner.com> wrote:
+>  > I'm actually working on a similar sounding task.
+>  >
+>  > Try the strong subtraction operator
+>  > Untested:
+>  >
+>  > main := |*
+>  >   '[[' lower+ ']]' => action
+>  >   ( any* -- '[[' ) => action
+>  > *|;
+>  >
+>  >
+>  > ( any* -- '[[' ) will match the longest possible string that doesn't have
+>  > '[[' as a substring.
+>  >
+>  > -----Original Message-----
+>  > From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+>  > Sent: Tue 7/27/2010 6:54 PM
+>  > To: ragel-users at complang.org
+>  > Subject: Re: [ragel-users] Parsing a template language
+>  >
+>  > Depends on the answers in this thread I suppose :-)
+>  >
+>  >
+>  >
+>  > On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm <judofyr at gmail.com> wrote:
+>  >> (A little off-topic, but whatever:
+>  >>
+>  >> So Liquid will finally get a proper parser? :-))
+>  >>
+>  >> // Magnus Holm
+>  >>
+>  >>
+>  >>
+>  >> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke <tobi at leetsoft.com> wrote:
+>  >>> I've been working on a parser for simple template language. I'm using
+>  >>> Ragel.
+>  >>>
+>  >>> The requirements are modest. I'm trying to find [[tags]] that can be
+>  >>> embedded anywhere in the input string.
+>  >>>
+>  >>> I'm trying to parse a simple template language, something that can
+>  >>> have tags such as {{foo}} embedded within HTML. I tried several
+>  >>> approaches to parse this but had to resort to using a Ragel scanner
+>  >>> and use the inefficient approach of only matching a single character
+>  >>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>  >>> essentially abusing the longest-match bias of the scanner to implement
+>  >>> my default rule ( it can only be 1 char long, so it should always be
+>  >>> the last resort ).
+>  >>>
+>  >>> %%{
+>  >>>
+>  >>>  machine parser;
+>  >>>
+>  >>>  action start      { tokstart = p; }
+>  >>>  action on_tag      { results << [:tag, data[tokstart..p]] }
+>  >>>  action on_static  { results << [:static, data[p..p]] }
+>  >>>
+>  >>>  tag  = ('[[' lower+ ']]') >start @on_tag;
+>  >>>
+>  >>>  main := |*
+>  >>>    tag;
+>  >>>    any      => on_static;
+>  >>>  *|;
+>  >>>
+>  >>> }%%
+>  >>>
+>  >>> ( actions written in ruby, but should be easy to understand ).
+>  >>>
+>  >>> How would you go about writing a parser for such a simple language? Is
+>  >>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>  >>> and nails if the syntax is unpredictable such as this.
+>  >>>
+>  >>>
+>  >>> Regards
+>  >>> -- tobi
+>  >>>
+>  >>> _______________________________________________
+>  >>> ragel-users mailing list
+>  >>> ragel-users at complang.org
+>  >>> http://www.complang.org/mailman/listinfo/ragel-users
+>  >>>
+>  >>
+>  >> _______________________________________________
+>  >> ragel-users mailing list
+>  >> ragel-users at complang.org
+>  >> http://www.complang.org/mailman/listinfo/ragel-users
+>  >>
+>  >
+>  > _______________________________________________
+>  > ragel-users mailing list
+>  > ragel-users at complang.org
+>  > http://www.complang.org/mailman/listinfo/ragel-users
+>  >
+>  >
+>  > _______________________________________________
+>  > ragel-users mailing list
+>  > ragel-users at complang.org
+>  > http://www.complang.org/mailman/listinfo/ragel-users
+>  >
+>  >
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Jul 30 05:42:51 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 29 Jul 2010 22:42:51 -0700
+Subject: [ragel-users] Parsing a template language
+In-Reply-To: <AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+References: <AANLkTikCJTaXo0ArT7EPiD34ukvE8EhVkd639X77OcJ0@mail.gmail.com>	<AANLkTimtKeFEsPfVc7pgQ-qgS23uNw=X_s2Q=Z5meoDM@mail.gmail.com>	<AANLkTi=_LCaRttdnkE4K-XOfo5BWbzN=LWg8g9dLaLx=@mail.gmail.com>	<AANLkTinjpDC0SK4JLV_Urrt29Rees+HAzFcTdda_7JhW@mail.gmail.com>	<CB139CED0DA3B1459774AEB8842F78A702FE241B@ATLVMX02.turner.com>
+	<AANLkTi=R4QV7ir+n5v=QpSQ+MUenfPtzO90bRd=a94vv@mail.gmail.com>
+Message-ID: <4C52665B.5020905@complang.org>
+
+Something like this might be what you want. It depends on how malformed 
+tags are to be dealt with. This machine just treats them as plain text. 
+They get broken down into separate tokens, but for most applications 
+that's not a problem.
+
+     main := |*
+         ( [^{]+ | '{' );
+         '{{' lower+ '}}';
+         0;
+     *|;
+
+-Adrian
+
+On 10-07-28 09:40 PM, Tobias Lütke wrote:
+> Thanks Alex,
+>
+> I modified the code to your clever example. This almost works, however
+> after running the any* scanner p will be advanced all the way to the
+> end of {{, so the other rule will not match the tag correctly. Here is
+> my current machine:
+>
+>
+>        machine parser;
+>
+>        action start      { tokstart = p; }
+>        action on_tag     { results<<  [:tag,    data[tokstart..p]] }
+>        action on_static  { results<<  [:static, data[tokstart..p]] }
+>
+>        tag  = '{{' lower+ '}}'>start @on_tag;
+>        html = (any* -- '{{')>start @on_static;
+>        EOF = 0;
+>
+>        main := |*
+>          tag;
+>          html;
+>          EOF;
+>        *|;
+>
+> Regards
+> -- tobi
+>
+>
+>
+> On Tue, Jul 27, 2010 at 9:52 PM, Laslavic, Alex
+> <Alex.Laslavic at turner.com>  wrote:
+>> I'm actually working on a similar sounding task.
+>>
+>> Try the strong subtraction operator
+>> Untested:
+>>
+>> main := |*
+>>    '[[' lower+ ']]' =>  action
+>>    ( any* -- '[[' ) =>  action
+>> *|;
+>>
+>>
+>> ( any* -- '[[' ) will match the longest possible string that doesn't have
+>> '[[' as a substring.
+>>
+>> -----Original Message-----
+>> From: ragel-users-bounces at complang.org on behalf of Tobias Lütke
+>> Sent: Tue 7/27/2010 6:54 PM
+>> To: ragel-users at complang.org
+>> Subject: Re: [ragel-users] Parsing a template language
+>>
+>> Depends on the answers in this thread I suppose :-)
+>>
+>>
+>>
+>> On Tue, Jul 27, 2010 at 3:42 AM, Magnus Holm<judofyr at gmail.com>  wrote:
+>>> (A little off-topic, but whatever:
+>>>
+>>> So Liquid will finally get a proper parser? :-))
+>>>
+>>> // Magnus Holm
+>>>
+>>>
+>>>
+>>> On Tue, Jul 27, 2010 at 03:15, Tobias Lütke<tobi at leetsoft.com>  wrote:
+>>>> I've been working on a parser for simple template language. I'm using
+>>>> Ragel.
+>>>>
+>>>> The requirements are modest. I'm trying to find [[tags]] that can be
+>>>> embedded anywhere in the input string.
+>>>>
+>>>> I'm trying to parse a simple template language, something that can
+>>>> have tags such as {{foo}} embedded within HTML. I tried several
+>>>> approaches to parse this but had to resort to using a Ragel scanner
+>>>> and use the inefficient approach of only matching a single character
+>>>> as a "catch all". I feel this is the wrong way to go about this. I'm
+>>>> essentially abusing the longest-match bias of the scanner to implement
+>>>> my default rule ( it can only be 1 char long, so it should always be
+>>>> the last resort ).
+>>>>
+>>>> %%{
+>>>>
+>>>>   machine parser;
+>>>>
+>>>>   action start      { tokstart = p; }
+>>>>   action on_tag      { results<<  [:tag, data[tokstart..p]] }
+>>>>   action on_static  { results<<  [:static, data[p..p]] }
+>>>>
+>>>>   tag  = ('[[' lower+ ']]')>start @on_tag;
+>>>>
+>>>>   main := |*
+>>>>     tag;
+>>>>     any      =>  on_static;
+>>>>   *|;
+>>>>
+>>>> }%%
+>>>>
+>>>> ( actions written in ruby, but should be easy to understand ).
+>>>>
+>>>> How would you go about writing a parser for such a simple language? Is
+>>>> Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+>>>> and nails if the syntax is unpredictable such as this.
+>>>>
+>>>>
+>>>> Regards
+>>>> -- tobi
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

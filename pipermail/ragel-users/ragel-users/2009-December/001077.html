@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] properties list
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20properties%20list&In-Reply-To=%3C6c59d89a0912021659p1ced9ba0sdb42585046b415bf%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001076.html">
+   <LINK REL="Next"  HREF="001095.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] properties list</H1>
+    <B>Torsten Curdt</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20properties%20list&In-Reply-To=%3C6c59d89a0912021659p1ced9ba0sdb42585046b415bf%40mail.gmail.com%3E"
+       TITLE="[ragel-users] properties list">tcurdt at vafer.org
+       </A><BR>
+    <I>Thu Dec  3 00:59:36 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001076.html">[ragel-users] properties list
+</A></li>
+        <LI>Next message: <A HREF="001095.html">[ragel-users] properties list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1077">[ date ]</a>
+              <a href="thread.html#1077">[ thread ]</a>
+              <a href="subject.html#1077">[ subject ]</a>
+              <a href="author.html#1077">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks for the response, Adrian.
+
+I got much further today.
+
+&gt;<i> Yes. Ragel makes no assumptions about how the programmer wishes to
+</I>&gt;<i> allocate memory for input buffers. Avoiding such assumptions precludes
+</I>&gt;<i> automatic capture of matched items.
+</I>&gt;<i>
+</I>&gt;<i> Your choices are to copy characters into a buffer byte by byte, or to
+</I>&gt;<i> retain pointers. The latter approach requires more care if it is
+</I>&gt;<i> expected that interesting items span input buffers.
+</I>
+Great. That's essentially what I've been doing now.
+
+  key = '&quot;' @key (any - '&quot;' )* @key_append '&quot;';
+  value = '&quot;' @value (any - '&quot;' )* @value_append '&quot;';
+  assignment = whitespace* key whitespace* &quot;=&quot; whitespace* value
+whitespace* @assignment;
+
+One thing that still seems problematic are escaped quotes though.
+
+ &quot;this here \&quot;test\&quot; is a&quot;
+
+Wondering what the approach is to express this. I was thinking
+something along the lines of
+
+  key = '&quot;' @key (any - ([^\\] '&quot;') )* @key_append '&quot;';
+
+...but that obviously doesn't work as hoped. Any pointers here?
+
+&gt;&gt;<i> 2. I've had a look at the C grammar but did not really understand how
+</I>&gt;&gt;<i> the comment rules worked. I tried with that approach but I could not
+</I>&gt;&gt;<i> capture and access the comment text.
+</I>&gt;<i>
+</I>&gt;<i> See Chapter Four of the manual.
+</I>
+Cool, I came up with something very similar. But now I have changed it to
+
+  comment_c = &quot;/*&quot; @comment ((any @comment_append)* - (any* &quot;*/&quot; any*)) &quot;*/&quot;;
+  comment_cpp = &quot;//&quot; @comment (any - &quot;\n&quot;)* @comment_append &quot;\n&quot;;
+
+Thanks for the pointer.
+
+It just seems that my @comment_append method is not positioned correctly.
+I am still getting a trailing &quot;*&quot; for the &quot;comment_c&quot;. Not sure I
+understand why.
+
+&gt;&gt;<i> 4. What about unicode support? I've read that UTF8 should be possible.
+</I>&gt;&gt;<i> What about UTF16?
+</I>&gt;<i>
+</I>&gt;<i> Yes, parsing UTF16 is possible. Ragel is only concerned with processing
+</I>&gt;<i> arrays of fixed size characters. These can be 1, 2, 4, etc bytes wide.
+</I>&gt;<i> The rest is up to you.
+</I>
+Sounds like converting UTF16 -&gt; UTF8 and then use the proper byte
+sequences might be a little easier.
+I found the character sequence definitions here:
+
+ <A HREF="http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl">http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl</A>
+
+action non_printable_ascii {
+    c = *p &amp; 0x7f;
+}
+
+action two_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 1)) &amp; 0x1f) &lt;&lt; 6 |
+        (*p &amp; 0x3f);
+}
+
+action three_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 2)) &amp; 0x0f) &lt;&lt; 12 |
+        ((uint32_t)(*(p - 1)) &amp; 0x3f) &lt;&lt; 6 |
+        (*p &amp; 0x3f);
+}
+
+action four_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 3)) &amp; 0x07) &lt;&lt; 18 |
+        ((uint32_t)(*(p - 2)) &amp; 0x3f) &lt;&lt; 12 |
+        ((uint32_t)(*(p - 1)) &amp; 0x3f) &lt;&lt; 6 |
+        (*p &amp; 0x3f);
+}
+
+(0x01..0x1f | 0x7f)                             @non_printable_ascii        |
+(0xc2..0xdf 0x80..0xbf)                         @two_byte_utf8_sequence     |
+(0xe0..0xef 0x80..0xbf 0x80..0xbf)              @three_byte_utf8_sequence   |
+(0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf)   @four_byte_utf8_sequence
+
+Still trying to figure out to use those though :)
+
+Is there any other example available somewhere?
+
+cheers
+--
+Torsten
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001076.html">[ragel-users] properties list
+</A></li>
+	<LI>Next message: <A HREF="001095.html">[ragel-users] properties list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1077">[ date ]</a>
+              <a href="thread.html#1077">[ thread ]</a>
+              <a href="subject.html#1077">[ subject ]</a>
+              <a href="author.html#1077">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,454 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] ragel and memory usage
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20ragel%20and%20memory%20usage&In-Reply-To=%3C1837.66.102.71.213.1169333674.squirrel%40mambo.cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001878.html">
+   <LINK REL="Next"  HREF="001880.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] ragel and memory usage</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20ragel%20and%20memory%20usage&In-Reply-To=%3C1837.66.102.71.213.1169333674.squirrel%40mambo.cs.queensu.ca%3E"
+       TITLE="[ragel-users] ragel and memory usage">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sat Jan 20 22:54:34 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001878.html">ragel and memory usage
+</A></li>
+        <LI>Next message: <A HREF="001880.html">[ragel-users] ragel and memory usage
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1879">[ date ]</a>
+              <a href="thread.html#1879">[ thread ]</a>
+              <a href="subject.html#1879">[ subject ]</a>
+              <a href="author.html#1879">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Damir,
+
+There is likely an ambiguity in there which causes a state explosion. But
+since the grammar is so large, trying to track it down is probably not
+worth anybody's time. Instead I would suggest starting from scratch and
+taking an incremental approach. Start with a simple superset of the
+language. For example just separate the request line from the headers and
+the message body. Be liberal with actions. Verify that it works properly,
+then slowly refine the grammar. If you take this approach and test
+frequently you'll easily discover where the ambiguities are because
+suddenly things will go way wrong.
+
+-Adrian
+
+&gt;<i>
+</I>&gt;<i> Hi all,
+</I>&gt;<i>
+</I>&gt;<i> I'm trying to build a grammar for parsing SIP messages (as in rfc3261),
+</I>&gt;<i> but I have encountered a problem that I cannot solve - it seems that
+</I>&gt;<i> I've hit a state explosion, since ragel just keeps allocating memory
+</I>&gt;<i> and finally dies.
+</I>&gt;<i>
+</I>&gt;<i> Here's my grammar (sorry for pasting it here like this)
+</I>&gt;<i>
+</I>&gt;<i> --cut--
+</I>&gt;<i> %%{
+</I>&gt;<i>   machine sip_parser;
+</I>&gt;<i>
+</I>&gt;<i>   action mark
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_i
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_a
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_o
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_b
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_c
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action req_r
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action create_req
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action request_method
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_host
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action done
+</I>&gt;<i>   {
+</I>&gt;<i>     fbreak;
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_port
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_pass
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_user
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_scheme
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action set_req_uri
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action add_param
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action add_param_value
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i>   action uri_query
+</I>&gt;<i>   {
+</I>&gt;<i>   }
+</I>&gt;<i>
+</I>&gt;<i> #### SIP PROTOCOL GRAMMAR
+</I>&gt;<i>
+</I>&gt;<i>   CRLF = &quot;\r\n&quot;;
+</I>&gt;<i>   SP = &quot; &quot;;
+</I>&gt;<i>   HTAB = &quot;\t&quot;;
+</I>&gt;<i>   DQUOTE = &quot;\&quot;&quot;;
+</I>&gt;<i>   LHEX = digit | [a-f];
+</I>&gt;<i>
+</I>&gt;<i>   alphanum = [a-zA-Z0-9];
+</I>&gt;<i>   reserved = (&quot;;&quot; | &quot;/&quot; | &quot;?&quot; | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; |
+</I>&gt;<i> &quot;,&quot;);
+</I>&gt;<i>   mark = (&quot;-&quot; | &quot;_&quot; | &quot;.&quot; | &quot;!&quot; | &quot;~&quot; | &quot;*&quot; | &quot;'&quot; | &quot;(&quot; | &quot;)&quot;);
+</I>&gt;<i>   unreserved = (alphanum | mark);
+</I>&gt;<i>   escaped = (&quot;%&quot; xdigit xdigit);
+</I>&gt;<i>
+</I>&gt;<i>   LWS = ((&quot; &quot;* CRLF)? &quot; &quot;+);
+</I>&gt;<i>   SWS = (LWS?);
+</I>&gt;<i>
+</I>&gt;<i>   HCOLON = ((&quot; &quot; | &quot;\t&quot;)* &quot;:&quot; SWS);
+</I>&gt;<i>
+</I>&gt;<i>   token = (alphanum | &quot;-&quot; | &quot;.&quot; | &quot;!&quot; | &quot;%&quot; | &quot;*&quot; | &quot;_&quot; | &quot;+&quot; | &quot;`&quot; |
+</I>&gt;<i> &quot;'&quot; | &quot;~&quot; )+;
+</I>&gt;<i>   separators = (&quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;@&quot; | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;\\&quot; |
+</I>&gt;<i> DQUOTE | &quot;/&quot; | &quot;[&quot; | &quot;]&quot; | &quot;?&quot; | &quot;=&quot; | &quot;{&quot; | &quot;}&quot; | SP | HTAB);
+</I>&gt;<i>   word = (alphanum | &quot;-&quot; | &quot;.&quot; | &quot;!&quot; | &quot;%&quot; | &quot;*&quot; | &quot;_&quot; | &quot;+&quot; | &quot;`&quot; |
+</I>&gt;<i> &quot;'&quot; | &quot;~&quot; | &quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;:&quot; | &quot;\\&quot; | DQUOTE | &quot;/&quot; | &quot;[&quot; |
+</I>&gt;<i> &quot;]&quot; | &quot;?&quot; | &quot;{&quot; | &quot;}&quot;)+;
+</I>&gt;<i>
+</I>&gt;<i>   STAR   = (SWS &quot;*&quot; SWS);
+</I>&gt;<i>   SLASH  = (SWS &quot;/&quot; SWS);
+</I>&gt;<i>   EQUAL  = (SWS &quot;=&quot; SWS);
+</I>&gt;<i>   LPAREN = (SWS &quot;(&quot; SWS);
+</I>&gt;<i>   RPAREN = (SWS &quot;)&quot; SWS);
+</I>&gt;<i>   RAQUOT = (&quot;&gt;&quot; SWS);
+</I>&gt;<i>   LAQUOT = (SWS &quot;&lt;&quot;);
+</I>&gt;<i>   COMMA  = (SWS &quot;,&quot; SWS);
+</I>&gt;<i>   SEMI   = (SWS &quot;;&quot; SWS);
+</I>&gt;<i>   COLON  = (SWS &quot;:&quot; SWS);
+</I>&gt;<i>   LDQUOT = (SWS DQUOTE);
+</I>&gt;<i>   RDQUOT = (DQUOTE SWS);
+</I>&gt;<i>
+</I>&gt;<i>   qdtext = (LWS | 0x21 | 0x23..0x5B | 0x5D..0x7E);
+</I>&gt;<i>   quoted_pair = (&quot;\\&quot; (0x00..0x09 | 0x0B..0x0C | 0x0E..0x7F));
+</I>&gt;<i>   quoted_string = (SWS DQUOTE (qdtext | quoted_pair)* DQUOTE);
+</I>&gt;<i>   ctext    = (0x21..27 | 0x2A..0x5B | 0x5D..0x7E | LWS);
+</I>&gt;<i>   comment_r = (LPAREN? (ctext | quoted_pair) RPAREN?);
+</I>&gt;<i>   comment  = (LPAREN (comment_r)* RPAREN);
+</I>&gt;<i>
+</I>&gt;<i>   port = digit+;
+</I>&gt;<i>   IPv4address =  (digit{1,3} &quot;.&quot; digit{1,3} &quot;.&quot; digit{1,3} &quot;.&quot;
+</I>&gt;<i> digit{1,3});
+</I>&gt;<i>   toplabel = (alpha | (alpha (alphanum | &quot;-&quot;)* alphanum));
+</I>&gt;<i>   domainlabel = (alphanum | (alphanum (alphanum | &quot;-&quot;)* alphanum));
+</I>&gt;<i>   hostname = ((domainlabel &quot;.&quot;)* toplabel &quot;.&quot;?);
+</I>&gt;<i>   host = (hostname | IPv4address);
+</I>&gt;<i>   hostport = (host &gt;mark %uri_host (&quot;:&quot; port &gt;mark %uri_port)?);
+</I>&gt;<i>   password = ((unreserved | escaped | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot; )*);
+</I>&gt;<i>   user_unreserved = (&quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot; | &quot;;&quot; | &quot;?&quot; | &quot;/&quot;);
+</I>&gt;<i>   user = ((unreserved | escaped | user_unreserved)+);
+</I>&gt;<i>   userinfo = (user &gt;mark %uri_user (&quot;:&quot; password &gt;mark %uri_pass)?
+</I>&gt;<i> &quot;@&quot;);
+</I>&gt;<i>
+</I>&gt;<i>   extension_method = token;
+</I>&gt;<i>   Method = ((&quot;INVITE&quot; %req_i | &quot;ACK&quot; %req_a | &quot;OPTIONS&quot; %req_o | &quot;BYE&quot;
+</I>&gt;<i> %req_b | &quot;CANCEL&quot; %req_c | &quot;REGISTER&quot; %req_r | extension_method)) &gt;mark
+</I>&gt;<i> %request_method;
+</I>&gt;<i>
+</I>&gt;<i>   hnv_unreserved = (&quot;[&quot; | &quot;]&quot; | &quot;|&quot; | &quot;?&quot; | &quot;:&quot; | &quot;+&quot; | &quot;$&quot;);
+</I>&gt;<i>   hvalue = ((hnv_unreserved | unreserved | escaped)*);
+</I>&gt;<i>   hname = ((hnv_unreserved | unreserved | escaped)+);
+</I>&gt;<i>   header = (hname &quot;=&quot; hvalue);
+</I>&gt;<i>   headers = (&quot;?&quot; header (&quot;&amp;&quot; header)*);
+</I>&gt;<i>   param_unreserved = (&quot;[&quot; | &quot;]&quot; | &quot;/&quot; | &quot;:&quot; | &quot;&amp;&quot; | &quot;+&quot; | &quot;$&quot;);
+</I>&gt;<i>   paramchar = (param_unreserved | unreserved | escaped);
+</I>&gt;<i>   pvalue = (paramchar+);
+</I>&gt;<i>   pname = (paramchar+);
+</I>&gt;<i>   other_param = (pname &gt;mark %add_param (&quot;=&quot; pvalue &gt;mark
+</I>&gt;<i> %add_param_value)?);
+</I>&gt;<i>   lr_param = &quot;lr&quot; &gt;mark %add_param;
+</I>&gt;<i>   maddr_param = &quot;maddr&quot; &gt;mark %add_param &quot;=&quot; host &gt;mark
+</I>&gt;<i> %add_param_value;
+</I>&gt;<i>   method_param = &quot;method&quot; &gt;mark %add_param &quot;=&quot; Method &gt;mark
+</I>&gt;<i> %add_param_value;
+</I>&gt;<i>   ttl = (digit{1,3});
+</I>&gt;<i>   ttl_param = &quot;ttl&quot; &gt;mark %add_param &quot;=&quot; ttl &gt;mark %add_param_value;
+</I>&gt;<i>   other_user = token;
+</I>&gt;<i>   user_param = &quot;user&quot; &gt;mark %add_param &quot;=&quot; (&quot;phone&quot; | &quot;ip&quot; |
+</I>&gt;<i> other_user) &gt;mark %add_param_value;
+</I>&gt;<i>   other_transport = token;
+</I>&gt;<i>   transport_param = (&quot;transport&quot; &gt;mark %add_param &quot;=&quot; (&quot;udp&quot; | &quot;tcp&quot; |
+</I>&gt;<i> &quot;sctp&quot; | &quot;tls&quot; | other_transport) &gt;mark %add_param_value);
+</I>&gt;<i>   uri_parameter = (transport_param | user_param | method_param |
+</I>&gt;<i> ttl_param | maddr_param | lr_param | other_param);
+</I>&gt;<i>   uri_parameters = ((&quot;;&quot; uri_parameter)*);
+</I>&gt;<i>   SIP_URI = (&quot;sip:&quot; %{ m_data-&gt;m_uri.scheme() = &quot;sip&quot;; } (userinfo)?
+</I>&gt;<i> hostport uri_parameters (headers)?);
+</I>&gt;<i>   SIPS_URI = (&quot;sips:&quot; %{ m_data-&gt;m_uri.scheme() = &quot;sips&quot;; } (userinfo)?
+</I>&gt;<i> hostport uri_parameters (headers)?);
+</I>&gt;<i>
+</I>&gt;<i>   x_token = (&quot;x-&quot; token);
+</I>&gt;<i>   ietf_token = token;
+</I>&gt;<i>   extension_token = (ietf_token | x_token);
+</I>&gt;<i>   composite_type = (&quot;message&quot; | &quot;multipart&quot; | extension_token);
+</I>&gt;<i>   discrete_type = (&quot;text&quot; | &quot;image&quot; | &quot;audio&quot; | &quot;video&quot; | &quot;application&quot;
+</I>&gt;<i> | extension_token);
+</I>&gt;<i>   m_type = (discrete_type | composite_type);
+</I>&gt;<i>
+</I>&gt;<i>   m_value = (token | quoted_string);
+</I>&gt;<i>   m_attribute = token;
+</I>&gt;<i>   m_parameter = (m_attribute EQUAL m_value);
+</I>&gt;<i>   iana_token = token;
+</I>&gt;<i>   m_subtype = (extension_token | iana_token);
+</I>&gt;<i>
+</I>&gt;<i>   uric           = (reserved | unreserved | escaped);
+</I>&gt;<i>   query          = (uric*);
+</I>&gt;<i>   reg_name       = (unreserved | escaped | &quot;$&quot; | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;@&quot;
+</I>&gt;<i> | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot; )+;
+</I>&gt;<i>   srvr           = ((userinfo &quot;@&quot;)? hostport)?;
+</I>&gt;<i>   authority      = (srvr | reg_name);
+</I>&gt;<i>   scheme         = (alpha (alpha | digit | &quot;+&quot; | &quot;-&quot; | &quot;.&quot; )*);
+</I>&gt;<i>   pchar          = (unreserved | escaped | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot; | &quot;=&quot; | &quot;+&quot;
+</I>&gt;<i> | &quot;$&quot; | &quot;,&quot;);
+</I>&gt;<i>   param          = (pchar*);
+</I>&gt;<i>   segment        = (pchar* (&quot;;&quot; param)*);
+</I>&gt;<i>   path_segments  = (segment (&quot;/&quot; segment)*);
+</I>&gt;<i>   uric_no_slash  = (unreserved | escaped | &quot;;&quot; | &quot;?&quot; | &quot;:&quot; | &quot;@&quot; | &quot;&amp;&quot;
+</I>&gt;<i> | &quot;=&quot; | &quot;+&quot; | &quot;$&quot; | &quot;,&quot;);
+</I>&gt;<i>   opaque_part    = (uric_no_slash uric*);
+</I>&gt;<i>   abs_path       = (&quot;/&quot; path_segments);
+</I>&gt;<i>   net_path       = (&quot;//&quot; authority (abs_path)?);
+</I>&gt;<i>   hier_part      = ((net_path | abs_path) (&quot;?&quot; query &gt;mark
+</I>&gt;<i> %uri_query)?);
+</I>&gt;<i>   absoluteURI    = (scheme &gt;mark %uri_scheme &quot;:&quot; (hier_part |
+</I>&gt;<i> opaque_part));
+</I>&gt;<i>
+</I>&gt;<i>   gen_value = (token | host | quoted_string);
+</I>&gt;<i>   generic_param = (token (EQUAL gen_value)?);
+</I>&gt;<i>   qvalue = ((&quot;0&quot; (&quot;.&quot; digit{,3})?) | (&quot;1&quot; (&quot;.&quot; (&quot;0&quot;){,3})?));
+</I>&gt;<i>   accept_param = ((&quot;q&quot; EQUAL qvalue) | generic_param);
+</I>&gt;<i>   media_range = ((&quot;*&quot; &quot;/&quot; &quot;*&quot; | ( m_type SLASH &quot;*&quot; ) | ( m_type SLASH
+</I>&gt;<i> m_subtype )) (SEMI m_parameter)*);
+</I>&gt;<i>   accept_range = (media_range (SEMI accept_param)*);
+</I>&gt;<i>   Accept = (&quot;Accept&quot; HCOLON (accept_range (COMMA accept_range)*))?;
+</I>&gt;<i>
+</I>&gt;<i>   content_coding   = (token);
+</I>&gt;<i>   codings          = (content_coding | &quot;*&quot;);
+</I>&gt;<i>   encoding         = (codings (SEMI accept_param)*);
+</I>&gt;<i>   Accept_Encoding  = (&quot;Accept-Encoding&quot; HCOLON (encoding (COMMA
+</I>&gt;<i> encoding)*)?);
+</I>&gt;<i>
+</I>&gt;<i>   language_range   = (((alpha{1,8} (&quot;-&quot; alpha{1,8})*) | &quot;*&quot; ));
+</I>&gt;<i>   language         = (language_range (SEMI accept_param)*);
+</I>&gt;<i>   Accept_Language  = (&quot;Accept-Language&quot; HCOLON (language (COMMA
+</I>&gt;<i> language)*)?);
+</I>&gt;<i>
+</I>&gt;<i>   alert_param      = (LAQUOT absoluteURI RAQUOT (SEMI generic_param
+</I>&gt;<i> )*);
+</I>&gt;<i>   Alert_Info       = (&quot;Alert-Info&quot; HCOLON alert_param (COMMA
+</I>&gt;<i> alert_param)*);
+</I>&gt;<i>
+</I>&gt;<i>   Allow            = (&quot;Allow&quot; HCOLON (Method (COMMA Method)*)?);
+</I>&gt;<i>
+</I>&gt;<i>   opaque           = (&quot;opaque&quot; EQUAL quoted_string);
+</I>&gt;<i>   algorithm        = (&quot;algorithm&quot; EQUAL (&quot;MD5&quot; | &quot;MD5-sess&quot; | token));
+</I>&gt;<i>   realm_value      = (quoted_string);
+</I>&gt;<i>   realm            = (&quot;realm&quot; EQUAL realm_value);
+</I>&gt;<i>   auth_scheme      = (token);
+</I>&gt;<i>   auth_param_name  = (token);
+</I>&gt;<i>   auth_param       = (auth_param_name EQUAL (token | quoted_string));
+</I>&gt;<i>   other_response   = (auth_scheme LWS auth_param (COMMA auth_param)*);
+</I>&gt;<i>   request_digest   = (LDQUOT LHEX{32} RDQUOT);
+</I>&gt;<i>   dresponse        = (&quot;response&quot; EQUAL request_digest);
+</I>&gt;<i>   nonce_value      = (quoted_string);
+</I>&gt;<i>   nonce            = (&quot;nonce&quot; EQUAL nonce_value);
+</I>&gt;<i>   nc_value         = (LHEX{8});
+</I>&gt;<i>   nonce_count      = (&quot;nc&quot; EQUAL nc_value);
+</I>&gt;<i>   cnonce_value     = (nonce_value);
+</I>&gt;<i>   cnonce           = (&quot;cnonce&quot; EQUAL cnonce_value);
+</I>&gt;<i>   qop_value        = (&quot;auth&quot; | &quot;auth-int&quot; | token);
+</I>&gt;<i>   message_qop      = (&quot;qop&quot; EQUAL qop_value);
+</I>&gt;<i>   digest_uri_value = (absoluteURI); # fixme
+</I>&gt;<i>   digest_uri       = (&quot;uri&quot; EQUAL LDQUOT digest_uri_value RDQUOT);
+</I>&gt;<i>   username_value   = (quoted_string);
+</I>&gt;<i>   username         = (&quot;username&quot; EQUAL username_value);
+</I>&gt;<i>   dig_resp         = (username | realm | nonce | digest_uri | dresponse
+</I>&gt;<i> | algorithm | cnonce | opaque | message_qop | nonce_count |
+</I>&gt;<i> auth_param);
+</I>&gt;<i>   digest_response  = (dig_resp (COMMA dig_resp)*);
+</I>&gt;<i>   credentials      = ((&quot;Digest&quot; LWS digest_response) | other_response);
+</I>&gt;<i>   Authorization    = (&quot;Authorization&quot; HCOLON credentials);
+</I>&gt;<i>
+</I>&gt;<i>   response_digest      = (LDQUOT LHEX* RDQUOT);
+</I>&gt;<i>   response_auth        = (&quot;rspauth&quot; EQUAL response_digest);
+</I>&gt;<i>   nextnonce            = (&quot;nextnonce&quot; EQUAL nonce_value);
+</I>&gt;<i>   ainfo                = (nextnonce | message_qop | response_auth |
+</I>&gt;<i> cnonce | nonce_count);
+</I>&gt;<i>   Authentication_Info  = (&quot;Authentication-Info&quot; HCOLON ainfo (COMMA
+</I>&gt;<i> ainfo)*);
+</I>&gt;<i>
+</I>&gt;<i>   callid   =  (word (&quot;@&quot; word)?);
+</I>&gt;<i>   Call_ID  = (( &quot;Call-ID&quot; | &quot;i&quot; ) HCOLON callid);
+</I>&gt;<i>
+</I>&gt;<i>   info_param  = ((&quot;purpose&quot; EQUAL (&quot;icon&quot; | &quot;info&quot; | &quot;card&quot; | token)) |
+</I>&gt;<i> generic_param);
+</I>&gt;<i>   info        = (LAQUOT absoluteURI RAQUOT (SEMI info_param)*);
+</I>&gt;<i>   Call_Info   = (&quot;Call-Info&quot; HCOLON info (COMMA info)*);
+</I>&gt;<i>
+</I>&gt;<i>   delta_seconds      = (digit+);
+</I>&gt;<i>   contact_extension  = (generic_param);
+</I>&gt;<i>   c_p_expires    = (&quot;expires&quot; EQUAL delta_seconds);
+</I>&gt;<i>   c_p_q          = (&quot;q&quot; EQUAL qvalue);
+</I>&gt;<i>   contact_params = (c_p_q | c_p_expires);
+</I>&gt;<i>   display_name   = ((token LWS)* | quoted_string);
+</I>&gt;<i>   addr_spec      = (SIP_URI | SIPS_URI | absoluteURI);
+</I>&gt;<i>   name_addr      = ((display_name)? LAQUOT addr_spec RAQUOT);
+</I>&gt;<i>   contact_param  = ((name_addr | addr_spec) (SEMI contact_params)*);
+</I>&gt;<i>   Contact     = ((&quot;Contact&quot; | &quot;m&quot; ) HCOLON (STAR | (contact_param
+</I>&gt;<i> (COMMA contact_param)*)));
+</I>&gt;<i>
+</I>&gt;<i>   disp_extension_token  = (token);
+</I>&gt;<i>   other_handling        = (token);
+</I>&gt;<i>   handling_param        = (&quot;handling&quot; EQUAL ( &quot;optional&quot; | &quot;required&quot; |
+</I>&gt;<i> other_handling));
+</I>&gt;<i>   disp_param            = (handling_param | generic_param);
+</I>&gt;<i>   disp_type             = (&quot;render&quot; | &quot;session&quot; | &quot;icon&quot; | &quot;alert&quot; |
+</I>&gt;<i> disp_extension_token);
+</I>&gt;<i>   Content_Disposition   = (&quot;Content-Disposition&quot; HCOLON disp_type (SEMI
+</I>&gt;<i> disp_param)*);
+</I>&gt;<i>
+</I>&gt;<i>   Content_Encoding  = ((&quot;Content-Encoding&quot; | &quot;e&quot; ) HCOLON
+</I>&gt;<i> content_coding (COMMA content_coding)*);
+</I>&gt;<i>
+</I>&gt;<i>   subtag            = (alpha{1,8});
+</I>&gt;<i>   primary_tag       = (alpha{1,8});
+</I>&gt;<i>   language_tag      = (primary_tag (&quot;-&quot; subtag)*);
+</I>&gt;<i>   Content_Language  = (&quot;Content-Language&quot; HCOLON language_tag (COMMA
+</I>&gt;<i> language_tag)*);
+</I>&gt;<i>
+</I>&gt;<i>   Content_Length    = ((&quot;Content-Length&quot; | &quot;l&quot;) HCOLON digit+);
+</I>&gt;<i>
+</I>&gt;<i>   media_type        = (m_type SLASH m_subtype (SEMI m_parameter)*);
+</I>&gt;<i>   Content_Type      = ((&quot;Content-Type&quot; | &quot;c&quot; ) HCOLON media_type);
+</I>&gt;<i>
+</I>&gt;<i>   CSeq = (&quot;CSeq&quot; HCOLON digit+ LWS Method);
+</I>&gt;<i>
+</I>&gt;<i>   message_header = (Accept |
+</I>&gt;<i>                     Accept_Encoding |
+</I>&gt;<i>                     Accept_Language |
+</I>&gt;<i>                     Alert_Info |
+</I>&gt;<i>                     Allow |
+</I>&gt;<i>                     Authentication_Info |
+</I>&gt;<i>                     Authorization |
+</I>&gt;<i>                     Call_ID |
+</I>&gt;<i>                     Call_Info |
+</I>&gt;<i>                     Contact |
+</I>&gt;<i>                     Content_Disposition |
+</I>&gt;<i>                     Content_Encoding |
+</I>&gt;<i>                     Content_Language |
+</I>&gt;<i>                     Content_Length |
+</I>&gt;<i>                     Content_Type |
+</I>&gt;<i>                     CSeq) CRLF;
+</I>&gt;<i>
+</I>&gt;<i>   SIP_Version    = &quot;SIP&quot; &quot;/&quot; digit &quot;.&quot; digit;
+</I>&gt;<i>   Request_URI    = SIP_URI | SIPS_URI | absoluteURI;
+</I>&gt;<i>   Request_Line   = Method %create_req SP Request_URI %set_req_uri SP
+</I>&gt;<i> SIP_Version CRLF;
+</I>&gt;<i>   Request        = Request_Line (message_header)* CRLF;
+</I>&gt;<i>
+</I>&gt;<i> main := Request;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> %% write data;
+</I>&gt;<i> --cut--
+</I>&gt;<i>
+</I>&gt;<i> I think that problems is somewhere around this line:
+</I>&gt;<i>
+</I>&gt;<i> hier_part      = ((net_path | abs_path) (&quot;?&quot; query &gt;mark %uri_query)?);
+</I>&gt;<i>
+</I>&gt;<i> if I remove the &quot;&gt;mark %uri_query&quot; part, ragel is able to complete the
+</I>&gt;<i> operation.
+</I>&gt;<i> Can anyone give me some clues what's gone bad?
+</I>&gt;<i>
+</I>&gt;<i> tia,
+</I>&gt;<i> d
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001878.html">ragel and memory usage
+</A></li>
+	<LI>Next message: <A HREF="001880.html">[ragel-users] ragel and memory usage
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1879">[ date ]</a>
+              <a href="thread.html#1879">[ thread ]</a>
+              <a href="subject.html#1879">[ subject ]</a>
+              <a href="author.html#1879">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> integrating ragel w/ bison
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20integrating%20ragel%20w/%20bison&In-Reply-To=%3C1167934914.170228.44670%406g2000cwy.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001861.html">
+   <LINK REL="Next"  HREF="001863.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>integrating ragel w/ bison</H1>
+    <B>Jason</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20integrating%20ragel%20w/%20bison&In-Reply-To=%3C1167934914.170228.44670%406g2000cwy.googlegroups.com%3E"
+       TITLE="integrating ragel w/ bison">jason2... at jasonjobe.com
+       </A><BR>
+    <I>Thu Jan  4 18:21:54 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001861.html">[ragel-users] Re: integrating ragel w/ bison
+</A></li>
+        <LI>Next message: <A HREF="001863.html">[ragel-users] Re: integrating ragel w/ bison
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1862">[ date ]</a>
+              <a href="thread.html#1862">[ thread ]</a>
+              <a href="subject.html#1862">[ subject ]</a>
+              <a href="author.html#1862">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Adrian,
+
+I'm still not following your full intent but I did manage to get some
+code (below) that builds and runs but produces no output.
+
+Hopefully, you can help me fill in the blanks.
+
+thanks,
+Jason
+
+----------------------------------- CUT HERE
+-------------------------------------------------
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+typedef struct _Scanner {
+	int cs;
+	int act;
+	int have;
+	int curline;
+	char *tokstart;
+	char *tokend;
+	char *p;
+	char *pe;
+	int done;
+
+	int value;
+} Scanner;
+
+#define ERR (-1000)
+
+void scan_init( Scanner *s )
+{
+  memset (s, '\0', sizeof(Scanner));
+  s-&gt;curline = 1;
+}
+
+int fetch_more_data ( Scanner *s ) {
+	return 0;
+}
+
+void check_for_preserve_condition( Scanner *s ) {
+}
+
+int Scanner_error = -1;
+
+#define Identifier 1
+#define Number 2
+
+
+int scan( Scanner *s )
+{
+        char *p = s-&gt;p;
+        char *pe = s-&gt;pe;
+	int token, no_token = '\0';
+
+        while ( 1 ) {
+                if ( p == pe ) {
+                        check_for_preserve_condition(s);
+                        if ( ! fetch_more_data(s) )
+                                return EOF;
+                }
+
+                token = no_token;
+
+                %%{
+                        machine Scanner;
+                        access s-&gt;;
+
+                        main := |*
+
+                        # Identifiers
+                        ( [a-zA-Z_] [a-zA-Z0-9_]* ) =&gt;
+                                { token = Identifier; fbreak; };
+
+                        # Whitespace
+                        [ \t\n];
+
+			# Number
+                        digit+ =&gt; { token = Number; s-&gt;value = atoi(p);
+fbreak; };
+
+                        # Anything else
+                        any =&gt; { token = *p; fbreak; };
+
+                        *|;
+
+                        write exec;
+                }%%
+
+                if ( token != no_token ) {
+                        s-&gt;p = p;
+                        s-&gt;pe = pe;
+                        return token;
+                }
+
+                if ( s-&gt;cs == Scanner_error )
+                        return ERR;
+        }
+}
+
+
+int main (int argc, char** argv)
+{
+    Scanner ss;
+    int tok;
+
+    ss.pe = &quot;2 * 3&quot;;
+    scan_init (&amp;ss);
+
+    while (1) {
+	tok = scan (&amp;ss);
+	if (tok == EOF || tok == ERR)
+	  break;
+	printf (&quot;%d\n&quot;, tok);
+    }
+
+    return 0;
+}
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001861.html">[ragel-users] Re: integrating ragel w/ bison
+</A></li>
+	<LI>Next message: <A HREF="001863.html">[ragel-users] Re: integrating ragel w/ bison
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1862">[ date ]</a>
+              <a href="thread.html#1862">[ thread ]</a>
+              <a href="subject.html#1862">[ subject ]</a>
+              <a href="author.html#1862">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

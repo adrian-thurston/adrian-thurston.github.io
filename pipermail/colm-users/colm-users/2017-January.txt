@@ -1,0 +1,2145 @@
+From peter.reijnders at verpeteren.nl  Sun Jan  1 08:30:32 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sun, 01 Jan 2017 09:30:32 +0100
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+Message-ID: <1483259432.1923.3.camel@verpeteren.nl>
+
+Hacky newyear!
+
+Sorry. My bad. My git-foo is not so strong.
+
+Here is a new patch, from my branch, without any whitespace ignores.
+
+```
+# thefollowing seems to work
+git checkout master
+git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+git apply --check /tmp/colm-refractor-gcc-cmd.patch
+git apply /tmp/colm-refractor-gcc-cmd.patch
+```
+
+
+Peter Reijnders
+
+
+On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+> Hi Peter,
+> 
+> I can't seem to get the patch to apply. I don't have the base commit. 
+> Maybe there is a missing intermediate commit?
+> 
+> Thanks,
+>   Adrian
+> 
+> On 2016-12-31 06:58, Peter Reijnders wrote:
+> > hello
+> > 
+> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+> > assert that colm uses the correct headers.
+> > Upon further analyzing it turned out that:
+> > 1) the '-I' command line option was not active
+> > 2) there were 2 almost identical functions that to build the gcc
+> > commands.
+> > After refractoring and testing, I added also the '-L' command line
+> > argument to extend the library path.
+> > 
+> > With these 2 command line options working, it is possible to use colm
+> > from an arbitrary directory.
+> > 
+> > 
+> > I hope that the attached patch is usefull for somebody to ease
+> > development.
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > _______________________________________________
+> > colm mailing list
+> > colm at colm.net
+> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: colm-refractor-gcc-cmd.patch
+Type: text/x-patch
+Size: 9373 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm/attachments/20170101/286e2eac/attachment.bin>
+
+From thurston at colm.net  Mon Jan  2 16:09:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 02 Jan 2017 12:39:47 -0330
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <1483259432.1923.3.camel@verpeteren.nl>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+Message-ID: <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+
+Haha, hacky new year to you too!
+
+So just testing it out and I get a failure on compilation in source.
+
+compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+-I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+/tmp/ccc1LnSi.o: In function `colm_object_host_call':
+/home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+`vm_bs_add'
+/tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+/home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+`commit_clear_parse_tree'
+/tmp/ccc1LnSi.o: In function `main':
+/home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+`colm_new_program'
+/home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+`colm_set_debug'
+/home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+`colm_run_program'
+/home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+`colm_delete_program'
+collect2: error: ld returned 1 exit status
+error: colm: there was a problem compiling the output
+
+Looks like because the order of things has changed. -lcolm is before the 
+objects.
+
+I just added a coding convention file to the doc directory. I've never 
+been very strict with that in the past, however, colm and ragel are now 
+part of the Colm Networks code base and I'd like to maintain some 
+consistency.
+
+Thanks!
+
+Adrian
+
+On 2017-01-01 05:00, Peter Reijnders wrote:
+> Hacky newyear!
+> 
+> Sorry. My bad. My git-foo is not so strong.
+> 
+> Here is a new patch, from my branch, without any whitespace ignores.
+> 
+> ```
+> # thefollowing seems to work
+> git checkout master
+> git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+> git apply --check /tmp/colm-refractor-gcc-cmd.patch
+> git apply /tmp/colm-refractor-gcc-cmd.patch
+> ```
+> 
+> 
+> Peter Reijnders
+> 
+> 
+> On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+>> Hi Peter,
+>> 
+>> I can't seem to get the patch to apply. I don't have the base commit.
+>> Maybe there is a missing intermediate commit?
+>> 
+>> Thanks,
+>>   Adrian
+>> 
+>> On 2016-12-31 06:58, Peter Reijnders wrote:
+>> > hello
+>> >
+>> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+>> > assert that colm uses the correct headers.
+>> > Upon further analyzing it turned out that:
+>> > 1) the '-I' command line option was not active
+>> > 2) there were 2 almost identical functions that to build the gcc
+>> > commands.
+>> > After refractoring and testing, I added also the '-L' command line
+>> > argument to extend the library path.
+>> >
+>> > With these 2 command line options working, it is possible to use colm
+>> > from an arbitrary directory.
+>> >
+>> >
+>> > I hope that the attached patch is usefull for somebody to ease
+>> > development.
+>> >
+>> > Peter Reijnders
+>> >
+>> >
+>> > _______________________________________________
+>> > colm mailing list
+>> > colm at colm.net
+>> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Sun Jan  1 08:30:32 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sun, 01 Jan 2017 09:30:32 +0100
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+Message-ID: <1483259432.1923.3.camel@verpeteren.nl>
+
+Hacky newyear!
+
+Sorry. My bad. My git-foo is not so strong.
+
+Here is a new patch, from my branch, without any whitespace ignores.
+
+```
+# thefollowing seems to work
+git checkout master
+git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+git apply --check /tmp/colm-refractor-gcc-cmd.patch
+git apply /tmp/colm-refractor-gcc-cmd.patch
+```
+
+
+Peter Reijnders
+
+
+On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+> Hi Peter,
+> 
+> I can't seem to get the patch to apply. I don't have the base commit. 
+> Maybe there is a missing intermediate commit?
+> 
+> Thanks,
+>   Adrian
+> 
+> On 2016-12-31 06:58, Peter Reijnders wrote:
+> > hello
+> > 
+> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+> > assert that colm uses the correct headers.
+> > Upon further analyzing it turned out that:
+> > 1) the '-I' command line option was not active
+> > 2) there were 2 almost identical functions that to build the gcc
+> > commands.
+> > After refractoring and testing, I added also the '-L' command line
+> > argument to extend the library path.
+> > 
+> > With these 2 command line options working, it is possible to use colm
+> > from an arbitrary directory.
+> > 
+> > 
+> > I hope that the attached patch is usefull for somebody to ease
+> > development.
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > _______________________________________________
+> > colm mailing list
+> > colm at colm.net
+> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: colm-refractor-gcc-cmd.patch
+Type: text/x-patch
+Size: 9373 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm/attachments/20170101/286e2eac/attachment-0001.bin>
+
+From thurston at colm.net  Mon Jan  2 16:09:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 02 Jan 2017 12:39:47 -0330
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <1483259432.1923.3.camel@verpeteren.nl>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+Message-ID: <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+
+Haha, hacky new year to you too!
+
+So just testing it out and I get a failure on compilation in source.
+
+compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+-I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+/tmp/ccc1LnSi.o: In function `colm_object_host_call':
+/home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+`vm_bs_add'
+/tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+/home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+`commit_clear_parse_tree'
+/tmp/ccc1LnSi.o: In function `main':
+/home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+`colm_new_program'
+/home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+`colm_set_debug'
+/home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+`colm_run_program'
+/home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+`colm_delete_program'
+collect2: error: ld returned 1 exit status
+error: colm: there was a problem compiling the output
+
+Looks like because the order of things has changed. -lcolm is before the 
+objects.
+
+I just added a coding convention file to the doc directory. I've never 
+been very strict with that in the past, however, colm and ragel are now 
+part of the Colm Networks code base and I'd like to maintain some 
+consistency.
+
+Thanks!
+
+Adrian
+
+On 2017-01-01 05:00, Peter Reijnders wrote:
+> Hacky newyear!
+> 
+> Sorry. My bad. My git-foo is not so strong.
+> 
+> Here is a new patch, from my branch, without any whitespace ignores.
+> 
+> ```
+> # thefollowing seems to work
+> git checkout master
+> git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+> git apply --check /tmp/colm-refractor-gcc-cmd.patch
+> git apply /tmp/colm-refractor-gcc-cmd.patch
+> ```
+> 
+> 
+> Peter Reijnders
+> 
+> 
+> On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+>> Hi Peter,
+>> 
+>> I can't seem to get the patch to apply. I don't have the base commit.
+>> Maybe there is a missing intermediate commit?
+>> 
+>> Thanks,
+>>   Adrian
+>> 
+>> On 2016-12-31 06:58, Peter Reijnders wrote:
+>> > hello
+>> >
+>> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+>> > assert that colm uses the correct headers.
+>> > Upon further analyzing it turned out that:
+>> > 1) the '-I' command line option was not active
+>> > 2) there were 2 almost identical functions that to build the gcc
+>> > commands.
+>> > After refractoring and testing, I added also the '-L' command line
+>> > argument to extend the library path.
+>> >
+>> > With these 2 command line options working, it is possible to use colm
+>> > from an arbitrary directory.
+>> >
+>> >
+>> > I hope that the attached patch is usefull for somebody to ease
+>> > development.
+>> >
+>> > Peter Reijnders
+>> >
+>> >
+>> > _______________________________________________
+>> > colm mailing list
+>> > colm at colm.net
+>> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 05:43:50 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 06:43:50 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+Message-ID: <1483422230.1916.3.camel@verpeteren.nl>
+
+hello
+
+For the 10.13.0.4 version I created a simple testcase.
+This example is now also in the master branch ('doc/code/assign.lm').
+
+However, with the current version, it stopped working.
+
+```
+../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+fatal:  -- something is wrong
+```
+
+'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+/implemented a const-string define option -Ename=val' introduced this.
+There are many changes in that commit. And it look al complex to me. I
+don't know where to start looking for a solution.
+Does anybody have an idea?
+
+Peter Reijnders
+
+
+
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 06:15:21 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 07:15:21 +0100
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+ <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+Message-ID: <1483424121.1916.11.camel@verpeteren.nl>
+
+Hello
+
+You are correct. Strange that gcc on my system (4.9.2-10) did not
+complain about that.
+In the attached patch, the -lcolm argument is moved to the end.
+
+Peter Reijnders
+On Mon, 2017-01-02 at 12:39 -0330, Adrian Thurston wrote:
+> Haha, hacky new year to you too!
+> 
+> So just testing it out and I get a failure on compilation in source.
+> 
+> compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+> -I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+> /tmp/ccc1LnSi.o: In function `colm_object_host_call':
+> /home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+> `vm_bs_add'
+> /tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+> /home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+> `commit_clear_parse_tree'
+> /tmp/ccc1LnSi.o: In function `main':
+> /home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+> `colm_new_program'
+> /home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+> `colm_set_debug'
+> /home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+> `colm_run_program'
+> /home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+> `colm_delete_program'
+> collect2: error: ld returned 1 exit status
+> error: colm: there was a problem compiling the output
+> 
+> Looks like because the order of things has changed. -lcolm is before the 
+> objects.
+> 
+> I just added a coding convention file to the doc directory. I've never 
+> been very strict with that in the past, however, colm and ragel are now 
+> part of the Colm Networks code base and I'd like to maintain some 
+> consistency.
+> 
+> Thanks!
+> 
+> Adrian
+> 
+> On 2017-01-01 05:00, Peter Reijnders wrote:
+> > Hacky newyear!
+> > 
+> > Sorry. My bad. My git-foo is not so strong.
+> > 
+> > Here is a new patch, from my branch, without any whitespace ignores.
+> > 
+> > ```
+> > # thefollowing seems to work
+> > git checkout master
+> > git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+> > git apply --check /tmp/colm-refractor-gcc-cmd.patch
+> > git apply /tmp/colm-refractor-gcc-cmd.patch
+> > ```
+> > 
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+> >> Hi Peter,
+> >> 
+> >> I can't seem to get the patch to apply. I don't have the base commit.
+> >> Maybe there is a missing intermediate commit?
+> >> 
+> >> Thanks,
+> >>   Adrian
+> >> 
+> >> On 2016-12-31 06:58, Peter Reijnders wrote:
+> >> > hello
+> >> >
+> >> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+> >> > assert that colm uses the correct headers.
+> >> > Upon further analyzing it turned out that:
+> >> > 1) the '-I' command line option was not active
+> >> > 2) there were 2 almost identical functions that to build the gcc
+> >> > commands.
+> >> > After refractoring and testing, I added also the '-L' command line
+> >> > argument to extend the library path.
+> >> >
+> >> > With these 2 command line options working, it is possible to use colm
+> >> > from an arbitrary directory.
+> >> >
+> >> >
+> >> > I hope that the attached patch is usefull for somebody to ease
+> >> > development.
+> >> >
+> >> > Peter Reijnders
+> >> >
+> >> >
+> >> > _______________________________________________
+> >> > colm mailing list
+> >> > colm at colm.net
+> >> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> >> 
+> >> _______________________________________________
+> >> colm mailing list
+> >> colm at colm.net
+> >> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: colm-refractor-gcc-cmd-lcolm.patch
+Type: text/x-patch
+Size: 11831 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm/attachments/20170103/fab89ee5/attachment.bin>
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 07:40:19 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 08:40:19 +0100
+Subject: [colm] Dependencies on a clean debian system
+Message-ID: <1483429219.1916.33.camel@verpeteren.nl>
+
+Hello
+
+Recently tested colm on a fresh/clean installed debian jessie system. It
+appears that only the following dependencies (approximately 253 MB) are
+needed to build colm from scratch.
+
+
+```
+apt-get install make libtool gcc g++ autoconf automake
+```
+
+To build the documentation, another 96 MB is needed.
+
+```
+apt-get install asciidoc 
+```
+
+Peter Reijnders
+
+
+
+
+
+
+From thurston at colm.net  Fri Jan  6 19:22:17 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 15:52:17 -0330
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <1483422230.1916.3.camel@verpeteren.nl>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+Message-ID: <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+
+Hmm, I can't seem to reproduce the problem. Which architecture are you 
+on?
+
+On 2017-01-03 02:13, Peter Reijnders wrote:
+> hello
+> 
+> For the 10.13.0.4 version I created a simple testcase.
+> This example is now also in the master branch ('doc/code/assign.lm').
+> 
+> However, with the current version, it stopped working.
+> 
+> ```
+> ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> fatal:  -- something is wrong
+> ```
+> 
+> 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> /implemented a const-string define option -Ename=val' introduced this.
+> There are many changes in that commit. And it look al complex to me. I
+> don't know where to start looking for a solution.
+> Does anybody have an idea?
+> 
+> Peter Reijnders
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From thurston at colm.net  Fri Jan  6 19:36:16 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 16:06:16 -0330
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <1483424121.1916.11.camel@verpeteren.nl>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+ <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+ <1483424121.1916.11.camel@verpeteren.nl>
+Message-ID: <cc7c90676f4c91c31b42feb66b45b106@mail.colm.net>
+
+Thanks, applied!
+
+-Adrian
+
+On 2017-01-03 02:45, Peter Reijnders wrote:
+> Hello
+> 
+> You are correct. Strange that gcc on my system (4.9.2-10) did not
+> complain about that.
+> In the attached patch, the -lcolm argument is moved to the end.
+> 
+> Peter Reijnders
+> On Mon, 2017-01-02 at 12:39 -0330, Adrian Thurston wrote:
+>> Haha, hacky new year to you too!
+>> 
+>> So just testing it out and I get a failure on compilation in source.
+>> 
+>> compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c
+>> -I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+>> /tmp/ccc1LnSi.o: In function `colm_object_host_call':
+>> /home/thurston/devel/colm/src/tmp.c:383: undefined reference to
+>> `vm_bs_add'
+>> /tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+>> /home/thurston/devel/colm/src/tmp.c:389: undefined reference to
+>> `commit_clear_parse_tree'
+>> /tmp/ccc1LnSi.o: In function `main':
+>> /home/thurston/devel/colm/src/tmp.c:402: undefined reference to
+>> `colm_new_program'
+>> /home/thurston/devel/colm/src/tmp.c:403: undefined reference to
+>> `colm_set_debug'
+>> /home/thurston/devel/colm/src/tmp.c:404: undefined reference to
+>> `colm_run_program'
+>> /home/thurston/devel/colm/src/tmp.c:405: undefined reference to
+>> `colm_delete_program'
+>> collect2: error: ld returned 1 exit status
+>> error: colm: there was a problem compiling the output
+>> 
+>> Looks like because the order of things has changed. -lcolm is before 
+>> the
+>> objects.
+>> 
+>> I just added a coding convention file to the doc directory. I've never
+>> been very strict with that in the past, however, colm and ragel are 
+>> now
+>> part of the Colm Networks code base and I'd like to maintain some
+>> consistency.
+>> 
+>> Thanks!
+>> 
+>> Adrian
+>> 
+>> On 2017-01-01 05:00, Peter Reijnders wrote:
+>> > Hacky newyear!
+>> >
+>> > Sorry. My bad. My git-foo is not so strong.
+>> >
+>> > Here is a new patch, from my branch, without any whitespace ignores.
+>> >
+>> > ```
+>> > # thefollowing seems to work
+>> > git checkout master
+>> > git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+>> > git apply --check /tmp/colm-refractor-gcc-cmd.patch
+>> > git apply /tmp/colm-refractor-gcc-cmd.patch
+>> > ```
+>> >
+>> >
+>> > Peter Reijnders
+>> >
+>> >
+>> > On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+>> >> Hi Peter,
+>> >>
+>> >> I can't seem to get the patch to apply. I don't have the base commit.
+>> >> Maybe there is a missing intermediate commit?
+>> >>
+>> >> Thanks,
+>> >>   Adrian
+>> >>
+>> >> On 2016-12-31 06:58, Peter Reijnders wrote:
+>> >> > hello
+>> >> >
+>> >> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+>> >> > assert that colm uses the correct headers.
+>> >> > Upon further analyzing it turned out that:
+>> >> > 1) the '-I' command line option was not active
+>> >> > 2) there were 2 almost identical functions that to build the gcc
+>> >> > commands.
+>> >> > After refractoring and testing, I added also the '-L' command line
+>> >> > argument to extend the library path.
+>> >> >
+>> >> > With these 2 command line options working, it is possible to use colm
+>> >> > from an arbitrary directory.
+>> >> >
+>> >> >
+>> >> > I hope that the attached patch is usefull for somebody to ease
+>> >> > development.
+>> >> >
+>> >> > Peter Reijnders
+>> >> >
+>> >> >
+>> >> > _______________________________________________
+>> >> > colm mailing list
+>> >> > colm at colm.net
+>> >> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> >>
+>> >> _______________________________________________
+>> >> colm mailing list
+>> >> colm at colm.net
+>> >> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From thurston at colm.net  Fri Jan  6 19:51:10 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 16:21:10 -0330
+Subject: [colm] Dependencies on a clean debian system
+In-Reply-To: <1483429219.1916.33.camel@verpeteren.nl>
+References: <1483429219.1916.33.camel@verpeteren.nl>
+Message-ID: <a43e66fa4d0a20d3b20d273dc48d1621@mail.colm.net>
+
+Thanks, I updated to README with this information.
+
+-Adrian
+
+On 2017-01-03 04:10, Peter Reijnders wrote:
+> Hello
+> 
+> Recently tested colm on a fresh/clean installed debian jessie system. 
+> It
+> appears that only the following dependencies (approximately 253 MB) are
+> needed to build colm from scratch.
+> 
+> 
+> ```
+> apt-get install make libtool gcc g++ autoconf automake
+> ```
+> 
+> To build the documentation, another 96 MB is needed.
+> 
+> ```
+> apt-get install asciidoc
+> ```
+> 
+> Peter Reijnders
+> 
+> 
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Sat Jan  7 08:17:18 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sat, 07 Jan 2017 09:17:18 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+ <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+Message-ID: <1483777038.1961.3.camel@verpeteren.nl>
+
+Hello
+
+
+```
+rm -rf ./doc/code/assign&&./src/colm -I src/include
+-L ./src/.libs/ ./doc/code/assign.lm&&ls -l ./doc/code/assign&&echo -e
+'b=3;a=1;\n c=2;'|./doc/code/assign
+```
+
+gives
+
+```
+-rwxr-xr-x 1 peter peter 37960 Jan  7 09:15 ./doc/code/assign
+fatal: UNKNOWN INSTRUCTION: 0x00 -- something is wrong
+```
+
+
+```
+uname -a
+```
+
+gives
+
+```
+Linux wrkaco00 3.16.0-4-amd64 #1 SMP Debian 3.16.36-1+deb8u2
+(2016-10-19) x86_64 GNU/Linux
+```
+
+```
+gcc --version
+```
+
+gives
+
+```
+gcc (Debian 4.9.2-10) 4.9.2
+Copyright (C) 2014 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is
+NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE.
+```
+
+Peter Reijnders
+
+On Fri, 2017-01-06 at 15:52 -0330, Adrian Thurston wrote:
+> Hmm, I can't seem to reproduce the problem. Which architecture are you 
+> on?
+> 
+> On 2017-01-03 02:13, Peter Reijnders wrote:
+> > hello
+> > 
+> > For the 10.13.0.4 version I created a simple testcase.
+> > This example is now also in the master branch ('doc/code/assign.lm').
+> > 
+> > However, with the current version, it stopped working.
+> > 
+> > ```
+> > ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> > fatal:  -- something is wrong
+> > ```
+> > 
+> > 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> > /implemented a const-string define option -Ename=val' introduced this.
+> > There are many changes in that commit. And it look al complex to me. I
+> > don't know where to start looking for a solution.
+> > Does anybody have an idea?
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > _______________________________________________
+> > colm mailing list
+> > colm at colm.net
+> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+
+
+From peter.reijnders at verpeteren.nl  Sat Jan 14 07:58:18 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sat, 14 Jan 2017 08:58:18 +0100
+Subject: [colm] obsolete alloca.h header
+Message-ID: <1484380698.1573.2.camel@verpeteren.nl>
+
+Hello
+
+While compiling colm on netbsd 7.0.2 I found that there is one obsolete
+include. Without this line colm compiles and seems to run.
+
+Peter Reijnders
+
+```
+diff --git a/src/program.c b/src/program.c
+index 0002ae5..0d80677 100644
+--- a/src/program.c
++++ b/src/program.c
+@@ -20,7 +20,6 @@
+  * SOFTWARE.
+  */
+ 
+-#include <alloca.h>
+ #include <sys/mman.h>
+ #include <string.h>
+ #include <assert.h>
+```
+
+
+
+From thurston at colm.net  Sat Jan 14 21:56:49 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 14 Jan 2017 16:56:49 -0500
+Subject: [colm] obsolete alloca.h header
+In-Reply-To: <1484380698.1573.2.camel@verpeteren.nl>
+References: <1484380698.1573.2.camel@verpeteren.nl>
+Message-ID: <11afddba0a71febffa623262ed22bf60@mail.colm.net>
+
+Thanks, applied!
+
+On 2017-01-14 02:58, Peter Reijnders wrote:
+> Hello
+> 
+> While compiling colm on netbsd 7.0.2 I found that there is one obsolete
+> include. Without this line colm compiles and seems to run.
+> 
+> Peter Reijnders
+> 
+> ```
+> diff --git a/src/program.c b/src/program.c
+> index 0002ae5..0d80677 100644
+> --- a/src/program.c
+> +++ b/src/program.c
+> @@ -20,7 +20,6 @@
+>   * SOFTWARE.
+>   */
+> 
+> -#include <alloca.h>
+>  #include <sys/mman.h>
+>  #include <string.h>
+>  #include <assert.h>
+> ```
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+From peter.reijnders at verpeteren.nl  Sun Jan 15 06:19:51 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sun, 15 Jan 2017 07:19:51 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <1483422230.1916.3.camel@verpeteren.nl>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+Message-ID: <1484461191.12580.10.camel@verpeteren.nl>
+
+Hello
+
+
+Solved!
+It turned out to be that there was a old libcolm* in my LD_LIBRARY_PATH.
+Now that I cleaned the old versions, the situation is back to normal.
+
+
+```
+export LD_LIBRARY_PATH=`pwd`/colm/.libs
+./src/colm -I src/include/ -L src/.libs/ doc/code/assign.lm 
+cho -e 'b=3;a=1;\n c=2;' |./doc/code/assign
+b->3
+a->1
+c->2
+```
+
+There could be an entry in the README/FAQ/Documentation:
+
+Q: I get an "UNKNOWN INSTRUCTION: 0x00". What is happening?
+A: It is very probably that an older dynamic version of libcolm used
+when you start the binary. This might have been caused by an earlier
+'make install'. Check your library directories and your LD_LIBRARY_PATH.
+
+
+Peter Reijnders
+
+On Tue, 2017-01-03 at 06:43 +0100, Peter Reijnders wrote:
+> hello
+> 
+> For the 10.13.0.4 version I created a simple testcase.
+> This example is now also in the master branch ('doc/code/assign.lm').
+> 
+> However, with the current version, it stopped working.
+> 
+> ```
+> ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> fatal:  -- something is wrong
+> ```
+> 
+> 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> /implemented a const-string define option -Ename=val' introduced this.
+> There are many changes in that commit. And it look al complex to me. I
+> don't know where to start looking for a solution.
+> Does anybody have an idea?
+> 
+> Peter Reijnders
+
+
+
+
+From peter.reijnders at verpeteren.nl  Thu Jan 19 05:33:11 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Thu, 19 Jan 2017 06:33:11 +0100
+Subject: [colm] reduced libtoolize verbosity patch
+Message-ID: <1484803991.7784.6.camel@verpeteren.nl>
+
+Hai
+
+I noticed that '.gitignore' allready has a m4 entry but that
+'autogen.sh' is a very verbose. The attached patch gives (me) less
+cognitive overload.
+
+
+Peter Reijnders
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: reduced-libtoolize-verbosity.patch
+Type: text/x-patch
+Size: 864 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm/attachments/20170119/1df503d2/attachment.bin>
+
+From thurston at colm.net  Mon Jan 23 07:30:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:30:51 +0700
+Subject: [colm] Fwd: Re: Colm bootstrap fails on ARM
+Message-ID: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+
+
+
+-------- Original Message --------
+Subject: Re: Colm bootstrap fails on ARM
+Date: 2016-12-05 18:44
+ From: Igor Gnatenko <ignatenko at redhat.com>
+To: Igor Gnatenko <ignatenko at redhat.com>
+Cc: info at colm.net
+
+On Fri, Dec 2, 2016 at 4:38 PM, Igor Gnatenko <ignatenko at redhat.com> 
+wrote:
+> ./bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+> lt-bootstrap1: tree.c:958: colm_tree_downref: Assertion `tree->refs > 
+> 0' failed.
+> 
+> Full build log:
+> https://kojipkgs.fedoraproject.org//work/tasks/7682/16707682/build.log
+Actually not only bootstrap fails there. It fails also when I try to
+use colm (compiling ragel).
+
+/usr/bin/colm -c -b rlparse_object -o parse.c -e if.h -x if.cc -m
+commit.cc rlparse.lm
+make[2]: Leaving directory '/builddir/build/BUILD/ragel-7.0.0.9/src'
+colm: tree.c:958: colm_tree_downref: Assertion `tree->refs > 0' failed.
+
+
+> --
+> -Igor Gnatenko
+
+
+From thurston at colm.net  Mon Jan 23 07:42:48 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:42:48 +0700
+Subject: [colm] reduced libtoolize verbosity patch
+In-Reply-To: <1484803991.7784.6.camel@verpeteren.nl>
+References: <1484803991.7784.6.camel@verpeteren.nl>
+Message-ID: <31b091ceac91eca9a160004034e9eb58@mail.colm.net>
+
+Thanks, applied.
+
+Adrian
+
+On 2017-01-19 12:33, Peter Reijnders wrote:
+> Hai
+> 
+> I noticed that '.gitignore' allready has a m4 entry but that
+> 'autogen.sh' is a very verbose. The attached patch gives (me) less
+> cognitive overload.
+> 
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+From peter.reijnders at verpeteren.nl  Mon Jan 30 19:32:12 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Mon, 30 Jan 2017 20:32:12 +0100
+Subject: [colm] Cloning into 'colm'...
+Message-ID: <1485804732.1580.9.camel@verpeteren.nl>
+
+Hai 
+
+I get this error :
+
+```
+git clone git://git.colm.net/colm.git
+Cloning into 'colm'...
+fatal: remote error: access denied or repository not exported: /colm.git
+```
+
+Peter Reijnders
+
+
+
+From peter.reijnders at verpeteren.nl  Mon Jan 30 19:44:26 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Mon, 30 Jan 2017 20:44:26 +0100
+Subject: [colm] Fwd: Re: Colm bootstrap fails on ARM
+In-Reply-To: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+References: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+Message-ID: <1485805466.1580.14.camel@verpeteren.nl>
+
+Hello Igor
+
+I might be a bit late with my response.
+Sorry, I needed to get a bit familiar with qemu.
+
+I can compile colm-0.13.0.4 on debian armel (armv5tejl) with gcc
+4.6.3-14. 
+
+Your build log gives me a 404 error.
+Could you provide a little more details (processor, compiler, etc). 
+
+
+Peter Reijnders
+
+On Mon, 2017-01-23 at 14:30 +0700, Adrian Thurston wrote:
+> 
+> -------- Original Message --------
+> Subject: Re: Colm bootstrap fails on ARM
+> Date: 2016-12-05 18:44
+>  From: Igor Gnatenko <ignatenko at redhat.com>
+> To: Igor Gnatenko <ignatenko at redhat.com>
+> Cc: info at colm.net
+> 
+> On Fri, Dec 2, 2016 at 4:38 PM, Igor Gnatenko <ignatenko at redhat.com> 
+> wrote:
+> > ./bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+> > lt-bootstrap1: tree.c:958: colm_tree_downref: Assertion `tree->refs > 
+> > 0' failed.
+> > 
+> > Full build log:
+> > https://kojipkgs.fedoraproject.org//work/tasks/7682/16707682/build.log
+> Actually not only bootstrap fails there. It fails also when I try to
+> use colm (compiling ragel).
+> 
+> /usr/bin/colm -c -b rlparse_object -o parse.c -e if.h -x if.cc -m
+> commit.cc rlparse.lm
+> make[2]: Leaving directory '/builddir/build/BUILD/ragel-7.0.0.9/src'
+> colm: tree.c:958: colm_tree_downref: Assertion `tree->refs > 0' failed.
+> 
+> 
+> > --
+> > -Igor Gnatenko
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+
+From peter.reijnders at verpeteren.nl  Sun Jan  1 08:30:32 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sun, 01 Jan 2017 09:30:32 +0100
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+Message-ID: <1483259432.1923.3.camel@verpeteren.nl>
+
+Hacky newyear!
+
+Sorry. My bad. My git-foo is not so strong.
+
+Here is a new patch, from my branch, without any whitespace ignores.
+
+```
+# thefollowing seems to work
+git checkout master
+git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+git apply --check /tmp/colm-refractor-gcc-cmd.patch
+git apply /tmp/colm-refractor-gcc-cmd.patch
+```
+
+
+Peter Reijnders
+
+
+On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+> Hi Peter,
+> 
+> I can't seem to get the patch to apply. I don't have the base commit. 
+> Maybe there is a missing intermediate commit?
+> 
+> Thanks,
+>   Adrian
+> 
+> On 2016-12-31 06:58, Peter Reijnders wrote:
+> > hello
+> > 
+> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+> > assert that colm uses the correct headers.
+> > Upon further analyzing it turned out that:
+> > 1) the '-I' command line option was not active
+> > 2) there were 2 almost identical functions that to build the gcc
+> > commands.
+> > After refractoring and testing, I added also the '-L' command line
+> > argument to extend the library path.
+> > 
+> > With these 2 command line options working, it is possible to use colm
+> > from an arbitrary directory.
+> > 
+> > 
+> > I hope that the attached patch is usefull for somebody to ease
+> > development.
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > _______________________________________________
+> > colm mailing list
+> > colm at colm.net
+> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: colm-refractor-gcc-cmd.patch
+Type: text/x-patch
+Size: 9373 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20170101/286e2eac/attachment-0003.bin>
+
+From thurston at colm.net  Mon Jan  2 16:09:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 02 Jan 2017 12:39:47 -0330
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <1483259432.1923.3.camel@verpeteren.nl>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+Message-ID: <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+
+Haha, hacky new year to you too!
+
+So just testing it out and I get a failure on compilation in source.
+
+compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+-I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+/tmp/ccc1LnSi.o: In function `colm_object_host_call':
+/home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+`vm_bs_add'
+/tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+/home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+`commit_clear_parse_tree'
+/tmp/ccc1LnSi.o: In function `main':
+/home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+`colm_new_program'
+/home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+`colm_set_debug'
+/home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+`colm_run_program'
+/home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+`colm_delete_program'
+collect2: error: ld returned 1 exit status
+error: colm: there was a problem compiling the output
+
+Looks like because the order of things has changed. -lcolm is before the 
+objects.
+
+I just added a coding convention file to the doc directory. I've never 
+been very strict with that in the past, however, colm and ragel are now 
+part of the Colm Networks code base and I'd like to maintain some 
+consistency.
+
+Thanks!
+
+Adrian
+
+On 2017-01-01 05:00, Peter Reijnders wrote:
+> Hacky newyear!
+> 
+> Sorry. My bad. My git-foo is not so strong.
+> 
+> Here is a new patch, from my branch, without any whitespace ignores.
+> 
+> ```
+> # thefollowing seems to work
+> git checkout master
+> git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+> git apply --check /tmp/colm-refractor-gcc-cmd.patch
+> git apply /tmp/colm-refractor-gcc-cmd.patch
+> ```
+> 
+> 
+> Peter Reijnders
+> 
+> 
+> On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+>> Hi Peter,
+>> 
+>> I can't seem to get the patch to apply. I don't have the base commit.
+>> Maybe there is a missing intermediate commit?
+>> 
+>> Thanks,
+>>   Adrian
+>> 
+>> On 2016-12-31 06:58, Peter Reijnders wrote:
+>> > hello
+>> >
+>> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+>> > assert that colm uses the correct headers.
+>> > Upon further analyzing it turned out that:
+>> > 1) the '-I' command line option was not active
+>> > 2) there were 2 almost identical functions that to build the gcc
+>> > commands.
+>> > After refractoring and testing, I added also the '-L' command line
+>> > argument to extend the library path.
+>> >
+>> > With these 2 command line options working, it is possible to use colm
+>> > from an arbitrary directory.
+>> >
+>> >
+>> > I hope that the attached patch is usefull for somebody to ease
+>> > development.
+>> >
+>> > Peter Reijnders
+>> >
+>> >
+>> > _______________________________________________
+>> > colm mailing list
+>> > colm at colm.net
+>> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 05:43:50 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 06:43:50 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+Message-ID: <1483422230.1916.3.camel@verpeteren.nl>
+
+hello
+
+For the 10.13.0.4 version I created a simple testcase.
+This example is now also in the master branch ('doc/code/assign.lm').
+
+However, with the current version, it stopped working.
+
+```
+../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+fatal:  -- something is wrong
+```
+
+'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+/implemented a const-string define option -Ename=val' introduced this.
+There are many changes in that commit. And it look al complex to me. I
+don't know where to start looking for a solution.
+Does anybody have an idea?
+
+Peter Reijnders
+
+
+
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 06:15:21 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 07:15:21 +0100
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+ <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+Message-ID: <1483424121.1916.11.camel@verpeteren.nl>
+
+Hello
+
+You are correct. Strange that gcc on my system (4.9.2-10) did not
+complain about that.
+In the attached patch, the -lcolm argument is moved to the end.
+
+Peter Reijnders
+On Mon, 2017-01-02 at 12:39 -0330, Adrian Thurston wrote:
+> Haha, hacky new year to you too!
+> 
+> So just testing it out and I get a failure on compilation in source.
+> 
+> compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+> -I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+> /tmp/ccc1LnSi.o: In function `colm_object_host_call':
+> /home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+> `vm_bs_add'
+> /tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+> /home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+> `commit_clear_parse_tree'
+> /tmp/ccc1LnSi.o: In function `main':
+> /home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+> `colm_new_program'
+> /home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+> `colm_set_debug'
+> /home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+> `colm_run_program'
+> /home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+> `colm_delete_program'
+> collect2: error: ld returned 1 exit status
+> error: colm: there was a problem compiling the output
+> 
+> Looks like because the order of things has changed. -lcolm is before the 
+> objects.
+> 
+> I just added a coding convention file to the doc directory. I've never 
+> been very strict with that in the past, however, colm and ragel are now 
+> part of the Colm Networks code base and I'd like to maintain some 
+> consistency.
+> 
+> Thanks!
+> 
+> Adrian
+> 
+> On 2017-01-01 05:00, Peter Reijnders wrote:
+> > Hacky newyear!
+> > 
+> > Sorry. My bad. My git-foo is not so strong.
+> > 
+> > Here is a new patch, from my branch, without any whitespace ignores.
+> > 
+> > ```
+> > # thefollowing seems to work
+> > git checkout master
+> > git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+> > git apply --check /tmp/colm-refractor-gcc-cmd.patch
+> > git apply /tmp/colm-refractor-gcc-cmd.patch
+> > ```
+> > 
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+> >> Hi Peter,
+> >> 
+> >> I can't seem to get the patch to apply. I don't have the base commit.
+> >> Maybe there is a missing intermediate commit?
+> >> 
+> >> Thanks,
+> >>   Adrian
+> >> 
+> >> On 2016-12-31 06:58, Peter Reijnders wrote:
+> >> > hello
+> >> >
+> >> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+> >> > assert that colm uses the correct headers.
+> >> > Upon further analyzing it turned out that:
+> >> > 1) the '-I' command line option was not active
+> >> > 2) there were 2 almost identical functions that to build the gcc
+> >> > commands.
+> >> > After refractoring and testing, I added also the '-L' command line
+> >> > argument to extend the library path.
+> >> >
+> >> > With these 2 command line options working, it is possible to use colm
+> >> > from an arbitrary directory.
+> >> >
+> >> >
+> >> > I hope that the attached patch is usefull for somebody to ease
+> >> > development.
+> >> >
+> >> > Peter Reijnders
+> >> >
+> >> >
+> >> > _______________________________________________
+> >> > colm mailing list
+> >> > colm at colm.net
+> >> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> >> 
+> >> _______________________________________________
+> >> colm mailing list
+> >> colm at colm.net
+> >> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: colm-refractor-gcc-cmd-lcolm.patch
+Type: text/x-patch
+Size: 11831 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20170103/fab89ee5/attachment-0002.bin>
+
+From peter.reijnders at verpeteren.nl  Tue Jan  3 07:40:19 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Tue, 03 Jan 2017 08:40:19 +0100
+Subject: [colm] Dependencies on a clean debian system
+Message-ID: <1483429219.1916.33.camel@verpeteren.nl>
+
+Hello
+
+Recently tested colm on a fresh/clean installed debian jessie system. It
+appears that only the following dependencies (approximately 253 MB) are
+needed to build colm from scratch.
+
+
+```
+apt-get install make libtool gcc g++ autoconf automake
+```
+
+To build the documentation, another 96 MB is needed.
+
+```
+apt-get install asciidoc 
+```
+
+Peter Reijnders
+
+
+
+
+
+
+From thurston at colm.net  Fri Jan  6 19:22:17 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 15:52:17 -0330
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <1483422230.1916.3.camel@verpeteren.nl>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+Message-ID: <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+
+Hmm, I can't seem to reproduce the problem. Which architecture are you 
+on?
+
+On 2017-01-03 02:13, Peter Reijnders wrote:
+> hello
+> 
+> For the 10.13.0.4 version I created a simple testcase.
+> This example is now also in the master branch ('doc/code/assign.lm').
+> 
+> However, with the current version, it stopped working.
+> 
+> ```
+> ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> fatal:  -- something is wrong
+> ```
+> 
+> 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> /implemented a const-string define option -Ename=val' introduced this.
+> There are many changes in that commit. And it look al complex to me. I
+> don't know where to start looking for a solution.
+> Does anybody have an idea?
+> 
+> Peter Reijnders
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From thurston at colm.net  Fri Jan  6 19:36:16 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 16:06:16 -0330
+Subject: [colm] patch for colm to handle with '-I' and '-L' command line
+ options
+In-Reply-To: <1483424121.1916.11.camel@verpeteren.nl>
+References: <1483180096.3788.2.camel@verpeteren.nl>
+ <b6860b9d085e9ce2c2394c49dd02d22d@mail.colm.net>
+ <1483259432.1923.3.camel@verpeteren.nl>
+ <a8846a616bbe17e24bb9378f6881249f@mail.colm.net>
+ <1483424121.1916.11.camel@verpeteren.nl>
+Message-ID: <cc7c90676f4c91c31b42feb66b45b106@mail.colm.net>
+
+Thanks, applied!
+
+-Adrian
+
+On 2017-01-03 02:45, Peter Reijnders wrote:
+> Hello
+> 
+> You are correct. Strange that gcc on my system (4.9.2-10) did not
+> complain about that.
+> In the attached patch, the -lcolm argument is moved to the end.
+> 
+> Peter Reijnders
+> On Mon, 2017-01-02 at 12:39 -0330, Adrian Thurston wrote:
+>> Haha, hacky new year to you too!
+>> 
+>> So just testing it out and I get a failure on compilation in source.
+>> 
+>> compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c
+>> -I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+>> /tmp/ccc1LnSi.o: In function `colm_object_host_call':
+>> /home/thurston/devel/colm/src/tmp.c:383: undefined reference to
+>> `vm_bs_add'
+>> /tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+>> /home/thurston/devel/colm/src/tmp.c:389: undefined reference to
+>> `commit_clear_parse_tree'
+>> /tmp/ccc1LnSi.o: In function `main':
+>> /home/thurston/devel/colm/src/tmp.c:402: undefined reference to
+>> `colm_new_program'
+>> /home/thurston/devel/colm/src/tmp.c:403: undefined reference to
+>> `colm_set_debug'
+>> /home/thurston/devel/colm/src/tmp.c:404: undefined reference to
+>> `colm_run_program'
+>> /home/thurston/devel/colm/src/tmp.c:405: undefined reference to
+>> `colm_delete_program'
+>> collect2: error: ld returned 1 exit status
+>> error: colm: there was a problem compiling the output
+>> 
+>> Looks like because the order of things has changed. -lcolm is before 
+>> the
+>> objects.
+>> 
+>> I just added a coding convention file to the doc directory. I've never
+>> been very strict with that in the past, however, colm and ragel are 
+>> now
+>> part of the Colm Networks code base and I'd like to maintain some
+>> consistency.
+>> 
+>> Thanks!
+>> 
+>> Adrian
+>> 
+>> On 2017-01-01 05:00, Peter Reijnders wrote:
+>> > Hacky newyear!
+>> >
+>> > Sorry. My bad. My git-foo is not so strong.
+>> >
+>> > Here is a new patch, from my branch, without any whitespace ignores.
+>> >
+>> > ```
+>> > # thefollowing seems to work
+>> > git checkout master
+>> > git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+>> > git apply --check /tmp/colm-refractor-gcc-cmd.patch
+>> > git apply /tmp/colm-refractor-gcc-cmd.patch
+>> > ```
+>> >
+>> >
+>> > Peter Reijnders
+>> >
+>> >
+>> > On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+>> >> Hi Peter,
+>> >>
+>> >> I can't seem to get the patch to apply. I don't have the base commit.
+>> >> Maybe there is a missing intermediate commit?
+>> >>
+>> >> Thanks,
+>> >>   Adrian
+>> >>
+>> >> On 2016-12-31 06:58, Peter Reijnders wrote:
+>> >> > hello
+>> >> >
+>> >> > I found it quite cumbersome to 'make install' and 'make uninstall' to
+>> >> > assert that colm uses the correct headers.
+>> >> > Upon further analyzing it turned out that:
+>> >> > 1) the '-I' command line option was not active
+>> >> > 2) there were 2 almost identical functions that to build the gcc
+>> >> > commands.
+>> >> > After refractoring and testing, I added also the '-L' command line
+>> >> > argument to extend the library path.
+>> >> >
+>> >> > With these 2 command line options working, it is possible to use colm
+>> >> > from an arbitrary directory.
+>> >> >
+>> >> >
+>> >> > I hope that the attached patch is usefull for somebody to ease
+>> >> > development.
+>> >> >
+>> >> > Peter Reijnders
+>> >> >
+>> >> >
+>> >> > _______________________________________________
+>> >> > colm mailing list
+>> >> > colm at colm.net
+>> >> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> >>
+>> >> _______________________________________________
+>> >> colm mailing list
+>> >> colm at colm.net
+>> >> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From thurston at colm.net  Fri Jan  6 19:51:10 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 06 Jan 2017 16:21:10 -0330
+Subject: [colm] Dependencies on a clean debian system
+In-Reply-To: <1483429219.1916.33.camel@verpeteren.nl>
+References: <1483429219.1916.33.camel@verpeteren.nl>
+Message-ID: <a43e66fa4d0a20d3b20d273dc48d1621@mail.colm.net>
+
+Thanks, I updated to README with this information.
+
+-Adrian
+
+On 2017-01-03 04:10, Peter Reijnders wrote:
+> Hello
+> 
+> Recently tested colm on a fresh/clean installed debian jessie system. 
+> It
+> appears that only the following dependencies (approximately 253 MB) are
+> needed to build colm from scratch.
+> 
+> 
+> ```
+> apt-get install make libtool gcc g++ autoconf automake
+> ```
+> 
+> To build the documentation, another 96 MB is needed.
+> 
+> ```
+> apt-get install asciidoc
+> ```
+> 
+> Peter Reijnders
+> 
+> 
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Sat Jan  7 08:17:18 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sat, 07 Jan 2017 09:17:18 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+ <b08b2d870ed7c9943cb7deac5da664ba@mail.colm.net>
+Message-ID: <1483777038.1961.3.camel@verpeteren.nl>
+
+Hello
+
+
+```
+rm -rf ./doc/code/assign&&./src/colm -I src/include
+-L ./src/.libs/ ./doc/code/assign.lm&&ls -l ./doc/code/assign&&echo -e
+'b=3;a=1;\n c=2;'|./doc/code/assign
+```
+
+gives
+
+```
+-rwxr-xr-x 1 peter peter 37960 Jan  7 09:15 ./doc/code/assign
+fatal: UNKNOWN INSTRUCTION: 0x00 -- something is wrong
+```
+
+
+```
+uname -a
+```
+
+gives
+
+```
+Linux wrkaco00 3.16.0-4-amd64 #1 SMP Debian 3.16.36-1+deb8u2
+(2016-10-19) x86_64 GNU/Linux
+```
+
+```
+gcc --version
+```
+
+gives
+
+```
+gcc (Debian 4.9.2-10) 4.9.2
+Copyright (C) 2014 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is
+NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE.
+```
+
+Peter Reijnders
+
+On Fri, 2017-01-06 at 15:52 -0330, Adrian Thurston wrote:
+> Hmm, I can't seem to reproduce the problem. Which architecture are you 
+> on?
+> 
+> On 2017-01-03 02:13, Peter Reijnders wrote:
+> > hello
+> > 
+> > For the 10.13.0.4 version I created a simple testcase.
+> > This example is now also in the master branch ('doc/code/assign.lm').
+> > 
+> > However, with the current version, it stopped working.
+> > 
+> > ```
+> > ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> > fatal:  -- something is wrong
+> > ```
+> > 
+> > 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> > /implemented a const-string define option -Ename=val' introduced this.
+> > There are many changes in that commit. And it look al complex to me. I
+> > don't know where to start looking for a solution.
+> > Does anybody have an idea?
+> > 
+> > Peter Reijnders
+> > 
+> > 
+> > _______________________________________________
+> > colm mailing list
+> > colm at colm.net
+> > http://www.colm.net/cgi-bin/mailman/listinfo/colm
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+
+
+From peter.reijnders at verpeteren.nl  Sat Jan 14 07:58:18 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sat, 14 Jan 2017 08:58:18 +0100
+Subject: [colm] obsolete alloca.h header
+Message-ID: <1484380698.1573.2.camel@verpeteren.nl>
+
+Hello
+
+While compiling colm on netbsd 7.0.2 I found that there is one obsolete
+include. Without this line colm compiles and seems to run.
+
+Peter Reijnders
+
+```
+diff --git a/src/program.c b/src/program.c
+index 0002ae5..0d80677 100644
+--- a/src/program.c
++++ b/src/program.c
+@@ -20,7 +20,6 @@
+  * SOFTWARE.
+  */
+ 
+-#include <alloca.h>
+ #include <sys/mman.h>
+ #include <string.h>
+ #include <assert.h>
+```
+
+
+
+
+From thurston at colm.net  Sat Jan 14 21:56:49 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Sat, 14 Jan 2017 16:56:49 -0500
+Subject: [colm] obsolete alloca.h header
+In-Reply-To: <1484380698.1573.2.camel@verpeteren.nl>
+References: <1484380698.1573.2.camel@verpeteren.nl>
+Message-ID: <11afddba0a71febffa623262ed22bf60@mail.colm.net>
+
+Thanks, applied!
+
+On 2017-01-14 02:58, Peter Reijnders wrote:
+> Hello
+> 
+> While compiling colm on netbsd 7.0.2 I found that there is one obsolete
+> include. Without this line colm compiles and seems to run.
+> 
+> Peter Reijnders
+> 
+> ```
+> diff --git a/src/program.c b/src/program.c
+> index 0002ae5..0d80677 100644
+> --- a/src/program.c
+> +++ b/src/program.c
+> @@ -20,7 +20,6 @@
+>   * SOFTWARE.
+>   */
+> 
+> -#include <alloca.h>
+>  #include <sys/mman.h>
+>  #include <string.h>
+>  #include <assert.h>
+> ```
+> 
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Sun Jan 15 06:19:51 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Sun, 15 Jan 2017 07:19:51 +0100
+Subject: [colm] UNKNOWN INSTRUCTION: 0x00 since ecca4b68
+In-Reply-To: <1483422230.1916.3.camel@verpeteren.nl>
+References: <1483422230.1916.3.camel@verpeteren.nl>
+Message-ID: <1484461191.12580.10.camel@verpeteren.nl>
+
+Hello
+
+
+Solved!
+It turned out to be that there was a old libcolm* in my LD_LIBRARY_PATH.
+Now that I cleaned the old versions, the situation is back to normal.
+
+
+```
+export LD_LIBRARY_PATH=`pwd`/colm/.libs
+./src/colm -I src/include/ -L src/.libs/ doc/code/assign.lm 
+cho -e 'b=3;a=1;\n c=2;' |./doc/code/assign
+b->3
+a->1
+c->2
+```
+
+There could be an entry in the README/FAQ/Documentation:
+
+Q: I get an "UNKNOWN INSTRUCTION: 0x00". What is happening?
+A: It is very probably that an older dynamic version of libcolm used
+when you start the binary. This might have been caused by an earlier
+'make install'. Check your library directories and your LD_LIBRARY_PATH.
+
+
+Peter Reijnders
+
+On Tue, 2017-01-03 at 06:43 +0100, Peter Reijnders wrote:
+> hello
+> 
+> For the 10.13.0.4 version I created a simple testcase.
+> This example is now also in the master branch ('doc/code/assign.lm').
+> 
+> However, with the current version, it stopped working.
+> 
+> ```
+> ../../src/colm assign.lm && echo -e 'b=3;a=1;\n c=2;' |./assign
+> fatal:  -- something is wrong
+> ```
+> 
+> 'git bisect' revealed that 'aecca4b68436782235c3e1de7b6bab7a977590b2
+> /implemented a const-string define option -Ename=val' introduced this.
+> There are many changes in that commit. And it look al complex to me. I
+> don't know where to start looking for a solution.
+> Does anybody have an idea?
+> 
+> Peter Reijnders
+
+
+
+
+
+From peter.reijnders at verpeteren.nl  Thu Jan 19 05:33:11 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Thu, 19 Jan 2017 06:33:11 +0100
+Subject: [colm] reduced libtoolize verbosity patch
+Message-ID: <1484803991.7784.6.camel@verpeteren.nl>
+
+Hai
+
+I noticed that '.gitignore' allready has a m4 entry but that
+'autogen.sh' is a very verbose. The attached patch gives (me) less
+cognitive overload.
+
+
+Peter Reijnders
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: reduced-libtoolize-verbosity.patch
+Type: text/x-patch
+Size: 864 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/colm-users/attachments/20170119/1df503d2/attachment-0002.bin>
+
+From thurston at colm.net  Mon Jan 23 07:30:51 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:30:51 +0700
+Subject: [colm] Fwd: Re: Colm bootstrap fails on ARM
+Message-ID: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+
+
+
+-------- Original Message --------
+Subject: Re: Colm bootstrap fails on ARM
+Date: 2016-12-05 18:44
+ From: Igor Gnatenko <ignatenko at redhat.com>
+To: Igor Gnatenko <ignatenko at redhat.com>
+Cc: info at colm.net
+
+On Fri, Dec 2, 2016 at 4:38 PM, Igor Gnatenko <ignatenko at redhat.com> 
+wrote:
+> ./bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+> lt-bootstrap1: tree.c:958: colm_tree_downref: Assertion `tree->refs > 
+> 0' failed.
+> 
+> Full build log:
+> https://kojipkgs.fedoraproject.org//work/tasks/7682/16707682/build.log
+Actually not only bootstrap fails there. It fails also when I try to
+use colm (compiling ragel).
+
+/usr/bin/colm -c -b rlparse_object -o parse.c -e if.h -x if.cc -m
+commit.cc rlparse.lm
+make[2]: Leaving directory '/builddir/build/BUILD/ragel-7.0.0.9/src'
+colm: tree.c:958: colm_tree_downref: Assertion `tree->refs > 0' failed.
+
+
+> --
+> -Igor Gnatenko
+
+
+
+From thurston at colm.net  Mon Jan 23 07:42:48 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Mon, 23 Jan 2017 14:42:48 +0700
+Subject: [colm] reduced libtoolize verbosity patch
+In-Reply-To: <1484803991.7784.6.camel@verpeteren.nl>
+References: <1484803991.7784.6.camel@verpeteren.nl>
+Message-ID: <31b091ceac91eca9a160004034e9eb58@mail.colm.net>
+
+Thanks, applied.
+
+Adrian
+
+On 2017-01-19 12:33, Peter Reijnders wrote:
+> Hai
+> 
+> I noticed that '.gitignore' allready has a m4 entry but that
+> 'autogen.sh' is a very verbose. The attached patch gives (me) less
+> cognitive overload.
+> 
+> 
+> Peter Reijnders
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+From peter.reijnders at verpeteren.nl  Mon Jan 30 19:32:12 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Mon, 30 Jan 2017 20:32:12 +0100
+Subject: [colm] Cloning into 'colm'...
+Message-ID: <1485804732.1580.9.camel@verpeteren.nl>
+
+Hai 
+
+I get this error :
+
+```
+git clone git://git.colm.net/colm.git
+Cloning into 'colm'...
+fatal: remote error: access denied or repository not exported: /colm.git
+```
+
+Peter Reijnders
+
+
+
+
+From peter.reijnders at verpeteren.nl  Mon Jan 30 19:44:26 2017
+From: peter.reijnders at verpeteren.nl (Peter Reijnders)
+Date: Mon, 30 Jan 2017 20:44:26 +0100
+Subject: [colm] Fwd: Re: Colm bootstrap fails on ARM
+In-Reply-To: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+References: <6b8ea38e630edaf02785c7c47493792c@mail.colm.net>
+Message-ID: <1485805466.1580.14.camel@verpeteren.nl>
+
+Hello Igor
+
+I might be a bit late with my response.
+Sorry, I needed to get a bit familiar with qemu.
+
+I can compile colm-0.13.0.4 on debian armel (armv5tejl) with gcc
+4.6.3-14. 
+
+Your build log gives me a 404 error.
+Could you provide a little more details (processor, compiler, etc). 
+
+
+Peter Reijnders
+
+On Mon, 2017-01-23 at 14:30 +0700, Adrian Thurston wrote:
+> 
+> -------- Original Message --------
+> Subject: Re: Colm bootstrap fails on ARM
+> Date: 2016-12-05 18:44
+>  From: Igor Gnatenko <ignatenko at redhat.com>
+> To: Igor Gnatenko <ignatenko at redhat.com>
+> Cc: info at colm.net
+> 
+> On Fri, Dec 2, 2016 at 4:38 PM, Igor Gnatenko <ignatenko at redhat.com> 
+> wrote:
+> > ./bootstrap1 -c -o gen/parse2.c -e gen/if2.h -x gen/if2.cc colm.lm
+> > lt-bootstrap1: tree.c:958: colm_tree_downref: Assertion `tree->refs > 
+> > 0' failed.
+> > 
+> > Full build log:
+> > https://kojipkgs.fedoraproject.org//work/tasks/7682/16707682/build.log
+> Actually not only bootstrap fails there. It fails also when I try to
+> use colm (compiling ragel).
+> 
+> /usr/bin/colm -c -b rlparse_object -o parse.c -e if.h -x if.cc -m
+> commit.cc rlparse.lm
+> make[2]: Leaving directory '/builddir/build/BUILD/ragel-7.0.0.9/src'
+> colm: tree.c:958: colm_tree_downref: Assertion `tree->refs > 0' failed.
+> 
+> 
+> > --
+> > -Igor Gnatenko
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm
+
+
+
+
+

@@ -1,0 +1,4246 @@
+From thurs... at cs.queensu.ca  Wed Mar  5 18:19:52 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Mar 2008 13:19:52 -0500
+Subject: [ragel-users] Possible bug in Ragel 6.0
+In-Reply-To: <47BDB605.30304@nanorex.com>
+References: <47BDB605.30304@nanorex.com>
+Message-ID: <47CEE448.1030600@cs.queensu.ca>
+
+Hi Manoj,
+
+Applying kleene star to a machine that accepts the zero length word (has
+a start state that is final) requires some special care in the kleene
+star operator due to leaving actions. It is this special case that is
+failing.
+
+I never really put much effort into solving this because applying kleene
+star to something that already accepts nothing is not a great idea. It's
+ambiguous and in the presence of leaving actions it's not clear how it
+should work. That's why the warning is there. It's better to refactor
+your grammar. You could probably take out the optional operation
+immediately before the kleene star.
+
+To prevent crashing in the future I'll have to do something here. I
+might just remove final state status from the start state before doing a
+star operation. The warning will stay in.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    Ragel has been crashing with non-descript errors and I've spent a lot 
+> of time trying to find out the cause of the crash. I've made partial 
+> progress and would like to inform you about this and could benefit from 
+> an expert's help.
+> 
+>   I'm attaching a ragel file that I'm trying to compile with the command:
+> 
+>    ragel -C mmp-parser.rl -o mmp-parser.cpp
+> 
+> The crash is in the front-end and the segfault can be seen with
+> 
+>    ragel -x mmp-parser.rl
+> 
+>  From the backtrace, I've been able to see that in the following lines 
+> (ragel/fsmgraph.cpp: 226-229)
+> 
+>      for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+>          if ( *st != startState )
+>              mergeStatesLeaving( md, *st, startState );
+>      }
+> 
+> the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+> is causing the segfault.
+> 
+> So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+> NULL pointer. Does someone know how this could creep in?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From jason.gar... at gmail.com  Fri Mar  7 21:25:35 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Fri, 7 Mar 2008 13:25:35 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <47B50F76.2030802@cs.queensu.ca>
+References: 47B50F76.2030802@cs.queensu.ca
+Message-ID: <e168707c-debe-4672-81fb-896761f03461@q78g2000hsh.googlegroups.com>
+
+Thanks so much!  I just used it in SuperRedCloth.  Example:
+link = ( "["? '"' C "."* " "* link_says " "* :> title? :> '":' %A uri %
+{ STORE_URL(href); } :> "]"? ) >X ;
+The optional square bracket at the end wouldn't have been possible (or
+at least as simple) before.
+
+Looking forward to the 6.1 release.
+
+- Jason
+
+On Feb 14, 11:05 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I just committed an implementation. I was surprised at how little code
+> it was.
+>
+> -Adrian
+>
+> Manoj Rajagopalan wrote:
+> > Now that I understand it, it's a great idea! I just switched to using a
+> > different approach because Ragel lacked this feature.
+>
+> > -- Manoj
+>
+> > Adrian Thurston wrote:
+> >> Hi Wncent, here's an example:
+>
+> >> main := |*
+> >>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> >> *|;
+>
+> >> -Adrian
+>
+> >> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+> >>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>
+> >>>> Hi,
+> >>>> I'm planning a 6.1 release with further changes to the language that
+> >>>> will break backwards compatibility.
+> >>>> When scanners were first made there was no consideration to getting
+> >>>> leaving actions at the end of a scanner pattern to execute. Now it
+> >>>> stands out to me as an inconsistency that needs to be fixed.
+> >>>> I don't expect people to embed a leaving action right before the
+> >>>> pattern
+> >>>> action is specified. You should still use the scanner action instead.
+> >>> Can you clarify what you mean by "scanner action"? Just to make sure I
+> >>> understand what you're saying here.
+>
+> >>>> The problem is with machine definitions used at the end of a scanner
+> >>>> pattern that have leaving actions inside. These may do some cleanup or
+> >>>> other final processing at the end of a machine definition and should
+> >>>> be
+> >>>> executed.
+> >>> Cheers,
+
+
+From jason.gar... at gmail.com  Mon Mar 17 16:01:16 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Mon, 17 Mar 2008 09:01:16 -0700 (PDT)
+Subject: ETA on Ragel 6.1?
+Message-ID: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+
+Any sense of when we can anticipate 6.1 will be released?  Looking
+forward to have those leaving actions at the end of patterns be
+available to the general public.
+
+
+From thurs... at cs.queensu.ca  Tue Mar 18 06:36:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 18 Mar 2008 02:36:08 -0400
+Subject: [ragel-users] ETA on Ragel 6.1?
+In-Reply-To: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+References: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+Message-ID: <47DF62D8.9050909@cs.queensu.ca>
+
+Hey Jason,
+
+I haven't had a chance to test it much. I'll get on that ASAP. I've been
+absent on the Ragel front lately because of my thesis project. I've been
+coding nonstop it seems and I might need to see a counselor soon if I
+don't pull myself away from it. Fortunately a lot of the hard work has
+been recently completed so I should be able to let it go and give Ragel
+some attention. Should.
+
+Those of you that like Ragel but wish it was a little more high level
+will like my thesis project. It's a full programming language dedicated
+to scanning, parsing and transforming parse trees. Watch for it :)
+
+-Adrian
+
+Jason Garber wrote:
+> Any sense of when we can anticipate 6.1 will be released?  Looking
+> forward to have those leaving actions at the end of patterns be
+> available to the general public.
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Tue Mar 18 08:20:39 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Tue, 18 Mar 2008 09:20:39 +0100
+Subject: [ragel-users] Re: ETA on Ragel 6.1?
+In-Reply-To: <47DF62D8.9050909@cs.queensu.ca>
+References: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com> <47DF62D8.9050909@cs.queensu.ca>
+Message-ID: <5501138E-9973-4D46-A552-6C8975F3D139@wincent.com>
+
+El 18/3/2008, a las 7:36, Adrian Thurston escribió:
+
+>
+> Hey Jason,
+>
+> I haven't had a chance to test it much. I'll get on that ASAP. I've  
+> been
+> absent on the Ragel front lately because of my thesis project. I've  
+> been
+> coding nonstop it seems and I might need to see a counselor soon if I
+> don't pull myself away from it. Fortunately a lot of the hard work has
+> been recently completed so I should be able to let it go and give  
+> Ragel
+> some attention. Should.
+>
+> Those of you that like Ragel but wish it was a little more high level
+> will like my thesis project. It's a full programming language  
+> dedicated
+> to scanning, parsing and transforming parse trees. Watch for it :)
+
+Awesome, look forward to seeing it. If it is of the same calibre as  
+Ragel then it will definitely be very impressive.
+
+Cheers,
+Wincent
+
+
+
+From thurs... at cs.queensu.ca  Wed Mar  5 20:34:36 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Mar 2008 15:34:36 -0500
+Subject: [ragel-users] Re: % Leaving Action Questions
+In-Reply-To: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>  <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+Message-ID: <47CF03DC.1010400@cs.queensu.ca>
+
+
+francois.beausoleil wrote:
+> With this machine, Ragel doesn't recognize "The parser assign
+> francois." (meaning my notify_action isn't called).  But it does
+> recognize "The parser assign to francois.", but says the name is "to
+> ".
+
+Perhaps you're giving it an 8-bit character? The built-in machine
+'alpha' only accepts 7-bit alpha characters.
+
+> Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+> find an immediate application.  I don't really know where/how to start
+> to write my scanner.
+
+Have a look at examples/cppscan.rl to get started.
+
+Cheers,
+ Adrian
+
+
+From francois.beausol... at gmail.com  Thu Mar  6 14:28:38 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Thu, 6 Mar 2008 06:28:38 -0800 (PST)
+Subject: % Leaving Action Questions
+In-Reply-To: <47CF03DC.1010400@cs.queensu.ca>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com> 
+	<1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> 
+	<bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com> 
+	<47CF03DC.1010400@cs.queensu.ca>
+Message-ID: <6e670a9b-e37f-4f14-90aa-814e803a8547@y77g2000hsy.googlegroups.com>
+
+Hi,
+
+On 5 mar, 15:34, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> francois.beausoleil wrote:
+> > With this machine, Ragel doesn't recognize "The parser assign
+> > francois." (meaning my notify_action isn't called).  But it does
+> > recognize "The parser assign to francois.", but says the name is "to
+> > ".
+>
+> Perhaps you're giving it an 8-bit character? The built-in machine
+> 'alpha' only accepts 7-bit alpha characters.
+
+You can see above that I'm using 7-bit characters.
+
+> Have a look at examples/cppscan.rl to get started.
+
+Will do.
+
+Thanks !
+
+
+From thurs... at cs.queensu.ca  Tue Mar 18 19:29:14 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 18 Mar 2008 15:29:14 -0400
+Subject: [ragel-users] Re: % Leaving Action Questions
+In-Reply-To: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>  <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+Message-ID: <47E0180A.8020308@cs.queensu.ca>
+
+Hi Francois, did you ever get this issue resolved? I can't see the
+problem just by looking at the grammar.
+
+-Adrian
+
+francois.beausoleil wrote:
+> Hello Adrian,
+> 
+> On 25 fév, 17:01, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+>> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+> 
+> Thanks for that.  I did finally manage to implement something that
+> works for the vast majority of cases.  I can identify "closes #123,
+> fixes #321" and other patterns.  My problem is now "assigned to
+> francois".  Here's my latest machine:
+> 
+>     %%{
+>       machine commit_message_parser;
+> 
+>       action mark { mark = p }
+>       action bugid { bugid = data[mark .. p] }
+>       action name { name = data[mark .. p] }
+> 
+>       action close { action = :close }
+>       action fix { action = :fix }
+>       action reference { action = :reference }
+>       action reopen { action = :reopen }
+>       action reactivate { action = :reactivate }
+>       action implement { action = :implement }
+>       action assign { action = :assign }
+>       action notify { listener.send(action, bugid.pack("C*")) }
+>       action notify_assign { listener.send(action, name.pack("C*")) }
+> 
+>       bugid = ("#" ('1'..'9')>mark ('0'..'9')**)@bugid %notify;
+>       bugid_separator = (space* (punct | /and/i) space*);
+>       bugids = (bugid (bugid_separator bugid)*);
+> 
+>       close = (/close/i /s/i? /:/?) %close;
+>       fix = (/fix/i /es/i? /:/?) %fix;
+>       reference = (/reference/i /s/i? /:/?) %reference;
+>       reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+>       reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+>       implement = (/implement/i? /s/i? /:/?) %implement;
+>       assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+>       name = (alpha)+ >mark %name;
+>       assignto = (assign space+ name) %notify_assign;
+> 
+>       keywords = (close | fix | reference | reopen | reactivate |
+> assignto);
+>       text = (any - (keywords | bugids));
+>       main := (text* (keywords space* bugids)*);
+>     }%%
+> 
+> With this machine, Ragel doesn't recognize "The parser assign
+> francois." (meaning my notify_action isn't called).  But it does
+> recognize "The parser assign to francois.", but says the name is "to
+> ".
+> 
+>> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+> 
+> Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+> find an immediate application.  I don't really know where/how to start
+> to write my scanner.
+> 
+> Thanks for any other help !
+> François
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 19 19:56:10 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 19 Mar 2008 15:56:10 -0400
+Subject: google summer of code 2008
+Message-ID: <47E16FDA.7050309@cs.queensu.ca>
+
+Hi,
+
+There is a 2008 Google Summer of Code project proposed by Ohloh that
+involves using Ragel. Ragel experience doesn't seem to be required, but
+I'm sure it would help with an application.
+
+http://labs.ohloh.net/ohcount/wiki/gsoc2008
+
+-Adrian
+
+
+From stephen.banna... at deanbrook.org  Sun Mar 23 15:30:35 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 11:30:35 -0400
+Subject: building trunk ragel -- needs ragel??
+Message-ID: <p06240806c40c26736d66@[192.168.1.114]>
+
+I'd like to build a trunk version of ragel but am getting stuck early 
+because ragel seems to require ragel to build.
+
+Can I install an earlier version of ragel to get past this block?
+
+svn co svn://mambo.cs.queensu.ca/ragel/trunk ragel
+cd ragel
+$ ./configure
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables...
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking for g++... g++
+checking whether we are using the GNU C++ compiler... yes
+checking whether g++ accepts -g... yes
+checking for ar... ar
+checking for ranlib... ranlib
+checking whether make sets $(MAKE)... yes
+checking for ragel... no
+
+error: ragel is required to build the parsers
+
+
+From w... at wincent.com  Sun Mar 23 15:38:48 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 23 Mar 2008 16:38:48 +0100
+Subject: [ragel-users] building trunk ragel -- needs ragel??
+In-Reply-To: <p06240806c40c26736d66@[192.168.1.114]>
+References: <p06240806c40c26736d66@[192.168.1.114]>
+Message-ID: <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+
+El 23/3/2008, a las 16:30, Stephen Bannasch escribió:
+
+> I'd like to build a trunk version of ragel but am getting stuck early
+> because ragel seems to require ragel to build.
+>
+> Can I install an earlier version of ragel to get past this block?
+
+Back when I did this (back with Ragel 5.20) I followed this sequence:
+
+1. build/install from tarball (doesn't need Ragel)
+
+2. build/install kelbt (http://www.cs.queensu.ca/~thurston/kelbt/),  
+also a prerequisite
+
+3. Subversion checkout and build
+
+I expect that the pattern is probably similar with the current trunk.
+
+Cheers,
+Wincent
+
+
+From stephen.banna... at deanbrook.org  Sun Mar 23 20:40:55 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 16:40:55 -0400
+Subject: [ragel-users] Re: building trunk ragel -- needs ragel??
+In-Reply-To: <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+References: <p06240806c40c26736d66@[192.168.1.114]>
+ <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+Message-ID: <p0624080ac40c7079c6cb@[192.168.1.114]>
+
+At 4:38 PM +0100 3/23/08, Wincent Colaiuta wrote:
+>El 23/3/2008, a las 16:30, Stephen Bannasch escribió:
+>
+>> I'd like to build a trunk version of ragel but am getting stuck early
+>> because ragel seems to require ragel to build.
+>>
+>> Can I install an earlier version of ragel to get past this block?
+>
+>Back when I did this (back with Ragel 5.20) I followed this sequence:
+>
+>1. build/install from tarball (doesn't need Ragel)
+>
+>2. build/install kelbt (http://www.cs.queensu.ca/~thurston/kelbt/), 
+>also a prerequisite
+>
+>3. Subversion checkout and build
+>
+>I expect that the pattern is probably similar with the current trunk.
+
+
+Thanks Wincent, that worked.
+
+FYI: Ragel trunk compilation steps on MacOS 10.5.2 with MacPorts installed:
+
+# get v6.0 of ragel installed -- needed to build trunk ragel
+sudo port install ragel
+
+# also install prerequisite gperf
+sudo port install gperf
+
+# download and install prerequisite kelbt
+wget http://www.cs.queensu.ca/~thurston/kelbt/kelbt-0.12.tar.gz
+tar xvzf kelbt-0.12.tar.gz
+cd kelbt-0.12
+./configure
+make
+sudo make install
+cd ..
+
+# Checkout trunk ragel and install in a directory
+# in home folder -- NOT in /usr/local.
+# The reason is to not interfere with the ports system.
+# When GCC compiles code it doesn't appear possible
+# to tell it not to look in /usr/local/lib for libraries.
+# So in general I've taken to putting code I compile
+# from source that either:
+#  1) creates libraries
+#  2) creates binaries that are also made by ports
+# in ~/dev/local
+
+svn co svn://mambo.cs.queensu.ca/ragel/trunk ragel
+cd ragel
+./configure --prefix ~/dev/local
+make
+make install
+
+# add ~/dev/local/bin to PATH before /opt/local/bin
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 03:16:22 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 23:16:22 -0400
+Subject: code generation styles, C and Java??
+Message-ID: <p06240800c40cc7d2871c@[63.138.152.125]>
+
+I'm trying to setup some tasks that can benchmark 
+size and speed for all the different ragel code 
+generation styles.
+
+In my RakeFile I've got these constants defined:
+
+RAGEL_CODE_GENERATION_STYLES = {
+   "table_driven" => 'T0',
+   "faster_table_driven" => 'T1',
+   "flat_table_driven" => 'F0',
+   "faster_flat_table_driven" => 'F1',
+   "goto_driven" => 'G0',
+   "faster_goto_driven" => 'G1',
+   "really_fast goto_driven" => 'G2'
+   # "n_way_split_really_fast_goto_driven" => 'P<N>'
+}
+DEFAULT_RAGEL_CODE_GENERATION = "really_fast goto_driven"
+
+I assume they can all be used with C generation.
+
+The manual states:
+
+   In the case of Java and Ruby, table-based code generation is the
+   only code style supported.
+
+There appear to be two types of table-base code generation:
+
+   -F0 þat table-driven
+   -F1 þat table, expanded actions
+
+But neither of these works:
+
+   ragel -J -F0 -o test.java test.rl
+   ragel -J -F1 -o test.java test.rl
+
+Only this:
+
+   ragel -J -o test.java test.rl
+
+Is there only one style of Java code generation?
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 15:31:29 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 11:31:29 -0400
+Subject: [ragel-users] code generation styles, C and Java??
+In-Reply-To: <p06240800c40cc7d2871c@[63.138.152.125]>
+References: <p06240800c40cc7d2871c@[63.138.152.125]>
+Message-ID: <47E7C951.1040800@cs.queensu.ca>
+
+That's right, -T0 is the only code style implemented for Java. The other
+table code styles (-T1 -F0 -F1) could be implemented, but the work just
+hasn't been done yet.
+
+Cheers,
+ Adrian
+
+Stephen Bannasch wrote:
+> I'm trying to setup some tasks that can benchmark 
+> size and speed for all the different ragel code 
+> generation styles.
+> 
+> In my RakeFile I've got these constants defined:
+> 
+> RAGEL_CODE_GENERATION_STYLES = {
+>    "table_driven" => 'T0',
+>    "faster_table_driven" => 'T1',
+>    "flat_table_driven" => 'F0',
+>    "faster_flat_table_driven" => 'F1',
+>    "goto_driven" => 'G0',
+>    "faster_goto_driven" => 'G1',
+>    "really_fast goto_driven" => 'G2'
+>    # "n_way_split_really_fast_goto_driven" => 'P<N>'
+> }
+> DEFAULT_RAGEL_CODE_GENERATION = "really_fast goto_driven"
+> 
+> I assume they can all be used with C generation.
+> 
+> The manual states:
+> 
+>    In the case of Java and Ruby, table-based code generation is the
+>    only code style supported.
+> 
+> There appear to be two types of table-base code generation:
+> 
+>    -F0 þat table-driven
+>    -F1 þat table, expanded actions
+> 
+> But neither of these works:
+> 
+>    ragel -J -F0 -o test.java test.rl
+>    ragel -J -F1 -o test.java test.rl
+> 
+> Only this:
+> 
+>    ragel -J -o test.java test.rl
+> 
+> Is there only one style of Java code generation?
+> 
+> > 
+> 
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 06:01:18 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 02:01:18 -0400
+Subject: N-Way Split really fast goto-driven FSM/what is it?
+Message-ID: <p06240805c40cf423e9ec@[192.168.1.114]>
+
+I couldn't find any information on this Ragel code generation style:
+
+   -P<N>  N-Way Split really fast goto-driven FSM.
+
+What is it, what kind of machines is it useful for, and what values 
+of N are reasonable?
+
+-- 
+- Stephen Bannasch
+   Concord Consortium, http://www.concord.org
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 15:41:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 11:41:17 -0400
+Subject: [ragel-users] N-Way Split really fast goto-driven FSM/what is
+ it?
+In-Reply-To: <p06240805c40cf423e9ec@[192.168.1.114]>
+References: <p06240805c40cf423e9ec@[192.168.1.114]>
+Message-ID: <47E7CB9D.6060506@cs.queensu.ca>
+
+The N-way split is a version of -G2 for really large machines. It
+partitions the states and generates a separate function for each
+partition. It has been implemented for C code only. As far as I know it
+hasn't been used very much.
+
+-Adrian
+
+Stephen Bannasch wrote:
+> I couldn't find any information on this Ragel code generation style:
+> 
+>    -P<N>  N-Way Split really fast goto-driven FSM.
+> 
+> What is it, what kind of machines is it useful for, and what values 
+> of N are reasonable?
+> 
+
+
+From jason.gar... at gmail.com  Mon Mar 24 16:14:01 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Mon, 24 Mar 2008 09:14:01 -0700 (PDT)
+Subject: Feature suggestion: action suppression flag
+Message-ID: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+
+It would be handy to have a way to suppress all actions in a pattern.
+I've found a few cases in RedCloth where I want to reuse a pattern but
+I don't want the actions to take effect.  For example, one pattern
+identifies dimension phrases (like "1x2x3") and another identifies all
+phrases that don't include the dimension pattern (e.g. phrase --
+dim).  I can't reuse the first pattern when excluding it from the
+second, though, because the embedded actions alter the phrase I'm
+trying to capture.  I wind up duplicating the dim pattern
+(dim_noactions), which isn't very DRY.
+
+Maybe there's already such a thing or maybe I could avoid the problem
+entirely by going a different route, but since this problem has come
+up for me several times, I wanted to suggest the enhancement.
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 18:24:36 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 14:24:36 -0400
+Subject: [ragel-users] Feature suggestion: action suppression flag
+In-Reply-To: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+References: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+Message-ID: <47E7F1E4.6020204@cs.queensu.ca>
+
+Hi Jason,
+
+This need has come up before and it's something I'd like to do. I think
+it will come more easily when there is a "macro" syntax in ragel. Then
+it can appear as:
+
+world = 'world' @w;
+main := 'hello ' . strip(world);
+
+-Adrian
+
+Jason Garber wrote:
+> It would be handy to have a way to suppress all actions in a pattern.
+> I've found a few cases in RedCloth where I want to reuse a pattern but
+> I don't want the actions to take effect.  For example, one pattern
+> identifies dimension phrases (like "1x2x3") and another identifies all
+> phrases that don't include the dimension pattern (e.g. phrase --
+> dim).  I can't reuse the first pattern when excluding it from the
+> second, though, because the embedded actions alter the phrase I'm
+> trying to capture.  I wind up duplicating the dim pattern
+> (dim_noactions), which isn't very DRY.
+> 
+> Maybe there's already such a thing or maybe I could avoid the problem
+> entirely by going a different route, but since this problem has come
+> up for me several times, I wanted to suggest the enhancement.
+> 
+> Jason
+> > 
+> 
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 05:23:51 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 01:23:51 -0400
+Subject: problems with java generation in ragel 6.x trunk
+Message-ID: <p06240804c40ce699bdb8@[192.168.1.114]>
+
+I'm working on getting Hpricot to work using trunk ragel. Right now 
+I'm getting lots of undefined Symbols.
+
+Any ideas on where to start fixing this would be great.
+
+It does work with ragel 5.25.
+
+Here's how the java file is being produced:
+
+ragel -J -o ext/hpricot_scan/HpricotScanService.java 
+ext/hpricot_scan/hpricot_scan.java.rl
+
+Here's the Java compiler invocation:
+
+javac -source 1.4 -target 1.4 -cp 
+.:/Users/stephen/dev/junit4.1::/Users/stephen/dev/jruby_trunk/jruby/lib/bsf.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/jruby-complete.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/jruby.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/lucene-core-2.2.0.jar 
+HpricotScanService.java
+
+----------------------------------------------------------
+
+The errors start with a series of these:
+
+HpricotScanService.java:821: cannot find symbol
+symbol  : variable ts
+location: class HpricotScanService
+	ts = -1;
+         ^
+HpricotScanService.java:822: cannot find symbol
+symbol  : variable te
+location: class HpricotScanService
+	te = -1;
+         ^
+
+Here's the Java source code:
+
+// line 819 "ext/hpricot_scan/HpricotScanService.java"
+	{
+	cs = hpricot_scan_start;
+	ts = -1;
+	te = -1;
+	act = 0;
+	}
+
+----------------------------------------------------------
+
+Here are some more errors:
+
+HpricotScanService.java:1086: cannot find symbol
+symbol  : variable te
+location: class HpricotScanService
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+                 ^
+HpricotScanService.java:1086: illegal start of type
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+                ^
+HpricotScanService.java:1086: illegal start of type
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+
+
+And here's the code around line 1086:
+
+	case 30:
+// line 56 "ext/hpricot_scan/hpricot_scan.java.rl"
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+	break;
+
+
+----------------------------------------------------------
+
+
+HpricotScanService.java:1210: cannot find symbol
+symbol  : variable eof
+location: class HpricotScanService
+
+And here's the code:
+
+case 4:
+	if ( p == eof )
+	{
+	if ( _hpricot_scan_eof_trans[cs] > 0 ) {
+		_trans = _hpricot_scan_eof_trans[cs] - 1;
+		_goto_targ = 3;
+		continue _goto;
+	}
+	}
+	if ( p == eof )
+
+
+From polus... at gmail.com  Mon Mar 24 08:59:11 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Mon, 24 Mar 2008 14:59:11 +0600
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240804c40ce699bdb8@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+Message-ID: <47E76D5F.1030...@gmail.com>
+
+Stephen Bannasch wrote:
+> I'm working on getting Hpricot to work using trunk ragel. Right now 
+> I'm getting lots of undefined Symbols.
+> 
+> Any ideas on where to start fixing this would be great.
+> 
+> It does work with ragel 5.25.
+> 
+> [...]
+> 
+> The errors start with a series of these:
+> 
+> HpricotScanService.java:821: cannot find symbol
+> symbol  : variable ts
+> location: class HpricotScanService
+> 	ts = -1;
+>          ^
+> HpricotScanService.java:822: cannot find symbol
+> symbol  : variable te
+> location: class HpricotScanService
+> 	te = -1;
+>          ^
+
+The "tokstart" and "tokend" variables should be renamed to "ts" and "te", as 
+of Ragel 6.0.
+
+
+-- 
+Andrei Polushin
+
+
+From w... at wincent.com  Mon Mar 24 09:07:35 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 24 Mar 2008 10:07:35 +0100
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240804c40ce699bdb8@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+Message-ID: <4DEBC31F-FE99-42E9-8D78-D8EA27DC89A3@wincent.com>
+
+El 24/3/2008, a las 6:23, Stephen Bannasch escribió:
+
+> I'm working on getting Hpricot to work using trunk ragel. Right now
+> I'm getting lots of undefined Symbols.
+
+I see that Andrei has already replied, but I'd add that you should  
+check out the changelog and release notes for 6.0:
+
+http://www.cs.queensu.ca/~thurston/ragel/RELEASE_NOTES_V6
+http://www.cs.queensu.ca/~thurston/ragel/ChangeLog
+
+They cover what Andrei told you, and all the changes you need to now  
+about in 5.24 to 6.0.
+
+Cheers,
+Wincent
+
+
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 15:44:16 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 11:44:16 -0400
+Subject: [ragel-users] Re: problems with java generation in ragel 6.x trunk
+In-Reply-To: <47E76D5F.1030209@gmail.com>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+ <47E76D5F.1030209@gmail.com>
+Message-ID: <p06240801c40d66fd36e4@[192.168.1.114]>
+
+Regarding:
+
+> > HpricotScanService.java:822: cannot find symbol
+>> symbol  : variable te
+>> location: class HpricotScanService
+>>	te = -1;
+>>          ^
+>
+>The "tokstart" and "tokend" variables should be renamed to "ts" and "te", as
+>of Ragel 6.0.
+
+Thanks Andrei and Wincent for the pointers. I've got it working in trunk ragel.
+
+I've now got two very similar ragel source files. One for use with Ragel < 6.0 and the other for Ragel version >= 6.0.
+
+I'd like to be able to create a ragel file that will compile in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+
+I could use a simple preprocessor (probably Ruby ERB since the rest of the code is in Ruby) to process a single ragel source file and send the ouput to Ragel 6 or 5.25.
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 16:05:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 12:05:47 -0400
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240801c40d66fd36e4@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]> <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]>
+Message-ID: <47E7D15B.5010406@cs.queensu.ca>
+
+Stephen Bannasch wrote:
+> I'd like to be able to create a ragel file that will compile
+> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+
+I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+feeling is that a compatibility layer isn't worth the effort. The
+changes to the operators > % :> :>> and <: could require some minor
+refactoring of ragel definitions.
+
+People normally side-step ragel version issues by distributing the files
+generated by ragel. Hopefully at some point ragel will be stable enough
+that this won't be necessary, but as you can see we're not there yet.
+
+-Adrian
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 17:47:19 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 13:47:19 -0400
+Subject: [ragel-users] Re: problems with java generation in ragel 6.x trunk
+In-Reply-To: <47E7D15B.5010406@cs.queensu.ca>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+ <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]>
+ <47E7D15B.5010406@cs.queensu.ca>
+Message-ID: <p06240802c40d95e18e9d@[63.138.152.125]>
+
+At 12:05 PM -0400 3/24/08, Adrian Thurston wrote:
+>Stephen Bannasch wrote:
+>> I'd like to be able to create a ragel file that will compile
+>> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+>
+>I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+>feeling is that a compatibility layer isn't worth the effort. The
+>changes to the operators > % :> :>> and <: could require some minor
+>refactoring of ragel definitions.
+
+In the C ragel source I only needed to:
+
+  convert tokstart, tokend => ts, te
+
+and failing tests went from 2 to 0 ;-)
+
+In the Java ragel source I did the above and added:
+
+  int eof=0;
+
+There are a couple of failing tests but I don't think it has anything to do with ragel.
+
+Regarding: changes to operators > % :> :>>
+
+I'll take a look at where those are used and if needed try and make sure the test coverage includes problems that might occur.
+
+>People normally side-step ragel version issues by distributing the files
+>generated by ragel.
+
+That makes sense -- distribute both *.c and *.java files (actually the Java class fles can be bundled into a Jar and the only dependency with be on JVM version).
+
+Right now I'm working on the hpricot source release and on the redcloth source release -- fixing bugs, seeing about
+
+Redcloth needs ragel trunk.
+
+I think the changes I made to (Hpricot which I'm testing with ragel trunk) will also work fine with ragel v6.0 and 6.trunk.
+
+I could create dependency on ragel >= 6.0 for compiling the ragel source for hpricot.
+
+Now that 6.0 seems to be distributed widely that might be fine.
+
+
+From thurs... at cs.queensu.ca  Tue Mar 25 03:02:51 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Tue, 25 Mar 2008 03:02:51 +0000
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240802c40d95e18e9d@[63.138.152.125]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]> <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]> <47E7D15B.5010406@cs.queensu.ca><p06240802c40d95e18e9d@[63.138.152.125]>
+Message-ID: <1076443999-1206414137-cardhu_decombobulator_blackberry.rim.net-650798472-@bxe150.bisx.prod.on.blackberry>
+
+For java code set eof to -1 to pacify ragel. Since java doesn't have pointers I use array offsets and -1 is used to represent null.
+
+-Adrian
+-----Original Message-----
+From: Stephen Bannasch <stephen.bannasch at deanbrook.org>
+
+Date: Mon, 24 Mar 2008 13:47:19 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+
+
+
+At 12:05 PM -0400 3/24/08, Adrian Thurston wrote:
+>Stephen Bannasch wrote:
+>> I'd like to be able to create a ragel file that will compile
+>> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+>
+>I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+>feeling is that a compatibility layer isn't worth the effort. The
+>changes to the operators > % :> :>> and <: could require some minor
+>refactoring of ragel definitions.
+
+In the C ragel source I only needed to:
+
+  convert tokstart, tokend => ts, te
+
+and failing tests went from 2 to 0 ;-)
+
+In the Java ragel source I did the above and added:
+
+  int eof=0;
+
+There are a couple of failing tests but I don't think it has anything to do with ragel.
+
+Regarding: changes to operators > % :> :>>
+
+I'll take a look at where those are used and if needed try and make sure the test coverage includes problems that might occur.
+
+>People normally side-step ragel version issues by distributing the files
+>generated by ragel.
+
+That makes sense -- distribute both *.c and *.java files (actually the Java class fles can be bundled into a Jar and the only dependency with be on JVM version).
+
+Right now I'm working on the hpricot source release and on the redcloth source release -- fixing bugs, seeing about
+
+Redcloth needs ragel trunk.
+
+I think the changes I made to (Hpricot which I'm testing with ragel trunk) will also work fine with ragel v6.0 and 6.trunk.
+
+I could create dependency on ragel >= 6.0 for compiling the ragel source for hpricot.
+
+Now that 6.0 seems to be distributed widely that might be fine.
+
+
+
+
+
+From ma... at nanorex.com  Tue Mar 25 22:01:35 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 18:01:35 -0400
+Subject: Help with extracting a list of numbers
+Message-ID: <47E9763F.8050805@nanorex.com>
+
+Hi all,
+
+   I'm trying to write a pattern to extract a list of numbers following 
+the keyword bond and I'm not able to figure out why my pattern below 
+always skips the last number
+
+   My input is of the form:
+
+   bond <number> <number> ...
+
+%%{
+     machine bond_parser;
+
+     whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+(fc-'0');}    ;
+
+     main :=
+         space* 'bond'
+         (space+ whole_number %printNumber)+
+         space* 0;
+}%%
+
+where printNumber is an action to print the number just updated into the 
+integer variable intVal.
+
+The 0 at the end of the pattern is the NULL character that cin.getline() 
+adds when reading upto the newline character from the console.
+
+I realize this may be due to the leaving action for the last number that 
+never gets called but could someone tell me a way around this?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Tue Mar 25 22:36:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 18:36:47 -0400
+Subject: [ragel-users] Help with extracting a list of numbers
+In-Reply-To: <47E9763F.8050805@nanorex.com>
+References: <47E9763F.8050805@nanorex.com>
+Message-ID: <47E97E7F.9010803@cs.queensu.ca>
+
+Hi Manoj,
+
+Are you sure the null is being sent to the parser? If it is then
+printNumber should be executed on the last character.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I'm trying to write a pattern to extract a list of numbers following 
+> the keyword bond and I'm not able to figure out why my pattern below 
+> always skips the last number
+> 
+>    My input is of the form:
+> 
+>    bond <number> <number> ...
+> 
+> %%{
+>      machine bond_parser;
+> 
+>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+> (fc-'0');}    ;
+> 
+>      main :=
+>          space* 'bond'
+>          (space+ whole_number %printNumber)+
+>          space* 0;
+> }%%
+> 
+> where printNumber is an action to print the number just updated into the 
+> integer variable intVal.
+> 
+> The 0 at the end of the pattern is the NULL character that cin.getline() 
+> adds when reading upto the newline character from the console.
+> 
+> I realize this may be due to the leaving action for the last number that 
+> never gets called but could someone tell me a way around this?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Wed Mar 26 00:02:19 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 20:02:19 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E97E7F.9010803@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca>
+Message-ID: <47E9928B.7080202@nanorex.com>
+
+Hi Adrian
+
+    The detection works only when I enter a space at the end. And yes, 
+the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+missing something really simple.
+
+    I'm using Ragel 6.0 on Fedora 8.
+
+    BTW, I'm attaching a small C++ program if anyone would like to run it.
+
+    In the program, it prints out the ending character (*pe) and 
+confirms that it is '\0'. Should 'pe' point to the last char or to one 
+past it, i.e., is the character range [p,pe] or [p, pe) ?
+
+    In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+whereas in another I see p+strlen(buf)+1 (pg 6)
+
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Manoj,
+> 
+> Are you sure the null is being sent to the parser? If it is then
+> printNumber should be executed on the last character.
+> 
+> Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>    I'm trying to write a pattern to extract a list of numbers following 
+>> the keyword bond and I'm not able to figure out why my pattern below 
+>> always skips the last number
+>>
+>>    My input is of the form:
+>>
+>>    bond <number> <number> ...
+>>
+>> %%{
+>>      machine bond_parser;
+>>
+>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>> (fc-'0');}    ;
+>>
+>>      main :=
+>>          space* 'bond'
+>>          (space+ whole_number %printNumber)+
+>>          space* 0;
+>> }%%
+>>
+>> where printNumber is an action to print the number just updated into the 
+>> integer variable intVal.
+>>
+>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>> adds when reading upto the newline character from the console.
+>>
+>> I realize this may be due to the leaving action for the last number that 
+>> never gets called but could someone tell me a way around this?
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: number_parser.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080325/f6edda53/attachment.ksh>
+
+From ma... at nanorex.com  Wed Mar 26 00:08:31 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 20:08:31 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E97E7F.9010803@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca>
+Message-ID: <47E993FF.5030203@nanorex.com>
+
+Oh and in the program that I sent to this group in my previous email, 
+the print_info() action to be executed when the last state ('\0') is 
+reached never gets executed:
+
+main :=
+         space*
+         'bond' %{cerr << "saw 'bond'" << endl;}
+         (space+  whole_number %foundNumberAction)+
+         space* 0
+         @{ print_info();}
+      ;
+
+Input:  bond <number> <number>  <number> ...
+
+Here is a twist: when I extract the user input into a character buffer, 
+then replace the last NULL char with '\n' and make the next character 
+NULL, incrementing pe by 1 and then changing the pattern's last 0 to 
+'\n', the machine works perfectly.
+
+Does ragel interpret line-ending NULL chars in some special way?
+
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Manoj,
+> 
+> Are you sure the null is being sent to the parser? If it is then
+> printNumber should be executed on the last character.
+> 
+> Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>    I'm trying to write a pattern to extract a list of numbers following 
+>> the keyword bond and I'm not able to figure out why my pattern below 
+>> always skips the last number
+>>
+>>    My input is of the form:
+>>
+>>    bond <number> <number> ...
+>>
+>> %%{
+>>      machine bond_parser;
+>>
+>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>> (fc-'0');}    ;
+>>
+>>      main :=
+>>          space* 'bond'
+>>          (space+ whole_number %printNumber)+
+>>          space* 0;
+>> }%%
+>>
+>> where printNumber is an action to print the number just updated into the 
+>> integer variable intVal.
+>>
+>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>> adds when reading upto the newline character from the console.
+>>
+>> I realize this may be due to the leaving action for the last number that 
+>> never gets called but could someone tell me a way around this?
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 02:14:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 22:14:01 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9928B.7080202@nanorex.com>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com>
+Message-ID: <47E9B169.1040401@cs.queensu.ca>
+
+Just change the setting of pe to (strlen(linebuf) + 1) to include the
+null character and it should work okay.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian
+> 
+>     The detection works only when I enter a space at the end. And yes, 
+> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+> missing something really simple.
+> 
+>     I'm using Ragel 6.0 on Fedora 8.
+> 
+>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+> 
+>     In the program, it prints out the ending character (*pe) and 
+> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+> past it, i.e., is the character range [p,pe] or [p, pe) ?
+> 
+>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+> whereas in another I see p+strlen(buf)+1 (pg 6)
+> 
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Manoj,
+>>
+>> Are you sure the null is being sent to the parser? If it is then
+>> printNumber should be executed on the last character.
+>>
+>> Adrian
+>>
+>> Manoj Rajagopalan wrote:
+>>> Hi all,
+>>>
+>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>> always skips the last number
+>>>
+>>>    My input is of the form:
+>>>
+>>>    bond <number> <number> ...
+>>>
+>>> %%{
+>>>      machine bond_parser;
+>>>
+>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>> (fc-'0');}    ;
+>>>
+>>>      main :=
+>>>          space* 'bond'
+>>>          (space+ whole_number %printNumber)+
+>>>          space* 0;
+>>> }%%
+>>>
+>>> where printNumber is an action to print the number just updated into the 
+>>> integer variable intVal.
+>>>
+>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>> adds when reading upto the newline character from the console.
+>>>
+>>> I realize this may be due to the leaving action for the last number that 
+>>> never gets called but could someone tell me a way around this?
+>>>
+>>> Thanks,
+>>> Manoj
+>>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 02:17:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 22:17:17 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9928B.7080202@nanorex.com>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com>
+Message-ID: <47E9B22D.40807@cs.queensu.ca>
+
+The pe variable should be set to one past the last character. Hope that
+clears things up.
+
+Cheers,
+ Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian
+> 
+>     The detection works only when I enter a space at the end. And yes, 
+> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+> missing something really simple.
+> 
+>     I'm using Ragel 6.0 on Fedora 8.
+> 
+>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+> 
+>     In the program, it prints out the ending character (*pe) and 
+> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+> past it, i.e., is the character range [p,pe] or [p, pe) ?
+> 
+>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+> whereas in another I see p+strlen(buf)+1 (pg 6)
+> 
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Manoj,
+>>
+>> Are you sure the null is being sent to the parser? If it is then
+>> printNumber should be executed on the last character.
+>>
+>> Adrian
+>>
+>> Manoj Rajagopalan wrote:
+>>> Hi all,
+>>>
+>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>> always skips the last number
+>>>
+>>>    My input is of the form:
+>>>
+>>>    bond <number> <number> ...
+>>>
+>>> %%{
+>>>      machine bond_parser;
+>>>
+>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>> (fc-'0');}    ;
+>>>
+>>>      main :=
+>>>          space* 'bond'
+>>>          (space+ whole_number %printNumber)+
+>>>          space* 0;
+>>> }%%
+>>>
+>>> where printNumber is an action to print the number just updated into the 
+>>> integer variable intVal.
+>>>
+>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>> adds when reading upto the newline character from the console.
+>>>
+>>> I realize this may be due to the leaving action for the last number that 
+>>> never gets called but could someone tell me a way around this?
+>>>
+>>> Thanks,
+>>> Manoj
+>>>
+> 
+> > 
+
+
+From ma... at nanorex.com  Wed Mar 26 03:47:27 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 23:47:27 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9B22D.40807@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com> <47E9B22D.40807@cs.queensu.ca>
+Message-ID: <47E9C74F.2010706@nanorex.com>
+
+OK I get it now. since the terminal NULL character is part of my 
+pattern, pe's got to be past that. In the usual examples, the terminal 
+NULL is not part of the pattern and hence pe is set to it.
+
+It works now, thanks.
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> The pe variable should be set to one past the last character. Hope that
+> clears things up.
+> 
+> Cheers,
+>  Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi Adrian
+>>
+>>     The detection works only when I enter a space at the end. And yes, 
+>> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+>> missing something really simple.
+>>
+>>     I'm using Ragel 6.0 on Fedora 8.
+>>
+>>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+>>
+>>     In the program, it prints out the ending character (*pe) and 
+>> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+>> past it, i.e., is the character range [p,pe] or [p, pe) ?
+>>
+>>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+>> whereas in another I see p+strlen(buf)+1 (pg 6)
+>>
+>>
+>> -- Manoj
+>>
+>>
+>> Adrian Thurston wrote:
+>>> Hi Manoj,
+>>>
+>>> Are you sure the null is being sent to the parser? If it is then
+>>> printNumber should be executed on the last character.
+>>>
+>>> Adrian
+>>>
+>>> Manoj Rajagopalan wrote:
+>>>> Hi all,
+>>>>
+>>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>>> always skips the last number
+>>>>
+>>>>    My input is of the form:
+>>>>
+>>>>    bond <number> <number> ...
+>>>>
+>>>> %%{
+>>>>      machine bond_parser;
+>>>>
+>>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>>> (fc-'0');}    ;
+>>>>
+>>>>      main :=
+>>>>          space* 'bond'
+>>>>          (space+ whole_number %printNumber)+
+>>>>          space* 0;
+>>>> }%%
+>>>>
+>>>> where printNumber is an action to print the number just updated into the 
+>>>> integer variable intVal.
+>>>>
+>>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>>> adds when reading upto the newline character from the console.
+>>>>
+>>>> I realize this may be due to the leaving action for the last number that 
+>>>> never gets called but could someone tell me a way around this?
+>>>>
+>>>> Thanks,
+>>>> Manoj
+>>>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 23:12:04 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 26 Mar 2008 19:12:04 -0400
+Subject: 6.1 released
+Message-ID: <47EAD844.2080307@cs.queensu.ca>
+
+Details here:
+
+http://www.cs.queensu.ca/~thurston/ragel/ChangeLog
+http://www.cs.queensu.ca/~thurston/ragel/RELEASE_NOTES_V6
+
+-Adrian
+
+
+From ma... at nanorex.com  Fri Mar 28 13:34:44 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 09:34:44 -0400
+Subject: Advice on detecting errors
+Message-ID: <47ECF3F4.2090002@nanorex.com>
+
+Hi all,
+
+   I have two questions.
+
+QUESTION 1:
+    I'm not clear on how to detect syntax errors in Ragel. As a simple 
+example, if I want allow a statement:
+
+    set <name> = <value>;
+
+for which my pattern would be something like:
+
+    set_stmt = space*  'set'  (alpha alnum*) space* '=' space* digit+ 
+space* ';'
+
+and if I provide input like
+
+    set var = 123bad;
+
+How can I get Ragel to point out a syntax error here?
+
+
+
+QUESTION 2:
+If I set up a scanner with a list of allowed expressions and ragel 
+encounters an expression that is not on the list, what does it do? Is it 
+possible to create a 'trap' pattern to output an unrecognized or badly 
+formed input?
+
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Mar 28 18:58:49 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Mar 2008 14:58:49 -0400
+Subject: [ragel-users] Advice on detecting errors
+In-Reply-To: <47ECF3F4.2090002@nanorex.com>
+References: <47ECF3F4.2090002@nanorex.com>
+Message-ID: <47ED3FE9.2010200@cs.queensu.ca>
+
+Hey Manoj,
+
+If you just want to report where in the input the error occured you can
+print the values at (or the location of) p. It is left at the character
+the error occurred at.
+
+If you want to give some idea of what was expected when the error
+occurred you can use error actions. These are associated with particular
+states and can print error messages directly or can set some variable
+representing the context. See the relevant section in the manual.
+
+In scanners, if no pattern matches then the state machine moves into the
+error state. If you want to create an "else" pattern then put "any" at
+the very end of the list of patterns. It will act as a default.
+
+Cheers,
+ Adrian
+
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I have two questions.
+> 
+> QUESTION 1:
+>     I'm not clear on how to detect syntax errors in Ragel. As a simple 
+> example, if I want allow a statement:
+> 
+>     set <name> = <value>;
+> 
+> for which my pattern would be something like:
+> 
+>     set_stmt = space*  'set'  (alpha alnum*) space* '=' space* digit+ 
+> space* ';'
+> 
+> and if I provide input like
+> 
+>     set var = 123bad;
+> 
+> How can I get Ragel to point out a syntax error here?
+> 
+> 
+> 
+> QUESTION 2:
+> If I set up a scanner with a list of allowed expressions and ragel 
+> encounters an expression that is not on the list, what does it do? Is it 
+> possible to create a 'trap' pattern to output an unrecognized or badly 
+> formed input?
+> 
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Mar 28 18:36:01 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 14:36:01 -0400
+Subject: Is there a way to generate non-static variables?
+Message-ID: <47ED3A91.3020508@nanorex.com>
+
+Hi Adrian,
+
+    In C/C++, the variables generated are static. While I can write data 
+for different machine instantiations in different functions, the 
+static-ness makes the data allocated persistent. Instead, if there were 
+an optional way of disabling this which could be used inside functions 
+allocation would be on the function's stack and the total data segment 
+size for the program would remain modest.
+
+   I am in the process of writing a unit test suite where I have one 
+master Ragel file and am including parts of it for non-invasive testing 
+in my test-suite CPP files. I have to perform a write data for each line 
+that I am testing and then for more complicated machines that build on 
+lines tested in these simpler tests.
+
+   These tests are part of a potentially enormous test suite for a heavy 
+application with many components. I suspect statically-allocated global 
+data requirements can become quite large though I haven't faced any 
+problems yet. Please correct me if I am wrong.
+
+   If this idea is worthy of exploration then Ragel could provide a 
+'nostatic' option to the 'write data' statement which we developers 
+would use in some scope inside which we'd like the data to be 
+exclusively visible.
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Mar 28 19:02:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Mar 2008 15:02:23 -0400
+Subject: [ragel-users] Is there a way to generate non-static variables?
+In-Reply-To: <47ED3A91.3020508@nanorex.com>
+References: <47ED3A91.3020508@nanorex.com>
+Message-ID: <47ED40BF.3060704@cs.queensu.ca>
+
+If the variables were not static they would need to be initialized from
+static variables. So short of loading the data from a file you can't
+avoid the static data.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>     In C/C++, the variables generated are static. While I can write data 
+> for different machine instantiations in different functions, the 
+> static-ness makes the data allocated persistent. Instead, if there were 
+> an optional way of disabling this which could be used inside functions 
+> allocation would be on the function's stack and the total data segment 
+> size for the program would remain modest.
+> 
+>    I am in the process of writing a unit test suite where I have one 
+> master Ragel file and am including parts of it for non-invasive testing 
+> in my test-suite CPP files. I have to perform a write data for each line 
+> that I am testing and then for more complicated machines that build on 
+> lines tested in these simpler tests.
+> 
+>    These tests are part of a potentially enormous test suite for a heavy 
+> application with many components. I suspect statically-allocated global 
+> data requirements can become quite large though I haven't faced any 
+> problems yet. Please correct me if I am wrong.
+> 
+>    If this idea is worthy of exploration then Ragel could provide a 
+> 'nostatic' option to the 'write data' statement which we developers 
+> would use in some scope inside which we'd like the data to be 
+> exclusively visible.
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Mar 28 19:07:24 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 15:07:24 -0400
+Subject: [ragel-users] Re: Is there a way to generate non-static variables?
+In-Reply-To: <47ED40BF.3060704@cs.queensu.ca>
+References: <47ED3A91.3020508@nanorex.com> <47ED40BF.3060704@cs.queensu.ca>
+Message-ID: <47ED41EC.5070401@nanorex.com>
+
+In that case would it be too bad to provide a constructor kind of 
+function which the developer must explicitly call? But this way we'd be 
+simply be moving data-space reclaimed (?) to instruction space to encode 
+these initializations in addition to storing the immediates so this 
+might not be a great idea :-)
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> If the variables were not static they would need to be initialized from
+> static variables. So short of loading the data from a file you can't
+> avoid the static data.
+> 
+> -Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi Adrian,
+>>
+>>     In C/C++, the variables generated are static. While I can write data 
+>> for different machine instantiations in different functions, the 
+>> static-ness makes the data allocated persistent. Instead, if there were 
+>> an optional way of disabling this which could be used inside functions 
+>> allocation would be on the function's stack and the total data segment 
+>> size for the program would remain modest.
+>>
+>>    I am in the process of writing a unit test suite where I have one 
+>> master Ragel file and am including parts of it for non-invasive testing 
+>> in my test-suite CPP files. I have to perform a write data for each line 
+>> that I am testing and then for more complicated machines that build on 
+>> lines tested in these simpler tests.
+>>
+>>    These tests are part of a potentially enormous test suite for a heavy 
+>> application with many components. I suspect statically-allocated global 
+>> data requirements can become quite large though I haven't faced any 
+>> problems yet. Please correct me if I am wrong.
+>>
+>>    If this idea is worthy of exploration then Ragel could provide a 
+>> 'nostatic' option to the 'write data' statement which we developers 
+>> would use in some scope inside which we'd like the data to be 
+>> exclusively visible.
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+
+
+From ma... at nanorex.com  Sat Mar 29 20:18:05 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Sat, 29 Mar 2008 16:18:05 -0400
+Subject: question about kleene-star
+Message-ID: <47EEA3FD.60900@nanorex.com>
+
+Hi all,
+
+   According to the kleene-star documentation, it is an operator that 
+grants greater priority to transitions within the machine and hence aims 
+for the longest match. While I can see its utility in deciding between 
+pattern-alternates, how is it to be used on a single-string?
+
+   To be more clear, suppose I want to match the longest string of 
+lower-case characters at least one character long. Should I use "lower 
+lower**" or "(lower+)**". In other words, is the ** a qualifier to an 
+existing expression or is it an operator by itself?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:25:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:25:17 -0400
+Subject: [ragel-users] question about kleene-star
+In-Reply-To: <47EEA3FD.60900@nanorex.com>
+References: <47EEA3FD.60900@nanorex.com>
+Message-ID: <47F1106D.7060306@cs.queensu.ca>
+
+The * operator doesn't imply any management of ambiguities. It is the
+pure kleene star from language theory. It will generate a machine that
+simultaneously extends a match and restarts it if there is any ambiguity
+between these two activities.
+
+The ** operator on the other hand favours extending a machine over
+completing it and restarting.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    According to the kleene-star documentation, it is an operator that 
+> grants greater priority to transitions within the machine and hence aims 
+> for the longest match. While I can see its utility in deciding between 
+> pattern-alternates, how is it to be used on a single-string?
+> 
+>    To be more clear, suppose I want to match the longest string of 
+> lower-case characters at least one character long. Should I use "lower 
+> lower**" or "(lower+)**". In other words, is the ** a qualifier to an 
+> existing expression or is it an operator by itself?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Sat Mar 29 23:42:30 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Sat, 29 Mar 2008 19:42:30 -0400
+Subject: Control of efficiency of pattern-matching
+Message-ID: <47EED3E6.8040809@nanorex.com>
+
+Hi Adrian,
+
+   Suppose I'd like to detect a bunch of lower-case character that come 
+after a bunch of whitespaces. I could use
+
+   space* lower+
+
+Would the machine generated be any more efficient if I used the 
+following instead?
+
+   space* <: lower+
+
+The left-guard should place higher priority on staying in the 
+"space-eater" pattern but I'm guessing the machines will be equally 
+efficient and the <: only helps in disambiguation which isn't the case 
+here. Am I correct?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:27:58 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:27:58 -0400
+Subject: [ragel-users] Control of efficiency of pattern-matching
+In-Reply-To: <47EED3E6.8040809@nanorex.com>
+References: <47EED3E6.8040809@nanorex.com>
+Message-ID: <47F1110E.9050402@cs.queensu.ca>
+
+
+Manoj Rajagopalan wrote:
+> The left-guard should place higher priority on staying in the 
+> "space-eater" pattern but I'm guessing the machines will be equally 
+> efficient and the <: only helps in disambiguation which isn't the case 
+> here. Am I correct?
+
+Yes that's right, the two state machines will be identical since there
+is no ambiguity.
+
+-Adrian
+
+
+From Martin.Pir... at iaik.tugraz.at  Mon Mar 31 14:59:04 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Mon, 31 Mar 2008 16:59:04 +0200
+Subject: Splitting common definitions and actions implementation
+Message-ID: <47F0FC38.2000...@iaik.tugraz.at>
+
+Hello ragel-users...
+
+I was pondering, if I want to use the same Ragel machine with different
+language backends, how would it be possible to seperate common logic
+from language dependent action implementation.
+
+E.g., I have a core.rl file with the bulk of common logic and I want a
+c.rl and java.rl file which "include core.rl".
+In core I need to reference actions which are not defined there, in the
+language dependent files I need to reference constants/states of the
+common logic.
+
+
+Do I have to duplicate common definitions if I want to develop two
+language implementations simultaneously, or am I missing a way to
+workaround this circular dependency problem?
+
+
+Thanks,
+  Martin
+
+
+PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+Google account, just to be able to join this list/group to ask a question? :-/
+
+
+From ma... at nanorex.com  Mon Mar 31 15:08:32 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Mon, 31 Mar 2008 11:08:32 -0400
+Subject: [ragel-users] Splitting common definitions and actions implementation
+In-Reply-To: <47F0FC38.2000004@iaik.tugraz.at>
+References: <47F0FC38.2000004@iaik.tugraz.at>
+Message-ID: <47F0FE70.3030800@nanorex.com>
+
+I'm working on something like this. To ensure that your constants in 
+core appear to your c/java.rl make sure you include them in the correct 
+order - core.rl first.
+
+I have a .cpp file in which I include all my .rl files and then declare 
+and define functions which I call from my equivalent of core.rl. The 
+declarations occur above the %% write exec for my machines otherwise the 
+  the 'include' statement for your .rl files could go any place (I 
+think, because you'll be running Ragel before the C preprocessor).
+
+Because Ragel simply translates text from a pattern-recognition language 
+to C/Java, your code will compile if the resulting .c/.java files have 
+the declarations in the correct order.
+
+You might need to create one or two more intermediate files to solve the 
+problem.
+
+cheers!
+Manoj
+
+
+
+
+Martin Pirker wrote:
+> Hello ragel-users...
+> 
+> I was pondering, if I want to use the same Ragel machine with different
+> language backends, how would it be possible to seperate common logic
+> from language dependent action implementation.
+> 
+> E.g., I have a core.rl file with the bulk of common logic and I want a
+> c.rl and java.rl file which "include core.rl".
+> In core I need to reference actions which are not defined there, in the
+> language dependent files I need to reference constants/states of the
+> common logic.
+> 
+> 
+> Do I have to duplicate common definitions if I want to develop two
+> language implementations simultaneously, or am I missing a way to
+> workaround this circular dependency problem?
+> 
+> 
+> Thanks,
+>   Martin
+> 
+> 
+> PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+> Google account, just to be able to join this list/group to ask a question? :-/
+> 
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:45:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:45:19 -0400
+Subject: [ragel-users] Splitting common definitions and actions implementation
+In-Reply-To: <47F0FC38.2000004@iaik.tugraz.at>
+References: <47F0FC38.2000004@iaik.tugraz.at>
+Message-ID: <47F1151F.40707@cs.queensu.ca>
+
+Here's an example of this minus the state references in actions.
+
+http://code.whytheluckystiff.net/hpricot/browser/trunk/ext/hpricot_scan
+
+The java and c .rl files define actions and then include the common.rl,
+which contains all the machine definitions. You don't need to worry
+about circular dependencies since references to states are resolved
+after all the input (including all included files) is read in.
+
+-Adrian
+
+Martin Pirker wrote:
+> Hello ragel-users...
+> 
+> I was pondering, if I want to use the same Ragel machine with different
+> language backends, how would it be possible to seperate common logic
+> from language dependent action implementation.
+> 
+> E.g., I have a core.rl file with the bulk of common logic and I want a
+> c.rl and java.rl file which "include core.rl".
+> In core I need to reference actions which are not defined there, in the
+> language dependent files I need to reference constants/states of the
+> common logic.
+> 
+> 
+> Do I have to duplicate common definitions if I want to develop two
+> language implementations simultaneously, or am I missing a way to
+> workaround this circular dependency problem?
+> 
+> 
+> Thanks,
+>   Martin
+> 
+> 
+> PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+> Google account, just to be able to join this list/group to ask a question? :-/
+> 
+> 
+> > 
+> 
+
+
+From polus... at gmail.com  Fri Mar 28 21:41:21 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Sat, 29 Mar 2008 03:41:21 +0600
+Subject: fnext followed by fbreak
+Message-ID: <47ED6601.50...@gmail.com>
+
+The action like this:
+
+     action x {
+         fnext somewhere_else;
+         fbreak;
+     };
+
+become generated as follows:
+
+     action x {
+         cs = 123;                   // fnext somewhere_else;
+         {p++; cs = 456; goto _out;} // fbreak;
+     };
+
+where '123' is the desired next state (aka somewhere_else),
+and '456' is the default target state for the transition.
+
+That is, the effect of fnext is neglected, when followed by fbreak.
+
+For now, the workaround is to redeclare 'cs' in local block:
+
+     action x {
+         fnext somewhere_else;
+         {int cs = -1; fbreak;}
+     };
+
+but I hope there should be a better solution for this.
+
+For actions that involve both fnext and fbreak, I would suggest
+generating {cs = ...} in the beginning of the action, and omit
+that assignnment in the code generated by fbreak.
+
+--
+Andrei Polushin
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:18:28 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:18:28 -0400
+Subject: [ragel-users] fnext followed by fbreak
+In-Reply-To: <47ED6601.50101@gmail.com>
+References: <47ED6601.50101@gmail.com>
+Message-ID: <47F10ED4.3090504@cs.queensu.ca>
+
+Hmmm, yes this needs to be fixed for sure.
+
+Andrei Polushin wrote:
+> For actions that involve both fnext and fbreak, I would suggest
+> generating {cs = ...} in the beginning of the action, and omit
+> that assignnment in the code generated by fbreak.
+
+That seems like a good solution. Also, I think it's already half done in
+-G2. When an action contains fnext there need to be a jump back into the
+processing loop via a switch so CS is set just before the action.
+
+-Adrian
+
+
+From thurs... at cs.queensu.ca  Wed Mar  5 18:19:52 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Mar 2008 13:19:52 -0500
+Subject: [ragel-users] Possible bug in Ragel 6.0
+In-Reply-To: <47BDB605.30304@nanorex.com>
+References: <47BDB605.30304@nanorex.com>
+Message-ID: <47CEE448.1030600@cs.queensu.ca>
+
+Hi Manoj,
+
+Applying kleene star to a machine that accepts the zero length word (has
+a start state that is final) requires some special care in the kleene
+star operator due to leaving actions. It is this special case that is
+failing.
+
+I never really put much effort into solving this because applying kleene
+star to something that already accepts nothing is not a great idea. It's
+ambiguous and in the presence of leaving actions it's not clear how it
+should work. That's why the warning is there. It's better to refactor
+your grammar. You could probably take out the optional operation
+immediately before the kleene star.
+
+To prevent crashing in the future I'll have to do something here. I
+might just remove final state status from the start state before doing a
+star operation. The warning will stay in.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    Ragel has been crashing with non-descript errors and I've spent a lot 
+> of time trying to find out the cause of the crash. I've made partial 
+> progress and would like to inform you about this and could benefit from 
+> an expert's help.
+> 
+>   I'm attaching a ragel file that I'm trying to compile with the command:
+> 
+>    ragel -C mmp-parser.rl -o mmp-parser.cpp
+> 
+> The crash is in the front-end and the segfault can be seen with
+> 
+>    ragel -x mmp-parser.rl
+> 
+>  From the backtrace, I've been able to see that in the following lines 
+> (ragel/fsmgraph.cpp: 226-229)
+> 
+>      for ( StateSet::Iter st = finStateSet; st.lte(); st++ ) {
+>          if ( *st != startState )
+>              mergeStatesLeaving( md, *st, startState );
+>      }
+> 
+> the value returned by *st is (StateAp *)0x0, NULL pointer! This is what 
+> is causing the segfault.
+> 
+> So StateSet is a container (a Vector<StateAp*>) with one entry being a 
+> NULL pointer. Does someone know how this could creep in?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From jason.gar... at gmail.com  Fri Mar  7 21:25:35 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Fri, 7 Mar 2008 13:25:35 -0800 (PST)
+Subject: 6.1 and further changes to the language
+In-Reply-To: <47B50F76.2030802@cs.queensu.ca>
+References: 47B50F76.2030802@cs.queensu.ca
+Message-ID: <e168707c-debe-4672-81fb-896761f03461@q78g2000hsh.googlegroups.com>
+
+Thanks so much!  I just used it in SuperRedCloth.  Example:
+link = ( "["? '"' C "."* " "* link_says " "* :> title? :> '":' %A uri %
+{ STORE_URL(href); } :> "]"? ) >X ;
+The optional square bracket at the end wouldn't have been possible (or
+at least as simple) before.
+
+Looking forward to the 6.1 release.
+
+- Jason
+
+On Feb 14, 11:05 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I just committed an implementation. I was surprised at how little code
+> it was.
+>
+> -Adrian
+>
+> Manoj Rajagopalan wrote:
+> > Now that I understand it, it's a great idea! I just switched to using a
+> > different approach because Ragel lacked this feature.
+>
+> > -- Manoj
+>
+> > Adrian Thurston wrote:
+> >> Hi Wncent, here's an example:
+>
+> >> main := |*
+> >>    'foo' %{ /*leaving action*/ } => { /*scanner pattern action*/ };
+> >> *|;
+>
+> >> -Adrian
+>
+> >> On Feb 14, 3:13 pm, Wincent Colaiuta <w... at wincent.com> wrote:
+> >>> El 14/2/2008, a las 18:37, Adrian Thurston escribió:
+>
+> >>>> Hi,
+> >>>> I'm planning a 6.1 release with further changes to the language that
+> >>>> will break backwards compatibility.
+> >>>> When scanners were first made there was no consideration to getting
+> >>>> leaving actions at the end of a scanner pattern to execute. Now it
+> >>>> stands out to me as an inconsistency that needs to be fixed.
+> >>>> I don't expect people to embed a leaving action right before the
+> >>>> pattern
+> >>>> action is specified. You should still use the scanner action instead.
+> >>> Can you clarify what you mean by "scanner action"? Just to make sure I
+> >>> understand what you're saying here.
+>
+> >>>> The problem is with machine definitions used at the end of a scanner
+> >>>> pattern that have leaving actions inside. These may do some cleanup or
+> >>>> other final processing at the end of a machine definition and should
+> >>>> be
+> >>>> executed.
+> >>> Cheers,
+
+
+From jason.gar... at gmail.com  Mon Mar 17 16:01:16 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Mon, 17 Mar 2008 09:01:16 -0700 (PDT)
+Subject: ETA on Ragel 6.1?
+Message-ID: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+
+Any sense of when we can anticipate 6.1 will be released?  Looking
+forward to have those leaving actions at the end of patterns be
+available to the general public.
+
+
+From thurs... at cs.queensu.ca  Tue Mar 18 06:36:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 18 Mar 2008 02:36:08 -0400
+Subject: [ragel-users] ETA on Ragel 6.1?
+In-Reply-To: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+References: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com>
+Message-ID: <47DF62D8.9050909@cs.queensu.ca>
+
+Hey Jason,
+
+I haven't had a chance to test it much. I'll get on that ASAP. I've been
+absent on the Ragel front lately because of my thesis project. I've been
+coding nonstop it seems and I might need to see a counselor soon if I
+don't pull myself away from it. Fortunately a lot of the hard work has
+been recently completed so I should be able to let it go and give Ragel
+some attention. Should.
+
+Those of you that like Ragel but wish it was a little more high level
+will like my thesis project. It's a full programming language dedicated
+to scanning, parsing and transforming parse trees. Watch for it :)
+
+-Adrian
+
+Jason Garber wrote:
+> Any sense of when we can anticipate 6.1 will be released?  Looking
+> forward to have those leaving actions at the end of patterns be
+> available to the general public.
+> 
+> > 
+> 
+
+
+From w... at wincent.com  Tue Mar 18 08:20:39 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Tue, 18 Mar 2008 09:20:39 +0100
+Subject: [ragel-users] Re: ETA on Ragel 6.1?
+In-Reply-To: <47DF62D8.9050909@cs.queensu.ca>
+References: <891ba3d6-229a-4173-899a-7e7542fbb1de@m34g2000hsc.googlegroups.com> <47DF62D8.9050909@cs.queensu.ca>
+Message-ID: <5501138E-9973-4D46-A552-6C8975F3D139@wincent.com>
+
+El 18/3/2008, a las 7:36, Adrian Thurston escribió:
+
+>
+> Hey Jason,
+>
+> I haven't had a chance to test it much. I'll get on that ASAP. I've  
+> been
+> absent on the Ragel front lately because of my thesis project. I've  
+> been
+> coding nonstop it seems and I might need to see a counselor soon if I
+> don't pull myself away from it. Fortunately a lot of the hard work has
+> been recently completed so I should be able to let it go and give  
+> Ragel
+> some attention. Should.
+>
+> Those of you that like Ragel but wish it was a little more high level
+> will like my thesis project. It's a full programming language  
+> dedicated
+> to scanning, parsing and transforming parse trees. Watch for it :)
+
+Awesome, look forward to seeing it. If it is of the same calibre as  
+Ragel then it will definitely be very impressive.
+
+Cheers,
+Wincent
+
+
+
+From thurs... at cs.queensu.ca  Wed Mar  5 20:34:36 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 05 Mar 2008 15:34:36 -0500
+Subject: [ragel-users] Re: % Leaving Action Questions
+In-Reply-To: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>  <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+Message-ID: <47CF03DC.1010400@cs.queensu.ca>
+
+
+francois.beausoleil wrote:
+> With this machine, Ragel doesn't recognize "The parser assign
+> francois." (meaning my notify_action isn't called).  But it does
+> recognize "The parser assign to francois.", but says the name is "to
+> ".
+
+Perhaps you're giving it an 8-bit character? The built-in machine
+'alpha' only accepts 7-bit alpha characters.
+
+> Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+> find an immediate application.  I don't really know where/how to start
+> to write my scanner.
+
+Have a look at examples/cppscan.rl to get started.
+
+Cheers,
+ Adrian
+
+
+From francois.beausol... at gmail.com  Thu Mar  6 14:28:38 2008
+From: francois.beausol... at gmail.com (francois.beausoleil)
+Date: Thu, 6 Mar 2008 06:28:38 -0800 (PST)
+Subject: % Leaving Action Questions
+In-Reply-To: <47CF03DC.1010400@cs.queensu.ca>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com> 
+	<1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> 
+	<bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com> 
+	<47CF03DC.1010400@cs.queensu.ca>
+Message-ID: <6e670a9b-e37f-4f14-90aa-814e803a8547@y77g2000hsy.googlegroups.com>
+
+Hi,
+
+On 5 mar, 15:34, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> francois.beausoleil wrote:
+> > With this machine, Ragel doesn't recognize "The parser assign
+> > francois." (meaning my notify_action isn't called).  But it does
+> > recognize "The parser assign to francois.", but says the name is "to
+> > ".
+>
+> Perhaps you're giving it an 8-bit character? The built-in machine
+> 'alpha' only accepts 7-bit alpha characters.
+
+You can see above that I'm using 7-bit characters.
+
+> Have a look at examples/cppscan.rl to get started.
+
+Will do.
+
+Thanks !
+
+
+From thurs... at cs.queensu.ca  Tue Mar 18 19:29:14 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 18 Mar 2008 15:29:14 -0400
+Subject: [ragel-users] Re: % Leaving Action Questions
+In-Reply-To: <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+References: <b0d65a4f-5352-401d-9a2b-eb2a74eeba00@h11g2000prf.googlegroups.com>  <1676563853-1203976918-cardhu_decombobulator_blackberry.rim.net-1632764399-@bxe150.bisx.prod.on.blackberry> <bbb366e1-32b6-420c-9f4e-2f139cd27362@u69g2000hse.googlegroups.com>
+Message-ID: <47E0180A.8020308@cs.queensu.ca>
+
+Hi Francois, did you ever get this issue resolved? I can't see the
+problem just by looking at the grammar.
+
+-Adrian
+
+francois.beausoleil wrote:
+> Hello Adrian,
+> 
+> On 25 fév, 17:01, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+>> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+> 
+> Thanks for that.  I did finally manage to implement something that
+> works for the vast majority of cases.  I can identify "closes #123,
+> fixes #321" and other patterns.  My problem is now "assigned to
+> francois".  Here's my latest machine:
+> 
+>     %%{
+>       machine commit_message_parser;
+> 
+>       action mark { mark = p }
+>       action bugid { bugid = data[mark .. p] }
+>       action name { name = data[mark .. p] }
+> 
+>       action close { action = :close }
+>       action fix { action = :fix }
+>       action reference { action = :reference }
+>       action reopen { action = :reopen }
+>       action reactivate { action = :reactivate }
+>       action implement { action = :implement }
+>       action assign { action = :assign }
+>       action notify { listener.send(action, bugid.pack("C*")) }
+>       action notify_assign { listener.send(action, name.pack("C*")) }
+> 
+>       bugid = ("#" ('1'..'9')>mark ('0'..'9')**)@bugid %notify;
+>       bugid_separator = (space* (punct | /and/i) space*);
+>       bugids = (bugid (bugid_separator bugid)*);
+> 
+>       close = (/close/i /s/i? /:/?) %close;
+>       fix = (/fix/i /es/i? /:/?) %fix;
+>       reference = (/reference/i /s/i? /:/?) %reference;
+>       reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+>       reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+>       implement = (/implement/i? /s/i? /:/?) %implement;
+>       assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+>       name = (alpha)+ >mark %name;
+>       assignto = (assign space+ name) %notify_assign;
+> 
+>       keywords = (close | fix | reference | reopen | reactivate |
+> assignto);
+>       text = (any - (keywords | bugids));
+>       main := (text* (keywords space* bugids)*);
+>     }%%
+> 
+> With this machine, Ragel doesn't recognize "The parser assign
+> francois." (meaning my notify_action isn't called).  But it does
+> recognize "The parser assign to francois.", but says the name is "to
+> ".
+> 
+>> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+> 
+> Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+> find an immediate application.  I don't really know where/how to start
+> to write my scanner.
+> 
+> Thanks for any other help !
+> François
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 19 19:56:10 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 19 Mar 2008 15:56:10 -0400
+Subject: google summer of code 2008
+Message-ID: <47E16FDA.7050309@cs.queensu.ca>
+
+Hi,
+
+There is a 2008 Google Summer of Code project proposed by Ohloh that
+involves using Ragel. Ragel experience doesn't seem to be required, but
+I'm sure it would help with an application.
+
+http://labs.ohloh.net/ohcount/wiki/gsoc2008
+
+-Adrian
+
+
+From stephen.banna... at deanbrook.org  Sun Mar 23 15:30:35 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 11:30:35 -0400
+Subject: building trunk ragel -- needs ragel??
+Message-ID: <p06240806c40c26736d66@[192.168.1.114]>
+
+I'd like to build a trunk version of ragel but am getting stuck early 
+because ragel seems to require ragel to build.
+
+Can I install an earlier version of ragel to get past this block?
+
+svn co svn://mambo.cs.queensu.ca/ragel/trunk ragel
+cd ragel
+$ ./configure
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables...
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking for g++... g++
+checking whether we are using the GNU C++ compiler... yes
+checking whether g++ accepts -g... yes
+checking for ar... ar
+checking for ranlib... ranlib
+checking whether make sets $(MAKE)... yes
+checking for ragel... no
+
+error: ragel is required to build the parsers
+
+
+From w... at wincent.com  Sun Mar 23 15:38:48 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Sun, 23 Mar 2008 16:38:48 +0100
+Subject: [ragel-users] building trunk ragel -- needs ragel??
+In-Reply-To: <p06240806c40c26736d66@[192.168.1.114]>
+References: <p06240806c40c26736d66@[192.168.1.114]>
+Message-ID: <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+
+El 23/3/2008, a las 16:30, Stephen Bannasch escribió:
+
+> I'd like to build a trunk version of ragel but am getting stuck early
+> because ragel seems to require ragel to build.
+>
+> Can I install an earlier version of ragel to get past this block?
+
+Back when I did this (back with Ragel 5.20) I followed this sequence:
+
+1. build/install from tarball (doesn't need Ragel)
+
+2. build/install kelbt (http://www.cs.queensu.ca/~thurston/kelbt/),  
+also a prerequisite
+
+3. Subversion checkout and build
+
+I expect that the pattern is probably similar with the current trunk.
+
+Cheers,
+Wincent
+
+
+From stephen.banna... at deanbrook.org  Sun Mar 23 20:40:55 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 16:40:55 -0400
+Subject: [ragel-users] Re: building trunk ragel -- needs ragel??
+In-Reply-To: <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+References: <p06240806c40c26736d66@[192.168.1.114]>
+ <7BD11639-EDBF-4185-8D77-D3E6D515E020@wincent.com>
+Message-ID: <p0624080ac40c7079c6cb@[192.168.1.114]>
+
+At 4:38 PM +0100 3/23/08, Wincent Colaiuta wrote:
+>El 23/3/2008, a las 16:30, Stephen Bannasch escribió:
+>
+>> I'd like to build a trunk version of ragel but am getting stuck early
+>> because ragel seems to require ragel to build.
+>>
+>> Can I install an earlier version of ragel to get past this block?
+>
+>Back when I did this (back with Ragel 5.20) I followed this sequence:
+>
+>1. build/install from tarball (doesn't need Ragel)
+>
+>2. build/install kelbt (http://www.cs.queensu.ca/~thurston/kelbt/), 
+>also a prerequisite
+>
+>3. Subversion checkout and build
+>
+>I expect that the pattern is probably similar with the current trunk.
+
+
+Thanks Wincent, that worked.
+
+FYI: Ragel trunk compilation steps on MacOS 10.5.2 with MacPorts installed:
+
+# get v6.0 of ragel installed -- needed to build trunk ragel
+sudo port install ragel
+
+# also install prerequisite gperf
+sudo port install gperf
+
+# download and install prerequisite kelbt
+wget http://www.cs.queensu.ca/~thurston/kelbt/kelbt-0.12.tar.gz
+tar xvzf kelbt-0.12.tar.gz
+cd kelbt-0.12
+./configure
+make
+sudo make install
+cd ..
+
+# Checkout trunk ragel and install in a directory
+# in home folder -- NOT in /usr/local.
+# The reason is to not interfere with the ports system.
+# When GCC compiles code it doesn't appear possible
+# to tell it not to look in /usr/local/lib for libraries.
+# So in general I've taken to putting code I compile
+# from source that either:
+#  1) creates libraries
+#  2) creates binaries that are also made by ports
+# in ~/dev/local
+
+svn co svn://mambo.cs.queensu.ca/ragel/trunk ragel
+cd ragel
+./configure --prefix ~/dev/local
+make
+make install
+
+# add ~/dev/local/bin to PATH before /opt/local/bin
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 03:16:22 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Sun, 23 Mar 2008 23:16:22 -0400
+Subject: code generation styles, C and Java??
+Message-ID: <p06240800c40cc7d2871c@[63.138.152.125]>
+
+I'm trying to setup some tasks that can benchmark 
+size and speed for all the different ragel code 
+generation styles.
+
+In my RakeFile I've got these constants defined:
+
+RAGEL_CODE_GENERATION_STYLES = {
+   "table_driven" => 'T0',
+   "faster_table_driven" => 'T1',
+   "flat_table_driven" => 'F0',
+   "faster_flat_table_driven" => 'F1',
+   "goto_driven" => 'G0',
+   "faster_goto_driven" => 'G1',
+   "really_fast goto_driven" => 'G2'
+   # "n_way_split_really_fast_goto_driven" => 'P<N>'
+}
+DEFAULT_RAGEL_CODE_GENERATION = "really_fast goto_driven"
+
+I assume they can all be used with C generation.
+
+The manual states:
+
+   In the case of Java and Ruby, table-based code generation is the
+   only code style supported.
+
+There appear to be two types of table-base code generation:
+
+   -F0 þat table-driven
+   -F1 þat table, expanded actions
+
+But neither of these works:
+
+   ragel -J -F0 -o test.java test.rl
+   ragel -J -F1 -o test.java test.rl
+
+Only this:
+
+   ragel -J -o test.java test.rl
+
+Is there only one style of Java code generation?
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 15:31:29 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 11:31:29 -0400
+Subject: [ragel-users] code generation styles, C and Java??
+In-Reply-To: <p06240800c40cc7d2871c@[63.138.152.125]>
+References: <p06240800c40cc7d2871c@[63.138.152.125]>
+Message-ID: <47E7C951.1040800@cs.queensu.ca>
+
+That's right, -T0 is the only code style implemented for Java. The other
+table code styles (-T1 -F0 -F1) could be implemented, but the work just
+hasn't been done yet.
+
+Cheers,
+ Adrian
+
+Stephen Bannasch wrote:
+> I'm trying to setup some tasks that can benchmark 
+> size and speed for all the different ragel code 
+> generation styles.
+> 
+> In my RakeFile I've got these constants defined:
+> 
+> RAGEL_CODE_GENERATION_STYLES = {
+>    "table_driven" => 'T0',
+>    "faster_table_driven" => 'T1',
+>    "flat_table_driven" => 'F0',
+>    "faster_flat_table_driven" => 'F1',
+>    "goto_driven" => 'G0',
+>    "faster_goto_driven" => 'G1',
+>    "really_fast goto_driven" => 'G2'
+>    # "n_way_split_really_fast_goto_driven" => 'P<N>'
+> }
+> DEFAULT_RAGEL_CODE_GENERATION = "really_fast goto_driven"
+> 
+> I assume they can all be used with C generation.
+> 
+> The manual states:
+> 
+>    In the case of Java and Ruby, table-based code generation is the
+>    only code style supported.
+> 
+> There appear to be two types of table-base code generation:
+> 
+>    -F0 þat table-driven
+>    -F1 þat table, expanded actions
+> 
+> But neither of these works:
+> 
+>    ragel -J -F0 -o test.java test.rl
+>    ragel -J -F1 -o test.java test.rl
+> 
+> Only this:
+> 
+>    ragel -J -o test.java test.rl
+> 
+> Is there only one style of Java code generation?
+> 
+> > 
+> 
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 06:01:18 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 02:01:18 -0400
+Subject: N-Way Split really fast goto-driven FSM/what is it?
+Message-ID: <p06240805c40cf423e9ec@[192.168.1.114]>
+
+I couldn't find any information on this Ragel code generation style:
+
+   -P<N>  N-Way Split really fast goto-driven FSM.
+
+What is it, what kind of machines is it useful for, and what values 
+of N are reasonable?
+
+-- 
+- Stephen Bannasch
+   Concord Consortium, http://www.concord.org
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 15:41:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 11:41:17 -0400
+Subject: [ragel-users] N-Way Split really fast goto-driven FSM/what is
+ it?
+In-Reply-To: <p06240805c40cf423e9ec@[192.168.1.114]>
+References: <p06240805c40cf423e9ec@[192.168.1.114]>
+Message-ID: <47E7CB9D.6060506@cs.queensu.ca>
+
+The N-way split is a version of -G2 for really large machines. It
+partitions the states and generates a separate function for each
+partition. It has been implemented for C code only. As far as I know it
+hasn't been used very much.
+
+-Adrian
+
+Stephen Bannasch wrote:
+> I couldn't find any information on this Ragel code generation style:
+> 
+>    -P<N>  N-Way Split really fast goto-driven FSM.
+> 
+> What is it, what kind of machines is it useful for, and what values 
+> of N are reasonable?
+> 
+
+
+From jason.gar... at gmail.com  Mon Mar 24 16:14:01 2008
+From: jason.gar... at gmail.com (Jason Garber)
+Date: Mon, 24 Mar 2008 09:14:01 -0700 (PDT)
+Subject: Feature suggestion: action suppression flag
+Message-ID: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+
+It would be handy to have a way to suppress all actions in a pattern.
+I've found a few cases in RedCloth where I want to reuse a pattern but
+I don't want the actions to take effect.  For example, one pattern
+identifies dimension phrases (like "1x2x3") and another identifies all
+phrases that don't include the dimension pattern (e.g. phrase --
+dim).  I can't reuse the first pattern when excluding it from the
+second, though, because the embedded actions alter the phrase I'm
+trying to capture.  I wind up duplicating the dim pattern
+(dim_noactions), which isn't very DRY.
+
+Maybe there's already such a thing or maybe I could avoid the problem
+entirely by going a different route, but since this problem has come
+up for me several times, I wanted to suggest the enhancement.
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 18:24:36 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 14:24:36 -0400
+Subject: [ragel-users] Feature suggestion: action suppression flag
+In-Reply-To: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+References: <4a91d328-b1ad-414c-ba81-837aa1db7901@b1g2000hsg.googlegroups.com>
+Message-ID: <47E7F1E4.6020204@cs.queensu.ca>
+
+Hi Jason,
+
+This need has come up before and it's something I'd like to do. I think
+it will come more easily when there is a "macro" syntax in ragel. Then
+it can appear as:
+
+world = 'world' @w;
+main := 'hello ' . strip(world);
+
+-Adrian
+
+Jason Garber wrote:
+> It would be handy to have a way to suppress all actions in a pattern.
+> I've found a few cases in RedCloth where I want to reuse a pattern but
+> I don't want the actions to take effect.  For example, one pattern
+> identifies dimension phrases (like "1x2x3") and another identifies all
+> phrases that don't include the dimension pattern (e.g. phrase --
+> dim).  I can't reuse the first pattern when excluding it from the
+> second, though, because the embedded actions alter the phrase I'm
+> trying to capture.  I wind up duplicating the dim pattern
+> (dim_noactions), which isn't very DRY.
+> 
+> Maybe there's already such a thing or maybe I could avoid the problem
+> entirely by going a different route, but since this problem has come
+> up for me several times, I wanted to suggest the enhancement.
+> 
+> Jason
+> > 
+> 
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 05:23:51 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 01:23:51 -0400
+Subject: problems with java generation in ragel 6.x trunk
+Message-ID: <p06240804c40ce699bdb8@[192.168.1.114]>
+
+I'm working on getting Hpricot to work using trunk ragel. Right now 
+I'm getting lots of undefined Symbols.
+
+Any ideas on where to start fixing this would be great.
+
+It does work with ragel 5.25.
+
+Here's how the java file is being produced:
+
+ragel -J -o ext/hpricot_scan/HpricotScanService.java 
+ext/hpricot_scan/hpricot_scan.java.rl
+
+Here's the Java compiler invocation:
+
+javac -source 1.4 -target 1.4 -cp 
+.:/Users/stephen/dev/junit4.1::/Users/stephen/dev/jruby_trunk/jruby/lib/bsf.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/jruby-complete.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/jruby.jar:/Users/stephen/dev/jruby_trunk/jruby/lib/lucene-core-2.2.0.jar 
+HpricotScanService.java
+
+----------------------------------------------------------
+
+The errors start with a series of these:
+
+HpricotScanService.java:821: cannot find symbol
+symbol  : variable ts
+location: class HpricotScanService
+	ts = -1;
+         ^
+HpricotScanService.java:822: cannot find symbol
+symbol  : variable te
+location: class HpricotScanService
+	te = -1;
+         ^
+
+Here's the Java source code:
+
+// line 819 "ext/hpricot_scan/HpricotScanService.java"
+	{
+	cs = hpricot_scan_start;
+	ts = -1;
+	te = -1;
+	act = 0;
+	}
+
+----------------------------------------------------------
+
+Here are some more errors:
+
+HpricotScanService.java:1086: cannot find symbol
+symbol  : variable te
+location: class HpricotScanService
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+                 ^
+HpricotScanService.java:1086: illegal start of type
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+                ^
+HpricotScanService.java:1086: illegal start of type
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+
+
+And here's the code around line 1086:
+
+	case 30:
+// line 56 "ext/hpricot_scan/hpricot_scan.java.rl"
+	{{p = ((te))-1;}{ TEXT_PASS(); }}
+	break;
+
+
+----------------------------------------------------------
+
+
+HpricotScanService.java:1210: cannot find symbol
+symbol  : variable eof
+location: class HpricotScanService
+
+And here's the code:
+
+case 4:
+	if ( p == eof )
+	{
+	if ( _hpricot_scan_eof_trans[cs] > 0 ) {
+		_trans = _hpricot_scan_eof_trans[cs] - 1;
+		_goto_targ = 3;
+		continue _goto;
+	}
+	}
+	if ( p == eof )
+
+
+From polus... at gmail.com  Mon Mar 24 08:59:11 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Mon, 24 Mar 2008 14:59:11 +0600
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240804c40ce699bdb8@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+Message-ID: <47E76D5F.1030...@gmail.com>
+
+Stephen Bannasch wrote:
+> I'm working on getting Hpricot to work using trunk ragel. Right now 
+> I'm getting lots of undefined Symbols.
+> 
+> Any ideas on where to start fixing this would be great.
+> 
+> It does work with ragel 5.25.
+> 
+> [...]
+> 
+> The errors start with a series of these:
+> 
+> HpricotScanService.java:821: cannot find symbol
+> symbol  : variable ts
+> location: class HpricotScanService
+> 	ts = -1;
+>          ^
+> HpricotScanService.java:822: cannot find symbol
+> symbol  : variable te
+> location: class HpricotScanService
+> 	te = -1;
+>          ^
+
+The "tokstart" and "tokend" variables should be renamed to "ts" and "te", as 
+of Ragel 6.0.
+
+
+-- 
+Andrei Polushin
+
+
+From w... at wincent.com  Mon Mar 24 09:07:35 2008
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Mon, 24 Mar 2008 10:07:35 +0100
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240804c40ce699bdb8@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+Message-ID: <4DEBC31F-FE99-42E9-8D78-D8EA27DC89A3@wincent.com>
+
+El 24/3/2008, a las 6:23, Stephen Bannasch escribió:
+
+> I'm working on getting Hpricot to work using trunk ragel. Right now
+> I'm getting lots of undefined Symbols.
+
+I see that Andrei has already replied, but I'd add that you should  
+check out the changelog and release notes for 6.0:
+
+http://www.cs.queensu.ca/~thurston/ragel/RELEASE_NOTES_V6
+http://www.cs.queensu.ca/~thurston/ragel/ChangeLog
+
+They cover what Andrei told you, and all the changes you need to now  
+about in 5.24 to 6.0.
+
+Cheers,
+Wincent
+
+
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 15:44:16 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 11:44:16 -0400
+Subject: [ragel-users] Re: problems with java generation in ragel 6.x trunk
+In-Reply-To: <47E76D5F.1030209@gmail.com>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+ <47E76D5F.1030209@gmail.com>
+Message-ID: <p06240801c40d66fd36e4@[192.168.1.114]>
+
+Regarding:
+
+> > HpricotScanService.java:822: cannot find symbol
+>> symbol  : variable te
+>> location: class HpricotScanService
+>>	te = -1;
+>>          ^
+>
+>The "tokstart" and "tokend" variables should be renamed to "ts" and "te", as
+>of Ragel 6.0.
+
+Thanks Andrei and Wincent for the pointers. I've got it working in trunk ragel.
+
+I've now got two very similar ragel source files. One for use with Ragel < 6.0 and the other for Ragel version >= 6.0.
+
+I'd like to be able to create a ragel file that will compile in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+
+I could use a simple preprocessor (probably Ruby ERB since the rest of the code is in Ruby) to process a single ragel source file and send the ouput to Ragel 6 or 5.25.
+
+
+From thurs... at cs.queensu.ca  Mon Mar 24 16:05:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 24 Mar 2008 12:05:47 -0400
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240801c40d66fd36e4@[192.168.1.114]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]> <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]>
+Message-ID: <47E7D15B.5010406@cs.queensu.ca>
+
+Stephen Bannasch wrote:
+> I'd like to be able to create a ragel file that will compile
+> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+
+I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+feeling is that a compatibility layer isn't worth the effort. The
+changes to the operators > % :> :>> and <: could require some minor
+refactoring of ragel definitions.
+
+People normally side-step ragel version issues by distributing the files
+generated by ragel. Hopefully at some point ragel will be stable enough
+that this won't be necessary, but as you can see we're not there yet.
+
+-Adrian
+
+
+From stephen.banna... at deanbrook.org  Mon Mar 24 17:47:19 2008
+From: stephen.banna... at deanbrook.org (Stephen Bannasch)
+Date: Mon, 24 Mar 2008 13:47:19 -0400
+Subject: [ragel-users] Re: problems with java generation in ragel 6.x trunk
+In-Reply-To: <47E7D15B.5010406@cs.queensu.ca>
+References: <p06240804c40ce699bdb8@[192.168.1.114]>
+ <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]>
+ <47E7D15B.5010406@cs.queensu.ca>
+Message-ID: <p06240802c40d95e18e9d@[63.138.152.125]>
+
+At 12:05 PM -0400 3/24/08, Adrian Thurston wrote:
+>Stephen Bannasch wrote:
+>> I'd like to be able to create a ragel file that will compile
+>> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+>
+>I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+>feeling is that a compatibility layer isn't worth the effort. The
+>changes to the operators > % :> :>> and <: could require some minor
+>refactoring of ragel definitions.
+
+In the C ragel source I only needed to:
+
+  convert tokstart, tokend => ts, te
+
+and failing tests went from 2 to 0 ;-)
+
+In the Java ragel source I did the above and added:
+
+  int eof=0;
+
+There are a couple of failing tests but I don't think it has anything to do with ragel.
+
+Regarding: changes to operators > % :> :>>
+
+I'll take a look at where those are used and if needed try and make sure the test coverage includes problems that might occur.
+
+>People normally side-step ragel version issues by distributing the files
+>generated by ragel.
+
+That makes sense -- distribute both *.c and *.java files (actually the Java class fles can be bundled into a Jar and the only dependency with be on JVM version).
+
+Right now I'm working on the hpricot source release and on the redcloth source release -- fixing bugs, seeing about
+
+Redcloth needs ragel trunk.
+
+I think the changes I made to (Hpricot which I'm testing with ragel trunk) will also work fine with ragel v6.0 and 6.trunk.
+
+I could create dependency on ragel >= 6.0 for compiling the ragel source for hpricot.
+
+Now that 6.0 seems to be distributed widely that might be fine.
+
+
+From thurs... at cs.queensu.ca  Tue Mar 25 03:02:51 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Tue, 25 Mar 2008 03:02:51 +0000
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+In-Reply-To: <p06240802c40d95e18e9d@[63.138.152.125]>
+References: <p06240804c40ce699bdb8@[192.168.1.114]> <47E76D5F.1030209@gmail.com> <p06240801c40d66fd36e4@[192.168.1.114]> <47E7D15B.5010406@cs.queensu.ca><p06240802c40d95e18e9d@[63.138.152.125]>
+Message-ID: <1076443999-1206414137-cardhu_decombobulator_blackberry.rim.net-650798472-@bxe150.bisx.prod.on.blackberry>
+
+For java code set eof to -1 to pacify ragel. Since java doesn't have pointers I use array offsets and -1 is used to represent null.
+
+-Adrian
+-----Original Message-----
+From: Stephen Bannasch <stephen.bannasch at deanbrook.org>
+
+Date: Mon, 24 Mar 2008 13:47:19 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] problems with java generation in ragel 6.x trunk
+
+
+
+At 12:05 PM -0400 3/24/08, Adrian Thurston wrote:
+>Stephen Bannasch wrote:
+>> I'd like to be able to create a ragel file that will compile
+>> in ragel 5.x and 6.x but didn't see any macro capability in Ragel.
+>
+>I'm not sure how much of Hpricot is affected by the 6.0 changes, but my
+>feeling is that a compatibility layer isn't worth the effort. The
+>changes to the operators > % :> :>> and <: could require some minor
+>refactoring of ragel definitions.
+
+In the C ragel source I only needed to:
+
+  convert tokstart, tokend => ts, te
+
+and failing tests went from 2 to 0 ;-)
+
+In the Java ragel source I did the above and added:
+
+  int eof=0;
+
+There are a couple of failing tests but I don't think it has anything to do with ragel.
+
+Regarding: changes to operators > % :> :>>
+
+I'll take a look at where those are used and if needed try and make sure the test coverage includes problems that might occur.
+
+>People normally side-step ragel version issues by distributing the files
+>generated by ragel.
+
+That makes sense -- distribute both *.c and *.java files (actually the Java class fles can be bundled into a Jar and the only dependency with be on JVM version).
+
+Right now I'm working on the hpricot source release and on the redcloth source release -- fixing bugs, seeing about
+
+Redcloth needs ragel trunk.
+
+I think the changes I made to (Hpricot which I'm testing with ragel trunk) will also work fine with ragel v6.0 and 6.trunk.
+
+I could create dependency on ragel >= 6.0 for compiling the ragel source for hpricot.
+
+Now that 6.0 seems to be distributed widely that might be fine.
+
+
+
+
+
+From ma... at nanorex.com  Tue Mar 25 22:01:35 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 18:01:35 -0400
+Subject: Help with extracting a list of numbers
+Message-ID: <47E9763F.8050805@nanorex.com>
+
+Hi all,
+
+   I'm trying to write a pattern to extract a list of numbers following 
+the keyword bond and I'm not able to figure out why my pattern below 
+always skips the last number
+
+   My input is of the form:
+
+   bond <number> <number> ...
+
+%%{
+     machine bond_parser;
+
+     whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+(fc-'0');}    ;
+
+     main :=
+         space* 'bond'
+         (space+ whole_number %printNumber)+
+         space* 0;
+}%%
+
+where printNumber is an action to print the number just updated into the 
+integer variable intVal.
+
+The 0 at the end of the pattern is the NULL character that cin.getline() 
+adds when reading upto the newline character from the console.
+
+I realize this may be due to the leaving action for the last number that 
+never gets called but could someone tell me a way around this?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Tue Mar 25 22:36:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 18:36:47 -0400
+Subject: [ragel-users] Help with extracting a list of numbers
+In-Reply-To: <47E9763F.8050805@nanorex.com>
+References: <47E9763F.8050805@nanorex.com>
+Message-ID: <47E97E7F.9010803@cs.queensu.ca>
+
+Hi Manoj,
+
+Are you sure the null is being sent to the parser? If it is then
+printNumber should be executed on the last character.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I'm trying to write a pattern to extract a list of numbers following 
+> the keyword bond and I'm not able to figure out why my pattern below 
+> always skips the last number
+> 
+>    My input is of the form:
+> 
+>    bond <number> <number> ...
+> 
+> %%{
+>      machine bond_parser;
+> 
+>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+> (fc-'0');}    ;
+> 
+>      main :=
+>          space* 'bond'
+>          (space+ whole_number %printNumber)+
+>          space* 0;
+> }%%
+> 
+> where printNumber is an action to print the number just updated into the 
+> integer variable intVal.
+> 
+> The 0 at the end of the pattern is the NULL character that cin.getline() 
+> adds when reading upto the newline character from the console.
+> 
+> I realize this may be due to the leaving action for the last number that 
+> never gets called but could someone tell me a way around this?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Wed Mar 26 00:02:19 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 20:02:19 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E97E7F.9010803@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca>
+Message-ID: <47E9928B.7080202@nanorex.com>
+
+Hi Adrian
+
+    The detection works only when I enter a space at the end. And yes, 
+the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+missing something really simple.
+
+    I'm using Ragel 6.0 on Fedora 8.
+
+    BTW, I'm attaching a small C++ program if anyone would like to run it.
+
+    In the program, it prints out the ending character (*pe) and 
+confirms that it is '\0'. Should 'pe' point to the last char or to one 
+past it, i.e., is the character range [p,pe] or [p, pe) ?
+
+    In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+whereas in another I see p+strlen(buf)+1 (pg 6)
+
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Manoj,
+> 
+> Are you sure the null is being sent to the parser? If it is then
+> printNumber should be executed on the last character.
+> 
+> Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>    I'm trying to write a pattern to extract a list of numbers following 
+>> the keyword bond and I'm not able to figure out why my pattern below 
+>> always skips the last number
+>>
+>>    My input is of the form:
+>>
+>>    bond <number> <number> ...
+>>
+>> %%{
+>>      machine bond_parser;
+>>
+>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>> (fc-'0');}    ;
+>>
+>>      main :=
+>>          space* 'bond'
+>>          (space+ whole_number %printNumber)+
+>>          space* 0;
+>> }%%
+>>
+>> where printNumber is an action to print the number just updated into the 
+>> integer variable intVal.
+>>
+>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>> adds when reading upto the newline character from the console.
+>>
+>> I realize this may be due to the leaving action for the last number that 
+>> never gets called but could someone tell me a way around this?
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: number_parser.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080325/f6edda53/attachment-0001.ksh>
+
+From ma... at nanorex.com  Wed Mar 26 00:08:31 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 20:08:31 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E97E7F.9010803@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca>
+Message-ID: <47E993FF.5030203@nanorex.com>
+
+Oh and in the program that I sent to this group in my previous email, 
+the print_info() action to be executed when the last state ('\0') is 
+reached never gets executed:
+
+main :=
+         space*
+         'bond' %{cerr << "saw 'bond'" << endl;}
+         (space+  whole_number %foundNumberAction)+
+         space* 0
+         @{ print_info();}
+      ;
+
+Input:  bond <number> <number>  <number> ...
+
+Here is a twist: when I extract the user input into a character buffer, 
+then replace the last NULL char with '\n' and make the next character 
+NULL, incrementing pe by 1 and then changing the pattern's last 0 to 
+'\n', the machine works perfectly.
+
+Does ragel interpret line-ending NULL chars in some special way?
+
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> Hi Manoj,
+> 
+> Are you sure the null is being sent to the parser? If it is then
+> printNumber should be executed on the last character.
+> 
+> Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi all,
+>>
+>>    I'm trying to write a pattern to extract a list of numbers following 
+>> the keyword bond and I'm not able to figure out why my pattern below 
+>> always skips the last number
+>>
+>>    My input is of the form:
+>>
+>>    bond <number> <number> ...
+>>
+>> %%{
+>>      machine bond_parser;
+>>
+>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>> (fc-'0');}    ;
+>>
+>>      main :=
+>>          space* 'bond'
+>>          (space+ whole_number %printNumber)+
+>>          space* 0;
+>> }%%
+>>
+>> where printNumber is an action to print the number just updated into the 
+>> integer variable intVal.
+>>
+>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>> adds when reading upto the newline character from the console.
+>>
+>> I realize this may be due to the leaving action for the last number that 
+>> never gets called but could someone tell me a way around this?
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 02:14:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 22:14:01 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9928B.7080202@nanorex.com>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com>
+Message-ID: <47E9B169.1040401@cs.queensu.ca>
+
+Just change the setting of pe to (strlen(linebuf) + 1) to include the
+null character and it should work okay.
+
+Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian
+> 
+>     The detection works only when I enter a space at the end. And yes, 
+> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+> missing something really simple.
+> 
+>     I'm using Ragel 6.0 on Fedora 8.
+> 
+>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+> 
+>     In the program, it prints out the ending character (*pe) and 
+> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+> past it, i.e., is the character range [p,pe] or [p, pe) ?
+> 
+>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+> whereas in another I see p+strlen(buf)+1 (pg 6)
+> 
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Manoj,
+>>
+>> Are you sure the null is being sent to the parser? If it is then
+>> printNumber should be executed on the last character.
+>>
+>> Adrian
+>>
+>> Manoj Rajagopalan wrote:
+>>> Hi all,
+>>>
+>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>> always skips the last number
+>>>
+>>>    My input is of the form:
+>>>
+>>>    bond <number> <number> ...
+>>>
+>>> %%{
+>>>      machine bond_parser;
+>>>
+>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>> (fc-'0');}    ;
+>>>
+>>>      main :=
+>>>          space* 'bond'
+>>>          (space+ whole_number %printNumber)+
+>>>          space* 0;
+>>> }%%
+>>>
+>>> where printNumber is an action to print the number just updated into the 
+>>> integer variable intVal.
+>>>
+>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>> adds when reading upto the newline character from the console.
+>>>
+>>> I realize this may be due to the leaving action for the last number that 
+>>> never gets called but could someone tell me a way around this?
+>>>
+>>> Thanks,
+>>> Manoj
+>>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 02:17:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 25 Mar 2008 22:17:17 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9928B.7080202@nanorex.com>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com>
+Message-ID: <47E9B22D.40807@cs.queensu.ca>
+
+The pe variable should be set to one past the last character. Hope that
+clears things up.
+
+Cheers,
+ Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian
+> 
+>     The detection works only when I enter a space at the end. And yes, 
+> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+> missing something really simple.
+> 
+>     I'm using Ragel 6.0 on Fedora 8.
+> 
+>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+> 
+>     In the program, it prints out the ending character (*pe) and 
+> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+> past it, i.e., is the character range [p,pe] or [p, pe) ?
+> 
+>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+> whereas in another I see p+strlen(buf)+1 (pg 6)
+> 
+> 
+> -- Manoj
+> 
+> 
+> Adrian Thurston wrote:
+>> Hi Manoj,
+>>
+>> Are you sure the null is being sent to the parser? If it is then
+>> printNumber should be executed on the last character.
+>>
+>> Adrian
+>>
+>> Manoj Rajagopalan wrote:
+>>> Hi all,
+>>>
+>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>> always skips the last number
+>>>
+>>>    My input is of the form:
+>>>
+>>>    bond <number> <number> ...
+>>>
+>>> %%{
+>>>      machine bond_parser;
+>>>
+>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>> (fc-'0');}    ;
+>>>
+>>>      main :=
+>>>          space* 'bond'
+>>>          (space+ whole_number %printNumber)+
+>>>          space* 0;
+>>> }%%
+>>>
+>>> where printNumber is an action to print the number just updated into the 
+>>> integer variable intVal.
+>>>
+>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>> adds when reading upto the newline character from the console.
+>>>
+>>> I realize this may be due to the leaving action for the last number that 
+>>> never gets called but could someone tell me a way around this?
+>>>
+>>> Thanks,
+>>> Manoj
+>>>
+> 
+> > 
+
+
+From ma... at nanorex.com  Wed Mar 26 03:47:27 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Tue, 25 Mar 2008 23:47:27 -0400
+Subject: [ragel-users] Re: Help with extracting a list of numbers
+In-Reply-To: <47E9B22D.40807@cs.queensu.ca>
+References: <47E9763F.8050805@nanorex.com> <47E97E7F.9010803@cs.queensu.ca> <47E9928B.7080202@nanorex.com> <47E9B22D.40807@cs.queensu.ca>
+Message-ID: <47E9C74F.2010706@nanorex.com>
+
+OK I get it now. since the terminal NULL character is part of my 
+pattern, pe's got to be past that. In the usual examples, the terminal 
+NULL is not part of the pattern and hence pe is set to it.
+
+It works now, thanks.
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> The pe variable should be set to one past the last character. Hope that
+> clears things up.
+> 
+> Cheers,
+>  Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi Adrian
+>>
+>>     The detection works only when I enter a space at the end. And yes, 
+>> the terminating 0 is being sent. Hope this isn't a bug. Maybe I'm 
+>> missing something really simple.
+>>
+>>     I'm using Ragel 6.0 on Fedora 8.
+>>
+>>     BTW, I'm attaching a small C++ program if anyone would like to run it.
+>>
+>>     In the program, it prints out the ending character (*pe) and 
+>> confirms that it is '\0'. Should 'pe' point to the last char or to one 
+>> past it, i.e., is the character range [p,pe] or [p, pe) ?
+>>
+>>     In one place in the manual I see p+strlen(buf) (fig 5.1, pg 36) 
+>> whereas in another I see p+strlen(buf)+1 (pg 6)
+>>
+>>
+>> -- Manoj
+>>
+>>
+>> Adrian Thurston wrote:
+>>> Hi Manoj,
+>>>
+>>> Are you sure the null is being sent to the parser? If it is then
+>>> printNumber should be executed on the last character.
+>>>
+>>> Adrian
+>>>
+>>> Manoj Rajagopalan wrote:
+>>>> Hi all,
+>>>>
+>>>>    I'm trying to write a pattern to extract a list of numbers following 
+>>>> the keyword bond and I'm not able to figure out why my pattern below 
+>>>> always skips the last number
+>>>>
+>>>>    My input is of the form:
+>>>>
+>>>>    bond <number> <number> ...
+>>>>
+>>>> %%{
+>>>>      machine bond_parser;
+>>>>
+>>>>      whole_number = digit+    >to{intVal=0;}   ${intVal = intVal*10 + 
+>>>> (fc-'0');}    ;
+>>>>
+>>>>      main :=
+>>>>          space* 'bond'
+>>>>          (space+ whole_number %printNumber)+
+>>>>          space* 0;
+>>>> }%%
+>>>>
+>>>> where printNumber is an action to print the number just updated into the 
+>>>> integer variable intVal.
+>>>>
+>>>> The 0 at the end of the pattern is the NULL character that cin.getline() 
+>>>> adds when reading upto the newline character from the console.
+>>>>
+>>>> I realize this may be due to the leaving action for the last number that 
+>>>> never gets called but could someone tell me a way around this?
+>>>>
+>>>> Thanks,
+>>>> Manoj
+>>>>
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Wed Mar 26 23:12:04 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 26 Mar 2008 19:12:04 -0400
+Subject: 6.1 released
+Message-ID: <47EAD844.2080307@cs.queensu.ca>
+
+Details here:
+
+http://www.cs.queensu.ca/~thurston/ragel/ChangeLog
+http://www.cs.queensu.ca/~thurston/ragel/RELEASE_NOTES_V6
+
+-Adrian
+
+
+From ma... at nanorex.com  Fri Mar 28 13:34:44 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 09:34:44 -0400
+Subject: Advice on detecting errors
+Message-ID: <47ECF3F4.2090002@nanorex.com>
+
+Hi all,
+
+   I have two questions.
+
+QUESTION 1:
+    I'm not clear on how to detect syntax errors in Ragel. As a simple 
+example, if I want allow a statement:
+
+    set <name> = <value>;
+
+for which my pattern would be something like:
+
+    set_stmt = space*  'set'  (alpha alnum*) space* '=' space* digit+ 
+space* ';'
+
+and if I provide input like
+
+    set var = 123bad;
+
+How can I get Ragel to point out a syntax error here?
+
+
+
+QUESTION 2:
+If I set up a scanner with a list of allowed expressions and ragel 
+encounters an expression that is not on the list, what does it do? Is it 
+possible to create a 'trap' pattern to output an unrecognized or badly 
+formed input?
+
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Mar 28 18:58:49 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Mar 2008 14:58:49 -0400
+Subject: [ragel-users] Advice on detecting errors
+In-Reply-To: <47ECF3F4.2090002@nanorex.com>
+References: <47ECF3F4.2090002@nanorex.com>
+Message-ID: <47ED3FE9.2010200@cs.queensu.ca>
+
+Hey Manoj,
+
+If you just want to report where in the input the error occured you can
+print the values at (or the location of) p. It is left at the character
+the error occurred at.
+
+If you want to give some idea of what was expected when the error
+occurred you can use error actions. These are associated with particular
+states and can print error messages directly or can set some variable
+representing the context. See the relevant section in the manual.
+
+In scanners, if no pattern matches then the state machine moves into the
+error state. If you want to create an "else" pattern then put "any" at
+the very end of the list of patterns. It will act as a default.
+
+Cheers,
+ Adrian
+
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    I have two questions.
+> 
+> QUESTION 1:
+>     I'm not clear on how to detect syntax errors in Ragel. As a simple 
+> example, if I want allow a statement:
+> 
+>     set <name> = <value>;
+> 
+> for which my pattern would be something like:
+> 
+>     set_stmt = space*  'set'  (alpha alnum*) space* '=' space* digit+ 
+> space* ';'
+> 
+> and if I provide input like
+> 
+>     set var = 123bad;
+> 
+> How can I get Ragel to point out a syntax error here?
+> 
+> 
+> 
+> QUESTION 2:
+> If I set up a scanner with a list of allowed expressions and ragel 
+> encounters an expression that is not on the list, what does it do? Is it 
+> possible to create a 'trap' pattern to output an unrecognized or badly 
+> formed input?
+> 
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Mar 28 18:36:01 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 14:36:01 -0400
+Subject: Is there a way to generate non-static variables?
+Message-ID: <47ED3A91.3020508@nanorex.com>
+
+Hi Adrian,
+
+    In C/C++, the variables generated are static. While I can write data 
+for different machine instantiations in different functions, the 
+static-ness makes the data allocated persistent. Instead, if there were 
+an optional way of disabling this which could be used inside functions 
+allocation would be on the function's stack and the total data segment 
+size for the program would remain modest.
+
+   I am in the process of writing a unit test suite where I have one 
+master Ragel file and am including parts of it for non-invasive testing 
+in my test-suite CPP files. I have to perform a write data for each line 
+that I am testing and then for more complicated machines that build on 
+lines tested in these simpler tests.
+
+   These tests are part of a potentially enormous test suite for a heavy 
+application with many components. I suspect statically-allocated global 
+data requirements can become quite large though I haven't faced any 
+problems yet. Please correct me if I am wrong.
+
+   If this idea is worthy of exploration then Ragel could provide a 
+'nostatic' option to the 'write data' statement which we developers 
+would use in some scope inside which we'd like the data to be 
+exclusively visible.
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Fri Mar 28 19:02:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 28 Mar 2008 15:02:23 -0400
+Subject: [ragel-users] Is there a way to generate non-static variables?
+In-Reply-To: <47ED3A91.3020508@nanorex.com>
+References: <47ED3A91.3020508@nanorex.com>
+Message-ID: <47ED40BF.3060704@cs.queensu.ca>
+
+If the variables were not static they would need to be initialized from
+static variables. So short of loading the data from a file you can't
+avoid the static data.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>     In C/C++, the variables generated are static. While I can write data 
+> for different machine instantiations in different functions, the 
+> static-ness makes the data allocated persistent. Instead, if there were 
+> an optional way of disabling this which could be used inside functions 
+> allocation would be on the function's stack and the total data segment 
+> size for the program would remain modest.
+> 
+>    I am in the process of writing a unit test suite where I have one 
+> master Ragel file and am including parts of it for non-invasive testing 
+> in my test-suite CPP files. I have to perform a write data for each line 
+> that I am testing and then for more complicated machines that build on 
+> lines tested in these simpler tests.
+> 
+>    These tests are part of a potentially enormous test suite for a heavy 
+> application with many components. I suspect statically-allocated global 
+> data requirements can become quite large though I haven't faced any 
+> problems yet. Please correct me if I am wrong.
+> 
+>    If this idea is worthy of exploration then Ragel could provide a 
+> 'nostatic' option to the 'write data' statement which we developers 
+> would use in some scope inside which we'd like the data to be 
+> exclusively visible.
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Fri Mar 28 19:07:24 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 28 Mar 2008 15:07:24 -0400
+Subject: [ragel-users] Re: Is there a way to generate non-static variables?
+In-Reply-To: <47ED40BF.3060704@cs.queensu.ca>
+References: <47ED3A91.3020508@nanorex.com> <47ED40BF.3060704@cs.queensu.ca>
+Message-ID: <47ED41EC.5070401@nanorex.com>
+
+In that case would it be too bad to provide a constructor kind of 
+function which the developer must explicitly call? But this way we'd be 
+simply be moving data-space reclaimed (?) to instruction space to encode 
+these initializations in addition to storing the immediates so this 
+might not be a great idea :-)
+
+-- Manoj
+
+
+Adrian Thurston wrote:
+> If the variables were not static they would need to be initialized from
+> static variables. So short of loading the data from a file you can't
+> avoid the static data.
+> 
+> -Adrian
+> 
+> Manoj Rajagopalan wrote:
+>> Hi Adrian,
+>>
+>>     In C/C++, the variables generated are static. While I can write data 
+>> for different machine instantiations in different functions, the 
+>> static-ness makes the data allocated persistent. Instead, if there were 
+>> an optional way of disabling this which could be used inside functions 
+>> allocation would be on the function's stack and the total data segment 
+>> size for the program would remain modest.
+>>
+>>    I am in the process of writing a unit test suite where I have one 
+>> master Ragel file and am including parts of it for non-invasive testing 
+>> in my test-suite CPP files. I have to perform a write data for each line 
+>> that I am testing and then for more complicated machines that build on 
+>> lines tested in these simpler tests.
+>>
+>>    These tests are part of a potentially enormous test suite for a heavy 
+>> application with many components. I suspect statically-allocated global 
+>> data requirements can become quite large though I haven't faced any 
+>> problems yet. Please correct me if I am wrong.
+>>
+>>    If this idea is worthy of exploration then Ragel could provide a 
+>> 'nostatic' option to the 'write data' statement which we developers 
+>> would use in some scope inside which we'd like the data to be 
+>> exclusively visible.
+>>
+>> Thanks,
+>> Manoj
+>>
+> 
+> > 
+
+
+From ma... at nanorex.com  Sat Mar 29 20:18:05 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Sat, 29 Mar 2008 16:18:05 -0400
+Subject: question about kleene-star
+Message-ID: <47EEA3FD.60900@nanorex.com>
+
+Hi all,
+
+   According to the kleene-star documentation, it is an operator that 
+grants greater priority to transitions within the machine and hence aims 
+for the longest match. While I can see its utility in deciding between 
+pattern-alternates, how is it to be used on a single-string?
+
+   To be more clear, suppose I want to match the longest string of 
+lower-case characters at least one character long. Should I use "lower 
+lower**" or "(lower+)**". In other words, is the ** a qualifier to an 
+existing expression or is it an operator by itself?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:25:17 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:25:17 -0400
+Subject: [ragel-users] question about kleene-star
+In-Reply-To: <47EEA3FD.60900@nanorex.com>
+References: <47EEA3FD.60900@nanorex.com>
+Message-ID: <47F1106D.7060306@cs.queensu.ca>
+
+The * operator doesn't imply any management of ambiguities. It is the
+pure kleene star from language theory. It will generate a machine that
+simultaneously extends a match and restarts it if there is any ambiguity
+between these two activities.
+
+The ** operator on the other hand favours extending a machine over
+completing it and restarting.
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> Hi all,
+> 
+>    According to the kleene-star documentation, it is an operator that 
+> grants greater priority to transitions within the machine and hence aims 
+> for the longest match. While I can see its utility in deciding between 
+> pattern-alternates, how is it to be used on a single-string?
+> 
+>    To be more clear, suppose I want to match the longest string of 
+> lower-case characters at least one character long. Should I use "lower 
+> lower**" or "(lower+)**". In other words, is the ** a qualifier to an 
+> existing expression or is it an operator by itself?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From ma... at nanorex.com  Sat Mar 29 23:42:30 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Sat, 29 Mar 2008 19:42:30 -0400
+Subject: Control of efficiency of pattern-matching
+Message-ID: <47EED3E6.8040809@nanorex.com>
+
+Hi Adrian,
+
+   Suppose I'd like to detect a bunch of lower-case character that come 
+after a bunch of whitespaces. I could use
+
+   space* lower+
+
+Would the machine generated be any more efficient if I used the 
+following instead?
+
+   space* <: lower+
+
+The left-guard should place higher priority on staying in the 
+"space-eater" pattern but I'm guessing the machines will be equally 
+efficient and the <: only helps in disambiguation which isn't the case 
+here. Am I correct?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:27:58 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:27:58 -0400
+Subject: [ragel-users] Control of efficiency of pattern-matching
+In-Reply-To: <47EED3E6.8040809@nanorex.com>
+References: <47EED3E6.8040809@nanorex.com>
+Message-ID: <47F1110E.9050402@cs.queensu.ca>
+
+
+Manoj Rajagopalan wrote:
+> The left-guard should place higher priority on staying in the 
+> "space-eater" pattern but I'm guessing the machines will be equally 
+> efficient and the <: only helps in disambiguation which isn't the case 
+> here. Am I correct?
+
+Yes that's right, the two state machines will be identical since there
+is no ambiguity.
+
+-Adrian
+
+
+From Martin.Pir... at iaik.tugraz.at  Mon Mar 31 14:59:04 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Mon, 31 Mar 2008 16:59:04 +0200
+Subject: Splitting common definitions and actions implementation
+Message-ID: <47F0FC38.2000...@iaik.tugraz.at>
+
+Hello ragel-users...
+
+I was pondering, if I want to use the same Ragel machine with different
+language backends, how would it be possible to seperate common logic
+from language dependent action implementation.
+
+E.g., I have a core.rl file with the bulk of common logic and I want a
+c.rl and java.rl file which "include core.rl".
+In core I need to reference actions which are not defined there, in the
+language dependent files I need to reference constants/states of the
+common logic.
+
+
+Do I have to duplicate common definitions if I want to develop two
+language implementations simultaneously, or am I missing a way to
+workaround this circular dependency problem?
+
+
+Thanks,
+  Martin
+
+
+PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+Google account, just to be able to join this list/group to ask a question? :-/
+
+
+From ma... at nanorex.com  Mon Mar 31 15:08:32 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Mon, 31 Mar 2008 11:08:32 -0400
+Subject: [ragel-users] Splitting common definitions and actions implementation
+In-Reply-To: <47F0FC38.2000004@iaik.tugraz.at>
+References: <47F0FC38.2000004@iaik.tugraz.at>
+Message-ID: <47F0FE70.3030800@nanorex.com>
+
+I'm working on something like this. To ensure that your constants in 
+core appear to your c/java.rl make sure you include them in the correct 
+order - core.rl first.
+
+I have a .cpp file in which I include all my .rl files and then declare 
+and define functions which I call from my equivalent of core.rl. The 
+declarations occur above the %% write exec for my machines otherwise the 
+  the 'include' statement for your .rl files could go any place (I 
+think, because you'll be running Ragel before the C preprocessor).
+
+Because Ragel simply translates text from a pattern-recognition language 
+to C/Java, your code will compile if the resulting .c/.java files have 
+the declarations in the correct order.
+
+You might need to create one or two more intermediate files to solve the 
+problem.
+
+cheers!
+Manoj
+
+
+
+
+Martin Pirker wrote:
+> Hello ragel-users...
+> 
+> I was pondering, if I want to use the same Ragel machine with different
+> language backends, how would it be possible to seperate common logic
+> from language dependent action implementation.
+> 
+> E.g., I have a core.rl file with the bulk of common logic and I want a
+> c.rl and java.rl file which "include core.rl".
+> In core I need to reference actions which are not defined there, in the
+> language dependent files I need to reference constants/states of the
+> common logic.
+> 
+> 
+> Do I have to duplicate common definitions if I want to develop two
+> language implementations simultaneously, or am I missing a way to
+> workaround this circular dependency problem?
+> 
+> 
+> Thanks,
+>   Martin
+> 
+> 
+> PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+> Google account, just to be able to join this list/group to ask a question? :-/
+> 
+> 
+> > 
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:45:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:45:19 -0400
+Subject: [ragel-users] Splitting common definitions and actions implementation
+In-Reply-To: <47F0FC38.2000004@iaik.tugraz.at>
+References: <47F0FC38.2000004@iaik.tugraz.at>
+Message-ID: <47F1151F.40707@cs.queensu.ca>
+
+Here's an example of this minus the state references in actions.
+
+http://code.whytheluckystiff.net/hpricot/browser/trunk/ext/hpricot_scan
+
+The java and c .rl files define actions and then include the common.rl,
+which contains all the machine definitions. You don't need to worry
+about circular dependencies since references to states are resolved
+after all the input (including all included files) is read in.
+
+-Adrian
+
+Martin Pirker wrote:
+> Hello ragel-users...
+> 
+> I was pondering, if I want to use the same Ragel machine with different
+> language backends, how would it be possible to seperate common logic
+> from language dependent action implementation.
+> 
+> E.g., I have a core.rl file with the bulk of common logic and I want a
+> c.rl and java.rl file which "include core.rl".
+> In core I need to reference actions which are not defined there, in the
+> language dependent files I need to reference constants/states of the
+> common logic.
+> 
+> 
+> Do I have to duplicate common definitions if I want to develop two
+> language implementations simultaneously, or am I missing a way to
+> workaround this circular dependency problem?
+> 
+> 
+> Thanks,
+>   Martin
+> 
+> 
+> PS: Did anybody read the ~500 lines of Google Terms of Service to create a
+> Google account, just to be able to join this list/group to ask a question? :-/
+> 
+> 
+> > 
+> 
+
+
+From polus... at gmail.com  Fri Mar 28 21:41:21 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Sat, 29 Mar 2008 03:41:21 +0600
+Subject: fnext followed by fbreak
+Message-ID: <47ED6601.50...@gmail.com>
+
+The action like this:
+
+     action x {
+         fnext somewhere_else;
+         fbreak;
+     };
+
+become generated as follows:
+
+     action x {
+         cs = 123;                   // fnext somewhere_else;
+         {p++; cs = 456; goto _out;} // fbreak;
+     };
+
+where '123' is the desired next state (aka somewhere_else),
+and '456' is the default target state for the transition.
+
+That is, the effect of fnext is neglected, when followed by fbreak.
+
+For now, the workaround is to redeclare 'cs' in local block:
+
+     action x {
+         fnext somewhere_else;
+         {int cs = -1; fbreak;}
+     };
+
+but I hope there should be a better solution for this.
+
+For actions that involve both fnext and fbreak, I would suggest
+generating {cs = ...} in the beginning of the action, and omit
+that assignnment in the code generated by fbreak.
+
+--
+Andrei Polushin
+
+
+From thurs... at cs.queensu.ca  Mon Mar 31 16:18:28 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 31 Mar 2008 12:18:28 -0400
+Subject: [ragel-users] fnext followed by fbreak
+In-Reply-To: <47ED6601.50101@gmail.com>
+References: <47ED6601.50101@gmail.com>
+Message-ID: <47F10ED4.3090504@cs.queensu.ca>
+
+Hmmm, yes this needs to be fixed for sure.
+
+Andrei Polushin wrote:
+> For actions that involve both fnext and fbreak, I would suggest
+> generating {cs = ...} in the beginning of the action, and omit
+> that assignnment in the code generated by fbreak.
+
+That seems like a good solution. Also, I think it's already half done in
+-G2. When an action contains fnext there need to be a jump back into the
+processing loop via a switch so CS is set just before the action.
+
+-Adrian
+
+

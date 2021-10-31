@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Maintaining char &amp; line counts in a scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Maintaining%20char%20%26%20line%20counts%20in%20a%20scanner&In-Reply-To=%3C3E3BA333-8D5A-4443-85E2-6908DFDD0386%40elusive.cx%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002876.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Maintaining char &amp; line counts in a scanner</H1>
+    <B>Joe Wildish</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Maintaining%20char%20%26%20line%20counts%20in%20a%20scanner&In-Reply-To=%3C3E3BA333-8D5A-4443-85E2-6908DFDD0386%40elusive.cx%3E"
+       TITLE="[ragel-users] Maintaining char &amp; line counts in a scanner">joe at elusive.cx
+       </A><BR>
+    <I>Sun Apr 25 15:18:26 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002876.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2877">[ date ]</a>
+              <a href="thread.html#2877">[ thread ]</a>
+              <a href="subject.html#2877">[ subject ]</a>
+              <a href="author.html#2877">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+Thanks for the response. I agree that the third approach you mention is the most elegant. Having said all that, I've just finished implementing the counters with a second pass (ie. the first approach).
+
+The reason is that I actually want to record the starting positions (line &amp; column) *and* the ending positions for each token. I therefore played around with having an action on entry that recorded the existing positions, and a final action that then wrote the starting and ending positions into the token struct... however, I started to get myself confused with how the backtracking might come into play, so opted to take the whole counting-malarky outside of the machine :) I may well revisit this, but have since moved onto the cfg parser as the second-pass approach actually does work OK... it's just not as &quot;nice&quot; as keeping it all self-contained in the machine. 
+
+A quick question though; regarding your examples below, are you suggesting that the use of the intersection means that the backtracking won't occur? 
+
+Many thanks,
+
+-Joe
+
+On 23 Apr 2010, at 19:31, Adrian Thurston wrote:
+
+&gt;<i> Hi Joe,
+</I>&gt;<i> 
+</I>&gt;<i> There are a few approaches to this problem. The simplest approach is to simply count newlines in the matched text in every match action. The downside to this is that you are passing over everything twice.
+</I>&gt;<i> 
+</I>&gt;<i> If a second pass over each token is something you'd like to avoid, then you can go down the sub-scanner road. Basically, any pattern that can contain a newline, such as multi-line comments, or strings, can be implemented with a sub-scanner. In the main scanner you write a pattern for whatever sequence of characters takes you into comments, for example, then jump into a separate scanner for comments. You end up with broken down comments though, as opposed to a whole match of a comment.
+</I>&gt;<i> 
+</I>&gt;<i> A third approach is to write patterns that count newlines as they go. This is my favourite approach. The only worry is backtracking. If your scanner patterns backtrack over newlines, then you've got double counting happening. With a well-designed scanner, this isn't normally a problem though. Try something like this:
+</I>&gt;<i> 
+</I>&gt;<i> counter = ( any | '\n' @inc )*;
+</I>&gt;<i> comment = ( '/*' any* :&gt;&gt; '*/' ) &amp; counter;
+</I>&gt;<i> 
+</I>&gt;<i> Or embed the counting deep:
+</I>&gt;<i> 
+</I>&gt;<i> comment = ( '/*' ( any | '\n' @inc )* :&gt;&gt; '*/' ) &amp; counter;
+</I>&gt;<i> 
+</I>&gt;<i> -Adrian
+</I>
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002876.html">[ragel-users] Maintaining char &amp; line counts in a scanner
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2877">[ date ]</a>
+              <a href="thread.html#2877">[ thread ]</a>
+              <a href="subject.html#2877">[ subject ]</a>
+              <a href="author.html#2877">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

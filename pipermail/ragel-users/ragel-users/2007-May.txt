@@ -1,0 +1,1612 @@
+From dinesh.bolkenst... at epfl.ch  Sun May  6 20:40:43 2007
+From: dinesh.bolkenst... at epfl.ch (DinSoft)
+Date: Sun, 06 May 2007 13:40:43 -0700
+Subject: A bug in Ragel?
+Message-ID: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+
+Hello everyone,
+
+I don't understand Ragel's behaviour on one point.
+Currently, I am implementing a parser for SPF (RFC 4408).
+
+Everything was fine and working well but this.
+
+Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+available at http://www.ietf.org/rfc/rfc4408.txt):
+
+                qualifier = ([+-?~]) >action_qualifier_1
+@action_qualifier_2;
+
+                all = ("all"i) >action_all_1 @action_all_2;
+                version = ("v=spf1"i) >action_version_1
+@action_version_2;
+
+		name = (alpha ( alpha | digit | "-" | "_" | "." )*) >action_name_1
+@action_name_2;
+
+		redirect = ("redirect"i "=" domain_spec) >action_redirect_1
+@action_redirect_2;
+		unknown_modifier = (name "=" macro_string)
+>action_unknown_modifier_1 @action_unknown_modifier_2;
+		explanation = ("exp"i "=" domain_spec) >action_explanation_1
+@action_explanation_2;
+
+                mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+| exists) >action_mechanism_1 @action_mechanism_2;
+		directive = ((qualifier)? mechanism) >action_directive_1
+@action_directive_2;
+
+		terms_spaces = ((' '){1,}) >action_terms_spaces_1
+@action_terms_spaces_2;
+		terms_directive = (terms_spaces directive) >action_terms_directive_1
+@action_terms_directive_2;
+		terms_modifier = (terms_spaces modifier) >action_terms_modifier_1
+@action_terms_modifier_2;
+		terms = (( terms_directive | terms_modifier )*) >action_terms_1
+@action_terms_2;					# May be empty
+
+		record_spaces = ((' ')*) >action_record_spaces_1
+@action_record_spaces_2;						# May be empty
+		record = (version terms record_spaces) >action_record_1
+@action_record_2;
+
+		# Language's starting rule
+		main := record;
+
+With the following user-action for qualifier:
+ 		# qualifier
+		action action_qualifier_1 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+			element.start = fpc;
+
+			if (doubleLinkedListAddLast(&qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+		action action_qualifier_2 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+			element.stop = fpc;
+
+			if (doubleLinkedListAddLast(&qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+(all rule do have the same kind of user actions).
+
+
+Now I find amazing that, on the input "v=spf1 =all" , I am getting the
+'=' as being considered as a qualifier !
+
+Here is the dump of my doubleLinkedList for qualifier:
+Parsing: v=spf1 =all!
+qualifier list: 2 elements in the list!
+        Start: 134729663 (=)
+        Stop: 134729663 (=)
+
+When I go back to the rule of qualifier, I see:
+ qualifier = ([+-?~]) >action_qualifier_1 @action_qualifier_2;
+
+So how is it possible that Ragel considers '=' as being a qualifier?
+
+I was expecting a parse error (from the rule unknown_modifier ,
+because the rule "name" cannot be empty).
+
+Thanks for your help !
+
+Regards,
+ Dinesh Bolkensteyn
+
+
+From thurs... at cs.queensu.ca  Sun May  6 20:50:25 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 May 2007 16:50:25 -0400
+Subject: [ragel-users] A bug in Ragel?
+In-Reply-To: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+References: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+Message-ID: <463E3F91.5070105@cs.queensu.ca>
+
+Hi Dinesh,
+
+In the qualifier machine you've got '+-?'. This interpreted a range, not
+as a union of three characters.
+
+Cheers,
+ Adrian
+
+DinSoft wrote:
+> Hello everyone,
+> 
+> I don't understand Ragel's behaviour on one point.
+> Currently, I am implementing a parser for SPF (RFC 4408).
+> 
+> Everything was fine and working well but this.
+> 
+> Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+> available at http://www.ietf.org/rfc/rfc4408.txt):
+> 
+>                 qualifier = ([+-?~]) >action_qualifier_1
+> @action_qualifier_2;
+> 
+>                 all = ("all"i) >action_all_1 @action_all_2;
+>                 version = ("v=spf1"i) >action_version_1
+> @action_version_2;
+> 
+> 		name = (alpha ( alpha | digit | "-" | "_" | "." )*) >action_name_1
+> @action_name_2;
+> 
+> 		redirect = ("redirect"i "=" domain_spec) >action_redirect_1
+> @action_redirect_2;
+> 		unknown_modifier = (name "=" macro_string)
+>> action_unknown_modifier_1 @action_unknown_modifier_2;
+> 		explanation = ("exp"i "=" domain_spec) >action_explanation_1
+> @action_explanation_2;
+> 
+>                 mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+> | exists) >action_mechanism_1 @action_mechanism_2;
+> 		directive = ((qualifier)? mechanism) >action_directive_1
+> @action_directive_2;
+> 
+> 		terms_spaces = ((' '){1,}) >action_terms_spaces_1
+> @action_terms_spaces_2;
+> 		terms_directive = (terms_spaces directive) >action_terms_directive_1
+> @action_terms_directive_2;
+> 		terms_modifier = (terms_spaces modifier) >action_terms_modifier_1
+> @action_terms_modifier_2;
+> 		terms = (( terms_directive | terms_modifier )*) >action_terms_1
+> @action_terms_2;					# May be empty
+> 
+> 		record_spaces = ((' ')*) >action_record_spaces_1
+> @action_record_spaces_2;						# May be empty
+> 		record = (version terms record_spaces) >action_record_1
+> @action_record_2;
+> 
+> 		# Language's starting rule
+> 		main := record;
+> 
+> With the following user-action for qualifier:
+>  		# qualifier
+> 		action action_qualifier_1 {
+> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+> 			element.start = fpc;
+> 
+> 			if (doubleLinkedListAddLast(&qualifier, element)) {
+> 				goto atoi_error;
+> 			}
+> 		}
+> 
+> 		action action_qualifier_2 {
+> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+> 			element.stop = fpc;
+> 
+> 			if (doubleLinkedListAddLast(&qualifier, element)) {
+> 				goto atoi_error;
+> 			}
+> 		}
+> 
+> (all rule do have the same kind of user actions).
+> 
+> 
+> Now I find amazing that, on the input "v=spf1 =all" , I am getting the
+> '=' as being considered as a qualifier !
+> 
+> Here is the dump of my doubleLinkedList for qualifier:
+> Parsing: v=spf1 =all!
+> qualifier list: 2 elements in the list!
+>         Start: 134729663 (=)
+>         Stop: 134729663 (=)
+> 
+> When I go back to the rule of qualifier, I see:
+>  qualifier = ([+-?~]) >action_qualifier_1 @action_qualifier_2;
+> 
+> So how is it possible that Ragel considers '=' as being a qualifier?
+> 
+> I was expecting a parse error (from the rule unknown_modifier ,
+> because the rule "name" cannot be empty).
+> 
+> Thanks for your help !
+> 
+> Regards,
+>  Dinesh Bolkensteyn
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070506/cdf3393e/attachment.sig>
+
+From obrien.and... at gmail.com  Fri May 11 17:03:49 2007
+From: obrien.and... at gmail.com (AndrewO)
+Date: Fri, 11 May 2007 10:03:49 -0700
+Subject: Newbie question: Scanners?
+Message-ID: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+
+Hi,
+
+I'm pretty new to FSMs, so this is probably an obvious question: when
+would you use a scanner over a standard machine?  Is it just for being
+able to backtrack if you're going to have ambiguity?  Or is it deeper
+than that?
+
+Sorry if this has been covered elsewere.
+
+Thanks,
+Andrew O'Brien
+
+
+From thurs... at cs.queensu.ca  Fri May 11 19:49:45 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 May 2007 15:49:45 -0400
+Subject: [ragel-users] Newbie question: Scanners?
+In-Reply-To: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+Message-ID: <4644C8D9.1080909@cs.queensu.ca>
+
+Hi Andrew,
+
+Scanners are suitable for processing streams of tokens. Generally this
+is any input that can be broken down into a list of items taken from a
+pool of possibilities.
+
+You can also use a scanner for its backtracking features. They are
+useful in cases where you want to attempt one pattern and should that
+fail you would like to match some other pattern against a shorter string.
+
+Regards,
+ Adrian
+
+AndrewO wrote:
+> Hi,
+> 
+> I'm pretty new to FSMs, so this is probably an obvious question: when
+> would you use a scanner over a standard machine?  Is it just for being
+> able to backtrack if you're going to have ambiguity?  Or is it deeper
+> than that?
+> 
+> Sorry if this has been covered elsewere.
+> 
+> Thanks,
+> Andrew O'Brien
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070511/da4d65c6/attachment.sig>
+
+From obrien.and... at gmail.com  Mon May 14 21:40:05 2007
+From: obrien.and... at gmail.com (AndrewO)
+Date: Mon, 14 May 2007 21:40:05 -0000
+Subject: Newbie question: Scanners?
+In-Reply-To: <4644C8D9.1080909@cs.queensu.ca>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+   <4644C8D9.1080909@cs.queensu.ca>
+Message-ID: <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+
+Hi Adrian,
+
+Thanks for the response.   I think I understand the part about
+backtracking, but I guess I'm still wondering about the first part.
+It might help if I describe my situation a little more: I'm trying to
+write something to parse the output from the traceroute utility more
+quickly than a standard regex based solution written in Perl or Ruby.
+The thing that's tripped me up in the past is that there's some
+possible ambiguity which I think would have to be solved with
+backtracking.  For example, you can have lines like the following:
+
+6 sl-bb24-pen-15-0.sprintlink.net (144.232.16.81)  113.927 ms  110.118
+ms  109.133 ms
+
+5 195.3.70.65 (195.3.70.65)  17.557 ms  10.957 ms  11.692 ms
+
+7  61.19.60.22 (61.19.60.22)  2.708 ms 202.129.63.70 (202.129.63.70)
+2.751 ms *
+
+Hostnames are easy to extract.  Where is gets complicated is on the
+last line.  It can't be known that 202.129.63.70 is an IP address and
+not a delay until the second period.
+
+So does this situation fit into criteria of being able to be "broken
+down into a list of items taken from a pool of possibilities"?
+
+Sorry if this is a little remedial and thanks for the help.
+
+-Andrew
+
+On May 11, 3:49 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Andrew,
+>
+> Scanners are suitable for processing streams of tokens. Generally this
+> is any input that can be broken down into a list of items taken from a
+> pool of possibilities.
+>
+> You can also use a scanner for its backtracking features. They are
+> useful in cases where you want to attempt one pattern and should that
+> fail you would like to match some other pattern against a shorter string.
+>
+> Regards,
+>  Adrian
+>
+> AndrewO wrote:
+> > Hi,
+>
+> > I'm pretty new to FSMs, so this is probably an obvious question: when
+> > would you use a scanner over a standard machine?  Is it just for being
+> > able to backtrack if you're going to have ambiguity?  Or is it deeper
+> > than that?
+>
+> > Sorry if this has been covered elsewere.
+>
+> > Thanks,
+> > Andrew O'Brien
+>
+> > >
+>
+>
+>  signature.asc
+> 1KDownload
+
+
+From thurs... at cs.queensu.ca  Mon May 14 22:18:17 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 14 May 2007 18:18:17 -0400
+Subject: [ragel-users] Re: Newbie question: Scanners?
+In-Reply-To: <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com> <4644C8D9.1080909@cs.queensu.ca> <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+Message-ID: <4648E029.7000309@cs.queensu.ca>
+
+Hi Andrew,
+
+You could use a scanner for this but it isn't necessary. You could
+handle it with pure state machines if you like.
+
+Make a machine definition for IP addresses and a definition for delays
+and as long as you embed the actions which indicate IP/delay at some
+point at or past the second dot/space you can union them together
+because they diverge at the second dot/space.
+
+delay = digit+ '.' digit+ ' '* 'ms' @{print 'delay';};
+IP = digit+ '.' digit+ '.' digit+ '.' digit+ %{print 'IP';};
+
+main := 'something' ( delay | IP ) 'something else';
+
+-Adrian
+
+AndrewO wrote:
+> Hi Adrian,
+> 
+> Thanks for the response.   I think I understand the part about
+> backtracking, but I guess I'm still wondering about the first part.
+> It might help if I describe my situation a little more: I'm trying to
+> write something to parse the output from the traceroute utility more
+> quickly than a standard regex based solution written in Perl or Ruby.
+> The thing that's tripped me up in the past is that there's some
+> possible ambiguity which I think would have to be solved with
+> backtracking.  For example, you can have lines like the following:
+> 
+> 6 sl-bb24-pen-15-0.sprintlink.net (144.232.16.81)  113.927 ms  110.118
+> ms  109.133 ms
+> 
+> 5 195.3.70.65 (195.3.70.65)  17.557 ms  10.957 ms  11.692 ms
+> 
+> 7  61.19.60.22 (61.19.60.22)  2.708 ms 202.129.63.70 (202.129.63.70)
+> 2.751 ms *
+> 
+> Hostnames are easy to extract.  Where is gets complicated is on the
+> last line.  It can't be known that 202.129.63.70 is an IP address and
+> not a delay until the second period.
+> 
+> So does this situation fit into criteria of being able to be "broken
+> down into a list of items taken from a pool of possibilities"?
+> 
+> Sorry if this is a little remedial and thanks for the help.
+> 
+> -Andrew
+> 
+> On May 11, 3:49 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hi Andrew,
+>>
+>> Scanners are suitable for processing streams of tokens. Generally this
+>> is any input that can be broken down into a list of items taken from a
+>> pool of possibilities.
+>>
+>> You can also use a scanner for its backtracking features. They are
+>> useful in cases where you want to attempt one pattern and should that
+>> fail you would like to match some other pattern against a shorter string.
+>>
+>> Regards,
+>>  Adrian
+>>
+>> AndrewO wrote:
+>>> Hi,
+>>> I'm pretty new to FSMs, so this is probably an obvious question: when
+>>> would you use a scanner over a standard machine?  Is it just for being
+>>> able to backtrack if you're going to have ambiguity?  Or is it deeper
+>>> than that?
+>>> Sorry if this has been covered elsewere.
+>>> Thanks,
+>>> Andrew O'Brien
+>>
+>>  signature.asc
+>> 1KDownload
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070514/22e43e06/attachment.sig>
+
+From chr... at gmail.com  Tue May 15 13:43:56 2007
+From: chr... at gmail.com (chrsan)
+Date: Tue, 15 May 2007 13:43:56 -0000
+Subject: Machine definitions that depend on each other
+Message-ID: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+
+Hi!
+
+I'm working with Ragel for the first time, implementing a CSS scanner/
+parser.
+I've run into trouble having machine definitions that depend on each
+other. In the following
+example term refers to function which in turn refers to expr that
+refers to term.
+
+What's the best way to solve this in Ragel?
+I haven't come up with a way to solve this by rearranging the
+definitions.
+
+function = ident '(' s* expr ')' s*;
+term = ( ( ( unary_operator? ( unary_term | num ident ) ) | string |
+ident | uri ) s* ) | hexcolor | function;
+operator = ( '/' | ',' ) s*;
+expr = term ( operator? term )*;
+
+Thanks in advance,
+Christer Sandberg
+
+
+From thurs... at cs.queensu.ca  Wed May 16 00:13:05 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 May 2007 20:13:05 -0400
+Subject: [ragel-users] Machine definitions that depend on each other
+In-Reply-To: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+References: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+Message-ID: <464A4C91.8010304@cs.queensu.ca>
+
+Hi,
+
+In general, Ragel cannot handle recursive structures because the grammar
+is interpreted as a regular language.
+
+However, depending on what needs to be parsed it is sometimes practical
+to manually implement the recursive part using fcall/fret. The trick is
+to think of these as function calls and to mimic a recursive descent
+parser. To balance parentheses you can often use counters and fgoto.
+Conditions are also a possibility. Look in test/cond6.rl for an example.
+
+Cheers,
+ Adrian
+
+chrsan wrote:
+> Hi!
+> 
+> I'm working with Ragel for the first time, implementing a CSS scanner/
+> parser.
+> I've run into trouble having machine definitions that depend on each
+> other. In the following
+> example term refers to function which in turn refers to expr that
+> refers to term.
+> 
+> What's the best way to solve this in Ragel?
+> I haven't come up with a way to solve this by rearranging the
+> definitions.
+> 
+> function = ident '(' s* expr ')' s*;
+> term = ( ( ( unary_operator? ( unary_term | num ident ) ) | string |
+> ident | uri ) s* ) | hexcolor | function;
+> operator = ( '/' | ',' ) s*;
+> expr = term ( operator? term )*;
+> 
+> Thanks in advance,
+> Christer Sandberg
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070515/990f74fc/attachment.sig>
+
+From metatr... at gmail.com  Mon May 14 13:06:37 2007
+From: metatr... at gmail.com (metatr... at gmail.com)
+Date: Mon, 14 May 2007 06:06:37 -0700
+Subject: Scanner question
+Message-ID: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+
+Hi everyone.  I've been trying out Ragel for a number of things, first
+of which is matching a token from a list of possibilities.  Sounds
+perfect for a scanner!
+
+Here's a really simple example:
+
+%%{
+
+  machine scanner;
+
+  main := |*
+  'A'		          %/ { t = TOK_A; };
+  'AB'		         %/ { t = TOK_AB; };
+  'ABC'  		%/ { t = TOK_ABC; };
+          *|;
+}%%
+
+The EOF actions do the matching and return the right value to the next
+part of the parser.
+
+My problem is that if you run this machine definition through
+rlcodegen -V and dotty, there doesn't seem to be any sequence of
+states to match the longest string, ABC.  You can follow along the
+state machine and see the transitions (A, EOF) and (A, B, EOF) but for
+ABC, there doesn't seem to be (A, B, C, EOF).  This is borne out by
+filling in a simple processing loop processing a static string.  It
+will match 'A', 'AB' but not 'ABC'.
+
+I'm hoping this is something silly on my part - any hints are much
+appreciated!
+
+
+MT.
+
+
+From thurs... at cs.queensu.ca  Mon May 14 22:05:46 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 14 May 2007 18:05:46 -0400
+Subject: [ragel-users] Scanner question
+In-Reply-To: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+References: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+Message-ID: <4648DD3A.9000101@cs.queensu.ca>
+
+Hi,
+
+What you're seeing is an an artifact of the scanner implementation. It
+wasn't really designed to work in combination with EOF actions. In the
+case of the final 'C' character, the third pattern can be determined to
+have matched without any lookahead and so ragel optimizes the state
+tables by drawing a transition directly to the start state. The old
+final state that has the embedded EOF action is abandoned.
+
+Just use pattern actions instead:
+
+'ABC' => { t = TOK_ABC; };
+
+-Adrian
+
+
+metatr... at gmail.com wrote:
+> Hi everyone.  I've been trying out Ragel for a number of things, first
+> of which is matching a token from a list of possibilities.  Sounds
+> perfect for a scanner!
+> 
+> Here's a really simple example:
+> 
+> %%{
+> 
+>   machine scanner;
+> 
+>   main := |*
+>   'A'		          %/ { t = TOK_A; };
+>   'AB'		         %/ { t = TOK_AB; };
+>   'ABC'  		%/ { t = TOK_ABC; };
+>           *|;
+> }%%
+> 
+> The EOF actions do the matching and return the right value to the next
+> part of the parser.
+> 
+> My problem is that if you run this machine definition through
+> rlcodegen -V and dotty, there doesn't seem to be any sequence of
+> states to match the longest string, ABC.  You can follow along the
+> state machine and see the transitions (A, EOF) and (A, B, EOF) but for
+> ABC, there doesn't seem to be (A, B, C, EOF).  This is borne out by
+> filling in a simple processing loop processing a static string.  It
+> will match 'A', 'AB' but not 'ABC'.
+> 
+> I'm hoping this is something silly on my part - any hints are much
+> appreciated!
+> 
+> 
+> MT.
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070514/5bf7f6ab/attachment.sig>
+
+From metatr... at gmail.com  Wed May 16 00:18:02 2007
+From: metatr... at gmail.com (metatr... at gmail.com)
+Date: Tue, 15 May 2007 17:18:02 -0700
+Subject: Scanner question
+In-Reply-To: <4648DD3A.9000101@cs.queensu.ca>
+References: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+   <4648DD3A.9000101@cs.queensu.ca>
+Message-ID: <1179274682.981274.85070@u30g2000hsc.googlegroups.com>
+
+Hey thanks - that worked a treat!  I think I was also combining too
+much host code from my non-scanner code which was mucking things up as
+well.
+
+I'm experimenting with a validating XML parser written in Ragel.  The
+scanner I was having trouble with is for recognising element names and
+am working on a Ragel state machine written from the DTD definition.
+It's looking good so far, and is much smaller and more accurate than
+the versions I have written by hand in C and Python.
+
+
+Regards,
+
+MT.
+
+
+From w... at wincent.com  Wed May 23 13:43:36 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Wed, 23 May 2007 06:43:36 -0700
+Subject: RFC-2822 recognizer: best way to test it?
+Message-ID: <1179927816.232806.277230@u30g2000hsc.googlegroups.com>
+
+Hi!
+
+As my first Ragel project I'm writing a recognizer for RFC-2822 email
+addresses. All the recognizer has to do is scan an input string and
+decide whether or not it conforms to RFC-2822. I'll write a little bit
+of background first; but in the end my question is, what's the best
+way to test this?
+
+I basically started by taking RFC-2822 (<http://www.ietf.org/rfc/
+rfc2822.txt>) and taking the rules -- written in the RFC using
+Augmented Backus-Naur Form (ABNF) notation (<http://www.ietf.org/rfc/
+rfc2234.txt>) -- and rewriting them using Ragel syntax.
+
+There is one circular dependency in those rules ("comment" needs
+"ccontent", but "ccontent" needs "comment") and so for the time being
+I've commented out that dependency (in other words, nesting of
+comments inside comments isn't yet implemented). If everything works
+out ok I will as a last step use the trick described here <http://
+groups.google.com/group/ragel-users/browse_thread/thread/
+f3fdde1d51c86aaf/e4f2b110236b8660> to manually handle the recursion.
+
+Running ragel on the input causes it to spin forever, so I've
+simplified some of the rules (mostly by commenting out the optional
+whitespace) and now it compiles (using C as the output language).
+Before I begin tweaking the rules back into conformance with the RFC I
+wanted to ask about testing techniques.
+
+What I have is effectively a black box where I stick input in and get
+success or failure message back at the end. Is there any way to break
+this down into smaller parts of testing purposes? In other words,
+instead of testing that "f... at example.com" passes (it does), can I test
+that "example.com" matches  a "domain", or even lower, that "foo" is
+valid "atext". Basically, I can test that the whole works, but I'd be
+much more confident if I could individually test the parts as well.
+
+What's the best methodology here?
+
+Cheers,
+Wincent
+
+
+From qzz... at gmail.com  Tue May 15 23:31:33 2007
+From: qzz... at gmail.com (colin h)
+Date: Tue, 15 May 2007 23:31:33 -0000
+Subject: Basic "Hello World" Example?
+Message-ID: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+
+Greetings all!
+
+I'm trying to learn more about Ragel, but having a difficult time
+getting figuring out how to get something running.  I'm just wondering
+if somone has a simple "Hello World!" type example using Ruby they can
+send me.  It always helps when i have something working to then
+break... 8)
+
+Thanks in advance!
+
+
+From thurs... at cs.queensu.ca  Tue May 15 23:59:30 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 May 2007 19:59:30 -0400
+Subject: [ragel-users] Basic "Hello World" Example?
+In-Reply-To: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+References: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+Message-ID: <464A4962.6080103@cs.queensu.ca>
+
+The file atoi3.rl in the tests directory is a good one to look at. To
+find all ruby tests grep for 'LANG: ruby' in that directory. Note that
+some are generated and to make them requires txl to be installed.
+
+Cheers,
+ Adrian
+
+colin h wrote:
+> Greetings all!
+> 
+> I'm trying to learn more about Ragel, but having a difficult time
+> getting figuring out how to get something running.  I'm just wondering
+> if somone has a simple "Hello World!" type example using Ruby they can
+> send me.  It always helps when i have something working to then
+> break... 8)
+> 
+> Thanks in advance!
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070515/b545c61f/attachment.sig>
+
+From dinesh.bolkenst... at epfl.ch  Sun May  6 20:40:43 2007
+From: dinesh.bolkenst... at epfl.ch (DinSoft)
+Date: Sun, 06 May 2007 13:40:43 -0700
+Subject: A bug in Ragel?
+Message-ID: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+
+Hello everyone,
+
+I don't understand Ragel's behaviour on one point.
+Currently, I am implementing a parser for SPF (RFC 4408).
+
+Everything was fine and working well but this.
+
+Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+available at http://www.ietf.org/rfc/rfc4408.txt):
+
+                qualifier = ([+-?~]) >action_qualifier_1
+@action_qualifier_2;
+
+                all = ("all"i) >action_all_1 @action_all_2;
+                version = ("v=spf1"i) >action_version_1
+@action_version_2;
+
+		name = (alpha ( alpha | digit | "-" | "_" | "." )*) >action_name_1
+@action_name_2;
+
+		redirect = ("redirect"i "=" domain_spec) >action_redirect_1
+@action_redirect_2;
+		unknown_modifier = (name "=" macro_string)
+>action_unknown_modifier_1 @action_unknown_modifier_2;
+		explanation = ("exp"i "=" domain_spec) >action_explanation_1
+@action_explanation_2;
+
+                mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+| exists) >action_mechanism_1 @action_mechanism_2;
+		directive = ((qualifier)? mechanism) >action_directive_1
+@action_directive_2;
+
+		terms_spaces = ((' '){1,}) >action_terms_spaces_1
+@action_terms_spaces_2;
+		terms_directive = (terms_spaces directive) >action_terms_directive_1
+@action_terms_directive_2;
+		terms_modifier = (terms_spaces modifier) >action_terms_modifier_1
+@action_terms_modifier_2;
+		terms = (( terms_directive | terms_modifier )*) >action_terms_1
+@action_terms_2;					# May be empty
+
+		record_spaces = ((' ')*) >action_record_spaces_1
+@action_record_spaces_2;						# May be empty
+		record = (version terms record_spaces) >action_record_1
+@action_record_2;
+
+		# Language's starting rule
+		main := record;
+
+With the following user-action for qualifier:
+ 		# qualifier
+		action action_qualifier_1 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+			element.start = fpc;
+
+			if (doubleLinkedListAddLast(&qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+		action action_qualifier_2 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+			element.stop = fpc;
+
+			if (doubleLinkedListAddLast(&qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+(all rule do have the same kind of user actions).
+
+
+Now I find amazing that, on the input "v=spf1 =all" , I am getting the
+'=' as being considered as a qualifier !
+
+Here is the dump of my doubleLinkedList for qualifier:
+Parsing: v=spf1 =all!
+qualifier list: 2 elements in the list!
+        Start: 134729663 (=)
+        Stop: 134729663 (=)
+
+When I go back to the rule of qualifier, I see:
+ qualifier = ([+-?~]) >action_qualifier_1 @action_qualifier_2;
+
+So how is it possible that Ragel considers '=' as being a qualifier?
+
+I was expecting a parse error (from the rule unknown_modifier ,
+because the rule "name" cannot be empty).
+
+Thanks for your help !
+
+Regards,
+ Dinesh Bolkensteyn
+
+
+From thurs... at cs.queensu.ca  Sun May  6 20:50:25 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 May 2007 16:50:25 -0400
+Subject: [ragel-users] A bug in Ragel?
+In-Reply-To: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+References: <1178484043.632012.309220@l77g2000hsb.googlegroups.com>
+Message-ID: <463E3F91.5070105@cs.queensu.ca>
+
+Hi Dinesh,
+
+In the qualifier machine you've got '+-?'. This interpreted a range, not
+as a union of three characters.
+
+Cheers,
+ Adrian
+
+DinSoft wrote:
+> Hello everyone,
+> 
+> I don't understand Ragel's behaviour on one point.
+> Currently, I am implementing a parser for SPF (RFC 4408).
+> 
+> Everything was fine and working well but this.
+> 
+> Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+> available at http://www.ietf.org/rfc/rfc4408.txt):
+> 
+>                 qualifier = ([+-?~]) >action_qualifier_1
+> @action_qualifier_2;
+> 
+>                 all = ("all"i) >action_all_1 @action_all_2;
+>                 version = ("v=spf1"i) >action_version_1
+> @action_version_2;
+> 
+> 		name = (alpha ( alpha | digit | "-" | "_" | "." )*) >action_name_1
+> @action_name_2;
+> 
+> 		redirect = ("redirect"i "=" domain_spec) >action_redirect_1
+> @action_redirect_2;
+> 		unknown_modifier = (name "=" macro_string)
+>> action_unknown_modifier_1 @action_unknown_modifier_2;
+> 		explanation = ("exp"i "=" domain_spec) >action_explanation_1
+> @action_explanation_2;
+> 
+>                 mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+> | exists) >action_mechanism_1 @action_mechanism_2;
+> 		directive = ((qualifier)? mechanism) >action_directive_1
+> @action_directive_2;
+> 
+> 		terms_spaces = ((' '){1,}) >action_terms_spaces_1
+> @action_terms_spaces_2;
+> 		terms_directive = (terms_spaces directive) >action_terms_directive_1
+> @action_terms_directive_2;
+> 		terms_modifier = (terms_spaces modifier) >action_terms_modifier_1
+> @action_terms_modifier_2;
+> 		terms = (( terms_directive | terms_modifier )*) >action_terms_1
+> @action_terms_2;					# May be empty
+> 
+> 		record_spaces = ((' ')*) >action_record_spaces_1
+> @action_record_spaces_2;						# May be empty
+> 		record = (version terms record_spaces) >action_record_1
+> @action_record_2;
+> 
+> 		# Language's starting rule
+> 		main := record;
+> 
+> With the following user-action for qualifier:
+>  		# qualifier
+> 		action action_qualifier_1 {
+> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+> 			element.start = fpc;
+> 
+> 			if (doubleLinkedListAddLast(&qualifier, element)) {
+> 				goto atoi_error;
+> 			}
+> 		}
+> 
+> 		action action_qualifier_2 {
+> 			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+> 			element.stop = fpc;
+> 
+> 			if (doubleLinkedListAddLast(&qualifier, element)) {
+> 				goto atoi_error;
+> 			}
+> 		}
+> 
+> (all rule do have the same kind of user actions).
+> 
+> 
+> Now I find amazing that, on the input "v=spf1 =all" , I am getting the
+> '=' as being considered as a qualifier !
+> 
+> Here is the dump of my doubleLinkedList for qualifier:
+> Parsing: v=spf1 =all!
+> qualifier list: 2 elements in the list!
+>         Start: 134729663 (=)
+>         Stop: 134729663 (=)
+> 
+> When I go back to the rule of qualifier, I see:
+>  qualifier = ([+-?~]) >action_qualifier_1 @action_qualifier_2;
+> 
+> So how is it possible that Ragel considers '=' as being a qualifier?
+> 
+> I was expecting a parse error (from the rule unknown_modifier ,
+> because the rule "name" cannot be empty).
+> 
+> Thanks for your help !
+> 
+> Regards,
+>  Dinesh Bolkensteyn
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070506/cdf3393e/attachment-0001.sig>
+
+From obrien.and... at gmail.com  Fri May 11 17:03:49 2007
+From: obrien.and... at gmail.com (AndrewO)
+Date: Fri, 11 May 2007 10:03:49 -0700
+Subject: Newbie question: Scanners?
+Message-ID: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+
+Hi,
+
+I'm pretty new to FSMs, so this is probably an obvious question: when
+would you use a scanner over a standard machine?  Is it just for being
+able to backtrack if you're going to have ambiguity?  Or is it deeper
+than that?
+
+Sorry if this has been covered elsewere.
+
+Thanks,
+Andrew O'Brien
+
+
+From thurs... at cs.queensu.ca  Fri May 11 19:49:45 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 May 2007 15:49:45 -0400
+Subject: [ragel-users] Newbie question: Scanners?
+In-Reply-To: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+Message-ID: <4644C8D9.1080909@cs.queensu.ca>
+
+Hi Andrew,
+
+Scanners are suitable for processing streams of tokens. Generally this
+is any input that can be broken down into a list of items taken from a
+pool of possibilities.
+
+You can also use a scanner for its backtracking features. They are
+useful in cases where you want to attempt one pattern and should that
+fail you would like to match some other pattern against a shorter string.
+
+Regards,
+ Adrian
+
+AndrewO wrote:
+> Hi,
+> 
+> I'm pretty new to FSMs, so this is probably an obvious question: when
+> would you use a scanner over a standard machine?  Is it just for being
+> able to backtrack if you're going to have ambiguity?  Or is it deeper
+> than that?
+> 
+> Sorry if this has been covered elsewere.
+> 
+> Thanks,
+> Andrew O'Brien
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070511/da4d65c6/attachment-0001.sig>
+
+From obrien.and... at gmail.com  Mon May 14 21:40:05 2007
+From: obrien.and... at gmail.com (AndrewO)
+Date: Mon, 14 May 2007 21:40:05 -0000
+Subject: Newbie question: Scanners?
+In-Reply-To: <4644C8D9.1080909@cs.queensu.ca>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com>
+   <4644C8D9.1080909@cs.queensu.ca>
+Message-ID: <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+
+Hi Adrian,
+
+Thanks for the response.   I think I understand the part about
+backtracking, but I guess I'm still wondering about the first part.
+It might help if I describe my situation a little more: I'm trying to
+write something to parse the output from the traceroute utility more
+quickly than a standard regex based solution written in Perl or Ruby.
+The thing that's tripped me up in the past is that there's some
+possible ambiguity which I think would have to be solved with
+backtracking.  For example, you can have lines like the following:
+
+6 sl-bb24-pen-15-0.sprintlink.net (144.232.16.81)  113.927 ms  110.118
+ms  109.133 ms
+
+5 195.3.70.65 (195.3.70.65)  17.557 ms  10.957 ms  11.692 ms
+
+7  61.19.60.22 (61.19.60.22)  2.708 ms 202.129.63.70 (202.129.63.70)
+2.751 ms *
+
+Hostnames are easy to extract.  Where is gets complicated is on the
+last line.  It can't be known that 202.129.63.70 is an IP address and
+not a delay until the second period.
+
+So does this situation fit into criteria of being able to be "broken
+down into a list of items taken from a pool of possibilities"?
+
+Sorry if this is a little remedial and thanks for the help.
+
+-Andrew
+
+On May 11, 3:49 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Andrew,
+>
+> Scanners are suitable for processing streams of tokens. Generally this
+> is any input that can be broken down into a list of items taken from a
+> pool of possibilities.
+>
+> You can also use a scanner for its backtracking features. They are
+> useful in cases where you want to attempt one pattern and should that
+> fail you would like to match some other pattern against a shorter string.
+>
+> Regards,
+>  Adrian
+>
+> AndrewO wrote:
+> > Hi,
+>
+> > I'm pretty new to FSMs, so this is probably an obvious question: when
+> > would you use a scanner over a standard machine?  Is it just for being
+> > able to backtrack if you're going to have ambiguity?  Or is it deeper
+> > than that?
+>
+> > Sorry if this has been covered elsewere.
+>
+> > Thanks,
+> > Andrew O'Brien
+>
+> > >
+>
+>
+>  signature.asc
+> 1KDownload
+
+
+From thurs... at cs.queensu.ca  Mon May 14 22:18:17 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 14 May 2007 18:18:17 -0400
+Subject: [ragel-users] Re: Newbie question: Scanners?
+In-Reply-To: <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+References: <1178903029.776604.72590@y80g2000hsf.googlegroups.com> <4644C8D9.1080909@cs.queensu.ca> <1179178805.782381.304450@h2g2000hsg.googlegroups.com>
+Message-ID: <4648E029.7000309@cs.queensu.ca>
+
+Hi Andrew,
+
+You could use a scanner for this but it isn't necessary. You could
+handle it with pure state machines if you like.
+
+Make a machine definition for IP addresses and a definition for delays
+and as long as you embed the actions which indicate IP/delay at some
+point at or past the second dot/space you can union them together
+because they diverge at the second dot/space.
+
+delay = digit+ '.' digit+ ' '* 'ms' @{print 'delay';};
+IP = digit+ '.' digit+ '.' digit+ '.' digit+ %{print 'IP';};
+
+main := 'something' ( delay | IP ) 'something else';
+
+-Adrian
+
+AndrewO wrote:
+> Hi Adrian,
+> 
+> Thanks for the response.   I think I understand the part about
+> backtracking, but I guess I'm still wondering about the first part.
+> It might help if I describe my situation a little more: I'm trying to
+> write something to parse the output from the traceroute utility more
+> quickly than a standard regex based solution written in Perl or Ruby.
+> The thing that's tripped me up in the past is that there's some
+> possible ambiguity which I think would have to be solved with
+> backtracking.  For example, you can have lines like the following:
+> 
+> 6 sl-bb24-pen-15-0.sprintlink.net (144.232.16.81)  113.927 ms  110.118
+> ms  109.133 ms
+> 
+> 5 195.3.70.65 (195.3.70.65)  17.557 ms  10.957 ms  11.692 ms
+> 
+> 7  61.19.60.22 (61.19.60.22)  2.708 ms 202.129.63.70 (202.129.63.70)
+> 2.751 ms *
+> 
+> Hostnames are easy to extract.  Where is gets complicated is on the
+> last line.  It can't be known that 202.129.63.70 is an IP address and
+> not a delay until the second period.
+> 
+> So does this situation fit into criteria of being able to be "broken
+> down into a list of items taken from a pool of possibilities"?
+> 
+> Sorry if this is a little remedial and thanks for the help.
+> 
+> -Andrew
+> 
+> On May 11, 3:49 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Hi Andrew,
+>>
+>> Scanners are suitable for processing streams of tokens. Generally this
+>> is any input that can be broken down into a list of items taken from a
+>> pool of possibilities.
+>>
+>> You can also use a scanner for its backtracking features. They are
+>> useful in cases where you want to attempt one pattern and should that
+>> fail you would like to match some other pattern against a shorter string.
+>>
+>> Regards,
+>>  Adrian
+>>
+>> AndrewO wrote:
+>>> Hi,
+>>> I'm pretty new to FSMs, so this is probably an obvious question: when
+>>> would you use a scanner over a standard machine?  Is it just for being
+>>> able to backtrack if you're going to have ambiguity?  Or is it deeper
+>>> than that?
+>>> Sorry if this has been covered elsewere.
+>>> Thanks,
+>>> Andrew O'Brien
+>>
+>>  signature.asc
+>> 1KDownload
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070514/22e43e06/attachment-0001.sig>
+
+From chr... at gmail.com  Tue May 15 13:43:56 2007
+From: chr... at gmail.com (chrsan)
+Date: Tue, 15 May 2007 13:43:56 -0000
+Subject: Machine definitions that depend on each other
+Message-ID: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+
+Hi!
+
+I'm working with Ragel for the first time, implementing a CSS scanner/
+parser.
+I've run into trouble having machine definitions that depend on each
+other. In the following
+example term refers to function which in turn refers to expr that
+refers to term.
+
+What's the best way to solve this in Ragel?
+I haven't come up with a way to solve this by rearranging the
+definitions.
+
+function = ident '(' s* expr ')' s*;
+term = ( ( ( unary_operator? ( unary_term | num ident ) ) | string |
+ident | uri ) s* ) | hexcolor | function;
+operator = ( '/' | ',' ) s*;
+expr = term ( operator? term )*;
+
+Thanks in advance,
+Christer Sandberg
+
+
+From thurs... at cs.queensu.ca  Wed May 16 00:13:05 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 May 2007 20:13:05 -0400
+Subject: [ragel-users] Machine definitions that depend on each other
+In-Reply-To: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+References: <1179236636.429472.73600@h2g2000hsg.googlegroups.com>
+Message-ID: <464A4C91.8010304@cs.queensu.ca>
+
+Hi,
+
+In general, Ragel cannot handle recursive structures because the grammar
+is interpreted as a regular language.
+
+However, depending on what needs to be parsed it is sometimes practical
+to manually implement the recursive part using fcall/fret. The trick is
+to think of these as function calls and to mimic a recursive descent
+parser. To balance parentheses you can often use counters and fgoto.
+Conditions are also a possibility. Look in test/cond6.rl for an example.
+
+Cheers,
+ Adrian
+
+chrsan wrote:
+> Hi!
+> 
+> I'm working with Ragel for the first time, implementing a CSS scanner/
+> parser.
+> I've run into trouble having machine definitions that depend on each
+> other. In the following
+> example term refers to function which in turn refers to expr that
+> refers to term.
+> 
+> What's the best way to solve this in Ragel?
+> I haven't come up with a way to solve this by rearranging the
+> definitions.
+> 
+> function = ident '(' s* expr ')' s*;
+> term = ( ( ( unary_operator? ( unary_term | num ident ) ) | string |
+> ident | uri ) s* ) | hexcolor | function;
+> operator = ( '/' | ',' ) s*;
+> expr = term ( operator? term )*;
+> 
+> Thanks in advance,
+> Christer Sandberg
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070515/990f74fc/attachment-0001.sig>
+
+From metatr... at gmail.com  Mon May 14 13:06:37 2007
+From: metatr... at gmail.com (metatr... at gmail.com)
+Date: Mon, 14 May 2007 06:06:37 -0700
+Subject: Scanner question
+Message-ID: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+
+Hi everyone.  I've been trying out Ragel for a number of things, first
+of which is matching a token from a list of possibilities.  Sounds
+perfect for a scanner!
+
+Here's a really simple example:
+
+%%{
+
+  machine scanner;
+
+  main := |*
+  'A'		          %/ { t = TOK_A; };
+  'AB'		         %/ { t = TOK_AB; };
+  'ABC'  		%/ { t = TOK_ABC; };
+          *|;
+}%%
+
+The EOF actions do the matching and return the right value to the next
+part of the parser.
+
+My problem is that if you run this machine definition through
+rlcodegen -V and dotty, there doesn't seem to be any sequence of
+states to match the longest string, ABC.  You can follow along the
+state machine and see the transitions (A, EOF) and (A, B, EOF) but for
+ABC, there doesn't seem to be (A, B, C, EOF).  This is borne out by
+filling in a simple processing loop processing a static string.  It
+will match 'A', 'AB' but not 'ABC'.
+
+I'm hoping this is something silly on my part - any hints are much
+appreciated!
+
+
+MT.
+
+
+From thurs... at cs.queensu.ca  Mon May 14 22:05:46 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 14 May 2007 18:05:46 -0400
+Subject: [ragel-users] Scanner question
+In-Reply-To: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+References: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+Message-ID: <4648DD3A.9000101@cs.queensu.ca>
+
+Hi,
+
+What you're seeing is an an artifact of the scanner implementation. It
+wasn't really designed to work in combination with EOF actions. In the
+case of the final 'C' character, the third pattern can be determined to
+have matched without any lookahead and so ragel optimizes the state
+tables by drawing a transition directly to the start state. The old
+final state that has the embedded EOF action is abandoned.
+
+Just use pattern actions instead:
+
+'ABC' => { t = TOK_ABC; };
+
+-Adrian
+
+
+metatr... at gmail.com wrote:
+> Hi everyone.  I've been trying out Ragel for a number of things, first
+> of which is matching a token from a list of possibilities.  Sounds
+> perfect for a scanner!
+> 
+> Here's a really simple example:
+> 
+> %%{
+> 
+>   machine scanner;
+> 
+>   main := |*
+>   'A'		          %/ { t = TOK_A; };
+>   'AB'		         %/ { t = TOK_AB; };
+>   'ABC'  		%/ { t = TOK_ABC; };
+>           *|;
+> }%%
+> 
+> The EOF actions do the matching and return the right value to the next
+> part of the parser.
+> 
+> My problem is that if you run this machine definition through
+> rlcodegen -V and dotty, there doesn't seem to be any sequence of
+> states to match the longest string, ABC.  You can follow along the
+> state machine and see the transitions (A, EOF) and (A, B, EOF) but for
+> ABC, there doesn't seem to be (A, B, C, EOF).  This is borne out by
+> filling in a simple processing loop processing a static string.  It
+> will match 'A', 'AB' but not 'ABC'.
+> 
+> I'm hoping this is something silly on my part - any hints are much
+> appreciated!
+> 
+> 
+> MT.
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070514/5bf7f6ab/attachment-0001.sig>
+
+From metatr... at gmail.com  Wed May 16 00:18:02 2007
+From: metatr... at gmail.com (metatr... at gmail.com)
+Date: Tue, 15 May 2007 17:18:02 -0700
+Subject: Scanner question
+In-Reply-To: <4648DD3A.9000101@cs.queensu.ca>
+References: <1179147997.685964.230190@e65g2000hsc.googlegroups.com>
+   <4648DD3A.9000101@cs.queensu.ca>
+Message-ID: <1179274682.981274.85070@u30g2000hsc.googlegroups.com>
+
+Hey thanks - that worked a treat!  I think I was also combining too
+much host code from my non-scanner code which was mucking things up as
+well.
+
+I'm experimenting with a validating XML parser written in Ragel.  The
+scanner I was having trouble with is for recognising element names and
+am working on a Ragel state machine written from the DTD definition.
+It's looking good so far, and is much smaller and more accurate than
+the versions I have written by hand in C and Python.
+
+
+Regards,
+
+MT.
+
+
+From w... at wincent.com  Wed May 23 13:43:36 2007
+From: w... at wincent.com (Wincent Colaiuta)
+Date: Wed, 23 May 2007 06:43:36 -0700
+Subject: RFC-2822 recognizer: best way to test it?
+Message-ID: <1179927816.232806.277230@u30g2000hsc.googlegroups.com>
+
+Hi!
+
+As my first Ragel project I'm writing a recognizer for RFC-2822 email
+addresses. All the recognizer has to do is scan an input string and
+decide whether or not it conforms to RFC-2822. I'll write a little bit
+of background first; but in the end my question is, what's the best
+way to test this?
+
+I basically started by taking RFC-2822 (<http://www.ietf.org/rfc/
+rfc2822.txt>) and taking the rules -- written in the RFC using
+Augmented Backus-Naur Form (ABNF) notation (<http://www.ietf.org/rfc/
+rfc2234.txt>) -- and rewriting them using Ragel syntax.
+
+There is one circular dependency in those rules ("comment" needs
+"ccontent", but "ccontent" needs "comment") and so for the time being
+I've commented out that dependency (in other words, nesting of
+comments inside comments isn't yet implemented). If everything works
+out ok I will as a last step use the trick described here <http://
+groups.google.com/group/ragel-users/browse_thread/thread/
+f3fdde1d51c86aaf/e4f2b110236b8660> to manually handle the recursion.
+
+Running ragel on the input causes it to spin forever, so I've
+simplified some of the rules (mostly by commenting out the optional
+whitespace) and now it compiles (using C as the output language).
+Before I begin tweaking the rules back into conformance with the RFC I
+wanted to ask about testing techniques.
+
+What I have is effectively a black box where I stick input in and get
+success or failure message back at the end. Is there any way to break
+this down into smaller parts of testing purposes? In other words,
+instead of testing that "f... at example.com" passes (it does), can I test
+that "example.com" matches  a "domain", or even lower, that "foo" is
+valid "atext". Basically, I can test that the whole works, but I'd be
+much more confident if I could individually test the parts as well.
+
+What's the best methodology here?
+
+Cheers,
+Wincent
+
+
+From qzz... at gmail.com  Tue May 15 23:31:33 2007
+From: qzz... at gmail.com (colin h)
+Date: Tue, 15 May 2007 23:31:33 -0000
+Subject: Basic "Hello World" Example?
+Message-ID: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+
+Greetings all!
+
+I'm trying to learn more about Ragel, but having a difficult time
+getting figuring out how to get something running.  I'm just wondering
+if somone has a simple "Hello World!" type example using Ruby they can
+send me.  It always helps when i have something working to then
+break... 8)
+
+Thanks in advance!
+
+
+From thurs... at cs.queensu.ca  Tue May 15 23:59:30 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 May 2007 19:59:30 -0400
+Subject: [ragel-users] Basic "Hello World" Example?
+In-Reply-To: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+References: <1179271893.620007.326390@l77g2000hsb.googlegroups.com>
+Message-ID: <464A4962.6080103@cs.queensu.ca>
+
+The file atoi3.rl in the tests directory is a good one to look at. To
+find all ruby tests grep for 'LANG: ruby' in that directory. Note that
+some are generated and to make them requires txl to be installed.
+
+Cheers,
+ Adrian
+
+colin h wrote:
+> Greetings all!
+> 
+> I'm trying to learn more about Ragel, but having a difficult time
+> getting figuring out how to get something running.  I'm just wondering
+> if somone has a simple "Hello World!" type example using Ruby they can
+> send me.  It always helps when i have something working to then
+> break... 8)
+> 
+> Thanks in advance!
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070515/b545c61f/attachment-0001.sig>
+

@@ -1,0 +1,5750 @@
+From thurs... at cs.queensu.ca  Sun Jun  1 19:12:03 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 15:12:03 -0400
+Subject: [ragel-users] Testing beginning of line in a scanner
+In-Reply-To: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com>
+References: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com>
+Message-ID: <4842F483.2030506@cs.queensu.ca>
+
+Hey Mitchell, I just checked in a fix for this. Also, you might want to
+try "when !starts_line" to enforce the negative sense of a condition.
+This will prevent not_starts_line from being executed right after
+starts_line to get the same info only negated.
+
+-Adrian
+
+mitchell wrote:
+> Hi,
+> 
+> I'm trying to test for a character that occurs only at the beginning
+> of a line in a scanner:
+> 
+>   special = '!' when starts_line @callback;
+>   line := |*
+>     [\t ]+ => callback;
+>     special;
+>     newline => callback;
+>     '!' when not_starts_line => callback;
+>     ^(space | '!') => callback;
+>   *|;
+> 
+> I get a
+>   ragel: fsmgraph.h:385: TransAp::TransAp(const TransAp&): Assertion
+>   `lmActionTable.length() == 0 && other.lmActionTable.length() == 0'
+> failed
+> error.
+> 
+> If I remove the "'!' when not_starts_line" line, Ragel compiles, but I
+> cannot detect any '!'s in a place other than the beginning of a line
+> which is no good.
+> 
+> Any ideas?
+> 
+> Thanks,
+> -Mitchell;
+> > 
+> 
+
+
+From mforal.n... at gmail.com  Mon Jun  2 17:30:18 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 2 Jun 2008 10:30:18 -0700 (PDT)
+Subject: Testing beginning of line in a scanner
+In-Reply-To: <4842F483.2030506@cs.queensu.ca>
+References: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com> 
+	<4842F483.2030506@cs.queensu.ca>
+Message-ID: <f0bf5b32-f05b-425f-b954-740a8a23fb3e@m45g2000hsb.googlegroups.com>
+
+Adrian,
+
+> Hey Mitchell, I just checked in a fix for this. Also, you might want to
+> try "when !starts_line" to enforce the negative sense of a condition.
+> This will prevent not_starts_line from being executed right after
+> starts_line to get the same info only negated.
+
+Thanks, I got it to work :)
+
+
+From thurs... at cs.queensu.ca  Thu Jun  5 03:11:16 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 04 Jun 2008 23:11:16 -0400
+Subject: will be unresponsive
+Message-ID: <48475954.1000501@cs.queensu.ca>
+
+Hi Everyone,
+
+I wanted to let you know that I won't be able to respond to
+Ragel-related issues for a little while. Probably a month at least. I
+will be focusing intensely on finishing my thesis and I will be avoiding
+all distractions (save for lolcats and xkcd).
+
+-Adrian
+
+
+
+From cia... at gmail.com  Fri Jun  6 10:06:50 2008
+From: cia... at gmail.com (mastupristi)
+Date: Fri, 6 Jun 2008 03:06:50 -0700 (PDT)
+Subject: two state machines
+Message-ID: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+
+I need to parse a string using a state machine, and then  a part of
+this string must be parsed with another state machine.
+
+I tried reassign p pointer and using fgoto statement, but it doesn't
+work.
+
+haw can I do this?
+
+
+From la... at laramies.com  Fri Jun  6 10:49:17 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Fri, 6 Jun 2008 03:49:17 -0700 (PDT)
+Subject: two state machines
+In-Reply-To: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+Message-ID: <e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com>
+
+In case you cannot put both state machines together.. I would put the
+second state-machine into a new function and call that one. Thats how
+I did the parsing of JSON (which has recursions).
+
+arne
+
+On Jun 6, 12:06 pm, mastupristi <cia... at gmail.com> wrote:
+> I need to parse a string using a state machine, and then  a part of
+> this string must be parsed with another state machine.
+>
+> I tried reassign p pointer and using fgoto statement, but it doesn't
+> work.
+>
+> haw can I do this?
+>
+
+
+From cia... at gmail.com  Fri Jun  6 11:04:42 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Fri, 6 Jun 2008 13:04:42 +0200
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced...@j22g2000hsf.googlegroups.com>
+	 <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+Message-ID: <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+
+On Fri, Jun 6, 2008 at 12:49 PM, Arne Goedeke <la... at laramies.com> wrote:
+> In case you cannot put both state machines together.. I would put the
+> second state-machine into a new function and call that one. Thats how
+> I did the parsing of JSON (which has recursions).
+and how can I put the second FSM in new function?
+
+I would like to have something like this:
+
+#include <string.h>
+#include <stdio.h>
+%%{
+	machine FSM;
+	
+	FMS1 := ????          <- this parse a part of the string
+	main := ????           <- this verify the string to match a pattern
+and extract a substring to pass to FSM1
+	
+}%%
+%% write data;
+
+
+void parse(char *buf)
+{
+	int cs;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	char FN[16];
+
+	%% write init;
+	%% write exec;     <- main
+
+	%% write exec;     <- FSM1
+}
+
+int main( int argc, char **argv )
+{
+	if ( argc > 1 ) {
+		parse(argv[1]);
+	}
+	return 0;
+}
+
+
+
+otherwise what vcan I do and how? I need fgoto, fcall or other?
+
+thanks
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:39:45 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:39:45 -0700 (PDT)
+Subject: two state machines
+In-Reply-To: <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com> 
+	<e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com> 
+	<17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+Message-ID: <3b2f4d48-574a-4427-87ae-decd01c953f6@k37g2000hsf.googlegroups.com>
+
+Hi,
+
+Untested, but it's an idea I had:
+
+> #include <string.h>
+> #include <stdio.h>
+> %%{
+>         machine FSM;
+            char *substring_start, *substring_end;
+>
+>         FMS1 := ????          <- this parse a part of the string
+            FMS1 := 'bar' @{ [do stuff] };
+
+>         main := ????           <- this verify the string to match a pattern
+            main := 'foo' >{ substring_start = p; }
+                                 @{ substring_end = p; fgoto FMS1; };
+
+> and extract a substring to pass to FSM1
+Substring is between substring_start and substring_end.
+>
+> }%%
+>
+> %% write data;
+>
+> void parse(char *buf)
+> {
+>         int cs;
+>         char *p = buf;
+>         char *pe = p + strlen(p) + 1;
+>         char FN[16];
+>
+>         %% write init;
+>         %% write exec;     <- main
+>
+>         %% write exec;     <- FSM1
+You don't need the second exec; FSM1 is executed via fgoto if main
+matches.
+
+>
+> }
+>
+> int main( int argc, char **argv )
+> {
+>         if ( argc > 1 ) {
+>                 parse(argv[1]);
+>         }
+>         return 0;
+>
+> }
+>
+> otherwise what vcan I do and how? I need fgoto, fcall or other?
+fgoto should do the job.
+
+Take care,
+
+
+From cia... at gmail.com  Sat Jun  7 16:17:01 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Sat, 7 Jun 2008 18:17:01 +0200
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <3b2f4d48-574a-4427-87ae-decd01c95...@k37g2000hsf.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced...@j22g2000hsf.googlegroups.com>
+	 <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+	 <17201dc70806060404o65622b29t2c77ab3e9f81a...@mail.gmail.com>
+	 <3b2f4d48-574a-4427-87ae-decd01c95...@k37g2000hsf.googlegroups.com>
+Message-ID: <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+
+On Sat, Jun 7, 2008 at 7:39 AM, mitchell <mforal.n... at gmail.com> wrote:
+>
+> Hi,
+>
+> Untested, but it's an idea I had:
+
+I tried the same thing, and I have some doubt
+
+here is my source (is only a simplified example of my really need):
+----------------------------8<-------------------------------------
+#include <string.h>
+#include <stdio.h>
+%%{
+	# test for dua FSM definition
+	# I want to match a pattern like A"12345FFF01"B ( or A"99FFFFF99"B or
+A"321FFFFF14"B )
+	# once take the substring between quotes I want to pass it to FSM1
+that match exacly
+	
+	machine test1;
+	
+	action copycar
+	{
+		printf("%c\n",fc);
+		// populating FN
+		*fn = fc;
+		fn++;
+	}
+	
+	action error
+	{
+		printf("error %d, %c\n",cs,fc);
+		fbreak;
+	}
+	
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		fgoto FSM1;
+	}
+		
+	action endsubstr
+	{
+		// placing null termination to substring in FN
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		// substring matches
+		printf("OK pt2\n");
+	}
+	
+	FSM1 := '12345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+fc, fpc);};
+	
+	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+@endsubstr digit{2}  '"B' ) @!error @endpt1 ;
+	
+}%%
+
+%% write data;
+
+
+void parse(char *buf)
+{
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	
+	char FN[16];
+	char *fn;
+	
+	// FN is the container fo the substring
+	fn = FN;
+	%% write init;
+	%% write exec;
+}
+
+int main( int argc, char **argv )
+{
+	if ( argc > 1 ) {
+		parse(argv[1]);
+	}
+	return 0;
+}
+
+----------------------------8<-------------------------------------
+
+if you try to execute it fails:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+error 0, 2
+
+but the string exactly match the pattern (as can be seen in line "***
+15 1 12345FFF ***")
+
+so now try to change the pattern of FSM1 as follow (we delete '1'):
+	FSM1 := '2345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+fc, fpc);};
+
+and retry to execute:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+OK pt2
+
+now it report the string matching but we had changed the pattern.
+It seems that it skip the first character after fgoto.
+
+so I tried another way.
+lets use originale FSM1 definition (pattern '12345FFF'), but change
+action endpt1 to add an fhold statement as follow:
+
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		// fhold is translated in C as p--;
+		fhold;		
+		fgoto FSM1;
+	}
+
+and let execute:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15   ***
+OK pt2
+
+it seems to work, but action to-state start of FSM1 fails, it cannot
+print neither fc character nor pfc string...
+
+is this the right way to do this?
+
+thanks
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From la... at laramies.com  Sat Jun  7 20:32:32 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Sat, 7 Jun 2008 22:32:32 +0200 (CEST)
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+ <e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com>
+ <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+ <3b2f4d48-574a-4427-87ae-decd01c953f6@k37g2000hsf.googlegroups.com>
+ <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+Message-ID: <Pine.LNX.4.64.0806072229440.5258@phpmy.l.tobij.de>
+
+As far as I understand the problem, it would be the right thing to use
+fexec instead of setting p.
+
+your action could look like this:
+
+action entpt1 {
+     ...
+     fexec FN;
+     fgoto FSM1;
+}
+
+I attached a sample ragel machine..
+
+arne
+
+On Sat, 7 Jun 2008, massimiliano cialdi wrote:
+
+>
+> On Sat, Jun 7, 2008 at 7:39 AM, mitchell <mforal.n... at gmail.com> wrote:
+>>
+>> Hi,
+>>
+>> Untested, but it's an idea I had:
+>
+> I tried the same thing, and I have some doubt
+>
+> here is my source (is only a simplified example of my really need):
+> ----------------------------8<-------------------------------------
+> #include <string.h>
+> #include <stdio.h>
+> %%{
+> 	# test for dua FSM definition
+> 	# I want to match a pattern like A"12345FFF01"B ( or A"99FFFFF99"B or
+> A"321FFFFF14"B )
+> 	# once take the substring between quotes I want to pass it to FSM1
+> that match exacly
+>
+> 	machine test1;
+>
+> 	action copycar
+> 	{
+> 		printf("%c\n",fc);
+> 		// populating FN
+> 		*fn = fc;
+> 		fn++;
+> 	}
+>
+> 	action error
+> 	{
+> 		printf("error %d, %c\n",cs,fc);
+> 		fbreak;
+> 	}
+>
+> 	action endpt1
+> 	{
+> 		printf("OK\n%s\n", FN);
+> 		// setting new buffer margin for FSM1. It must operate on FN
+> 		p = FN;
+> 		pe = p + strlen(p) + 1;
+> 		fgoto FSM1;
+> 	}
+>
+> 	action endsubstr
+> 	{
+> 		// placing null termination to substring in FN
+> 		*fn = '\0';
+> 	}
+>
+> 	action endpt2
+> 	{
+> 		// substring matches
+> 		printf("OK pt2\n");
+> 	}
+>
+> 	FSM1 := '12345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+> fc, fpc);};
+>
+> 	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+> @endsubstr digit{2}  '"B' ) @!error @endpt1 ;
+>
+> }%%
+>
+> %% write data;
+>
+>
+> void parse(char *buf)
+> {
+> 	int cs;
+> 	char *eof = 0;
+> 	char *p = buf;
+> 	char *pe = p + strlen(p) + 1;
+>
+> 	char FN[16];
+> 	char *fn;
+>
+> 	// FN is the container fo the substring
+> 	fn = FN;
+> 	%% write init;
+> 	%% write exec;
+> }
+>
+> int main( int argc, char **argv )
+> {
+> 	if ( argc > 1 ) {
+> 		parse(argv[1]);
+> 	}
+> 	return 0;
+> }
+>
+> ----------------------------8<-------------------------------------
+>
+> if you try to execute it fails:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15 1 12345FFF ***
+> error 0, 2
+>
+> but the string exactly match the pattern (as can be seen in line "***
+> 15 1 12345FFF ***")
+>
+> so now try to change the pattern of FSM1 as follow (we delete '1'):
+> 	FSM1 := '2345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+> fc, fpc);};
+>
+> and retry to execute:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15 1 12345FFF ***
+> OK pt2
+>
+> now it report the string matching but we had changed the pattern.
+> It seems that it skip the first character after fgoto.
+>
+> so I tried another way.
+> lets use originale FSM1 definition (pattern '12345FFF'), but change
+> action endpt1 to add an fhold statement as follow:
+>
+> 	action endpt1
+> 	{
+> 		printf("OK\n%s\n", FN);
+> 		// setting new buffer margin for FSM1. It must operate on FN
+> 		p = FN;
+> 		pe = p + strlen(p) + 1;
+> 		// fhold is translated in C as p--;
+> 		fhold;
+> 		fgoto FSM1;
+> 	}
+>
+> and let execute:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15   ***
+> OK pt2
+>
+> it seems to work, but action to-state start of FSM1 fails, it cannot
+> print neither fc character nor pfc string...
+>
+> is this the right way to do this?
+>
+> thanks
+> -- 
+> Et nunc, auxilium solis, vincam!
+> Oppugnatio solaris!
+> VIS!
+>
+> Massimiliano Cialdi
+> cia... at gmail.com
+> massimiliano.cia... at powersoft.it
+>
+> >
+>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: 2.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080607/46f32987/attachment.ksh>
+
+From cia... at gmail.com  Fri Jun  6 21:39:02 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Fri, 6 Jun 2008 23:39:02 +0200
+Subject: two state machines in single source - I cannot believe
+Message-ID: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+
+there must be a way to instantiate two (or more) state machine within
+a single .rl source file.
+
+thanks
+
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:45:42 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:45:42 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+Message-ID: <adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+
+Hi,
+
+> there must be a way to instantiate two (or more) state machine within
+> a single .rl source file.
+
+Use fgoto or fcall to move between machines.
+
+e.g:
+
+%%{
+  machine foo;
+  bar := 'bar';
+  baz := 'baz' @{ fgoto bar; }
+}%%
+
+You can pick and choose which machine to start when exec is called by
+setting the cs variable to [machine name]_en_[machine definition].
+
+e.g:
+
+int cs;
+%%{
+  machine foo;
+  bar := 'bar';
+  baz := 'baz';
+}%%
+
+write init;
+cs = (condition) ? foo_bar : foo_baz;
+write exec;
+
+Take care,
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:46:50 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:46:50 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+Message-ID: <92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+
+Hi,
+
+> write init;
+> cs = (condition) ? foo_bar : foo_baz;
+> write exec;
+
+Should have '%%' before the write statements of course.
+
+>
+> Take care,
+
+
+From pazzodaleg... at gmail.com  Sat Jun  7 16:03:14 2008
+From: pazzodaleg... at gmail.com (pazzodalegare)
+Date: Sat, 7 Jun 2008 09:03:14 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+Message-ID: <bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+
+Dear all,
+
+I'm playing with two machines too. I code a dummy ragel-machine to
+match a string:
+A"12345FFF01"B. For exercise, I would like to match the string using
+two machines (ragel code follows).
+
+With the first machine (main, see below) I want to extract the string
+between ' " ' which should match a set of strings defined by:
+
+digit{2} (digit|'F')(3} 'F'{3}
+
+then, with the second one (FSM1, see below) I match the string
+12345FFF.
+I found an unexpected behaviour: calling the FSM1 with fgoto it seems
+it starts to process from p++ (where p is the pointer to the first
+character for the called machine FSM1).
+
+Uncommenting the line in action endpt1:
+		//p--;
+
+FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+help to find my mistake?
+
+Tnx
+
+pazzo
+
+------------------ ragel code ------------------------
+
+#include <string.h>
+#include <stdio.h>
+%%{
+	# dummy machine to match A"12345FFF01"B
+
+	machine test1;
+
+	action cpch
+	{
+		printf("%c\n",fc);
+		*fn = fc;
+		fn++;
+	}
+
+	action _error
+	{
+		res = 0;
+		printf("ERROR %d, %c\n",cs,fc);
+		fbreak;
+	}
+
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		p = FN;
+		pe = p + strlen(p) + 1;
+		//p--;
+		fgoto FSM1;
+	}
+
+	action endsubstr
+	{
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		printf("OK pt2\n");
+	}
+
+	FSM1 := '12345FFF' @!_error @endpt2 >~{printf("*** %d %c %s ***
+\n",cs, fc, fpc);};
+
+	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $cpch @endsubstr
+digit{2}  '"B' ) @!_error @endpt1 ;
+
+}%%
+
+%% write data;
+
+
+int parse(char *buf)
+{
+	int res = 0;
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	char FN[16];
+	char *fn;
+	int top, stack[32];
+
+	fn = FN;
+	%% write init;
+	%% write exec;
+
+	return res;
+}
+
+int main( int argc, char **argv )
+{
+	int res = 0;
+	if ( argc > 1 ) {
+		res = parse(argv[1]);
+	}
+	printf("result = %i\n", res );
+	return 0;
+}
+
+
+From mforal.n... at gmail.com  Sat Jun  7 17:41:28 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sat, 7 Jun 2008 10:41:28 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+Message-ID: <4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+
+Hi,
+
+> Uncommenting the line in action endpt1:
+>                 //p--;
+>
+> FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+> help to find my mistake?
+
+You're setting p to be equal to FN which is the starting position of
+the character array you declared. If you decrement p, you cannot read
+that point in memory as it's before your allocated memory for FN.
+
+Take care,
+
+
+From pazzodaleg... at gmail.com  Sat Jun  7 19:46:55 2008
+From: pazzodaleg... at gmail.com (pazzodalegare)
+Date: Sat, 7 Jun 2008 12:46:55 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com> 
+	<4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+Message-ID: <9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+
+
+
+On 7 Giu, 19:41, mitchell <mforal.n... at gmail.com> wrote:
+> Hi,
+>
+> > Uncommenting the line in action endpt1:
+> >                 //p--;
+>
+> > FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+> > help to find my mistake?
+>
+> You're setting p to be equal to FN which is the starting position of
+> the character array you declared. If you decrement p, you cannot read
+> that point in memory as it's before your allocated memory for FN.
+>
+> Take care,
+> -Mitchell;
+
+Thank you for your "answer".
+Yes I know, that's why it's under comment...
+
+pazzo
+
+
+From mforal.n... at gmail.com  Mon Jun  9 04:57:16 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sun, 8 Jun 2008 21:57:16 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com> 
+	<4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com> 
+	<9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+Message-ID: <d2211870-c357-4984-b4b8-fa682efdeea7@8g2000hse.googlegroups.com>
+
+Hi,
+
+> Thank you for your "answer".
+> Yes I know, that's why it's under comment...
+
+It appeared to me you were asking why the comment causes the correct
+behavior. Apologies.
+
+
+From wjrog... at gmail.com  Wed Jun 11 16:49:31 2008
+From: wjrog... at gmail.com (Will Rogers)
+Date: Wed, 11 Jun 2008 09:49:31 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com>
+Message-ID: <6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+
+On May 12, 2:00 am, jupp_g <jup... at hotmail.de> wrote:
+> I have updated the precompiled Windows files to vs. 6.2. The new C#
+> code generator is also included.
+
+I just downloaded this package and attempted to fiddle with the C#
+code generator using "ragel -A test.rl", but I get the error message
+"ragel: failed to retrieve backend function rlgen_csharp". The other
+code generation options appear to work. What gives? Is the C#
+generator broken?
+
+
+
+From jup... at hotmail.de  Thu Jun 12 09:19:50 2008
+From: jup... at hotmail.de (jupp_g)
+Date: Thu, 12 Jun 2008 02:19:50 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+Message-ID: <86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+
+Will,
+
+my (simple) tests worked, but I'll have a look at the problem. If you
+could email your (smallest) source file (that shows the problem)
+(address is hidden somewhere in the win release notes), I'd appreciate
+that.
+
+Meanwhile you can generate the intermediate file and explicitly call
+the C# backend.
+
+jupp_g
+
+
+From jup... at hotmail.de  Thu Jun 12 10:53:26 2008
+From: jup... at hotmail.de (jupp_g)
+Date: Thu, 12 Jun 2008 03:53:26 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com> 
+	<86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+Message-ID: <66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+
+I have uploaded new binaries and sources. If you already downloaded
+the files, have a look at the files section. Just replace the two
+files.
+
+If you ever need an example on what happens if you work with several
+computers on the same project without using a source code version
+system this is what you get. I published an intermediate version of
+the windows files with inconsistent function names for the entry point
+to the C# generator (dll build).
+
+mea culpa.
+
+jupp_g
+
+
+From wjrog... at gmail.com  Thu Jun 12 14:19:57 2008
+From: wjrog... at gmail.com (Will Rogers)
+Date: Thu, 12 Jun 2008 07:19:57 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com> 
+	<86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com> 
+	<66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+Message-ID: <41ab8466-8cb4-46d7-85e8-c32032797f43@p25g2000hsf.googlegroups.com>
+
+On Jun 12, 6:53 am, jupp_g <jup... at hotmail.de> wrote:
+> I have uploaded new binaries and sources. If you already downloaded
+> the files, have a look at the files section. Just replace the two
+> files.
+
+Thanks. It works now!
+
+
+
+From j... at jasongarber.com  Tue Jun 17 03:15:30 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Mon, 16 Jun 2008 23:15:30 -0400
+Subject: Scanners inside of scanners?  A better way to avoid conflicts?
+Message-ID: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+
+In RedCloth, we have a problem where an _emphasized_ bit of text can  
+have _(myclass#myid)a CSS class and/or id_ but shouldn't have a class  
+or id if the whole emphasis is in parentheses _(practically speaking) 
+_.  Consider this example (simplified):
+
+in: "before _(in parens)_ after"
+expected: "<p>before <em>(in parens)</em> after</p>"
+but was: "<p>before <em class=\"in parens\">in parens)</em> after</p>"
+It simultaneously pursues the possibilities that the parenthesized  
+text is the class and that it's just regular parenthesized text  
+inside the em.  When the class possibility doesn't work out, the  
+final state is the regular text part but the class has already been  
+captured.
+
+C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %{STORE 
+(id)} )? ")"
+mtext = ( chars (mspace chars)* ) ;
+em = "_" >X C? mtext >A %T :> "_" ;
+# The >X resets the register from the last match, >A registers the  
+beginning of a string and the STORE saves it away.
+
+I tried having the class info get written to a buffer that was then  
+captured with a leaving action, which works for the class part, but I  
+again run into the same problem with capturing the text because the  
+right side of the union matches also, so it captures too much text.   
+Whichever side of the vertical pipe writes last, wins.
+
+C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %{STORE 
+(id_buf)} )? ")"
+C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} | mtext  
+ >B %{ STORE_B(text); });
+# SET_ATTRIBUTES copies the attributes from their buffers and stores  
+them where they belong.
+
+results in...
+expected: "<p><span class=\"myclass\">SPAN</span></p>"
+  but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+
+Really what I want is for it to try the first pattern (with the C)  
+and, if that fails, try the second (the plain ol' mtext).  Sounds  
+like a scanner to me.  Problem is, I'm already inside a scanner, so  
+it won't let me call a scanner from within a pattern.
+
+Got any ideas?
+
+Jason
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080616/789287a8/attachment.html>
+
+From er... at atlasocean.com  Tue Jun 17 05:04:31 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 16 Jun 2008 22:04:31 -0700
+Subject: [ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+Message-ID: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+
+Jason,
+
+Basically, you need one-token lookahead for that, which a straight  
+regex can't do. You might be able to use manual state transitions, but  
+it's easier to just separate the logic out into another function.
+
+For example, you could capture the inner contents of the emphasized  
+string into a buffer and then call into a C function where you can run  
+the three (Ragel) machines in sequence, in the priority order you've  
+set. Use the first one that works and return into your original  
+scanner machine/function. Order them longest-match-first. :-)
+
+Best, Erich
+
+On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+
+> In RedCloth, we have a problem where an _emphasized_ bit of text can  
+> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a  
+> class or id if the whole emphasis is in parentheses _(practically  
+> speaking)_.  Consider this example (simplified):
+>
+> in: "before _(in parens)_ after"
+> expected: "<p>before <em>(in parens)</em> after</p>"
+> but was: "<p>before <em class=\"in parens\">in parens)</em> after</p>"
+> It simultaneously pursues the possibilities that the parenthesized  
+> text is the class and that it's just regular parenthesized text  
+> inside the em.  When the class possibility doesn't work out, the  
+> final state is the regular text part but the class has already been  
+> captured.
+>
+> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A % 
+> {STORE(id)} )? ")"
+> mtext = ( chars (mspace chars)* ) ;
+> em = "_" >X C? mtext >A %T :> "_" ;
+> # The >X resets the register from the last match, >A registers the  
+> beginning of a string and the STORE saves it away.
+>
+> I tried having the class info get written to a buffer that was then  
+> captured with a leaving action, which works for the class part, but  
+> I again run into the same problem with capturing the text because  
+> the right side of the union matches also, so it captures too much  
+> text.  Whichever side of the vertical pipe writes last, wins.
+>
+> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A % 
+> {STORE(id_buf)} )? ")"
+> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |  
+> mtext >B %{ STORE_B(text); });
+> # SET_ATTRIBUTES copies the attributes from their buffers and stores  
+> them where they belong.
+>
+> results in...
+> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>
+> Really what I want is for it to try the first pattern (with the C)  
+> and, if that fails, try the second (the plain ol' mtext).  Sounds  
+> like a scanner to me.  Problem is, I'm already inside a scanner, so  
+> it won't let me call a scanner from within a pattern.
+>
+> Got any ideas?
+>
+> Jason
+>
+>
+>
+> >
+
+
+From j... at jasongarber.com  Tue Jun 17 14:12:39 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Tue, 17 Jun 2008 10:12:39 -0400
+Subject: [ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com> <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+Message-ID: <20765109-896E-4BB2-A4F0-AF8A1659CFF0@jasongarber.com>
+
+Thanks for the help, Erich.
+
+Pardon my ignorance, but how shall I run the three Ragel machines from  
+a C function?  Can I run them within the same processing loop or do I  
+have to make a new Ragel file with its own main machine and call  
+that?  If it needs its own machine, then I have to return several  
+pieces of captured information, but if it can stay in the same  
+processing loop, then I can just set things in the existing hash.
+
+Sorry if I haven't explained it well enough.  I'm on Skype and AIM if  
+you're willing: JasonGarberEMU
+
+On Jun 17, 2008, at 1:04 AM, Erich Ocean wrote:
+
+>
+> Jason,
+>
+> Basically, you need one-token lookahead for that, which a straight
+> regex can't do. You might be able to use manual state transitions, but
+> it's easier to just separate the logic out into another function.
+>
+> For example, you could capture the inner contents of the emphasized
+> string into a buffer and then call into a C function where you can run
+> the three (Ragel) machines in sequence, in the priority order you've
+> set. Use the first one that works and return into your original
+> scanner machine/function. Order them longest-match-first. :-)
+>
+> Best, Erich
+>
+> On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+>
+>> In RedCloth, we have a problem where an _emphasized_ bit of text can
+>> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a
+>> class or id if the whole emphasis is in parentheses _(practically
+>> speaking)_.  Consider this example (simplified):
+>>
+>> in: "before _(in parens)_ after"
+>> expected: "<p>before <em>(in parens)</em> after</p>"
+>> but was: "<p>before <em class=\"in parens\">in parens)</em> after</ 
+>> p>"
+>> It simultaneously pursues the possibilities that the parenthesized
+>> text is the class and that it's just regular parenthesized text
+>> inside the em.  When the class possibility doesn't work out, the
+>> final state is the regular text part but the class has already been
+>> captured.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %
+>> {STORE(id)} )? ")"
+>> mtext = ( chars (mspace chars)* ) ;
+>> em = "_" >X C? mtext >A %T :> "_" ;
+>> # The >X resets the register from the last match, >A registers the
+>> beginning of a string and the STORE saves it away.
+>>
+>> I tried having the class info get written to a buffer that was then
+>> captured with a leaving action, which works for the class part, but
+>> I again run into the same problem with capturing the text because
+>> the right side of the union matches also, so it captures too much
+>> text.  Whichever side of the vertical pipe writes last, wins.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %
+>> {STORE(id_buf)} )? ")"
+>> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |
+>> mtext >B %{ STORE_B(text); });
+>> # SET_ATTRIBUTES copies the attributes from their buffers and stores
+>> them where they belong.
+>>
+>> results in...
+>> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+>> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>>
+>> Really what I want is for it to try the first pattern (with the C)
+>> and, if that fails, try the second (the plain ol' mtext).  Sounds
+>> like a scanner to me.  Problem is, I'm already inside a scanner, so
+>> it won't let me call a scanner from within a pattern.
+>>
+>> Got any ideas?
+>>
+>> Jason
+>>
+>>
+>>
+>>>
+>
+>
+> >
+
+
+From j... at jasongarber.com  Wed Jun 18 12:56:13 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Wed, 18 Jun 2008 08:56:13 -0400
+Subject: [ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com> <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+Message-ID: <536488E7-303C-4FA5-A102-58EF924AD0A5@jasongarber.com>
+
+Regarding my question about how to call different machines from the  
+same file, I found a June 7 post on this list that answered my question.
+
+> You can pick and choose which machine to start when exec is called by
+> setting the cs variable to [machine name]_en_[machine definition].
+> e.g:
+>
+> int cs;
+> %%{
+>   machine foo;
+>   bar := 'bar';
+>   baz := 'baz';
+>
+>
+> }%%
+>
+> %%write init;
+> cs = (condition) ? foo_bar : foo_baz;
+> %%write exec;
+> Take care,
+> -Mitchell;
+>
+But since I'm doing several ways of attribute parsing, I had to start  
+a new file anyway, but now they can all be in the same file and share  
+the same basic structure.
+
+On Jun 17, 2008, at 1:04 AM, Erich Ocean wrote:
+
+>
+> Jason,
+>
+> Basically, you need one-token lookahead for that, which a straight
+> regex can't do. You might be able to use manual state transitions, but
+> it's easier to just separate the logic out into another function.
+>
+> For example, you could capture the inner contents of the emphasized
+> string into a buffer and then call into a C function where you can run
+> the three (Ragel) machines in sequence, in the priority order you've
+> set. Use the first one that works and return into your original
+> scanner machine/function. Order them longest-match-first. :-)
+>
+> Best, Erich
+>
+> On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+>
+>> In RedCloth, we have a problem where an _emphasized_ bit of text can
+>> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a
+>> class or id if the whole emphasis is in parentheses _(practically
+>> speaking)_.  Consider this example (simplified):
+>>
+>> in: "before _(in parens)_ after"
+>> expected: "<p>before <em>(in parens)</em> after</p>"
+>> but was: "<p>before <em class=\"in parens\">in parens)</em> after</ 
+>> p>"
+>> It simultaneously pursues the possibilities that the parenthesized
+>> text is the class and that it's just regular parenthesized text
+>> inside the em.  When the class possibility doesn't work out, the
+>> final state is the regular text part but the class has already been
+>> captured.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %
+>> {STORE(id)} )? ")"
+>> mtext = ( chars (mspace chars)* ) ;
+>> em = "_" >X C? mtext >A %T :> "_" ;
+>> # The >X resets the register from the last match, >A registers the
+>> beginning of a string and the STORE saves it away.
+>>
+>> I tried having the class info get written to a buffer that was then
+>> captured with a leaving action, which works for the class part, but
+>> I again run into the same problem with capturing the text because
+>> the right side of the union matches also, so it captures too much
+>> text.  Whichever side of the vertical pipe writes last, wins.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %
+>> {STORE(id_buf)} )? ")"
+>> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |
+>> mtext >B %{ STORE_B(text); });
+>> # SET_ATTRIBUTES copies the attributes from their buffers and stores
+>> them where they belong.
+>>
+>> results in...
+>> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+>> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>>
+>> Really what I want is for it to try the first pattern (with the C)
+>> and, if that fails, try the second (the plain ol' mtext).  Sounds
+>> like a scanner to me.  Problem is, I'm already inside a scanner, so
+>> it won't let me call a scanner from within a pattern.
+>>
+>> Got any ideas?
+>>
+>> Jason
+>>
+>>
+>>
+>>>
+>
+>
+> >
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080618/1bf9787c/attachment.html>
+
+From zeds... at zedshaw.com  Wed Jun 18 21:22:16 2008
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Wed, 18 Jun 2008 17:22:16 -0400
+Subject: Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+Message-ID: <20080618172216.9a18533d.zedshaw@zedshaw.com>
+
+Hey Adrian (and crew),
+
+I almost forgot to announce that I recently did a weird assembler using
+Ragel, Lemon, and GNU lightning:
+
+http://zedshaw.com/projects/earing/
+
+The end result is a very odd dynamic assembler that has a normal syntax
+for functions, and could potentially run on multiple platforms.  Ragel
+does much more heavy lifting than traditional with a lexer, as it also
+wires up callbacks for each opcode to use in the parser.
+
+Lemon takes the tokens that Ragel hands it and builds up the byte codes
+and data structures on the fly.  You can do this with an assembler
+because the language is so flat.
+
+Additionally, there's a Ternary Search Tree that is used for naming and
+any kind of string->value lookups in the software.
+
+Feel free to download and play with it.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From graceindustr... at gmail.com  Thu Jun 19 12:11:46 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Thu, 19 Jun 2008 08:11:46 -0400
+Subject: [ragel-users] Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+In-Reply-To: <20080618172216.9a18533d.zeds...@zedshaw.com>
+References: <20080618172216.9a18533d.zeds...@zedshaw.com>
+Message-ID: <a3aee9a50806190511n251e0903v242fb19ac13c2...@mail.gmail.com>
+
+On 6/18/08, Zed A. Shaw <zeds... at zedshaw.com> wrote:
+
+>weird assembler using
+> Ragel, Lemon, and GNU lightning:
+>
+> http://zedshaw.com/projects/earing/
+>
+> The end result is a very odd dynamic assembler that has a normal syntax
+> for functions, and could potentially run on multiple platforms.
+
+I wonder if you could build the LCC compiler on top of 'odd assembler'
+
+http://www.cs.princeton.edu/software/lcc/
+
+that would then produce code for customized CPUs in FPGA's?
+
+http://www.actel.com/products/IGLOOplus/default.aspx
+
+Never seem to find a micro with all the features I want for
+my embedded work.  Might just have to make my own someday.
+
+
+From zeds... at zedshaw.com  Fri Jun 20 04:38:02 2008
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Fri, 20 Jun 2008 00:38:02 -0400
+Subject: [ragel-users] Re: Almost Forgot, EaRing: An Assembler Using
+ Ragel and Lemon
+In-Reply-To: <a3aee9a50806190511n251e0903v242fb19ac13c2b9e@mail.gmail.com>
+References: <20080618172216.9a18533d.zedshaw@zedshaw.com>
+	<a3aee9a50806190511n251e0903v242fb19ac13c2b9e@mail.gmail.com>
+Message-ID: <20080620003802.44abd78c.zedshaw@zedshaw.com>
+
+On Thu, 19 Jun 2008 08:11:46 -0400
+"Bob Paddock" <graceindustr... at gmail.com> wrote:
+
+> 
+> On 6/18/08, Zed A. Shaw <zeds... at zedshaw.com> wrote:
+> 
+> I wonder if you could build the LCC compiler on top of 'odd assembler'
+> 
+> http://www.cs.princeton.edu/software/lcc/
+> 
+> that would then produce code for customized CPUs in FPGA's?
+
+Hmm, well, GNU lightning is notoriously hard to change.  It is actually
+a gigantic c pre-processor mess that has the byte codes in c macros.
+If the FPGA had one of the other bytecodes as its base then you could
+do it, but otherwise you'd have to add that CPU to the supported
+platforms.
+
+However, this bytecode generation isn't that hard.  I figure if I keep
+working on this I'd eventually get rid of lightning by just reverse
+engineering what they produce for their instructions and then writing
+something that's not a damn CPP macro set.
+
+Now, for LCC, I did look at it and TCC but found that they were pretty
+damn complicated to just polish off really quick.  In theory you could
+do this with just about any language, since the assembler is what they
+all become anyway.  Just probably not too quickly with LCC.
+
+> http://www.actel.com/products/IGLOOplus/default.aspx
+> 
+> Never seem to find a micro with all the features I want for
+> my embedded work.  Might just have to make my own someday.
+
+Yeah, go for it.  You could probably take EaRing and tweak it to come
+up with your own assembler opcodes and format too.  That's a nice thing
+about the project, I figured out that I could just create any format I
+wanted once I divorced the byte code generation from the format.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From graceindustr... at gmail.com  Fri Jun 20 12:24:31 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 20 Jun 2008 08:24:31 -0400
+Subject: [ragel-users] Re: Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+In-Reply-To: <20080620003802.44abd78c.zeds...@zedshaw.com>
+References: <20080618172216.9a18533d.zeds...@zedshaw.com>
+	 <a3aee9a50806190511n251e0903v242fb19ac13c2...@mail.gmail.com>
+	 <20080620003802.44abd78c.zeds...@zedshaw.com>
+Message-ID: <a3aee9a50806200524l38b9b6ble38e475bb3af4...@mail.gmail.com>
+
+> Hmm, well, GNU lightning is notoriously hard to change.  It is actually
+> a gigantic c pre-processor mess
+
+Take a look at 'Wave', which is a more advanced pre-processor.
+More or less 'mess' in this case is hard to say:
+
+http://www.boost.org/doc/libs/1_35_0/libs/wave/doc/preface.html
+
+
+From heiko.pael... at gmail.com  Sat Jun 28 15:52:35 2008
+From: heiko.pael... at gmail.com (Heiko)
+Date: Sat, 28 Jun 2008 08:52:35 -0700 (PDT)
+Subject: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel 
+	scanner
+Message-ID: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+
+Dear list members,
+
+I am trying to implement a CSV scanner based on the fantastic Ragel,
+with a small few modifications to the standard:
+
+- it should work for different types of Unix/Mac/Windows line endings
+( \n, \r, \r\n)
+- it should use both commas and tabs as item separators
+- it should honour quoted values
+- it should collapse multiple empty lines into single line
+separators ...
+
+I have written the following ragel code (below) to accomplish this,
+but there is a problem that I cannot locate ...
+When the line endings are \r (CR), everything seems to work fine,
+however, if they are \n (LF), the first character of the next field is
+swallowed by the scanner ....
+I am pulling my hair out, and suspect it has to do with ambiguities in
+the definition of the scanner. I am also unsure as to which transition
+action I should choose (currently '@').
+
+Does anyone have any ideas?
+
+Cheers,
+Heiko
+
+
+
+
+
+
+
+//
+//  csv_parse.m
+//  RagelCsv
+//
+//
+
+
+
+#define HPDEBUG 1
+#import <Foundation/Foundation.h>
+
+void csv_parse(unsigned char *input, size_t len, NSMutableArray
+**parsedData, long *maxcols, long *nlines, long *nrecords) {
+    long tempmaxcols=0, tempnrecords=0;
+    int cs=0, act, curline = 1; //ragel variables to keep states
+    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+for Scanner
+	unsigned char *p = input, *pe = input + len; //ragel variables to
+keep track of position in stream
+    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+elements from each row/record
+	NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+Array of row arrays
+	NSString *coldata; //string that holds entry in field
+	NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+*)input];
+
+//Discussion
+//On UNIX, text file line-endings are terminated with a newline (n),
+also referred to as a linefeed (LF).
+//On Windows, line-endings are terminated with a combination of a
+carriage return (r) and a newline(n), also referred to as CR/LF.
+//On the Mac Classic, line-endings are terminated with a single
+carriage return (CR). (Mac OS X uses the UNIX convention.)
+
+//A line is delimited by any of these characters, the longest possible
+sequence being preferred to any shorter:
+//U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+LF) //U+2029 (Unicode paragraph separator)
+// \r\n, in that order (also known as CRLF)
+
+
+//append end of line if not present so we can obtain all records.
+[row autorelease];
+
+%%{
+    machine csv_scan;
+	alphtype unsigned char;
+
+	newline =('\r\n') | ('\n') | ('\r') %{
+         curline += 1;
+    };
+	multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
++  @{
+         curline += 1;
+    };
+
+	ws = ' ';
+    Separator = [,\t];
+	UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+	QuotedChar = ( '""' | [^"] | (newline|multiline) );
+    QuotedValue = '"' . QuotedChar* . '"';
+
+    main := |*
+      ws;
+      multiline     @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@"multiline");
+	  };
+      newline  @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@"newline");
+	  };
+      Separator {
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		tempnrecords++;
+		coldata=nil;
+if (HPDEBUG) NSLog(@"separator");
+	  };
+
+      UnQuotedValue {
+          unsigned char ch, *endp;
+          int datalen;
+          datalen = tokend - tokstart;
+          endp = tokend - 1;
+          while(datalen>0) {
+              ch = *endp--;
+/*              if (ch==' ' || ch=='\t') {*/
+              if (ch==' ') {
+                  datalen--;
+              } else {
+                  break;
+              }
+          }
+
+          if (datalen==0) {
+				coldata = (NSString *)[NSNull null];
+          } else {
+				coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+          }
+	 if (HPDEBUG)		  		  NSLog(@"Unquoted value: %@",coldata);
+      };
+      QuotedValue {
+          unsigned char ch, *start_p, *wptr, *rptr;
+          int rest, datalen;
+          start_p = wptr = tokstart;
+          rptr = tokstart + 1;
+          rest = tokend - tokstart - 2;
+          datalen = 0;
+          while(rest>0) {
+              ch = *rptr++;
+              if (ch=='"') {
+                rptr++;
+                rest--;
+              }
+              *wptr++ = ch;
+              datalen++;
+              rest--;
+          }
+		  tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+reset tempInputString after messing with chars in input
+		  coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+	if (HPDEBUG)						NSLog(@"  Quoted value: %@",coldata);
+       };
+    *|;
+}%%
+%% write data nofinal;
+
+
+%%write init;
+%%write exec;
+%%write eof;
+
+    if(row) {
+//	  [tempParsedData addObject:row];
+//	  if ([row count] >tempmaxcols) tempmaxcols=[row count];
+//	  [row autorelease];
+	  row=nil;
+	  }
+
+	*parsedData=tempParsedData;
+
+
+if ( cs == csv_scan_error ) {
+           NSLog(@"CSVscan parse error on line %d.", curline);
+        }
+
+	*nrecords=tempnrecords;
+	*nlines=curline-1;
+	*maxcols=tempmaxcols;
+
+}
+
+
+
+From er... at atlasocean.com  Sat Jun 28 16:01:29 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Sat, 28 Jun 2008 09:01:29 -0700
+Subject: [ragel-users] Newbie question: an extended comma or tab separated (CSV/TSV) Ragel  scanner
+In-Reply-To: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+Message-ID: <E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+
+Heiko,
+
+Not sure if this will help, but this is from a PDF 1.4 parsing machine  
+I wrote years ago:
+
+%% PDFParsingMachine
+
+alphtype unsigned char;
+
+# the whitespace, eol, delimiter, regular, and comment machines
+	
+# whitespace in a PDF file includes the NULL character,
+# and consecutive whitespace is treated as one
+whitespace = /[\t\f\n\r\0 ]/ ;
+
+eol = /[\r\n]/ | '\r\n' ;
+	
+delimiter = [()<>\[\]{}/%] ;
+	
+regular = any - ( whitespace | delimiter ) ;
+
+# The priority bump on the terminator of the comments brings us
+# out of the extend* which matches everything.
+comment = '%' . extend* $0 . eol @1 ;
+
+#
+# (Other machines not shown.)
+#
+
+main := (
+	whitespace |
+	comment |
+	boolean |
+	number |
+	hexString |
+	name |
+	literalString |
+	beginArray |
+	endArray |
+	beginDict |
+	endDict |
+	pdfNull |
+	stream |
+	beginIndirectObject |
+	endIndirectObject |
+	indirectObjectReference |
+	beginXref |
+	beginTrailer |
+	beginStartxref |
+	beginFree |
+	beginInUse )**;
+
+%%
+
+Best, Erich
+
+On Jun 28, 2008, at 8:52 AM, Heiko wrote:
+
+>
+> Dear list members,
+>
+> I am trying to implement a CSV scanner based on the fantastic Ragel,
+> with a small few modifications to the standard:
+>
+> - it should work for different types of Unix/Mac/Windows line endings
+> ( \n, \r, \r\n)
+> - it should use both commas and tabs as item separators
+> - it should honour quoted values
+> - it should collapse multiple empty lines into single line
+> separators ...
+>
+> I have written the following ragel code (below) to accomplish this,
+> but there is a problem that I cannot locate ...
+> When the line endings are \r (CR), everything seems to work fine,
+> however, if they are \n (LF), the first character of the next field is
+> swallowed by the scanner ....
+> I am pulling my hair out, and suspect it has to do with ambiguities in
+> the definition of the scanner. I am also unsure as to which transition
+> action I should choose (currently '@').
+>
+> Does anyone have any ideas?
+>
+> Cheers,
+> Heiko
+>
+>
+>
+>
+>
+>
+>
+> //
+> //  csv_parse.m
+> //  RagelCsv
+> //
+> //
+>
+>
+>
+> #define HPDEBUG 1
+> #import <Foundation/Foundation.h>
+>
+> void csv_parse(unsigned char *input, size_t len, NSMutableArray
+> **parsedData, long *maxcols, long *nlines, long *nrecords) {
+>    long tempmaxcols=0, tempnrecords=0;
+>    int cs=0, act, curline = 1; //ragel variables to keep states
+>    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+> for Scanner
+> 	unsigned char *p = input, *pe = input + len; //ragel variables to
+> keep track of position in stream
+>    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+> elements from each row/record
+> 	NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+> Array of row arrays
+> 	NSString *coldata; //string that holds entry in field
+> 	NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+> *)input];
+>
+> //Discussion
+> //On UNIX, text file line-endings are terminated with a newline (n),
+> also referred to as a linefeed (LF).
+> //On Windows, line-endings are terminated with a combination of a
+> carriage return (r) and a newline(n), also referred to as CR/LF.
+> //On the Mac Classic, line-endings are terminated with a single
+> carriage return (CR). (Mac OS X uses the UNIX convention.)
+>
+> //A line is delimited by any of these characters, the longest possible
+> sequence being preferred to any shorter:
+> //U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+> LF) //U+2029 (Unicode paragraph separator)
+> // \r\n, in that order (also known as CRLF)
+>
+>
+> //append end of line if not present so we can obtain all records.
+> [row autorelease];
+>
+> %%{
+>    machine csv_scan;
+> 	alphtype unsigned char;
+>
+> 	newline =('\r\n') | ('\n') | ('\r') %{
+>         curline += 1;
+>    };
+> 	multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
+> +  @{
+>         curline += 1;
+>    };
+>
+> 	ws = ' ';
+>    Separator = [,\t];
+> 	UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+> 	QuotedChar = ( '""' | [^"] | (newline|multiline) );
+>    QuotedValue = '"' . QuotedChar* . '"';
+>
+>    main := |*
+>      ws;
+>      multiline     @{
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		coldata=nil;
+> 		tempnrecords++;
+> 		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> 		[tempParsedData addObject:row];
+> 		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> 		row=[NSMutableArray array];
+> 		if (HPDEBUG) NSLog(@"multiline");
+> 	  };
+>      newline  @{
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		coldata=nil;
+> 		tempnrecords++;
+> 		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> 		[tempParsedData addObject:row];
+> 		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> 		row=[NSMutableArray array];
+> 		if (HPDEBUG) NSLog(@"newline");
+> 	  };
+>      Separator {
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		tempnrecords++;
+> 		coldata=nil;
+> if (HPDEBUG) NSLog(@"separator");
+> 	  };
+>
+>      UnQuotedValue {
+>          unsigned char ch, *endp;
+>          int datalen;
+>          datalen = tokend - tokstart;
+>          endp = tokend - 1;
+>          while(datalen>0) {
+>              ch = *endp--;
+> /*              if (ch==' ' || ch=='\t') {*/
+>              if (ch==' ') {
+>                  datalen--;
+>              } else {
+>                  break;
+>              }
+>          }
+>
+>          if (datalen==0) {
+> 				coldata = (NSString *)[NSNull null];
+>          } else {
+> 				coldata=[NSString stringWithString:[tempInputString
+> substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+>          }
+> 	 if (HPDEBUG)		  		  NSLog(@"Unquoted value: %@",coldata);
+>      };
+>      QuotedValue {
+>          unsigned char ch, *start_p, *wptr, *rptr;
+>          int rest, datalen;
+>          start_p = wptr = tokstart;
+>          rptr = tokstart + 1;
+>          rest = tokend - tokstart - 2;
+>          datalen = 0;
+>          while(rest>0) {
+>              ch = *rptr++;
+>              if (ch=='"') {
+>                rptr++;
+>                rest--;
+>              }
+>              *wptr++ = ch;
+>              datalen++;
+>              rest--;
+>          }
+> 		  tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+> reset tempInputString after messing with chars in input
+> 		  coldata=[NSString stringWithString:[tempInputString
+> substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+> 	if (HPDEBUG)						NSLog(@"  Quoted value: %@",coldata);
+>       };
+>    *|;
+> }%%
+> %% write data nofinal;
+>
+>
+> %%write init;
+> %%write exec;
+> %%write eof;
+>
+>    if(row) {
+> //	  [tempParsedData addObject:row];
+> //	  if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> //	  [row autorelease];
+> 	  row=nil;
+> 	  }
+>
+> 	*parsedData=tempParsedData;
+>
+>
+> if ( cs == csv_scan_error ) {
+>           NSLog(@"CSVscan parse error on line %d.", curline);
+>        }
+>
+> 	*nrecords=tempnrecords;
+> 	*nlines=curline-1;
+> 	*maxcols=tempmaxcols;
+>
+> }
+>
+>
+>
+> >
+
+
+From heiko.pael... at gmail.com  Sun Jun 29 13:24:48 2008
+From: heiko.pael... at gmail.com (Heiko)
+Date: Sun, 29 Jun 2008 06:24:48 -0700 (PDT)
+Subject: Newbie question: an extended comma or tab separated (CSV/TSV) 
+	Ragel scanner
+In-Reply-To: <E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com> 
+	<E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+Message-ID: <851c4d19-2b2f-45b3-bed3-2e3ff96a3f2a@m36g2000hse.googlegroups.com>
+
+Hi Erich,
+
+many thanks!
+I had a look at your code, but realise that you are using a Ragel
+state machine, whereas I am trying to use a scanner.
+Also, for full CSV files, there is the complication that quoted items
+can contain newline characters, which need to be treated separately.
+Do you have any idea why my implementation swallows one character
+after a newline \n, but not after \r?
+
+Many thanks for your help!
+
+Cheers,
+Heiko
+
+
+On Jun 28, 5:01 pm, Erich Ocean <er... at atlasocean.com> wrote:
+> Heiko,
+>
+> Not sure if this will help, but this is from a PDF 1.4 parsing machine  
+> I wrote years ago:
+>
+> %% PDFParsingMachine
+>
+> alphtype unsigned char;
+>
+> # the whitespace, eol, delimiter, regular, and comment machines
+>
+> # whitespace in a PDF file includes the NULL character,
+> # and consecutive whitespace is treated as one
+> whitespace = /[\t\f\n\r\0 ]/ ;
+>
+> eol = /[\r\n]/ | '\r\n' ;
+>
+> delimiter = [()<>\[\]{}/%] ;
+>
+> regular = any - ( whitespace | delimiter ) ;
+>
+> # The priority bump on the terminator of the comments brings us
+> # out of the extend* which matches everything.
+> comment = '%' . extend* $0 . eol @1 ;
+>
+> #
+> # (Other machines not shown.)
+> #
+>
+> main := (
+>         whitespace |
+>         comment |
+>         boolean |
+>         number |
+>         hexString |
+>         name |
+>         literalString |
+>         beginArray |
+>         endArray |
+>         beginDict |
+>         endDict |
+>         pdfNull |
+>         stream |
+>         beginIndirectObject |
+>         endIndirectObject |
+>         indirectObjectReference |
+>         beginXref |
+>         beginTrailer |
+>         beginStartxref |
+>         beginFree |
+>         beginInUse )**;
+>
+> %%
+>
+> Best, Erich
+>
+> On Jun 28, 2008, at 8:52 AM, Heiko wrote:
+>
+>
+>
+> > Dear list members,
+>
+> > I am trying to implement a CSV scanner based on the fantastic Ragel,
+> > with a small few modifications to the standard:
+>
+> > - it should work for different types of Unix/Mac/Windows line endings
+> > ( \n, \r, \r\n)
+> > - it should use both commas and tabs as item separators
+> > - it should honour quoted values
+> > - it should collapse multiple empty lines into single line
+> > separators ...
+>
+> > I have written the following ragel code (below) to accomplish this,
+> > but there is a problem that I cannot locate ...
+> > When the line endings are \r (CR), everything seems to work fine,
+> > however, if they are \n (LF), the first character of the next field is
+> > swallowed by the scanner ....
+> > I am pulling my hair out, and suspect it has to do with ambiguities in
+> > the definition of the scanner. I am also unsure as to which transition
+> > action I should choose (currently '@').
+>
+> > Does anyone have any ideas?
+>
+> > Cheers,
+> > Heiko
+>
+> > //
+> > //  csv_parse.m
+> > //  RagelCsv
+> > //
+> > //
+>
+> > #define HPDEBUG 1
+> > #import <Foundation/Foundation.h>
+>
+> > void csv_parse(unsigned char *input, size_t len, NSMutableArray
+> > **parsedData, long *maxcols, long *nlines, long *nrecords) {
+> >    long tempmaxcols=0, tempnrecords=0;
+> >    int cs=0, act, curline = 1; //ragel variables to keep states
+> >    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+> > for Scanner
+> >    unsigned char *p = input, *pe = input + len; //ragel variables to
+> > keep track of position in stream
+> >    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+> > elements from each row/record
+> >    NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+> > Array of row arrays
+> >    NSString *coldata; //string that holds entry in field
+> >    NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+> > *)input];
+>
+> > //Discussion
+> > //On UNIX, text file line-endings are terminated with a newline (n),
+> > also referred to as a linefeed (LF).
+> > //On Windows, line-endings are terminated with a combination of a
+> > carriage return (r) and a newline(n), also referred to as CR/LF.
+> > //On the Mac Classic, line-endings are terminated with a single
+> > carriage return (CR). (Mac OS X uses the UNIX convention.)
+>
+> > //A line is delimited by any of these characters, the longest possible
+> > sequence being preferred to any shorter:
+> > //U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+> > LF) //U+2029 (Unicode paragraph separator)
+> > // \r\n, in that order (also known as CRLF)
+>
+> > //append end of line if not present so we can obtain all records.
+> > [row autorelease];
+>
+> > %%{
+> >    machine csv_scan;
+> >    alphtype unsigned char;
+>
+> >    newline =('\r\n') | ('\n') | ('\r') %{
+> >         curline += 1;
+> >    };
+> >    multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
+> > +  @{
+> >         curline += 1;
+> >    };
+>
+> >    ws = ' ';
+> >    Separator = [,\t];
+> >    UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+> >    QuotedChar = ( '""' | [^"] | (newline|multiline) );
+> >    QuotedValue = '"' . QuotedChar* . '"';
+>
+> >    main := |*
+> >      ws;
+> >      multiline     @{
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            coldata=nil;
+> >            tempnrecords++;
+> >            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> >            [tempParsedData addObject:row];
+> >            if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> >            row=[NSMutableArray array];
+> >            if (HPDEBUG) NSLog(@"multiline");
+> >      };
+> >      newline  @{
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            coldata=nil;
+> >            tempnrecords++;
+> >            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> >            [tempParsedData addObject:row];
+> >            if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> >            row=[NSMutableArray array];
+> >            if (HPDEBUG) NSLog(@"newline");
+> >      };
+> >      Separator {
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            tempnrecords++;
+> >            coldata=nil;
+> > if (HPDEBUG) NSLog(@"separator");
+> >      };
+>
+> >      UnQuotedValue {
+> >          unsigned char ch, *endp;
+> >          int datalen;
+> >          datalen = tokend - tokstart;
+> >          endp = tokend - 1;
+> >          while(datalen>0) {
+> >              ch = *endp--;
+> > /*              if (ch==' ' || ch=='\t') {*/
+> >              if (ch==' ') {
+> >                  datalen--;
+> >              } else {
+> >                  break;
+> >              }
+> >          }
+>
+> >          if (datalen==0) {
+> >                            coldata = (NSString *)[NSNull null];
+> >          } else {
+> >                            coldata=[NSString stringWithString:[tempInputString
+> > substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+> >          }
+> >     if (HPDEBUG)                             NSLog(@"Unquoted value: %@",coldata);
+> >      };
+> >      QuotedValue {
+> >          unsigned char ch, *start_p, *wptr, *rptr;
+> >          int rest, datalen;
+> >          start_p = wptr = tokstart;
+> >          rptr = tokstart + 1;
+> >          rest = tokend - tokstart - 2;
+> >          datalen = 0;
+> >          while(rest>0) {
+> >              ch = *rptr++;
+> >              if (ch=='"') {
+> >                rptr++;
+> >                rest--;
+> >              }
+> >              *wptr++ = ch;
+> >              datalen++;
+> >              rest--;
+> >          }
+> >              tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+> > reset tempInputString after messing with chars in input
+> >              coldata=[NSString stringWithString:[tempInputString
+> > substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+> >    if (HPDEBUG)                                            NSLog(@"  Quoted value: %@",coldata);
+> >       };
+> >    *|;
+> > }%%
+> > %% write data nofinal;
+>
+> > %%write init;
+> > %%write exec;
+> > %%write eof;
+>
+> >    if(row) {
+> > //   [tempParsedData addObject:row];
+> > //   if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> > //   [row autorelease];
+> >      row=nil;
+> >      }
+>
+> >    *parsedData=tempParsedData;
+>
+> > if ( cs == csv_scan_error ) {
+> >           NSLog(@"CSVscan parse error on line %d.", curline);
+> >        }
+>
+> >    *nrecords=tempnrecords;
+> >    *nlines=curline-1;
+> >    *maxcols=tempmaxcols;
+>
+
+
+From muza... at gmail.com  Mon Jun 30 01:50:28 2008
+From: muza... at gmail.com (Andrew Garner)
+Date: Sun, 29 Jun 2008 20:50:28 -0500
+Subject: [ragel-users] Re: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel scanner
+In-Reply-To: <851c4d19-2b2f-45b3-bed3-2e3ff96a3...@m36g2000hse.googlegroups.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a...@p25g2000hsf.googlegroups.com>
+	 <E1431210-A218-4E73-8C8C-F87FC8797...@atlasocean.com>
+	 <851c4d19-2b2f-45b3-bed3-2e3ff96a3...@m36g2000hse.googlegroups.com>
+Message-ID: <f7b5dd6b0806291850k7e1c21efi3d38ae90b442c0ba@mail.gmail.com>
+
+On Sun, Jun 29, 2008 at 8:24 AM, Heiko <heiko.pael... at gmail.com> wrote:
+
+> Do you have any idea why my implementation swallows one character
+> after a newline \n, but not after \r?
+
+
+What version of Ragel are you using? You probably want to use pattern =>
+action; in your scanner for the multiline/newline matching rather than @{}
+transitions to get longest match behavior.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080629/39854fe5/attachment.html>
+
+From thurs... at cs.queensu.ca  Tue Jun  3 01:16:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 02 Jun 2008 21:16:01 -0400
+Subject: [ragel-users] Re: Bypass "previously defined" errors?
+In-Reply-To: <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com>
+References: <c212c291-3789-462e-bb99-70ba3ef14b95@w7g2000hsa.googlegroups.com>  <48361D88.3080409@cs.queensu.ca> <af172ad5-a382-4d5a-a5cf-a59611c57e9e@m45g2000hsb.googlegroups.com>  <48370599.6010000@cs.queensu.ca> <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com>
+Message-ID: <48449B51.9050301@cs.queensu.ca>
+
+Hey Mitchell,
+
+Do you think you could send me the code that requires this. I'd like to
+see exactly what you're doing before I start on this.
+
+-Adrian
+
+mitchell wrote:
+> Adrian,
+> 
+>> What if we blocked files from being included more than once?
+> 
+> That sounds great.
+> 
+>> In the
+>> meantime can you lift the common include into the top-level ragel file?
+> 
+> It's possible, but of course not optimal.
+> 
+> Thanks!
+> -Mitchell;
+> > 
+> 
+
+
+From mforal.n... at gmail.com  Tue Jun  3 16:34:37 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Tue, 3 Jun 2008 09:34:37 -0700 (PDT)
+Subject: Bypass "previously defined" errors?
+In-Reply-To: <48449B51.9050301@cs.queensu.ca>
+References: <c212c291-3789-462e-bb99-70ba3ef14b95@w7g2000hsa.googlegroups.com> 
+	<48361D88.3080409@cs.queensu.ca> <af172ad5-a382-4d5a-a5cf-a59611c57e9e@m45g2000hsb.googlegroups.com> 
+	<48370599.6010000@cs.queensu.ca> <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com> 
+	<48449B51.9050301@cs.queensu.ca>
+Message-ID: <694facbb-390a-4054-8340-3531f1de2280@59g2000hsb.googlegroups.com>
+
+Adrian,
+
+> Do you think you could send me the code that requires this. I'd like to
+> see exactly what you're doing before I start on this.
+
+Sent to your inbox.
+
+
+From macyg... at gmail.com  Sun Jun  1 17:40:42 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 10:40:42 -0700 (PDT)
+Subject: Matching characters written as hex codes
+Message-ID: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+
+Hi,
+
+I'm trying to match some characters in a file, more exactly I'm
+looking for the UNICODE BOM markers (i.e. '\xFF' '\xFE'  and '\xFE'
+'\xFF'  (C-like escapes in the example..)
+
+I've tried:
+
+bom = \xFE \xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> parsing
+error
+bom = '\xFE' '\xFF' @{ fprintf(stderr, "\nGot BOM UTF16"); };  ->
+doesn't match
+bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+match
+
+The only way I've successfully matched the two characters was like
+this:
+
+bom = 'X' 'Y' @{ fprintf(stderr, "\nGot BOM UTF16"); };
+
+where X and Y are the required chars, placed there with a hex editor.
+
+So,
+
+does anybody know the way to do this properly?
+
+Thanks!
+
+
+
+From thurs... at cs.queensu.ca  Sun Jun  1 19:13:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 15:13:47 -0400
+Subject: [ragel-users] Matching characters written as hex codes
+In-Reply-To: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+Message-ID: <4842F4EB.8010203@cs.queensu.ca>
+
+
+Macy wrote:
+> bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+> match
+
+This one should work.
+
+-Adrian
+
+
+From macyg... at gmail.com  Sun Jun  1 20:06:01 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 13:06:01 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <4842F4EB.8010203@cs.queensu.ca>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca>
+Message-ID: <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+
+
+
+On Jun 1, 10:13 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Macy wrote:
+> > bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+> > match
+>
+> This one should work.
+>
+
+This example doesn't work for me. Perhaps I'm doing something wrong...
+
+-------------
+(begin)-----------------------------------------------------
+#include <stdio.h>
+
+%%{
+
+machine test;
+
+action error { fprintf(stderr,"\nError!\n"); }
+bom_utf16_le = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16 le"); };
+bom_utf16_be = 0xFF 0xFE @{ fprintf(stderr, "\nGot BOM UTF16 be"); };
+
+}%%
+
+int main()
+{
+	int cs;
+	char* buf = "\xFF\xFE";
+	char* p = buf;
+	char* pe = buf + 2;
+	char* eof = pe;
+
+	%%{
+		write data;
+		write init;
+		main := (bom_utf16_le | bom_utf16_be) $err(error);
+		write exec;
+	}%%
+
+    return 0;
+}
+-------------
+(end)-----------------------------------------------------
+
+$ ragel -C test.rl && gcc test.c -o test && ./test
+
+Error!
+$
+
+rlgen-dot doesn't work for some reason, it crashes.
+
+$ ragel -x test.rl > test.xml && rlgen-dot test.xml
+digraph test {
+        rankdir=LR;
+        node [ shape = point ];
+        ENTRY;
+        en_1;
+        eof_1;
+        eof_2;
+        eof_3;
+        node [ shape = circle, height = 0.2 ];
+        err_1 [ label=""];
+        err_2 [ label=""];
+        err_3 [ label=""];
+        err_4 [ label=""];
+        node [ fixedsize = true, height = 0.65, shape =
+doublecircle ];
+        4;
+        node [ shape = circle ];
+Segmentation fault (core dumped)
+
+$ gdb `which rlgen-dot` core
+[.............]
+[New process 18840]
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+52      ../common/common.h: No such file or directory.
+        in ../common/common.h
+(gdb) bt
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+#1  0x000000000040311b in GraphvizDotGen::ONCHAR (this=0x1b6e270,
+lowKey=@0x7fffc4b4b850, highKey=@0x7fffc4b4b840) at gvdotgen.cpp:136
+#2  0x0000000000403924 in GraphvizDotGen::writeTransList
+(this=0x1b6e270, state=0x1b6ea68) at gvdotgen.cpp:188
+#3  0x0000000000404015 in GraphvizDotGen::writeDotFile
+(this=0x1b6e270) at gvdotgen.cpp:284
+#4  0x00000000004043e3 in GraphvizDotGen::finishRagelDef
+(this=0x1b6e270) at gvdotgen.cpp:325
+#5  0x0000000000412ea7 in Parser::parseLangEl (this=0x7fffc4b4d1d0,
+type=195, token=0x7fffc4b4c0d0) at xmlparse.kl:132
+#6  0x00000000004159ff in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, tok=@0x7fffc4b4c0d0) at xmlparse.kl:960
+#7  0x0000000000415b0d in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, col=1, line=84) at xmlparse.kl:972
+#8  0x0000000000410f47 in xml_parse (input=@0x1b68010,
+fileName=0x7fffc4b4ec8e "test.xml", outputActive=false,
+wantComplete=false) at xmlscan.rl:265
+#9  0x0000000000402821 in main (argc=2, argv=0x7fffc4b4d488) at
+main.cpp:225
+
+$ ragel -v
+Ragel State Machine Compiler version 6.2 March 2008
+Copyright (c) 2001-2007 by Adrian Thurston
+
+
+
+From thurs... at cs.queensu.ca  Mon Jun  2 00:44:05 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 20:44:05 -0400
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>  <4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+Message-ID: <48434255.1040200@cs.queensu.ca>
+
+That's odd, everything works fine for me, even graphviz (2.12). Running
+it I get:
+
+Got BOM UTF16 be
+
+What kind of machine architecture and OS are you on?
+
+-Adrian
+
+Macy wrote:
+> 
+> 
+> On Jun 1, 10:13 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Macy wrote:
+>>> bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+>>> match
+>> This one should work.
+>>
+> 
+> This example doesn't work for me. Perhaps I'm doing something wrong...
+> 
+> -------------
+> (begin)-----------------------------------------------------
+> #include <stdio.h>
+> 
+> %%{
+> 
+> machine test;
+> 
+> action error { fprintf(stderr,"\nError!\n"); }
+> bom_utf16_le = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16 le"); };
+> bom_utf16_be = 0xFF 0xFE @{ fprintf(stderr, "\nGot BOM UTF16 be"); };
+> 
+> }%%
+> 
+> int main()
+> {
+> 	int cs;
+> 	char* buf = "\xFF\xFE";
+> 	char* p = buf;
+> 	char* pe = buf + 2;
+> 	char* eof = pe;
+> 
+> 	%%{
+> 		write data;
+> 		write init;
+> 		main := (bom_utf16_le | bom_utf16_be) $err(error);
+> 		write exec;
+> 	}%%
+> 
+>     return 0;
+> }
+> -------------
+> (end)-----------------------------------------------------
+> 
+> $ ragel -C test.rl && gcc test.c -o test && ./test
+> 
+> Error!
+> $
+> 
+> rlgen-dot doesn't work for some reason, it crashes.
+> 
+> $ ragel -x test.rl > test.xml && rlgen-dot test.xml
+> digraph test {
+>         rankdir=LR;
+>         node [ shape = point ];
+>         ENTRY;
+>         en_1;
+>         eof_1;
+>         eof_2;
+>         eof_3;
+>         node [ shape = circle, height = 0.2 ];
+>         err_1 [ label=""];
+>         err_2 [ label=""];
+>         err_3 [ label=""];
+>         err_4 [ label=""];
+>         node [ fixedsize = true, height = 0.65, shape =
+> doublecircle ];
+>         4;
+>         node [ shape = circle ];
+> Segmentation fault (core dumped)
+> 
+> $ gdb `which rlgen-dot` core
+> [.............]
+> [New process 18840]
+> #0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+> common/common.h:52
+> 52      ../common/common.h: No such file or directory.
+>         in ../common/common.h
+> (gdb) bt
+> #0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+> common/common.h:52
+> #1  0x000000000040311b in GraphvizDotGen::ONCHAR (this=0x1b6e270,
+> lowKey=@0x7fffc4b4b850, highKey=@0x7fffc4b4b840) at gvdotgen.cpp:136
+> #2  0x0000000000403924 in GraphvizDotGen::writeTransList
+> (this=0x1b6e270, state=0x1b6ea68) at gvdotgen.cpp:188
+> #3  0x0000000000404015 in GraphvizDotGen::writeDotFile
+> (this=0x1b6e270) at gvdotgen.cpp:284
+> #4  0x00000000004043e3 in GraphvizDotGen::finishRagelDef
+> (this=0x1b6e270) at gvdotgen.cpp:325
+> #5  0x0000000000412ea7 in Parser::parseLangEl (this=0x7fffc4b4d1d0,
+> type=195, token=0x7fffc4b4c0d0) at xmlparse.kl:132
+> #6  0x00000000004159ff in Parser::token (this=0x7fffc4b4d1d0,
+> tokenId=195, tok=@0x7fffc4b4c0d0) at xmlparse.kl:960
+> #7  0x0000000000415b0d in Parser::token (this=0x7fffc4b4d1d0,
+> tokenId=195, col=1, line=84) at xmlparse.kl:972
+> #8  0x0000000000410f47 in xml_parse (input=@0x1b68010,
+> fileName=0x7fffc4b4ec8e "test.xml", outputActive=false,
+> wantComplete=false) at xmlscan.rl:265
+> #9  0x0000000000402821 in main (argc=2, argv=0x7fffc4b4d488) at
+> main.cpp:225
+> 
+> $ ragel -v
+> Ragel State Machine Compiler version 6.2 March 2008
+> Copyright (c) 2001-2007 by Adrian Thurston
+> 
+> 
+> Any ideas?
+> > 
+> 
+
+
+From macyg... at gmail.com  Mon Jun  2 06:28:14 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 23:28:14 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <48434255.1040200@cs.queensu.ca>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca>
+Message-ID: <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+
+
+
+On Jun 2, 3:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> That's odd, everything works fine for me, even graphviz (2.12). Running
+> it I get:
+>
+> Got BOM UTF16 be
+>
+> What kind of machine architecture and OS are you on?
+>
+> -Adrian
+>
+
+I'm running a Gentoo linux distribution,  x86_64 arch:
+
+$ uname -a
+Linux laptop 2.6.25-gentoo-r4 #9 SMP Sat May 31 19:58:05 EEST 2008
+x86_64 Intel(R) Core(TM)2 CPU T7200 @ 2.00GHz GenuineIntel GNU/Linux
+
+The packages are:
+graphviz-2.18
+ragel-6.2
+glibc-2.7
+
+
+
+I've poked around the code a little and the problem seems to be this,
+in gvdotgen.cpp : 135
+
+std::ostream &GraphvizDotGen::ONCHAR( Key lowKey, Key highKey )
+{
+        if ( lowKey > keyOps->maxKey ) {
+                  CondSpace *condSpace = findCondSpace( lowKey,
+highKey );
+                  // condSpace is NULL and it's not checked and
+afterwards is deferenced via condSpace->baseKey
+                  // leading to a crash.
+                  assert(condSpace);  // I added this :)
+                  Key values = ( lowKey - condSpace->baseKey ) /
+keyOps->alphSize();
+        .....
+
+
+
+
+
+From macyg... at gmail.com  Mon Jun  2 06:37:14 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 23:37:14 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+Message-ID: <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+
+
+
+On Jun 2, 9:28 am, Macy <macyg... at gmail.com> wrote:
+> On Jun 2, 3:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> > That's odd, everything works fine for me, even graphviz (2.12). Running
+> > it I get:
+>
+> > Got BOM UTF16 be
+>
+> > What kind of machine architecture and OS are you on?
+>
+> > -Adrian
+>
+
+I've compiled ragel for 32bits only and it seems that rlgen-dot
+
+
+From mforal.n... at gmail.com  Mon Jun  2 16:54:07 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 2 Jun 2008 09:54:07 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com> 
+	<133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+Message-ID: <b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com>
+
+> I've compiled ragel for 32bits only and it seems that rlgen-dot
+> doesn't crash anymore...
+
+I can confirm Ragel has problems running when compiled for a 64-bit
+arch. I too have had to recompile for 32-bit to get it working as it
+should.
+
+Take care,
+-Mitchell;
+
+
+From thurs... at cs.queensu.ca  Mon Jun  2 20:02:30 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 2 Jun 2008 20:02:30 +0000
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <b5d90757-3f6c-46d2-b39b-19825049e...@f63g2000hsf.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>  <4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>  <48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>  <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com><b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com>
+Message-ID: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+
+I don't have access to any 64 bit machines so I can't test on those architectures.
+
+If anyone wants to give me an account somewhere I'd happily work out the problems (a machine that's always on the net would be best.
+
+-Adrian
+-----Original Message-----
+From: mitchell <mforal.news at gmail.com>
+
+Date: Mon, 2 Jun 2008 09:54:07 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Matching characters written as hex codes
+
+
+
+> I've compiled ragel for 32bits only and it seems that rlgen-dot
+> doesn't crash anymore...
+
+I can confirm Ragel has problems running when compiled for a 64-bit
+arch. I too have had to recompile for 32-bit to get it working as it
+should.
+
+Take care,
+-Mitchell;
+
+
+
+From macyg... at gmail.com  Tue Jun  3 08:52:55 2008
+From: macyg... at gmail.com (Macy)
+Date: Tue, 3 Jun 2008 01:52:55 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com> 
+	<133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com><b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com> 
+	<1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+Message-ID: <13dd4035-ba70-44d4-965f-a6dd9f0f7773@d1g2000hsg.googlegroups.com>
+
+
+
+On Jun 2, 11:02 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> I don't have access to any 64 bit machines so I can't test on those architectures.
+>
+> If anyone wants to give me an account somewhere I'd happily work out the problems (a machine that's always on the net would be best.
+>
+> -Adrian
+>
+
+Unfortunately, the only 64 bit machine I have is my laptop and
+although I could give you access, it's not up 24/7 and I often reboot
+so I guess that's out of the question.
+
+You could also boot a 64 bit linux using qemu-system-x86_64, on a 32
+bit machine, but that's slow.
+
+Anyway, I'm going to take a look at the code to see if I can spot any
+more problems... perhaps I can help.
+
+
+From graceindustr... at gmail.com  Mon Jun  9 16:19:28 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Mon, 9 Jun 2008 12:19:28 -0400
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-17575249...@bxe150.bisx.prod.on.blackberry>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a...@k30g2000hse.googlegroups.com>
+	 <4842F4EB.8010...@cs.queensu.ca>
+	 <da41fc59-31f2-4fdd-bf6c-07bd4e689...@a1g2000hsb.googlegroups.com>
+	 <48434255.1040...@cs.queensu.ca>
+	 <25637e96-a13b-4c29-b28f-b6a12472c...@d45g2000hsc.googlegroups.com>
+	 <133cb8c1-e530-4e8e-8422-f3e0f6258...@f63g2000hsf.googlegroups.com>
+	 <b5d90757-3f6c-46d2-b39b-19825049e...@f63g2000hsf.googlegroups.com>
+	 <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-17575249...@bxe150.bisx.prod.on.blackberry>
+Message-ID: <a3aee9a50806090919j1d854128n40de15de784b4...@mail.gmail.com>
+
+On 6/2/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I don't have access to any 64 bit machines so I can't test on those architectures.
+
+http://www.embedded.com/tigforums/thread.jspa?threadID=1604&tstart=0
+might give you an idea what to look at.
+
+Typical problem is that the size of a pointer does not match the size of (u)int.
+size_t should be used.
+
+> If anyone wants to give me an account somewhere I'd happily work out the
+> problems (a machine that's always on the net would be best.
+
+If nothing has been forthcoming I'll set you up an account on my machine
+that you can ssh into.  I can leave it on, if I have some idea of when.
+I know your busy on your thesis right now, so no rush.
+
+
+From thurs... at cs.queensu.ca  Sun Jun  1 19:12:03 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 15:12:03 -0400
+Subject: [ragel-users] Testing beginning of line in a scanner
+In-Reply-To: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com>
+References: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com>
+Message-ID: <4842F483.2030506@cs.queensu.ca>
+
+Hey Mitchell, I just checked in a fix for this. Also, you might want to
+try "when !starts_line" to enforce the negative sense of a condition.
+This will prevent not_starts_line from being executed right after
+starts_line to get the same info only negated.
+
+-Adrian
+
+mitchell wrote:
+> Hi,
+> 
+> I'm trying to test for a character that occurs only at the beginning
+> of a line in a scanner:
+> 
+>   special = '!' when starts_line @callback;
+>   line := |*
+>     [\t ]+ => callback;
+>     special;
+>     newline => callback;
+>     '!' when not_starts_line => callback;
+>     ^(space | '!') => callback;
+>   *|;
+> 
+> I get a
+>   ragel: fsmgraph.h:385: TransAp::TransAp(const TransAp&): Assertion
+>   `lmActionTable.length() == 0 && other.lmActionTable.length() == 0'
+> failed
+> error.
+> 
+> If I remove the "'!' when not_starts_line" line, Ragel compiles, but I
+> cannot detect any '!'s in a place other than the beginning of a line
+> which is no good.
+> 
+> Any ideas?
+> 
+> Thanks,
+> -Mitchell;
+> > 
+> 
+
+
+From mforal.n... at gmail.com  Mon Jun  2 17:30:18 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 2 Jun 2008 10:30:18 -0700 (PDT)
+Subject: Testing beginning of line in a scanner
+In-Reply-To: <4842F483.2030506@cs.queensu.ca>
+References: <bd3afb52-1fbe-429a-82f2-ea3bdc7c35ba@z66g2000hsc.googlegroups.com> 
+	<4842F483.2030506@cs.queensu.ca>
+Message-ID: <f0bf5b32-f05b-425f-b954-740a8a23fb3e@m45g2000hsb.googlegroups.com>
+
+Adrian,
+
+> Hey Mitchell, I just checked in a fix for this. Also, you might want to
+> try "when !starts_line" to enforce the negative sense of a condition.
+> This will prevent not_starts_line from being executed right after
+> starts_line to get the same info only negated.
+
+Thanks, I got it to work :)
+
+
+From thurs... at cs.queensu.ca  Thu Jun  5 03:11:16 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 04 Jun 2008 23:11:16 -0400
+Subject: will be unresponsive
+Message-ID: <48475954.1000501@cs.queensu.ca>
+
+Hi Everyone,
+
+I wanted to let you know that I won't be able to respond to
+Ragel-related issues for a little while. Probably a month at least. I
+will be focusing intensely on finishing my thesis and I will be avoiding
+all distractions (save for lolcats and xkcd).
+
+-Adrian
+
+
+
+From cia... at gmail.com  Fri Jun  6 10:06:50 2008
+From: cia... at gmail.com (mastupristi)
+Date: Fri, 6 Jun 2008 03:06:50 -0700 (PDT)
+Subject: two state machines
+Message-ID: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+
+I need to parse a string using a state machine, and then  a part of
+this string must be parsed with another state machine.
+
+I tried reassign p pointer and using fgoto statement, but it doesn't
+work.
+
+haw can I do this?
+
+
+From la... at laramies.com  Fri Jun  6 10:49:17 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Fri, 6 Jun 2008 03:49:17 -0700 (PDT)
+Subject: two state machines
+In-Reply-To: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+Message-ID: <e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com>
+
+In case you cannot put both state machines together.. I would put the
+second state-machine into a new function and call that one. Thats how
+I did the parsing of JSON (which has recursions).
+
+arne
+
+On Jun 6, 12:06 pm, mastupristi <cia... at gmail.com> wrote:
+> I need to parse a string using a state machine, and then  a part of
+> this string must be parsed with another state machine.
+>
+> I tried reassign p pointer and using fgoto statement, but it doesn't
+> work.
+>
+> haw can I do this?
+>
+
+
+From cia... at gmail.com  Fri Jun  6 11:04:42 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Fri, 6 Jun 2008 13:04:42 +0200
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced...@j22g2000hsf.googlegroups.com>
+	 <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+Message-ID: <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+
+On Fri, Jun 6, 2008 at 12:49 PM, Arne Goedeke <la... at laramies.com> wrote:
+> In case you cannot put both state machines together.. I would put the
+> second state-machine into a new function and call that one. Thats how
+> I did the parsing of JSON (which has recursions).
+and how can I put the second FSM in new function?
+
+I would like to have something like this:
+
+#include <string.h>
+#include <stdio.h>
+%%{
+	machine FSM;
+	
+	FMS1 := ????          <- this parse a part of the string
+	main := ????           <- this verify the string to match a pattern
+and extract a substring to pass to FSM1
+	
+}%%
+%% write data;
+
+
+void parse(char *buf)
+{
+	int cs;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	char FN[16];
+
+	%% write init;
+	%% write exec;     <- main
+
+	%% write exec;     <- FSM1
+}
+
+int main( int argc, char **argv )
+{
+	if ( argc > 1 ) {
+		parse(argv[1]);
+	}
+	return 0;
+}
+
+
+
+otherwise what vcan I do and how? I need fgoto, fcall or other?
+
+thanks
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:39:45 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:39:45 -0700 (PDT)
+Subject: two state machines
+In-Reply-To: <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com> 
+	<e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com> 
+	<17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+Message-ID: <3b2f4d48-574a-4427-87ae-decd01c953f6@k37g2000hsf.googlegroups.com>
+
+Hi,
+
+Untested, but it's an idea I had:
+
+> #include <string.h>
+> #include <stdio.h>
+> %%{
+>         machine FSM;
+            char *substring_start, *substring_end;
+>
+>         FMS1 := ????          <- this parse a part of the string
+            FMS1 := 'bar' @{ [do stuff] };
+
+>         main := ????           <- this verify the string to match a pattern
+            main := 'foo' >{ substring_start = p; }
+                                 @{ substring_end = p; fgoto FMS1; };
+
+> and extract a substring to pass to FSM1
+Substring is between substring_start and substring_end.
+>
+> }%%
+>
+> %% write data;
+>
+> void parse(char *buf)
+> {
+>         int cs;
+>         char *p = buf;
+>         char *pe = p + strlen(p) + 1;
+>         char FN[16];
+>
+>         %% write init;
+>         %% write exec;     <- main
+>
+>         %% write exec;     <- FSM1
+You don't need the second exec; FSM1 is executed via fgoto if main
+matches.
+
+>
+> }
+>
+> int main( int argc, char **argv )
+> {
+>         if ( argc > 1 ) {
+>                 parse(argv[1]);
+>         }
+>         return 0;
+>
+> }
+>
+> otherwise what vcan I do and how? I need fgoto, fcall or other?
+fgoto should do the job.
+
+Take care,
+
+
+From cia... at gmail.com  Sat Jun  7 16:17:01 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Sat, 7 Jun 2008 18:17:01 +0200
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <3b2f4d48-574a-4427-87ae-decd01c95...@k37g2000hsf.googlegroups.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced...@j22g2000hsf.googlegroups.com>
+	 <e6aa6057-ffdb-4beb-b988-9fe02b602...@2g2000hsn.googlegroups.com>
+	 <17201dc70806060404o65622b29t2c77ab3e9f81a...@mail.gmail.com>
+	 <3b2f4d48-574a-4427-87ae-decd01c95...@k37g2000hsf.googlegroups.com>
+Message-ID: <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+
+On Sat, Jun 7, 2008 at 7:39 AM, mitchell <mforal.n... at gmail.com> wrote:
+>
+> Hi,
+>
+> Untested, but it's an idea I had:
+
+I tried the same thing, and I have some doubt
+
+here is my source (is only a simplified example of my really need):
+----------------------------8<-------------------------------------
+#include <string.h>
+#include <stdio.h>
+%%{
+	# test for dua FSM definition
+	# I want to match a pattern like A"12345FFF01"B ( or A"99FFFFF99"B or
+A"321FFFFF14"B )
+	# once take the substring between quotes I want to pass it to FSM1
+that match exacly
+	
+	machine test1;
+	
+	action copycar
+	{
+		printf("%c\n",fc);
+		// populating FN
+		*fn = fc;
+		fn++;
+	}
+	
+	action error
+	{
+		printf("error %d, %c\n",cs,fc);
+		fbreak;
+	}
+	
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		fgoto FSM1;
+	}
+		
+	action endsubstr
+	{
+		// placing null termination to substring in FN
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		// substring matches
+		printf("OK pt2\n");
+	}
+	
+	FSM1 := '12345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+fc, fpc);};
+	
+	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+@endsubstr digit{2}  '"B' ) @!error @endpt1 ;
+	
+}%%
+
+%% write data;
+
+
+void parse(char *buf)
+{
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	
+	char FN[16];
+	char *fn;
+	
+	// FN is the container fo the substring
+	fn = FN;
+	%% write init;
+	%% write exec;
+}
+
+int main( int argc, char **argv )
+{
+	if ( argc > 1 ) {
+		parse(argv[1]);
+	}
+	return 0;
+}
+
+----------------------------8<-------------------------------------
+
+if you try to execute it fails:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+error 0, 2
+
+but the string exactly match the pattern (as can be seen in line "***
+15 1 12345FFF ***")
+
+so now try to change the pattern of FSM1 as follow (we delete '1'):
+	FSM1 := '2345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+fc, fpc);};
+
+and retry to execute:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15 1 12345FFF ***
+OK pt2
+
+now it report the string matching but we had changed the pattern.
+It seems that it skip the first character after fgoto.
+
+so I tried another way.
+lets use originale FSM1 definition (pattern '12345FFF'), but change
+action endpt1 to add an fhold statement as follow:
+
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		// setting new buffer margin for FSM1. It must operate on FN
+		p = FN;
+		pe = p + strlen(p) + 1;
+		// fhold is translated in C as p--;
+		fhold;		
+		fgoto FSM1;
+	}
+
+and let execute:
+
+test A\"12345FFF01\"B
+1
+2
+3
+4
+5
+F
+F
+F
+OK
+12345FFF
+*** 15   ***
+OK pt2
+
+it seems to work, but action to-state start of FSM1 fails, it cannot
+print neither fc character nor pfc string...
+
+is this the right way to do this?
+
+thanks
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From la... at laramies.com  Sat Jun  7 20:32:32 2008
+From: la... at laramies.com (Arne Goedeke)
+Date: Sat, 7 Jun 2008 22:32:32 +0200 (CEST)
+Subject: [ragel-users] Re: two state machines
+In-Reply-To: <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+References: <b8f529ba-06a5-4a07-b64e-c975cdced83d@j22g2000hsf.googlegroups.com>
+ <e6aa6057-ffdb-4beb-b988-9fe02b602692@2g2000hsn.googlegroups.com>
+ <17201dc70806060404o65622b29t2c77ab3e9f81ad81@mail.gmail.com>
+ <3b2f4d48-574a-4427-87ae-decd01c953f6@k37g2000hsf.googlegroups.com>
+ <17201dc70806070917u7ac6236arc0e761820547f466@mail.gmail.com>
+Message-ID: <Pine.LNX.4.64.0806072229440.5258@phpmy.l.tobij.de>
+
+As far as I understand the problem, it would be the right thing to use
+fexec instead of setting p.
+
+your action could look like this:
+
+action entpt1 {
+     ...
+     fexec FN;
+     fgoto FSM1;
+}
+
+I attached a sample ragel machine..
+
+arne
+
+On Sat, 7 Jun 2008, massimiliano cialdi wrote:
+
+>
+> On Sat, Jun 7, 2008 at 7:39 AM, mitchell <mforal.n... at gmail.com> wrote:
+>>
+>> Hi,
+>>
+>> Untested, but it's an idea I had:
+>
+> I tried the same thing, and I have some doubt
+>
+> here is my source (is only a simplified example of my really need):
+> ----------------------------8<-------------------------------------
+> #include <string.h>
+> #include <stdio.h>
+> %%{
+> 	# test for dua FSM definition
+> 	# I want to match a pattern like A"12345FFF01"B ( or A"99FFFFF99"B or
+> A"321FFFFF14"B )
+> 	# once take the substring between quotes I want to pass it to FSM1
+> that match exacly
+>
+> 	machine test1;
+>
+> 	action copycar
+> 	{
+> 		printf("%c\n",fc);
+> 		// populating FN
+> 		*fn = fc;
+> 		fn++;
+> 	}
+>
+> 	action error
+> 	{
+> 		printf("error %d, %c\n",cs,fc);
+> 		fbreak;
+> 	}
+>
+> 	action endpt1
+> 	{
+> 		printf("OK\n%s\n", FN);
+> 		// setting new buffer margin for FSM1. It must operate on FN
+> 		p = FN;
+> 		pe = p + strlen(p) + 1;
+> 		fgoto FSM1;
+> 	}
+>
+> 	action endsubstr
+> 	{
+> 		// placing null termination to substring in FN
+> 		*fn = '\0';
+> 	}
+>
+> 	action endpt2
+> 	{
+> 		// substring matches
+> 		printf("OK pt2\n");
+> 	}
+>
+> 	FSM1 := '12345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+> fc, fpc);};
+>
+> 	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+> @endsubstr digit{2}  '"B' ) @!error @endpt1 ;
+>
+> }%%
+>
+> %% write data;
+>
+>
+> void parse(char *buf)
+> {
+> 	int cs;
+> 	char *eof = 0;
+> 	char *p = buf;
+> 	char *pe = p + strlen(p) + 1;
+>
+> 	char FN[16];
+> 	char *fn;
+>
+> 	// FN is the container fo the substring
+> 	fn = FN;
+> 	%% write init;
+> 	%% write exec;
+> }
+>
+> int main( int argc, char **argv )
+> {
+> 	if ( argc > 1 ) {
+> 		parse(argv[1]);
+> 	}
+> 	return 0;
+> }
+>
+> ----------------------------8<-------------------------------------
+>
+> if you try to execute it fails:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15 1 12345FFF ***
+> error 0, 2
+>
+> but the string exactly match the pattern (as can be seen in line "***
+> 15 1 12345FFF ***")
+>
+> so now try to change the pattern of FSM1 as follow (we delete '1'):
+> 	FSM1 := '2345FFF' @!error @endpt2 >~{printf("*** %d %c %s ***\n",cs,
+> fc, fpc);};
+>
+> and retry to execute:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15 1 12345FFF ***
+> OK pt2
+>
+> now it report the string matching but we had changed the pattern.
+> It seems that it skip the first character after fgoto.
+>
+> so I tried another way.
+> lets use originale FSM1 definition (pattern '12345FFF'), but change
+> action endpt1 to add an fhold statement as follow:
+>
+> 	action endpt1
+> 	{
+> 		printf("OK\n%s\n", FN);
+> 		// setting new buffer margin for FSM1. It must operate on FN
+> 		p = FN;
+> 		pe = p + strlen(p) + 1;
+> 		// fhold is translated in C as p--;
+> 		fhold;
+> 		fgoto FSM1;
+> 	}
+>
+> and let execute:
+>
+> test A\"12345FFF01\"B
+> 1
+> 2
+> 3
+> 4
+> 5
+> F
+> F
+> F
+> OK
+> 12345FFF
+> *** 15   ***
+> OK pt2
+>
+> it seems to work, but action to-state start of FSM1 fails, it cannot
+> print neither fc character nor pfc string...
+>
+> is this the right way to do this?
+>
+> thanks
+> -- 
+> Et nunc, auxilium solis, vincam!
+> Oppugnatio solaris!
+> VIS!
+>
+> Massimiliano Cialdi
+> cia... at gmail.com
+> massimiliano.cia... at powersoft.it
+>
+> >
+>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: 2.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080607/46f32987/attachment-0001.ksh>
+
+From cia... at gmail.com  Fri Jun  6 21:39:02 2008
+From: cia... at gmail.com (massimiliano cialdi)
+Date: Fri, 6 Jun 2008 23:39:02 +0200
+Subject: two state machines in single source - I cannot believe
+Message-ID: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+
+there must be a way to instantiate two (or more) state machine within
+a single .rl source file.
+
+thanks
+
+-- 
+Et nunc, auxilium solis, vincam!
+Oppugnatio solaris!
+VIS!
+
+Massimiliano Cialdi
+cia... at gmail.com
+massimiliano.cia... at powersoft.it
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:45:42 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:45:42 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com>
+Message-ID: <adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+
+Hi,
+
+> there must be a way to instantiate two (or more) state machine within
+> a single .rl source file.
+
+Use fgoto or fcall to move between machines.
+
+e.g:
+
+%%{
+  machine foo;
+  bar := 'bar';
+  baz := 'baz' @{ fgoto bar; }
+}%%
+
+You can pick and choose which machine to start when exec is called by
+setting the cs variable to [machine name]_en_[machine definition].
+
+e.g:
+
+int cs;
+%%{
+  machine foo;
+  bar := 'bar';
+  baz := 'baz';
+}%%
+
+write init;
+cs = (condition) ? foo_bar : foo_baz;
+write exec;
+
+Take care,
+
+
+From mforal.n... at gmail.com  Sat Jun  7 05:46:50 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Fri, 6 Jun 2008 22:46:50 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com>
+Message-ID: <92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+
+Hi,
+
+> write init;
+> cs = (condition) ? foo_bar : foo_baz;
+> write exec;
+
+Should have '%%' before the write statements of course.
+
+>
+> Take care,
+
+
+From pazzodaleg... at gmail.com  Sat Jun  7 16:03:14 2008
+From: pazzodaleg... at gmail.com (pazzodalegare)
+Date: Sat, 7 Jun 2008 09:03:14 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com>
+Message-ID: <bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+
+Dear all,
+
+I'm playing with two machines too. I code a dummy ragel-machine to
+match a string:
+A"12345FFF01"B. For exercise, I would like to match the string using
+two machines (ragel code follows).
+
+With the first machine (main, see below) I want to extract the string
+between ' " ' which should match a set of strings defined by:
+
+digit{2} (digit|'F')(3} 'F'{3}
+
+then, with the second one (FSM1, see below) I match the string
+12345FFF.
+I found an unexpected behaviour: calling the FSM1 with fgoto it seems
+it starts to process from p++ (where p is the pointer to the first
+character for the called machine FSM1).
+
+Uncommenting the line in action endpt1:
+		//p--;
+
+FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+help to find my mistake?
+
+Tnx
+
+pazzo
+
+------------------ ragel code ------------------------
+
+#include <string.h>
+#include <stdio.h>
+%%{
+	# dummy machine to match A"12345FFF01"B
+
+	machine test1;
+
+	action cpch
+	{
+		printf("%c\n",fc);
+		*fn = fc;
+		fn++;
+	}
+
+	action _error
+	{
+		res = 0;
+		printf("ERROR %d, %c\n",cs,fc);
+		fbreak;
+	}
+
+	action endpt1
+	{
+		printf("OK\n%s\n", FN);
+		p = FN;
+		pe = p + strlen(p) + 1;
+		//p--;
+		fgoto FSM1;
+	}
+
+	action endsubstr
+	{
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		printf("OK pt2\n");
+	}
+
+	FSM1 := '12345FFF' @!_error @endpt2 >~{printf("*** %d %c %s ***
+\n",cs, fc, fpc);};
+
+	main := ( 'A"' ( digit{2} (digit | 'F'){3} 'F'{3} ) $cpch @endsubstr
+digit{2}  '"B' ) @!_error @endpt1 ;
+
+}%%
+
+%% write data;
+
+
+int parse(char *buf)
+{
+	int res = 0;
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	char FN[16];
+	char *fn;
+	int top, stack[32];
+
+	fn = FN;
+	%% write init;
+	%% write exec;
+
+	return res;
+}
+
+int main( int argc, char **argv )
+{
+	int res = 0;
+	if ( argc > 1 ) {
+		res = parse(argv[1]);
+	}
+	printf("result = %i\n", res );
+	return 0;
+}
+
+
+From mforal.n... at gmail.com  Sat Jun  7 17:41:28 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sat, 7 Jun 2008 10:41:28 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com>
+Message-ID: <4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+
+Hi,
+
+> Uncommenting the line in action endpt1:
+>                 //p--;
+>
+> FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+> help to find my mistake?
+
+You're setting p to be equal to FN which is the starting position of
+the character array you declared. If you decrement p, you cannot read
+that point in memory as it's before your allocated memory for FN.
+
+Take care,
+
+
+From pazzodaleg... at gmail.com  Sat Jun  7 19:46:55 2008
+From: pazzodaleg... at gmail.com (pazzodalegare)
+Date: Sat, 7 Jun 2008 12:46:55 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com> 
+	<4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com>
+Message-ID: <9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+
+
+
+On 7 Giu, 19:41, mitchell <mforal.n... at gmail.com> wrote:
+> Hi,
+>
+> > Uncommenting the line in action endpt1:
+> >                 //p--;
+>
+> > FSM1 machine behaves as expected ("OK pt2" is printed")..could you
+> > help to find my mistake?
+>
+> You're setting p to be equal to FN which is the starting position of
+> the character array you declared. If you decrement p, you cannot read
+> that point in memory as it's before your allocated memory for FN.
+>
+> Take care,
+> -Mitchell;
+
+Thank you for your "answer".
+Yes I know, that's why it's under comment...
+
+pazzo
+
+
+From mforal.n... at gmail.com  Mon Jun  9 04:57:16 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Sun, 8 Jun 2008 21:57:16 -0700 (PDT)
+Subject: two state machines in single source - I cannot believe
+In-Reply-To: <9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+References: <17201dc70806061439w1a7c9be4q5356e4a803b95fd7@mail.gmail.com> 
+	<adf1b548-b1c8-4368-9619-9eb6336e9df7@k37g2000hsf.googlegroups.com> 
+	<92b62709-6e9c-498c-8a31-55a84e66b85b@e39g2000hsf.googlegroups.com> 
+	<bbf55670-7b88-4d20-9934-98e10343ee07@f36g2000hsa.googlegroups.com> 
+	<4a1366df-619c-4a16-91ab-9de7e789954c@m45g2000hsb.googlegroups.com> 
+	<9c727b24-2809-46c4-9206-21439ec2df98@2g2000hsn.googlegroups.com>
+Message-ID: <d2211870-c357-4984-b4b8-fa682efdeea7@8g2000hse.googlegroups.com>
+
+Hi,
+
+> Thank you for your "answer".
+> Yes I know, that's why it's under comment...
+
+It appeared to me you were asking why the comment causes the correct
+behavior. Apologies.
+
+
+From wjrog... at gmail.com  Wed Jun 11 16:49:31 2008
+From: wjrog... at gmail.com (Will Rogers)
+Date: Wed, 11 Jun 2008 09:49:31 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com>
+Message-ID: <6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+
+On May 12, 2:00 am, jupp_g <jup... at hotmail.de> wrote:
+> I have updated the precompiled Windows files to vs. 6.2. The new C#
+> code generator is also included.
+
+I just downloaded this package and attempted to fiddle with the C#
+code generator using "ragel -A test.rl", but I get the error message
+"ragel: failed to retrieve backend function rlgen_csharp". The other
+code generation options appear to work. What gives? Is the C#
+generator broken?
+
+
+
+From jup... at hotmail.de  Thu Jun 12 09:19:50 2008
+From: jup... at hotmail.de (jupp_g)
+Date: Thu, 12 Jun 2008 02:19:50 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com>
+Message-ID: <86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+
+Will,
+
+my (simple) tests worked, but I'll have a look at the problem. If you
+could email your (smallest) source file (that shows the problem)
+(address is hidden somewhere in the win release notes), I'd appreciate
+that.
+
+Meanwhile you can generate the intermediate file and explicitly call
+the C# backend.
+
+jupp_g
+
+
+From jup... at hotmail.de  Thu Jun 12 10:53:26 2008
+From: jup... at hotmail.de (jupp_g)
+Date: Thu, 12 Jun 2008 03:53:26 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com> 
+	<86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com>
+Message-ID: <66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+
+I have uploaded new binaries and sources. If you already downloaded
+the files, have a look at the files section. Just replace the two
+files.
+
+If you ever need an example on what happens if you work with several
+computers on the same project without using a source code version
+system this is what you get. I published an intermediate version of
+the windows files with inconsistent function names for the entry point
+to the C# generator (dll build).
+
+mea culpa.
+
+jupp_g
+
+
+From wjrog... at gmail.com  Thu Jun 12 14:19:57 2008
+From: wjrog... at gmail.com (Will Rogers)
+Date: Thu, 12 Jun 2008 07:19:57 -0700 (PDT)
+Subject: Windows binaries updated to vs. 6.2
+In-Reply-To: <66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+References: <2ceb33ef-ec50-4585-b513-3bd5657b5fe3@y38g2000hsy.googlegroups.com> 
+	<6d503abf-a97c-4118-9063-cc38384859db@m36g2000hse.googlegroups.com> 
+	<86203166-552b-4e1e-85ad-00fde5e42a4d@x41g2000hsb.googlegroups.com> 
+	<66000958-8b61-4001-a254-af26ffcdbc16@x35g2000hsb.googlegroups.com>
+Message-ID: <41ab8466-8cb4-46d7-85e8-c32032797f43@p25g2000hsf.googlegroups.com>
+
+On Jun 12, 6:53 am, jupp_g <jup... at hotmail.de> wrote:
+> I have uploaded new binaries and sources. If you already downloaded
+> the files, have a look at the files section. Just replace the two
+> files.
+
+Thanks. It works now!
+
+
+
+From j... at jasongarber.com  Tue Jun 17 03:15:30 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Mon, 16 Jun 2008 23:15:30 -0400
+Subject: Scanners inside of scanners?  A better way to avoid conflicts?
+Message-ID: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+
+In RedCloth, we have a problem where an _emphasized_ bit of text can  
+have _(myclass#myid)a CSS class and/or id_ but shouldn't have a class  
+or id if the whole emphasis is in parentheses _(practically speaking) 
+_.  Consider this example (simplified):
+
+in: "before _(in parens)_ after"
+expected: "<p>before <em>(in parens)</em> after</p>"
+but was: "<p>before <em class=\"in parens\">in parens)</em> after</p>"
+It simultaneously pursues the possibilities that the parenthesized  
+text is the class and that it's just regular parenthesized text  
+inside the em.  When the class possibility doesn't work out, the  
+final state is the regular text part but the class has already been  
+captured.
+
+C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %{STORE 
+(id)} )? ")"
+mtext = ( chars (mspace chars)* ) ;
+em = "_" >X C? mtext >A %T :> "_" ;
+# The >X resets the register from the last match, >A registers the  
+beginning of a string and the STORE saves it away.
+
+I tried having the class info get written to a buffer that was then  
+captured with a leaving action, which works for the class part, but I  
+again run into the same problem with capturing the text because the  
+right side of the union matches also, so it captures too much text.   
+Whichever side of the vertical pipe writes last, wins.
+
+C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %{STORE 
+(id_buf)} )? ")"
+C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} | mtext  
+ >B %{ STORE_B(text); });
+# SET_ATTRIBUTES copies the attributes from their buffers and stores  
+them where they belong.
+
+results in...
+expected: "<p><span class=\"myclass\">SPAN</span></p>"
+  but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+
+Really what I want is for it to try the first pattern (with the C)  
+and, if that fails, try the second (the plain ol' mtext).  Sounds  
+like a scanner to me.  Problem is, I'm already inside a scanner, so  
+it won't let me call a scanner from within a pattern.
+
+Got any ideas?
+
+Jason
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080616/789287a8/attachment-0001.html>
+
+From er... at atlasocean.com  Tue Jun 17 05:04:31 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Mon, 16 Jun 2008 22:04:31 -0700
+Subject: [ragel-users] Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com>
+Message-ID: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+
+Jason,
+
+Basically, you need one-token lookahead for that, which a straight  
+regex can't do. You might be able to use manual state transitions, but  
+it's easier to just separate the logic out into another function.
+
+For example, you could capture the inner contents of the emphasized  
+string into a buffer and then call into a C function where you can run  
+the three (Ragel) machines in sequence, in the priority order you've  
+set. Use the first one that works and return into your original  
+scanner machine/function. Order them longest-match-first. :-)
+
+Best, Erich
+
+On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+
+> In RedCloth, we have a problem where an _emphasized_ bit of text can  
+> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a  
+> class or id if the whole emphasis is in parentheses _(practically  
+> speaking)_.  Consider this example (simplified):
+>
+> in: "before _(in parens)_ after"
+> expected: "<p>before <em>(in parens)</em> after</p>"
+> but was: "<p>before <em class=\"in parens\">in parens)</em> after</p>"
+> It simultaneously pursues the possibilities that the parenthesized  
+> text is the class and that it's just regular parenthesized text  
+> inside the em.  When the class possibility doesn't work out, the  
+> final state is the regular text part but the class has already been  
+> captured.
+>
+> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A % 
+> {STORE(id)} )? ")"
+> mtext = ( chars (mspace chars)* ) ;
+> em = "_" >X C? mtext >A %T :> "_" ;
+> # The >X resets the register from the last match, >A registers the  
+> beginning of a string and the STORE saves it away.
+>
+> I tried having the class info get written to a buffer that was then  
+> captured with a leaving action, which works for the class part, but  
+> I again run into the same problem with capturing the text because  
+> the right side of the union matches also, so it captures too much  
+> text.  Whichever side of the vertical pipe writes last, wins.
+>
+> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A % 
+> {STORE(id_buf)} )? ")"
+> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |  
+> mtext >B %{ STORE_B(text); });
+> # SET_ATTRIBUTES copies the attributes from their buffers and stores  
+> them where they belong.
+>
+> results in...
+> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>
+> Really what I want is for it to try the first pattern (with the C)  
+> and, if that fails, try the second (the plain ol' mtext).  Sounds  
+> like a scanner to me.  Problem is, I'm already inside a scanner, so  
+> it won't let me call a scanner from within a pattern.
+>
+> Got any ideas?
+>
+> Jason
+>
+>
+>
+> >
+
+
+From j... at jasongarber.com  Tue Jun 17 14:12:39 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Tue, 17 Jun 2008 10:12:39 -0400
+Subject: [ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com> <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+Message-ID: <20765109-896E-4BB2-A4F0-AF8A1659CFF0@jasongarber.com>
+
+Thanks for the help, Erich.
+
+Pardon my ignorance, but how shall I run the three Ragel machines from  
+a C function?  Can I run them within the same processing loop or do I  
+have to make a new Ragel file with its own main machine and call  
+that?  If it needs its own machine, then I have to return several  
+pieces of captured information, but if it can stay in the same  
+processing loop, then I can just set things in the existing hash.
+
+Sorry if I haven't explained it well enough.  I'm on Skype and AIM if  
+you're willing: JasonGarberEMU
+
+On Jun 17, 2008, at 1:04 AM, Erich Ocean wrote:
+
+>
+> Jason,
+>
+> Basically, you need one-token lookahead for that, which a straight
+> regex can't do. You might be able to use manual state transitions, but
+> it's easier to just separate the logic out into another function.
+>
+> For example, you could capture the inner contents of the emphasized
+> string into a buffer and then call into a C function where you can run
+> the three (Ragel) machines in sequence, in the priority order you've
+> set. Use the first one that works and return into your original
+> scanner machine/function. Order them longest-match-first. :-)
+>
+> Best, Erich
+>
+> On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+>
+>> In RedCloth, we have a problem where an _emphasized_ bit of text can
+>> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a
+>> class or id if the whole emphasis is in parentheses _(practically
+>> speaking)_.  Consider this example (simplified):
+>>
+>> in: "before _(in parens)_ after"
+>> expected: "<p>before <em>(in parens)</em> after</p>"
+>> but was: "<p>before <em class=\"in parens\">in parens)</em> after</ 
+>> p>"
+>> It simultaneously pursues the possibilities that the parenthesized
+>> text is the class and that it's just regular parenthesized text
+>> inside the em.  When the class possibility doesn't work out, the
+>> final state is the regular text part but the class has already been
+>> captured.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %
+>> {STORE(id)} )? ")"
+>> mtext = ( chars (mspace chars)* ) ;
+>> em = "_" >X C? mtext >A %T :> "_" ;
+>> # The >X resets the register from the last match, >A registers the
+>> beginning of a string and the STORE saves it away.
+>>
+>> I tried having the class info get written to a buffer that was then
+>> captured with a leaving action, which works for the class part, but
+>> I again run into the same problem with capturing the text because
+>> the right side of the union matches also, so it captures too much
+>> text.  Whichever side of the vertical pipe writes last, wins.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %
+>> {STORE(id_buf)} )? ")"
+>> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |
+>> mtext >B %{ STORE_B(text); });
+>> # SET_ATTRIBUTES copies the attributes from their buffers and stores
+>> them where they belong.
+>>
+>> results in...
+>> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+>> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>>
+>> Really what I want is for it to try the first pattern (with the C)
+>> and, if that fails, try the second (the plain ol' mtext).  Sounds
+>> like a scanner to me.  Problem is, I'm already inside a scanner, so
+>> it won't let me call a scanner from within a pattern.
+>>
+>> Got any ideas?
+>>
+>> Jason
+>>
+>>
+>>
+>>>
+>
+>
+> >
+
+
+From j... at jasongarber.com  Wed Jun 18 12:56:13 2008
+From: j... at jasongarber.com (Jason Garber)
+Date: Wed, 18 Jun 2008 08:56:13 -0400
+Subject: [ragel-users] Re: Scanners inside of scanners?  A better way to avoid conflicts?
+In-Reply-To: <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+References: <87ED3906-2022-416B-865A-64AE428E081D@jasongarber.com> <33313B35-28EF-4210-8A7A-0762654B9F10@atlasocean.com>
+Message-ID: <536488E7-303C-4FA5-A102-58EF924AD0A5@jasongarber.com>
+
+Regarding my question about how to call different machines from the  
+same file, I found a June 7 post on this list that answered my question.
+
+> You can pick and choose which machine to start when exec is called by
+> setting the cs variable to [machine name]_en_[machine definition].
+> e.g:
+>
+> int cs;
+> %%{
+>   machine foo;
+>   bar := 'bar';
+>   baz := 'baz';
+>
+>
+> }%%
+>
+> %%write init;
+> cs = (condition) ? foo_bar : foo_baz;
+> %%write exec;
+> Take care,
+> -Mitchell;
+>
+But since I'm doing several ways of attribute parsing, I had to start  
+a new file anyway, but now they can all be in the same file and share  
+the same basic structure.
+
+On Jun 17, 2008, at 1:04 AM, Erich Ocean wrote:
+
+>
+> Jason,
+>
+> Basically, you need one-token lookahead for that, which a straight
+> regex can't do. You might be able to use manual state transitions, but
+> it's easier to just separate the logic out into another function.
+>
+> For example, you could capture the inner contents of the emphasized
+> string into a buffer and then call into a C function where you can run
+> the three (Ragel) machines in sequence, in the priority order you've
+> set. Use the first one that works and return into your original
+> scanner machine/function. Order them longest-match-first. :-)
+>
+> Best, Erich
+>
+> On Jun 16, 2008, at 8:15 PM, Jason Garber wrote:
+>
+>> In RedCloth, we have a problem where an _emphasized_ bit of text can
+>> have _(myclass#myid)a CSS class and/or id_ but shouldn't have a
+>> class or id if the whole emphasis is in parentheses _(practically
+>> speaking)_.  Consider this example (simplified):
+>>
+>> in: "before _(in parens)_ after"
+>> expected: "<p>before <em>(in parens)</em> after</p>"
+>> but was: "<p>before <em class=\"in parens\">in parens)</em> after</ 
+>> p>"
+>> It simultaneously pursues the possibilities that the parenthesized
+>> text is the class and that it's just regular parenthesized text
+>> inside the em.  When the class possibility doesn't work out, the
+>> final state is the regular text part but the class has already been
+>> captured.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class) } )? ("#" [^)]+ >A %
+>> {STORE(id)} )? ")"
+>> mtext = ( chars (mspace chars)* ) ;
+>> em = "_" >X C? mtext >A %T :> "_" ;
+>> # The >X resets the register from the last match, >A registers the
+>> beginning of a string and the STORE saves it away.
+>>
+>> I tried having the class info get written to a buffer that was then
+>> captured with a leaving action, which works for the class part, but
+>> I again run into the same problem with capturing the text because
+>> the right side of the union matches also, so it captures too much
+>> text.  Whichever side of the vertical pipe writes last, wins.
+>>
+>> C = "(" ( [^)#]+ >A %{ STORE(class_buf) } )? ("#" [^)]+ >A %
+>> {STORE(id_buf)} )? ")"
+>> C_mtext = (C %{ STORE_ATTRIBUTES(); } mtext >A %{STORE(text)} |
+>> mtext >B %{ STORE_B(text); });
+>> # SET_ATTRIBUTES copies the attributes from their buffers and stores
+>> them where they belong.
+>>
+>> results in...
+>> expected: "<p><span class=\"myclass\">SPAN</span></p>"
+>> but was: "<p><span class=\"myclass\">(myclass)SPAN</span></p>"
+>>
+>> Really what I want is for it to try the first pattern (with the C)
+>> and, if that fails, try the second (the plain ol' mtext).  Sounds
+>> like a scanner to me.  Problem is, I'm already inside a scanner, so
+>> it won't let me call a scanner from within a pattern.
+>>
+>> Got any ideas?
+>>
+>> Jason
+>>
+>>
+>>
+>>>
+>
+>
+> >
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080618/1bf9787c/attachment-0001.html>
+
+From zeds... at zedshaw.com  Wed Jun 18 21:22:16 2008
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Wed, 18 Jun 2008 17:22:16 -0400
+Subject: Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+Message-ID: <20080618172216.9a18533d.zedshaw@zedshaw.com>
+
+Hey Adrian (and crew),
+
+I almost forgot to announce that I recently did a weird assembler using
+Ragel, Lemon, and GNU lightning:
+
+http://zedshaw.com/projects/earing/
+
+The end result is a very odd dynamic assembler that has a normal syntax
+for functions, and could potentially run on multiple platforms.  Ragel
+does much more heavy lifting than traditional with a lexer, as it also
+wires up callbacks for each opcode to use in the parser.
+
+Lemon takes the tokens that Ragel hands it and builds up the byte codes
+and data structures on the fly.  You can do this with an assembler
+because the language is so flat.
+
+Additionally, there's a Ternary Search Tree that is used for naming and
+any kind of string->value lookups in the software.
+
+Feel free to download and play with it.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From graceindustr... at gmail.com  Thu Jun 19 12:11:46 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Thu, 19 Jun 2008 08:11:46 -0400
+Subject: [ragel-users] Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+In-Reply-To: <20080618172216.9a18533d.zeds...@zedshaw.com>
+References: <20080618172216.9a18533d.zeds...@zedshaw.com>
+Message-ID: <a3aee9a50806190511n251e0903v242fb19ac13c2...@mail.gmail.com>
+
+On 6/18/08, Zed A. Shaw <zeds... at zedshaw.com> wrote:
+
+>weird assembler using
+> Ragel, Lemon, and GNU lightning:
+>
+> http://zedshaw.com/projects/earing/
+>
+> The end result is a very odd dynamic assembler that has a normal syntax
+> for functions, and could potentially run on multiple platforms.
+
+I wonder if you could build the LCC compiler on top of 'odd assembler'
+
+http://www.cs.princeton.edu/software/lcc/
+
+that would then produce code for customized CPUs in FPGA's?
+
+http://www.actel.com/products/IGLOOplus/default.aspx
+
+Never seem to find a micro with all the features I want for
+my embedded work.  Might just have to make my own someday.
+
+
+From zeds... at zedshaw.com  Fri Jun 20 04:38:02 2008
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Fri, 20 Jun 2008 00:38:02 -0400
+Subject: [ragel-users] Re: Almost Forgot, EaRing: An Assembler Using
+ Ragel and Lemon
+In-Reply-To: <a3aee9a50806190511n251e0903v242fb19ac13c2b9e@mail.gmail.com>
+References: <20080618172216.9a18533d.zedshaw@zedshaw.com>
+	<a3aee9a50806190511n251e0903v242fb19ac13c2b9e@mail.gmail.com>
+Message-ID: <20080620003802.44abd78c.zedshaw@zedshaw.com>
+
+On Thu, 19 Jun 2008 08:11:46 -0400
+"Bob Paddock" <graceindustr... at gmail.com> wrote:
+
+> 
+> On 6/18/08, Zed A. Shaw <zeds... at zedshaw.com> wrote:
+> 
+> I wonder if you could build the LCC compiler on top of 'odd assembler'
+> 
+> http://www.cs.princeton.edu/software/lcc/
+> 
+> that would then produce code for customized CPUs in FPGA's?
+
+Hmm, well, GNU lightning is notoriously hard to change.  It is actually
+a gigantic c pre-processor mess that has the byte codes in c macros.
+If the FPGA had one of the other bytecodes as its base then you could
+do it, but otherwise you'd have to add that CPU to the supported
+platforms.
+
+However, this bytecode generation isn't that hard.  I figure if I keep
+working on this I'd eventually get rid of lightning by just reverse
+engineering what they produce for their instructions and then writing
+something that's not a damn CPP macro set.
+
+Now, for LCC, I did look at it and TCC but found that they were pretty
+damn complicated to just polish off really quick.  In theory you could
+do this with just about any language, since the assembler is what they
+all become anyway.  Just probably not too quickly with LCC.
+
+> http://www.actel.com/products/IGLOOplus/default.aspx
+> 
+> Never seem to find a micro with all the features I want for
+> my embedded work.  Might just have to make my own someday.
+
+Yeah, go for it.  You could probably take EaRing and tweak it to come
+up with your own assembler opcodes and format too.  That's a nice thing
+about the project, I figured out that I could just create any format I
+wanted once I divorced the byte code generation from the format.
+
+-- 
+Zed A. Shaw
+- Hate: http://savingtheinternetwithhate.com/
+- Good: http://www.zedshaw.com/
+- Evil: http://yearofevil.com/
+
+
+From graceindustr... at gmail.com  Fri Jun 20 12:24:31 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 20 Jun 2008 08:24:31 -0400
+Subject: [ragel-users] Re: Almost Forgot, EaRing: An Assembler Using Ragel and Lemon
+In-Reply-To: <20080620003802.44abd78c.zeds...@zedshaw.com>
+References: <20080618172216.9a18533d.zeds...@zedshaw.com>
+	 <a3aee9a50806190511n251e0903v242fb19ac13c2...@mail.gmail.com>
+	 <20080620003802.44abd78c.zeds...@zedshaw.com>
+Message-ID: <a3aee9a50806200524l38b9b6ble38e475bb3af4...@mail.gmail.com>
+
+> Hmm, well, GNU lightning is notoriously hard to change.  It is actually
+> a gigantic c pre-processor mess
+
+Take a look at 'Wave', which is a more advanced pre-processor.
+More or less 'mess' in this case is hard to say:
+
+http://www.boost.org/doc/libs/1_35_0/libs/wave/doc/preface.html
+
+
+From heiko.pael... at gmail.com  Sat Jun 28 15:52:35 2008
+From: heiko.pael... at gmail.com (Heiko)
+Date: Sat, 28 Jun 2008 08:52:35 -0700 (PDT)
+Subject: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel 
+	scanner
+Message-ID: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+
+Dear list members,
+
+I am trying to implement a CSV scanner based on the fantastic Ragel,
+with a small few modifications to the standard:
+
+- it should work for different types of Unix/Mac/Windows line endings
+( \n, \r, \r\n)
+- it should use both commas and tabs as item separators
+- it should honour quoted values
+- it should collapse multiple empty lines into single line
+separators ...
+
+I have written the following ragel code (below) to accomplish this,
+but there is a problem that I cannot locate ...
+When the line endings are \r (CR), everything seems to work fine,
+however, if they are \n (LF), the first character of the next field is
+swallowed by the scanner ....
+I am pulling my hair out, and suspect it has to do with ambiguities in
+the definition of the scanner. I am also unsure as to which transition
+action I should choose (currently '@').
+
+Does anyone have any ideas?
+
+Cheers,
+Heiko
+
+
+
+
+
+
+
+//
+//  csv_parse.m
+//  RagelCsv
+//
+//
+
+
+
+#define HPDEBUG 1
+#import <Foundation/Foundation.h>
+
+void csv_parse(unsigned char *input, size_t len, NSMutableArray
+**parsedData, long *maxcols, long *nlines, long *nrecords) {
+    long tempmaxcols=0, tempnrecords=0;
+    int cs=0, act, curline = 1; //ragel variables to keep states
+    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+for Scanner
+	unsigned char *p = input, *pe = input + len; //ragel variables to
+keep track of position in stream
+    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+elements from each row/record
+	NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+Array of row arrays
+	NSString *coldata; //string that holds entry in field
+	NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+*)input];
+
+//Discussion
+//On UNIX, text file line-endings are terminated with a newline (n),
+also referred to as a linefeed (LF).
+//On Windows, line-endings are terminated with a combination of a
+carriage return (r) and a newline(n), also referred to as CR/LF.
+//On the Mac Classic, line-endings are terminated with a single
+carriage return (CR). (Mac OS X uses the UNIX convention.)
+
+//A line is delimited by any of these characters, the longest possible
+sequence being preferred to any shorter:
+//U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+LF) //U+2029 (Unicode paragraph separator)
+// \r\n, in that order (also known as CRLF)
+
+
+//append end of line if not present so we can obtain all records.
+[row autorelease];
+
+%%{
+    machine csv_scan;
+	alphtype unsigned char;
+
+	newline =('\r\n') | ('\n') | ('\r') %{
+         curline += 1;
+    };
+	multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
++  @{
+         curline += 1;
+    };
+
+	ws = ' ';
+    Separator = [,\t];
+	UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+	QuotedChar = ( '""' | [^"] | (newline|multiline) );
+    QuotedValue = '"' . QuotedChar* . '"';
+
+    main := |*
+      ws;
+      multiline     @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@"multiline");
+	  };
+      newline  @{
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		coldata=nil;
+		tempnrecords++;
+		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+		[tempParsedData addObject:row];
+		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+		row=[NSMutableArray array];
+		if (HPDEBUG) NSLog(@"newline");
+	  };
+      Separator {
+		if ([coldata length]==0)
+			coldata=(NSString *)[NSNull null];
+		[row addObject:coldata];
+		tempnrecords++;
+		coldata=nil;
+if (HPDEBUG) NSLog(@"separator");
+	  };
+
+      UnQuotedValue {
+          unsigned char ch, *endp;
+          int datalen;
+          datalen = tokend - tokstart;
+          endp = tokend - 1;
+          while(datalen>0) {
+              ch = *endp--;
+/*              if (ch==' ' || ch=='\t') {*/
+              if (ch==' ') {
+                  datalen--;
+              } else {
+                  break;
+              }
+          }
+
+          if (datalen==0) {
+				coldata = (NSString *)[NSNull null];
+          } else {
+				coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+          }
+	 if (HPDEBUG)		  		  NSLog(@"Unquoted value: %@",coldata);
+      };
+      QuotedValue {
+          unsigned char ch, *start_p, *wptr, *rptr;
+          int rest, datalen;
+          start_p = wptr = tokstart;
+          rptr = tokstart + 1;
+          rest = tokend - tokstart - 2;
+          datalen = 0;
+          while(rest>0) {
+              ch = *rptr++;
+              if (ch=='"') {
+                rptr++;
+                rest--;
+              }
+              *wptr++ = ch;
+              datalen++;
+              rest--;
+          }
+		  tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+reset tempInputString after messing with chars in input
+		  coldata=[NSString stringWithString:[tempInputString
+substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+	if (HPDEBUG)						NSLog(@"  Quoted value: %@",coldata);
+       };
+    *|;
+}%%
+%% write data nofinal;
+
+
+%%write init;
+%%write exec;
+%%write eof;
+
+    if(row) {
+//	  [tempParsedData addObject:row];
+//	  if ([row count] >tempmaxcols) tempmaxcols=[row count];
+//	  [row autorelease];
+	  row=nil;
+	  }
+
+	*parsedData=tempParsedData;
+
+
+if ( cs == csv_scan_error ) {
+           NSLog(@"CSVscan parse error on line %d.", curline);
+        }
+
+	*nrecords=tempnrecords;
+	*nlines=curline-1;
+	*maxcols=tempmaxcols;
+
+}
+
+
+
+From er... at atlasocean.com  Sat Jun 28 16:01:29 2008
+From: er... at atlasocean.com (Erich Ocean)
+Date: Sat, 28 Jun 2008 09:01:29 -0700
+Subject: [ragel-users] Newbie question: an extended comma or tab separated (CSV/TSV) Ragel  scanner
+In-Reply-To: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com>
+Message-ID: <E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+
+Heiko,
+
+Not sure if this will help, but this is from a PDF 1.4 parsing machine  
+I wrote years ago:
+
+%% PDFParsingMachine
+
+alphtype unsigned char;
+
+# the whitespace, eol, delimiter, regular, and comment machines
+	
+# whitespace in a PDF file includes the NULL character,
+# and consecutive whitespace is treated as one
+whitespace = /[\t\f\n\r\0 ]/ ;
+
+eol = /[\r\n]/ | '\r\n' ;
+	
+delimiter = [()<>\[\]{}/%] ;
+	
+regular = any - ( whitespace | delimiter ) ;
+
+# The priority bump on the terminator of the comments brings us
+# out of the extend* which matches everything.
+comment = '%' . extend* $0 . eol @1 ;
+
+#
+# (Other machines not shown.)
+#
+
+main := (
+	whitespace |
+	comment |
+	boolean |
+	number |
+	hexString |
+	name |
+	literalString |
+	beginArray |
+	endArray |
+	beginDict |
+	endDict |
+	pdfNull |
+	stream |
+	beginIndirectObject |
+	endIndirectObject |
+	indirectObjectReference |
+	beginXref |
+	beginTrailer |
+	beginStartxref |
+	beginFree |
+	beginInUse )**;
+
+%%
+
+Best, Erich
+
+On Jun 28, 2008, at 8:52 AM, Heiko wrote:
+
+>
+> Dear list members,
+>
+> I am trying to implement a CSV scanner based on the fantastic Ragel,
+> with a small few modifications to the standard:
+>
+> - it should work for different types of Unix/Mac/Windows line endings
+> ( \n, \r, \r\n)
+> - it should use both commas and tabs as item separators
+> - it should honour quoted values
+> - it should collapse multiple empty lines into single line
+> separators ...
+>
+> I have written the following ragel code (below) to accomplish this,
+> but there is a problem that I cannot locate ...
+> When the line endings are \r (CR), everything seems to work fine,
+> however, if they are \n (LF), the first character of the next field is
+> swallowed by the scanner ....
+> I am pulling my hair out, and suspect it has to do with ambiguities in
+> the definition of the scanner. I am also unsure as to which transition
+> action I should choose (currently '@').
+>
+> Does anyone have any ideas?
+>
+> Cheers,
+> Heiko
+>
+>
+>
+>
+>
+>
+>
+> //
+> //  csv_parse.m
+> //  RagelCsv
+> //
+> //
+>
+>
+>
+> #define HPDEBUG 1
+> #import <Foundation/Foundation.h>
+>
+> void csv_parse(unsigned char *input, size_t len, NSMutableArray
+> **parsedData, long *maxcols, long *nlines, long *nrecords) {
+>    long tempmaxcols=0, tempnrecords=0;
+>    int cs=0, act, curline = 1; //ragel variables to keep states
+>    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+> for Scanner
+> 	unsigned char *p = input, *pe = input + len; //ragel variables to
+> keep track of position in stream
+>    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+> elements from each row/record
+> 	NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+> Array of row arrays
+> 	NSString *coldata; //string that holds entry in field
+> 	NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+> *)input];
+>
+> //Discussion
+> //On UNIX, text file line-endings are terminated with a newline (n),
+> also referred to as a linefeed (LF).
+> //On Windows, line-endings are terminated with a combination of a
+> carriage return (r) and a newline(n), also referred to as CR/LF.
+> //On the Mac Classic, line-endings are terminated with a single
+> carriage return (CR). (Mac OS X uses the UNIX convention.)
+>
+> //A line is delimited by any of these characters, the longest possible
+> sequence being preferred to any shorter:
+> //U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+> LF) //U+2029 (Unicode paragraph separator)
+> // \r\n, in that order (also known as CRLF)
+>
+>
+> //append end of line if not present so we can obtain all records.
+> [row autorelease];
+>
+> %%{
+>    machine csv_scan;
+> 	alphtype unsigned char;
+>
+> 	newline =('\r\n') | ('\n') | ('\r') %{
+>         curline += 1;
+>    };
+> 	multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
+> +  @{
+>         curline += 1;
+>    };
+>
+> 	ws = ' ';
+>    Separator = [,\t];
+> 	UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+> 	QuotedChar = ( '""' | [^"] | (newline|multiline) );
+>    QuotedValue = '"' . QuotedChar* . '"';
+>
+>    main := |*
+>      ws;
+>      multiline     @{
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		coldata=nil;
+> 		tempnrecords++;
+> 		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> 		[tempParsedData addObject:row];
+> 		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> 		row=[NSMutableArray array];
+> 		if (HPDEBUG) NSLog(@"multiline");
+> 	  };
+>      newline  @{
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		coldata=nil;
+> 		tempnrecords++;
+> 		if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> 		[tempParsedData addObject:row];
+> 		if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> 		row=[NSMutableArray array];
+> 		if (HPDEBUG) NSLog(@"newline");
+> 	  };
+>      Separator {
+> 		if ([coldata length]==0)
+> 			coldata=(NSString *)[NSNull null];
+> 		[row addObject:coldata];
+> 		tempnrecords++;
+> 		coldata=nil;
+> if (HPDEBUG) NSLog(@"separator");
+> 	  };
+>
+>      UnQuotedValue {
+>          unsigned char ch, *endp;
+>          int datalen;
+>          datalen = tokend - tokstart;
+>          endp = tokend - 1;
+>          while(datalen>0) {
+>              ch = *endp--;
+> /*              if (ch==' ' || ch=='\t') {*/
+>              if (ch==' ') {
+>                  datalen--;
+>              } else {
+>                  break;
+>              }
+>          }
+>
+>          if (datalen==0) {
+> 				coldata = (NSString *)[NSNull null];
+>          } else {
+> 				coldata=[NSString stringWithString:[tempInputString
+> substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+>          }
+> 	 if (HPDEBUG)		  		  NSLog(@"Unquoted value: %@",coldata);
+>      };
+>      QuotedValue {
+>          unsigned char ch, *start_p, *wptr, *rptr;
+>          int rest, datalen;
+>          start_p = wptr = tokstart;
+>          rptr = tokstart + 1;
+>          rest = tokend - tokstart - 2;
+>          datalen = 0;
+>          while(rest>0) {
+>              ch = *rptr++;
+>              if (ch=='"') {
+>                rptr++;
+>                rest--;
+>              }
+>              *wptr++ = ch;
+>              datalen++;
+>              rest--;
+>          }
+> 		  tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+> reset tempInputString after messing with chars in input
+> 		  coldata=[NSString stringWithString:[tempInputString
+> substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+> 	if (HPDEBUG)						NSLog(@"  Quoted value: %@",coldata);
+>       };
+>    *|;
+> }%%
+> %% write data nofinal;
+>
+>
+> %%write init;
+> %%write exec;
+> %%write eof;
+>
+>    if(row) {
+> //	  [tempParsedData addObject:row];
+> //	  if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> //	  [row autorelease];
+> 	  row=nil;
+> 	  }
+>
+> 	*parsedData=tempParsedData;
+>
+>
+> if ( cs == csv_scan_error ) {
+>           NSLog(@"CSVscan parse error on line %d.", curline);
+>        }
+>
+> 	*nrecords=tempnrecords;
+> 	*nlines=curline-1;
+> 	*maxcols=tempmaxcols;
+>
+> }
+>
+>
+>
+> >
+
+
+From heiko.pael... at gmail.com  Sun Jun 29 13:24:48 2008
+From: heiko.pael... at gmail.com (Heiko)
+Date: Sun, 29 Jun 2008 06:24:48 -0700 (PDT)
+Subject: Newbie question: an extended comma or tab separated (CSV/TSV) 
+	Ragel scanner
+In-Reply-To: <E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a135@p25g2000hsf.googlegroups.com> 
+	<E1431210-A218-4E73-8C8C-F87FC8797386@atlasocean.com>
+Message-ID: <851c4d19-2b2f-45b3-bed3-2e3ff96a3f2a@m36g2000hse.googlegroups.com>
+
+Hi Erich,
+
+many thanks!
+I had a look at your code, but realise that you are using a Ragel
+state machine, whereas I am trying to use a scanner.
+Also, for full CSV files, there is the complication that quoted items
+can contain newline characters, which need to be treated separately.
+Do you have any idea why my implementation swallows one character
+after a newline \n, but not after \r?
+
+Many thanks for your help!
+
+Cheers,
+Heiko
+
+
+On Jun 28, 5:01 pm, Erich Ocean <er... at atlasocean.com> wrote:
+> Heiko,
+>
+> Not sure if this will help, but this is from a PDF 1.4 parsing machine  
+> I wrote years ago:
+>
+> %% PDFParsingMachine
+>
+> alphtype unsigned char;
+>
+> # the whitespace, eol, delimiter, regular, and comment machines
+>
+> # whitespace in a PDF file includes the NULL character,
+> # and consecutive whitespace is treated as one
+> whitespace = /[\t\f\n\r\0 ]/ ;
+>
+> eol = /[\r\n]/ | '\r\n' ;
+>
+> delimiter = [()<>\[\]{}/%] ;
+>
+> regular = any - ( whitespace | delimiter ) ;
+>
+> # The priority bump on the terminator of the comments brings us
+> # out of the extend* which matches everything.
+> comment = '%' . extend* $0 . eol @1 ;
+>
+> #
+> # (Other machines not shown.)
+> #
+>
+> main := (
+>         whitespace |
+>         comment |
+>         boolean |
+>         number |
+>         hexString |
+>         name |
+>         literalString |
+>         beginArray |
+>         endArray |
+>         beginDict |
+>         endDict |
+>         pdfNull |
+>         stream |
+>         beginIndirectObject |
+>         endIndirectObject |
+>         indirectObjectReference |
+>         beginXref |
+>         beginTrailer |
+>         beginStartxref |
+>         beginFree |
+>         beginInUse )**;
+>
+> %%
+>
+> Best, Erich
+>
+> On Jun 28, 2008, at 8:52 AM, Heiko wrote:
+>
+>
+>
+> > Dear list members,
+>
+> > I am trying to implement a CSV scanner based on the fantastic Ragel,
+> > with a small few modifications to the standard:
+>
+> > - it should work for different types of Unix/Mac/Windows line endings
+> > ( \n, \r, \r\n)
+> > - it should use both commas and tabs as item separators
+> > - it should honour quoted values
+> > - it should collapse multiple empty lines into single line
+> > separators ...
+>
+> > I have written the following ragel code (below) to accomplish this,
+> > but there is a problem that I cannot locate ...
+> > When the line endings are \r (CR), everything seems to work fine,
+> > however, if they are \n (LF), the first character of the next field is
+> > swallowed by the scanner ....
+> > I am pulling my hair out, and suspect it has to do with ambiguities in
+> > the definition of the scanner. I am also unsure as to which transition
+> > action I should choose (currently '@').
+>
+> > Does anyone have any ideas?
+>
+> > Cheers,
+> > Heiko
+>
+> > //
+> > //  csv_parse.m
+> > //  RagelCsv
+> > //
+> > //
+>
+> > #define HPDEBUG 1
+> > #import <Foundation/Foundation.h>
+>
+> > void csv_parse(unsigned char *input, size_t len, NSMutableArray
+> > **parsedData, long *maxcols, long *nlines, long *nrecords) {
+> >    long tempmaxcols=0, tempnrecords=0;
+> >    int cs=0, act, curline = 1; //ragel variables to keep states
+> >    unsigned char *tokstart = NULL, *tokend = NULL; //ragel variables
+> > for Scanner
+> >    unsigned char *p = input, *pe = input + len; //ragel variables to
+> > keep track of position in stream
+> >    NSMutableArray *row=[[NSMutableArray alloc] init]; //Array to hold
+> > elements from each row/record
+> >    NSMutableArray *tempParsedData=[[NSMutableArray alloc] init]; //
+> > Array of row arrays
+> >    NSString *coldata; //string that holds entry in field
+> >    NSMutableString *tempInputString=[NSString stringWithUTF8String:(char
+> > *)input];
+>
+> > //Discussion
+> > //On UNIX, text file line-endings are terminated with a newline (n),
+> > also referred to as a linefeed (LF).
+> > //On Windows, line-endings are terminated with a combination of a
+> > carriage return (r) and a newline(n), also referred to as CR/LF.
+> > //On the Mac Classic, line-endings are terminated with a single
+> > carriage return (CR). (Mac OS X uses the UNIX convention.)
+>
+> > //A line is delimited by any of these characters, the longest possible
+> > sequence being preferred to any shorter:
+> > //U+000D (\r or CR) //U+2028 (Unicode line separator) //U+000A (\n or
+> > LF) //U+2029 (Unicode paragraph separator)
+> > // \r\n, in that order (also known as CRLF)
+>
+> > //append end of line if not present so we can obtain all records.
+> > [row autorelease];
+>
+> > %%{
+> >    machine csv_scan;
+> >    alphtype unsigned char;
+>
+> >    newline =('\r\n') | ('\n') | ('\r') %{
+> >         curline += 1;
+> >    };
+> >    multiline =(('\r\n') | ('\n') | ('\r')).(('\r\n') | ('\n') | ('\r'))
+> > +  @{
+> >         curline += 1;
+> >    };
+>
+> >    ws = ' ';
+> >    Separator = [,\t];
+> >    UnQuotedValue = [^ \t",\r\n].[^"\t,\r\n]*;
+> >    QuotedChar = ( '""' | [^"] | (newline|multiline) );
+> >    QuotedValue = '"' . QuotedChar* . '"';
+>
+> >    main := |*
+> >      ws;
+> >      multiline     @{
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            coldata=nil;
+> >            tempnrecords++;
+> >            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> >            [tempParsedData addObject:row];
+> >            if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> >            row=[NSMutableArray array];
+> >            if (HPDEBUG) NSLog(@"multiline");
+> >      };
+> >      newline  @{
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            coldata=nil;
+> >            tempnrecords++;
+> >            if(!row) row=[NSMutableArray arrayWithObject:[NSNull null]];
+> >            [tempParsedData addObject:row];
+> >            if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> >            row=[NSMutableArray array];
+> >            if (HPDEBUG) NSLog(@"newline");
+> >      };
+> >      Separator {
+> >            if ([coldata length]==0)
+> >                    coldata=(NSString *)[NSNull null];
+> >            [row addObject:coldata];
+> >            tempnrecords++;
+> >            coldata=nil;
+> > if (HPDEBUG) NSLog(@"separator");
+> >      };
+>
+> >      UnQuotedValue {
+> >          unsigned char ch, *endp;
+> >          int datalen;
+> >          datalen = tokend - tokstart;
+> >          endp = tokend - 1;
+> >          while(datalen>0) {
+> >              ch = *endp--;
+> > /*              if (ch==' ' || ch=='\t') {*/
+> >              if (ch==' ') {
+> >                  datalen--;
+> >              } else {
+> >                  break;
+> >              }
+> >          }
+>
+> >          if (datalen==0) {
+> >                            coldata = (NSString *)[NSNull null];
+> >          } else {
+> >                            coldata=[NSString stringWithString:[tempInputString
+> > substringWithRange:NSMakeRange((int)(tokstart-input), datalen)]];
+> >          }
+> >     if (HPDEBUG)                             NSLog(@"Unquoted value: %@",coldata);
+> >      };
+> >      QuotedValue {
+> >          unsigned char ch, *start_p, *wptr, *rptr;
+> >          int rest, datalen;
+> >          start_p = wptr = tokstart;
+> >          rptr = tokstart + 1;
+> >          rest = tokend - tokstart - 2;
+> >          datalen = 0;
+> >          while(rest>0) {
+> >              ch = *rptr++;
+> >              if (ch=='"') {
+> >                rptr++;
+> >                rest--;
+> >              }
+> >              *wptr++ = ch;
+> >              datalen++;
+> >              rest--;
+> >          }
+> >              tempInputString=[NSString stringWithUTF8String:(char *)input]; //
+> > reset tempInputString after messing with chars in input
+> >              coldata=[NSString stringWithString:[tempInputString
+> > substringWithRange:NSMakeRange((int)(start_p-input), datalen)]];
+> >    if (HPDEBUG)                                            NSLog(@"  Quoted value: %@",coldata);
+> >       };
+> >    *|;
+> > }%%
+> > %% write data nofinal;
+>
+> > %%write init;
+> > %%write exec;
+> > %%write eof;
+>
+> >    if(row) {
+> > //   [tempParsedData addObject:row];
+> > //   if ([row count] >tempmaxcols) tempmaxcols=[row count];
+> > //   [row autorelease];
+> >      row=nil;
+> >      }
+>
+> >    *parsedData=tempParsedData;
+>
+> > if ( cs == csv_scan_error ) {
+> >           NSLog(@"CSVscan parse error on line %d.", curline);
+> >        }
+>
+> >    *nrecords=tempnrecords;
+> >    *nlines=curline-1;
+> >    *maxcols=tempmaxcols;
+>
+
+
+From muza... at gmail.com  Mon Jun 30 01:50:28 2008
+From: muza... at gmail.com (Andrew Garner)
+Date: Sun, 29 Jun 2008 20:50:28 -0500
+Subject: [ragel-users] Re: Newbie question: an extended comma or tab separated (CSV/TSV) Ragel scanner
+In-Reply-To: <851c4d19-2b2f-45b3-bed3-2e3ff96a3...@m36g2000hse.googlegroups.com>
+References: <0ac67fdb-12ac-4977-a969-79be9372a...@p25g2000hsf.googlegroups.com>
+	 <E1431210-A218-4E73-8C8C-F87FC8797...@atlasocean.com>
+	 <851c4d19-2b2f-45b3-bed3-2e3ff96a3...@m36g2000hse.googlegroups.com>
+Message-ID: <f7b5dd6b0806291850k7e1c21efi3d38ae90b442c0ba@mail.gmail.com>
+
+On Sun, Jun 29, 2008 at 8:24 AM, Heiko <heiko.pael... at gmail.com> wrote:
+
+> Do you have any idea why my implementation swallows one character
+> after a newline \n, but not after \r?
+
+
+What version of Ragel are you using? You probably want to use pattern =>
+action; in your scanner for the multiline/newline matching rather than @{}
+transitions to get longest match behavior.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080629/39854fe5/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Tue Jun  3 01:16:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 02 Jun 2008 21:16:01 -0400
+Subject: [ragel-users] Re: Bypass "previously defined" errors?
+In-Reply-To: <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com>
+References: <c212c291-3789-462e-bb99-70ba3ef14b95@w7g2000hsa.googlegroups.com>  <48361D88.3080409@cs.queensu.ca> <af172ad5-a382-4d5a-a5cf-a59611c57e9e@m45g2000hsb.googlegroups.com>  <48370599.6010000@cs.queensu.ca> <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com>
+Message-ID: <48449B51.9050301@cs.queensu.ca>
+
+Hey Mitchell,
+
+Do you think you could send me the code that requires this. I'd like to
+see exactly what you're doing before I start on this.
+
+-Adrian
+
+mitchell wrote:
+> Adrian,
+> 
+>> What if we blocked files from being included more than once?
+> 
+> That sounds great.
+> 
+>> In the
+>> meantime can you lift the common include into the top-level ragel file?
+> 
+> It's possible, but of course not optimal.
+> 
+> Thanks!
+> -Mitchell;
+> > 
+> 
+
+
+From mforal.n... at gmail.com  Tue Jun  3 16:34:37 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Tue, 3 Jun 2008 09:34:37 -0700 (PDT)
+Subject: Bypass "previously defined" errors?
+In-Reply-To: <48449B51.9050301@cs.queensu.ca>
+References: <c212c291-3789-462e-bb99-70ba3ef14b95@w7g2000hsa.googlegroups.com> 
+	<48361D88.3080409@cs.queensu.ca> <af172ad5-a382-4d5a-a5cf-a59611c57e9e@m45g2000hsb.googlegroups.com> 
+	<48370599.6010000@cs.queensu.ca> <37081ebe-ca1d-4750-ba21-529460daeb5a@w7g2000hsa.googlegroups.com> 
+	<48449B51.9050301@cs.queensu.ca>
+Message-ID: <694facbb-390a-4054-8340-3531f1de2280@59g2000hsb.googlegroups.com>
+
+Adrian,
+
+> Do you think you could send me the code that requires this. I'd like to
+> see exactly what you're doing before I start on this.
+
+Sent to your inbox.
+
+
+From macyg... at gmail.com  Sun Jun  1 17:40:42 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 10:40:42 -0700 (PDT)
+Subject: Matching characters written as hex codes
+Message-ID: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+
+Hi,
+
+I'm trying to match some characters in a file, more exactly I'm
+looking for the UNICODE BOM markers (i.e. '\xFF' '\xFE'  and '\xFE'
+'\xFF'  (C-like escapes in the example..)
+
+I've tried:
+
+bom = \xFE \xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> parsing
+error
+bom = '\xFE' '\xFF' @{ fprintf(stderr, "\nGot BOM UTF16"); };  ->
+doesn't match
+bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+match
+
+The only way I've successfully matched the two characters was like
+this:
+
+bom = 'X' 'Y' @{ fprintf(stderr, "\nGot BOM UTF16"); };
+
+where X and Y are the required chars, placed there with a hex editor.
+
+So,
+
+does anybody know the way to do this properly?
+
+Thanks!
+
+
+
+From thurs... at cs.queensu.ca  Sun Jun  1 19:13:47 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 15:13:47 -0400
+Subject: [ragel-users] Matching characters written as hex codes
+In-Reply-To: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>
+Message-ID: <4842F4EB.8010203@cs.queensu.ca>
+
+
+Macy wrote:
+> bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+> match
+
+This one should work.
+
+-Adrian
+
+
+From macyg... at gmail.com  Sun Jun  1 20:06:01 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 13:06:01 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <4842F4EB.8010203@cs.queensu.ca>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca>
+Message-ID: <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+
+
+
+On Jun 1, 10:13 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Macy wrote:
+> > bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+> > match
+>
+> This one should work.
+>
+
+This example doesn't work for me. Perhaps I'm doing something wrong...
+
+-------------
+(begin)-----------------------------------------------------
+#include <stdio.h>
+
+%%{
+
+machine test;
+
+action error { fprintf(stderr,"\nError!\n"); }
+bom_utf16_le = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16 le"); };
+bom_utf16_be = 0xFF 0xFE @{ fprintf(stderr, "\nGot BOM UTF16 be"); };
+
+}%%
+
+int main()
+{
+	int cs;
+	char* buf = "\xFF\xFE";
+	char* p = buf;
+	char* pe = buf + 2;
+	char* eof = pe;
+
+	%%{
+		write data;
+		write init;
+		main := (bom_utf16_le | bom_utf16_be) $err(error);
+		write exec;
+	}%%
+
+    return 0;
+}
+-------------
+(end)-----------------------------------------------------
+
+$ ragel -C test.rl && gcc test.c -o test && ./test
+
+Error!
+$
+
+rlgen-dot doesn't work for some reason, it crashes.
+
+$ ragel -x test.rl > test.xml && rlgen-dot test.xml
+digraph test {
+        rankdir=LR;
+        node [ shape = point ];
+        ENTRY;
+        en_1;
+        eof_1;
+        eof_2;
+        eof_3;
+        node [ shape = circle, height = 0.2 ];
+        err_1 [ label=""];
+        err_2 [ label=""];
+        err_3 [ label=""];
+        err_4 [ label=""];
+        node [ fixedsize = true, height = 0.65, shape =
+doublecircle ];
+        4;
+        node [ shape = circle ];
+Segmentation fault (core dumped)
+
+$ gdb `which rlgen-dot` core
+[.............]
+[New process 18840]
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+52      ../common/common.h: No such file or directory.
+        in ../common/common.h
+(gdb) bt
+#0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+common/common.h:52
+#1  0x000000000040311b in GraphvizDotGen::ONCHAR (this=0x1b6e270,
+lowKey=@0x7fffc4b4b850, highKey=@0x7fffc4b4b840) at gvdotgen.cpp:136
+#2  0x0000000000403924 in GraphvizDotGen::writeTransList
+(this=0x1b6e270, state=0x1b6ea68) at gvdotgen.cpp:188
+#3  0x0000000000404015 in GraphvizDotGen::writeDotFile
+(this=0x1b6e270) at gvdotgen.cpp:284
+#4  0x00000000004043e3 in GraphvizDotGen::finishRagelDef
+(this=0x1b6e270) at gvdotgen.cpp:325
+#5  0x0000000000412ea7 in Parser::parseLangEl (this=0x7fffc4b4d1d0,
+type=195, token=0x7fffc4b4c0d0) at xmlparse.kl:132
+#6  0x00000000004159ff in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, tok=@0x7fffc4b4c0d0) at xmlparse.kl:960
+#7  0x0000000000415b0d in Parser::token (this=0x7fffc4b4d1d0,
+tokenId=195, col=1, line=84) at xmlparse.kl:972
+#8  0x0000000000410f47 in xml_parse (input=@0x1b68010,
+fileName=0x7fffc4b4ec8e "test.xml", outputActive=false,
+wantComplete=false) at xmlscan.rl:265
+#9  0x0000000000402821 in main (argc=2, argv=0x7fffc4b4d488) at
+main.cpp:225
+
+$ ragel -v
+Ragel State Machine Compiler version 6.2 March 2008
+Copyright (c) 2001-2007 by Adrian Thurston
+
+
+
+From thurs... at cs.queensu.ca  Mon Jun  2 00:44:05 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 01 Jun 2008 20:44:05 -0400
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>  <4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>
+Message-ID: <48434255.1040200@cs.queensu.ca>
+
+That's odd, everything works fine for me, even graphviz (2.12). Running
+it I get:
+
+Got BOM UTF16 be
+
+What kind of machine architecture and OS are you on?
+
+-Adrian
+
+Macy wrote:
+> 
+> 
+> On Jun 1, 10:13 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Macy wrote:
+>>> bom = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16"); };  -> doesn't
+>>> match
+>> This one should work.
+>>
+> 
+> This example doesn't work for me. Perhaps I'm doing something wrong...
+> 
+> -------------
+> (begin)-----------------------------------------------------
+> #include <stdio.h>
+> 
+> %%{
+> 
+> machine test;
+> 
+> action error { fprintf(stderr,"\nError!\n"); }
+> bom_utf16_le = 0xFE 0xFF @{ fprintf(stderr, "\nGot BOM UTF16 le"); };
+> bom_utf16_be = 0xFF 0xFE @{ fprintf(stderr, "\nGot BOM UTF16 be"); };
+> 
+> }%%
+> 
+> int main()
+> {
+> 	int cs;
+> 	char* buf = "\xFF\xFE";
+> 	char* p = buf;
+> 	char* pe = buf + 2;
+> 	char* eof = pe;
+> 
+> 	%%{
+> 		write data;
+> 		write init;
+> 		main := (bom_utf16_le | bom_utf16_be) $err(error);
+> 		write exec;
+> 	}%%
+> 
+>     return 0;
+> }
+> -------------
+> (end)-----------------------------------------------------
+> 
+> $ ragel -C test.rl && gcc test.c -o test && ./test
+> 
+> Error!
+> $
+> 
+> rlgen-dot doesn't work for some reason, it crashes.
+> 
+> $ ragel -x test.rl > test.xml && rlgen-dot test.xml
+> digraph test {
+>         rankdir=LR;
+>         node [ shape = point ];
+>         ENTRY;
+>         en_1;
+>         eof_1;
+>         eof_2;
+>         eof_3;
+>         node [ shape = circle, height = 0.2 ];
+>         err_1 [ label=""];
+>         err_2 [ label=""];
+>         err_3 [ label=""];
+>         err_4 [ label=""];
+>         node [ fixedsize = true, height = 0.65, shape =
+> doublecircle ];
+>         4;
+>         node [ shape = circle ];
+> Segmentation fault (core dumped)
+> 
+> $ gdb `which rlgen-dot` core
+> [.............]
+> [New process 18840]
+> #0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+> common/common.h:52
+> 52      ../common/common.h: No such file or directory.
+>         in ../common/common.h
+> (gdb) bt
+> #0  0x0000000000404474 in Key (this=0x7fffc4b4b5d0, key=@0x0) at ../
+> common/common.h:52
+> #1  0x000000000040311b in GraphvizDotGen::ONCHAR (this=0x1b6e270,
+> lowKey=@0x7fffc4b4b850, highKey=@0x7fffc4b4b840) at gvdotgen.cpp:136
+> #2  0x0000000000403924 in GraphvizDotGen::writeTransList
+> (this=0x1b6e270, state=0x1b6ea68) at gvdotgen.cpp:188
+> #3  0x0000000000404015 in GraphvizDotGen::writeDotFile
+> (this=0x1b6e270) at gvdotgen.cpp:284
+> #4  0x00000000004043e3 in GraphvizDotGen::finishRagelDef
+> (this=0x1b6e270) at gvdotgen.cpp:325
+> #5  0x0000000000412ea7 in Parser::parseLangEl (this=0x7fffc4b4d1d0,
+> type=195, token=0x7fffc4b4c0d0) at xmlparse.kl:132
+> #6  0x00000000004159ff in Parser::token (this=0x7fffc4b4d1d0,
+> tokenId=195, tok=@0x7fffc4b4c0d0) at xmlparse.kl:960
+> #7  0x0000000000415b0d in Parser::token (this=0x7fffc4b4d1d0,
+> tokenId=195, col=1, line=84) at xmlparse.kl:972
+> #8  0x0000000000410f47 in xml_parse (input=@0x1b68010,
+> fileName=0x7fffc4b4ec8e "test.xml", outputActive=false,
+> wantComplete=false) at xmlscan.rl:265
+> #9  0x0000000000402821 in main (argc=2, argv=0x7fffc4b4d488) at
+> main.cpp:225
+> 
+> $ ragel -v
+> Ragel State Machine Compiler version 6.2 March 2008
+> Copyright (c) 2001-2007 by Adrian Thurston
+> 
+> 
+> Any ideas?
+> > 
+> 
+
+
+From macyg... at gmail.com  Mon Jun  2 06:28:14 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 23:28:14 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <48434255.1040200@cs.queensu.ca>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca>
+Message-ID: <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+
+
+
+On Jun 2, 3:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> That's odd, everything works fine for me, even graphviz (2.12). Running
+> it I get:
+>
+> Got BOM UTF16 be
+>
+> What kind of machine architecture and OS are you on?
+>
+> -Adrian
+>
+
+I'm running a Gentoo linux distribution,  x86_64 arch:
+
+$ uname -a
+Linux laptop 2.6.25-gentoo-r4 #9 SMP Sat May 31 19:58:05 EEST 2008
+x86_64 Intel(R) Core(TM)2 CPU T7200 @ 2.00GHz GenuineIntel GNU/Linux
+
+The packages are:
+graphviz-2.18
+ragel-6.2
+glibc-2.7
+
+
+
+I've poked around the code a little and the problem seems to be this,
+in gvdotgen.cpp : 135
+
+std::ostream &GraphvizDotGen::ONCHAR( Key lowKey, Key highKey )
+{
+        if ( lowKey > keyOps->maxKey ) {
+                  CondSpace *condSpace = findCondSpace( lowKey,
+highKey );
+                  // condSpace is NULL and it's not checked and
+afterwards is deferenced via condSpace->baseKey
+                  // leading to a crash.
+                  assert(condSpace);  // I added this :)
+                  Key values = ( lowKey - condSpace->baseKey ) /
+keyOps->alphSize();
+        .....
+
+
+
+
+
+From macyg... at gmail.com  Mon Jun  2 06:37:14 2008
+From: macyg... at gmail.com (Macy)
+Date: Sun, 1 Jun 2008 23:37:14 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>
+Message-ID: <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+
+
+
+On Jun 2, 9:28 am, Macy <macyg... at gmail.com> wrote:
+> On Jun 2, 3:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> > That's odd, everything works fine for me, even graphviz (2.12). Running
+> > it I get:
+>
+> > Got BOM UTF16 be
+>
+> > What kind of machine architecture and OS are you on?
+>
+> > -Adrian
+>
+
+I've compiled ragel for 32bits only and it seems that rlgen-dot
+
+
+From mforal.n... at gmail.com  Mon Jun  2 16:54:07 2008
+From: mforal.n... at gmail.com (mitchell)
+Date: Mon, 2 Jun 2008 09:54:07 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com> 
+	<133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com>
+Message-ID: <b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com>
+
+> I've compiled ragel for 32bits only and it seems that rlgen-dot
+> doesn't crash anymore...
+
+I can confirm Ragel has problems running when compiled for a 64-bit
+arch. I too have had to recompile for 32-bit to get it working as it
+should.
+
+Take care,
+-Mitchell;
+
+
+From thurs... at cs.queensu.ca  Mon Jun  2 20:02:30 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Mon, 2 Jun 2008 20:02:30 +0000
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <b5d90757-3f6c-46d2-b39b-19825049e...@f63g2000hsf.googlegroups.com>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com>  <4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com>  <48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com>  <133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com><b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com>
+Message-ID: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+
+I don't have access to any 64 bit machines so I can't test on those architectures.
+
+If anyone wants to give me an account somewhere I'd happily work out the problems (a machine that's always on the net would be best.
+
+-Adrian
+-----Original Message-----
+From: mitchell <mforal.news at gmail.com>
+
+Date: Mon, 2 Jun 2008 09:54:07 
+To:ragel-users <ragel-users at googlegroups.com>
+Subject: [ragel-users] Re: Matching characters written as hex codes
+
+
+
+> I've compiled ragel for 32bits only and it seems that rlgen-dot
+> doesn't crash anymore...
+
+I can confirm Ragel has problems running when compiled for a 64-bit
+arch. I too have had to recompile for 32-bit to get it working as it
+should.
+
+Take care,
+-Mitchell;
+
+
+
+From macyg... at gmail.com  Tue Jun  3 08:52:55 2008
+From: macyg... at gmail.com (Macy)
+Date: Tue, 3 Jun 2008 01:52:55 -0700 (PDT)
+Subject: Matching characters written as hex codes
+In-Reply-To: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a5df@k30g2000hse.googlegroups.com> 
+	<4842F4EB.8010203@cs.queensu.ca> <da41fc59-31f2-4fdd-bf6c-07bd4e689c96@a1g2000hsb.googlegroups.com> 
+	<48434255.1040200@cs.queensu.ca> <25637e96-a13b-4c29-b28f-b6a12472cf38@d45g2000hsc.googlegroups.com> 
+	<133cb8c1-e530-4e8e-8422-f3e0f62583f0@f63g2000hsf.googlegroups.com><b5d90757-3f6c-46d2-b39b-19825049eb46@f63g2000hsf.googlegroups.com> 
+	<1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-1757524940-@bxe150.bisx.prod.on.blackberry>
+Message-ID: <13dd4035-ba70-44d4-965f-a6dd9f0f7773@d1g2000hsg.googlegroups.com>
+
+
+
+On Jun 2, 11:02 pm, "Adrian Thurston" <thurs... at cs.queensu.ca> wrote:
+> I don't have access to any 64 bit machines so I can't test on those architectures.
+>
+> If anyone wants to give me an account somewhere I'd happily work out the problems (a machine that's always on the net would be best.
+>
+> -Adrian
+>
+
+Unfortunately, the only 64 bit machine I have is my laptop and
+although I could give you access, it's not up 24/7 and I often reboot
+so I guess that's out of the question.
+
+You could also boot a 64 bit linux using qemu-system-x86_64, on a 32
+bit machine, but that's slow.
+
+Anyway, I'm going to take a look at the code to see if I can spot any
+more problems... perhaps I can help.
+
+
+From graceindustr... at gmail.com  Mon Jun  9 16:19:28 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Mon, 9 Jun 2008 12:19:28 -0400
+Subject: [ragel-users] Re: Matching characters written as hex codes
+In-Reply-To: <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-17575249...@bxe150.bisx.prod.on.blackberry>
+References: <75ab4298-cd21-416f-ab98-e06b71d6a...@k30g2000hse.googlegroups.com>
+	 <4842F4EB.8010...@cs.queensu.ca>
+	 <da41fc59-31f2-4fdd-bf6c-07bd4e689...@a1g2000hsb.googlegroups.com>
+	 <48434255.1040...@cs.queensu.ca>
+	 <25637e96-a13b-4c29-b28f-b6a12472c...@d45g2000hsc.googlegroups.com>
+	 <133cb8c1-e530-4e8e-8422-f3e0f6258...@f63g2000hsf.googlegroups.com>
+	 <b5d90757-3f6c-46d2-b39b-19825049e...@f63g2000hsf.googlegroups.com>
+	 <1529786178-1212436915-cardhu_decombobulator_blackberry.rim.net-17575249...@bxe150.bisx.prod.on.blackberry>
+Message-ID: <a3aee9a50806090919j1d854128n40de15de784b4...@mail.gmail.com>
+
+On 6/2/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I don't have access to any 64 bit machines so I can't test on those architectures.
+
+http://www.embedded.com/tigforums/thread.jspa?threadID=1604&tstart=0
+might give you an idea what to look at.
+
+Typical problem is that the size of a pointer does not match the size of (u)int.
+size_t should be used.
+
+> If anyone wants to give me an account somewhere I'd happily work out the
+> problems (a machine that's always on the net would be best.
+
+If nothing has been forthcoming I'll set you up an account on my machine
+that you can ssh into.  I can leave it on, if I have some idea of when.
+I know your busy on your thesis right now, so no rush.
+
+

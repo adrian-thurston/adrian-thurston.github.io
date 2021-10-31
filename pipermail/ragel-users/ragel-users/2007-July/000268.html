@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Inline scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707050900q7cf6a14fmbc2ab81299f395b%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000267.html">
+   <LINK REL="Next"  HREF="000269.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Inline scanner</H1>
+    <B>Carlos Antunes</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Inline%20scanner&In-Reply-To=%3Ccb2ad8b50707050900q7cf6a14fmbc2ab81299f395b%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Inline scanner">cmantu... at gmail.com
+       </A><BR>
+    <I>Thu Jul  5 16:00:33 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000267.html">[ragel-users] Re: Inline scanner
+</A></li>
+        <LI>Next message: <A HREF="000269.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#268">[ date ]</a>
+              <a href="thread.html#268">[ thread ]</a>
+              <a href="subject.html#268">[ subject ]</a>
+              <a href="author.html#268">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 7/5/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> I'm not yet convinced that a new feature is necessary to solve this
+</I>&gt;<i> problem. It seems to me that it's more a matter of coding technique. But
+</I>&gt;<i> of course I could be wrong ... I just need to know how an inline scanner
+</I>&gt;<i> is different and better than the code I sent.
+</I>&gt;<i>
+</I>
+Adrian, the code you sent, while very useful in my case, is a hack!
+This preprocessing code is necessary because ragel is not able to
+efficiently handle a SIP parser in practical terms, with only
+priorities.
+
+Let me give you an example of something very common in the way SIP is defined:
+
+    algorithm_value = /MD5/i @(p_algorithm_value, 1) |
+                              /MD5-sess/i @(p_algorithm_value, 1) |
+                              token @(p_algorithm_value, 0);
+
+I have to use priorities here to make sure that /MD5/ and /MD5-sess/
+aren't evaluated in parallel with token, given that token matches
+(almost) everything. With a scanner, this would be a breeze and would
+require no priorities.
+
+Right now, I have:
+
+A)    algorithm = /algorithm/i equal algorithm_value;
+
+Currently, to code with a scanner, I have to do something like this:
+
+B)    algorithm = /algorithm/i sp_optional '=' @{ fcall scan_algorithm_value; }
+
+However, this breaks the &quot;flow&quot; of the grammar. What is easier to
+understand, maintain (and keep consistent with SIP, in this case), 'A'
+or 'B'? For me, I prefer to use 'A'.
+
+&gt;<i>
+</I>&gt;<i> One difference I can think of (you described this previously) is that
+</I>&gt;<i> the inline scanner is entered immediately upon moving to the start state
+</I>&gt;<i>  (as opposed to the first character out of the start state).
+</I>&gt;<i> Unfortunately this is not compatible with the current run-time model, in
+</I>&gt;<i> which actions take place only on transitions over characters. Anything
+</I>&gt;<i> that involves changing the run-time model I have to consider very carefully.
+</I>&gt;<i>
+</I>
+Assuming I understand the idea you are trying to convey here (there's
+a good chance that I don't), isn't it possible to transition directly
+to the scanner by looking at all the potential transitions of the
+scanner as if it was a &quot;normal&quot; state machine?
+
+For example, let's assume one has the machine:
+
+C)    variable '=' digit+;
+
+With an inline scanner, this would be, for example:
+
+D)    variable '=' |* digit+ *|;
+
+In 'C', you transition from state &quot;matched_equal&quot; to state
+&quot;matched_digit&quot; upon seeing a digit. Now, you could do the same in
+'D', no? For all practical purposes, the transition process appears to
+be the same in both 'C' and 'D'. The fact that in 'D' you would be
+operating under the &quot;longest match with backtracking&quot; paradigm appears
+to not affect that initial transition into the scanner. What I am
+trying to get at is that maybe you really don't have to change your
+run-time model?
+
+Thanks!
+
+Carlos
+
+-- 
+&quot;We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness&quot;
+        -- Thomas Jefferson
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000267.html">[ragel-users] Re: Inline scanner
+</A></li>
+	<LI>Next message: <A HREF="000269.html">[ragel-users] Re: Inline scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#268">[ date ]</a>
+              <a href="thread.html#268">[ thread ]</a>
+              <a href="subject.html#268">[ subject ]</a>
+              <a href="author.html#268">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

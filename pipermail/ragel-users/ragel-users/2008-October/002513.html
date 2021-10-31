@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/6] Make it possible to enable/disable parsers generation at	./configure
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%203/6%5D%20Make%20it%20possible%20to%20enable/disable%20parsers%20generation%20at%0A%09./configure&In-Reply-To=%3C20081001143720.22980.87619.stgit%40yamato%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/6] Make it possible to enable/disable parsers generation at	./configure</H1>
+    <B>Diego 'Flameeyes' Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%203/6%5D%20Make%20it%20possible%20to%20enable/disable%20parsers%20generation%20at%0A%09./configure&In-Reply-To=%3C20081001143720.22980.87619.stgit%40yamato%3E"
+       TITLE="[PATCH 3/6] Make it possible to enable/disable parsers generation at	./configure">flamee... at gmail.com
+       </A><BR>
+    <I>Wed Oct  1 14:37:20 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2513">[ date ]</a>
+              <a href="thread.html#2513">[ thread ]</a>
+              <a href="subject.html#2513">[ subject ]</a>
+              <a href="author.html#2513">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Instead of having to edit the configure.in file to disable parsers,
+make it possible to disable it at ./configure stage, like any good
+autoconf project should do.
+---
+
+ configure.in       |   12 +++++++-----
+ ragel/Makefile.in  |    6 +++---
+ redfsm/Makefile.in |    2 +-
+ 3 files changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index cc25f2e..3995551 100644
+--- a/configure.in
++++ b/configure.in
+@@ -21,10 +21,12 @@ dnl   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ AC_INIT(ragel/main.cpp)
+ AC_CONFIG_HEADER(common/config.h)
+ 
+-dnl Set to true if build system should generate parsers from ragel, kelbt, and
+-dnl gperf sources. Set to false if generated files are included and not to be
+-dnl built (production).
+-AC_SUBST(BUILD_PARSERS,true)
++dnl You need to enable this unless the generated files are included
++dnl and don't need to be built.
++AC_ARG_ENABLE([parsers],
++  AS_HELP_STRING([--disable-parsers], [Disable building of parsers with ragel, kelbt and gperf]),
++  [], [enable_parsers=yes])
++AC_SUBST([enable_parsers])
+ 
+ dnl Checks for programs.
+ AC_PROG_CC
+@@ -38,7 +40,7 @@ AC_LANG_CPLUSPLUS
+ dnl Check for definition of MAKE.
+ AC_PROG_MAKE_SET
+ 
+-if test $BUILD_PARSERS = true; then
++if test $enable_parsers = yes; then
+ 
+ dnl Check for Ragel
+ AC_CHECK_PROG(RAGEL, ragel, ragel)
+diff --git a/ragel/Makefile.in b/ragel/Makefile.in
+index b6397dc..2a6b5da 100644
+--- a/ragel/Makefile.in
++++ b/ragel/Makefile.in
+@@ -45,7 +45,7 @@ MINGW_LIBS = -lpsapi
+ #*************************************
+ 
+ prefix = @prefix@
+-BUILD_PARSERS = @BUILD_PARSERS@
++BUILD_PARSERS = @enable_parsers@
+ EXEEXT = @EXEEXT@
+ CXX = @CXX@
+ 
+@@ -63,7 +63,7 @@ all: ragel$(EXEEXT)
+ ragel$(EXEEXT): $(GEN_SRC) $(OBJS) $(RAGEL_LIBS)
+ 	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+ 
+-ifeq ($(BUILD_PARSERS),true)
++ifeq ($(BUILD_PARSERS),yes)
+ 
+ rlparse.h: rlparse.kh
+ 	kelbt -o $@ $&lt;
+@@ -87,7 +87,7 @@ endif
+ distclean: clean
+ 	rm -f Makefile 
+ 
+-ifeq ($(BUILD_PARSERS),true)
++ifeq ($(BUILD_PARSERS),yes)
+ EXTRA_CLEAN = $(GEN_SRC)
+ endif
+ 
+diff --git a/redfsm/Makefile.in b/redfsm/Makefile.in
+index a4c6737..951de79 100644
+--- a/redfsm/Makefile.in
++++ b/redfsm/Makefile.in
+@@ -28,7 +28,7 @@ CC_SRCS = redfsm.cpp gendata.cpp xmltags.cpp xmlscan.cpp xmlparse.cpp
+ 
+ GEN_SRC = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
+ 
+-BUILD_PARSERS = @BUILD_PARSERS@
++BUILD_PARSERS = @enable_parsers@
+ 
+ #*************************************
+ 
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2513">[ date ]</a>
+              <a href="thread.html#2513">[ thread ]</a>
+              <a href="subject.html#2513">[ subject ]</a>
+              <a href="author.html#2513">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

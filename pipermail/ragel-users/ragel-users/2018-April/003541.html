@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] simple parser for #include statements
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cf446b945-bcad-5b52-58ea-7915e5eb6b81%40esi-group.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003539.html">
+   <LINK REL="Next"  HREF="003542.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] simple parser for #include statements</H1>
+    <B>Mark Olesen</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20simple%20parser%20for%20%23include%20statements&In-Reply-To=%3Cf446b945-bcad-5b52-58ea-7915e5eb6b81%40esi-group.com%3E"
+       TITLE="[ragel-users] simple parser for #include statements">Mark.Olesen at esi-group.com
+       </A><BR>
+    <I>Wed Apr 25 15:37:07 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003539.html">[ragel-users] simple parser for #include statements
+</A></li>
+        <LI>Next message: <A HREF="003542.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3541">[ date ]</a>
+              <a href="thread.html#3541">[ thread ]</a>
+              <a href="subject.html#3541">[ subject ]</a>
+              <a href="author.html#3541">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+Your explanation starts to make some sense. Using 'any' machine instead 
+my 'dnl' machine should be a similar speed (the position of looping and 
+testing for '\n' has just shifted about a bit).
+
+However, if I rewrite it:
+
+%%{
+     main := |*
+     space*;
+
+     white* '#' white* 'include' white*
+     (dquot dqarg &gt;buffer %process dquot) dnl;
+
+     '//' dnl;               # 1-line comment
+     '/*' any* :&gt;&gt; '*/';     # Multi-line comment
+
+     any                     # Discard
+     *|;
+}%%
+
+How do I ensure that the '#include' is properly anchored? This is what I 
+was attempting with the 'dnl' machine: an attempt to enforce line-based 
+processing, but combined with swallowing multi-line comments.
+
+As a regex, I'd specify my match like this
+
+    /^\s*#\s*include\s+&quot;(.*?)&quot;.*$/
+
+For my ragel machine, should I be doing something different such as 
+having a begin-of-line state that I initialize into and reset every time 
+I cross a newline?
+With vague hand waving:
+
+%%{
+     main := |*
+
+     '#' white* 'include' white*
+     (dquot dqarg &gt;buffer %process dquot) dnl;
+
+     '//' dnl;               # 1-line comment
+     '/*' any* :&gt;&gt; '*/';     # Multi-line comment
+
+     (space %isbol | any %notbol)  # Discard
+     *|;
+}%%
+
+Not that I really understand what I'd do next with this.
+
+Cheers,
+/mark
+
+
+On 04/25/18 15:45, Adrian Thurston wrote:
+&gt;<i> Hi Mark,
+</I>&gt;<i> 
+</I>&gt;<i> So the thing to remember here is that a scanner will always try for the 
+</I>&gt;<i> longest match possible, and only in the case of matches of equal length 
+</I>&gt;<i> will it choose the pattern that appears ahead of the others. So in this 
+</I>&gt;<i> case the dnl at the end is taking precedence over the comment rules. It 
+</I>&gt;<i> doesn't interfere with the include matching rule because it also has a 
+</I>&gt;<i> dnl at the end.
+</I>&gt;<i> 
+</I>&gt;<i> For the catch all you want to use just the any machine. It will go one 
+</I>&gt;<i> char at a time and this may seem less efficient, but ragel does its best 
+</I>&gt;<i> to optimize this.
+</I>&gt;<i> 
+</I>&gt;<i> In regards to the slightly tighter machine that you mentioned, it would 
+</I>&gt;<i> be interesting to see before and after grammars in full to see what's 
+</I>&gt;<i> going on. On their own they produce the same machine, but in the context 
+</I>&gt;<i> of something larger there might be something preventing it, or it could 
+</I>&gt;<i> be a missed opportunity for optimization.
+</I>&gt;<i> 
+</I>&gt;<i> -Adrian
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003539.html">[ragel-users] simple parser for #include statements
+</A></li>
+	<LI>Next message: <A HREF="003542.html">[ragel-users] simple parser for #include statements
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3541">[ date ]</a>
+              <a href="thread.html#3541">[ thread ]</a>
+              <a href="subject.html#3541">[ subject ]</a>
+              <a href="author.html#3541">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

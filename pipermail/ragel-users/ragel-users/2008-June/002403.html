@@ -1,0 +1,265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: two state machines
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20two%20state%20machines&In-Reply-To=%3CPine.LNX.4.64.0806072229440.5258%40phpmy.l.tobij.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002402.html">
+   <LINK REL="Next"  HREF="000641.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: two state machines</H1>
+    <B>Arne Goedeke</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20two%20state%20machines&In-Reply-To=%3CPine.LNX.4.64.0806072229440.5258%40phpmy.l.tobij.de%3E"
+       TITLE="[ragel-users] Re: two state machines">la... at laramies.com
+       </A><BR>
+    <I>Sat Jun  7 20:32:32 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002402.html">[ragel-users] Re: two state machines
+</A></li>
+        <LI>Next message: <A HREF="000641.html">two state machines in single source - I cannot believe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2403">[ date ]</a>
+              <a href="thread.html#2403">[ thread ]</a>
+              <a href="subject.html#2403">[ subject ]</a>
+              <a href="author.html#2403">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>As far as I understand the problem, it would be the right thing to use
+fexec instead of setting p.
+
+your action could look like this:
+
+action entpt1 {
+     ...
+     fexec FN;
+     fgoto FSM1;
+}
+
+I attached a sample ragel machine..
+
+arne
+
+On Sat, 7 Jun 2008, massimiliano cialdi wrote:
+
+&gt;<i>
+</I>&gt;<i> On Sat, Jun 7, 2008 at 7:39 AM, mitchell &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">mforal.n... at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Untested, but it's an idea I had:
+</I>&gt;<i>
+</I>&gt;<i> I tried the same thing, and I have some doubt
+</I>&gt;<i>
+</I>&gt;<i> here is my source (is only a simplified example of my really need):
+</I>&gt;<i> ----------------------------8&lt;-------------------------------------
+</I>&gt;<i> #include &lt;string.h&gt;
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> %%{
+</I>&gt;<i> 	# test for dua FSM definition
+</I>&gt;<i> 	# I want to match a pattern like A&quot;12345FFF01&quot;B ( or A&quot;99FFFFF99&quot;B or
+</I>&gt;<i> A&quot;321FFFFF14&quot;B )
+</I>&gt;<i> 	# once take the substring between quotes I want to pass it to FSM1
+</I>&gt;<i> that match exacly
+</I>&gt;<i>
+</I>&gt;<i> 	machine test1;
+</I>&gt;<i>
+</I>&gt;<i> 	action copycar
+</I>&gt;<i> 	{
+</I>&gt;<i> 		printf(&quot;%c\n&quot;,fc);
+</I>&gt;<i> 		// populating FN
+</I>&gt;<i> 		*fn = fc;
+</I>&gt;<i> 		fn++;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	action error
+</I>&gt;<i> 	{
+</I>&gt;<i> 		printf(&quot;error %d, %c\n&quot;,cs,fc);
+</I>&gt;<i> 		fbreak;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	action endpt1
+</I>&gt;<i> 	{
+</I>&gt;<i> 		printf(&quot;OK\n%s\n&quot;, FN);
+</I>&gt;<i> 		// setting new buffer margin for FSM1. It must operate on FN
+</I>&gt;<i> 		p = FN;
+</I>&gt;<i> 		pe = p + strlen(p) + 1;
+</I>&gt;<i> 		fgoto FSM1;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	action endsubstr
+</I>&gt;<i> 	{
+</I>&gt;<i> 		// placing null termination to substring in FN
+</I>&gt;<i> 		*fn = '\0';
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	action endpt2
+</I>&gt;<i> 	{
+</I>&gt;<i> 		// substring matches
+</I>&gt;<i> 		printf(&quot;OK pt2\n&quot;);
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> 	FSM1 := '12345FFF' @!error @endpt2 &gt;~{printf(&quot;*** %d %c %s ***\n&quot;,cs,
+</I>&gt;<i> fc, fpc);};
+</I>&gt;<i>
+</I>&gt;<i> 	main := ( 'A&quot;' ( digit{2} (digit | 'F'){3} 'F'{3} ) $copycar
+</I>&gt;<i> @endsubstr digit{2}  '&quot;B' ) @!error @endpt1 ;
+</I>&gt;<i>
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> %% write data;
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> void parse(char *buf)
+</I>&gt;<i> {
+</I>&gt;<i> 	int cs;
+</I>&gt;<i> 	char *eof = 0;
+</I>&gt;<i> 	char *p = buf;
+</I>&gt;<i> 	char *pe = p + strlen(p) + 1;
+</I>&gt;<i>
+</I>&gt;<i> 	char FN[16];
+</I>&gt;<i> 	char *fn;
+</I>&gt;<i>
+</I>&gt;<i> 	// FN is the container fo the substring
+</I>&gt;<i> 	fn = FN;
+</I>&gt;<i> 	%% write init;
+</I>&gt;<i> 	%% write exec;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> int main( int argc, char **argv )
+</I>&gt;<i> {
+</I>&gt;<i> 	if ( argc &gt; 1 ) {
+</I>&gt;<i> 		parse(argv[1]);
+</I>&gt;<i> 	}
+</I>&gt;<i> 	return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> ----------------------------8&lt;-------------------------------------
+</I>&gt;<i>
+</I>&gt;<i> if you try to execute it fails:
+</I>&gt;<i>
+</I>&gt;<i> test A\&quot;12345FFF01\&quot;B
+</I>&gt;<i> 1
+</I>&gt;<i> 2
+</I>&gt;<i> 3
+</I>&gt;<i> 4
+</I>&gt;<i> 5
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> OK
+</I>&gt;<i> 12345FFF
+</I>&gt;<i> *** 15 1 12345FFF ***
+</I>&gt;<i> error 0, 2
+</I>&gt;<i>
+</I>&gt;<i> but the string exactly match the pattern (as can be seen in line &quot;***
+</I>&gt;<i> 15 1 12345FFF ***&quot;)
+</I>&gt;<i>
+</I>&gt;<i> so now try to change the pattern of FSM1 as follow (we delete '1'):
+</I>&gt;<i> 	FSM1 := '2345FFF' @!error @endpt2 &gt;~{printf(&quot;*** %d %c %s ***\n&quot;,cs,
+</I>&gt;<i> fc, fpc);};
+</I>&gt;<i>
+</I>&gt;<i> and retry to execute:
+</I>&gt;<i>
+</I>&gt;<i> test A\&quot;12345FFF01\&quot;B
+</I>&gt;<i> 1
+</I>&gt;<i> 2
+</I>&gt;<i> 3
+</I>&gt;<i> 4
+</I>&gt;<i> 5
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> OK
+</I>&gt;<i> 12345FFF
+</I>&gt;<i> *** 15 1 12345FFF ***
+</I>&gt;<i> OK pt2
+</I>&gt;<i>
+</I>&gt;<i> now it report the string matching but we had changed the pattern.
+</I>&gt;<i> It seems that it skip the first character after fgoto.
+</I>&gt;<i>
+</I>&gt;<i> so I tried another way.
+</I>&gt;<i> lets use originale FSM1 definition (pattern '12345FFF'), but change
+</I>&gt;<i> action endpt1 to add an fhold statement as follow:
+</I>&gt;<i>
+</I>&gt;<i> 	action endpt1
+</I>&gt;<i> 	{
+</I>&gt;<i> 		printf(&quot;OK\n%s\n&quot;, FN);
+</I>&gt;<i> 		// setting new buffer margin for FSM1. It must operate on FN
+</I>&gt;<i> 		p = FN;
+</I>&gt;<i> 		pe = p + strlen(p) + 1;
+</I>&gt;<i> 		// fhold is translated in C as p--;
+</I>&gt;<i> 		fhold;
+</I>&gt;<i> 		fgoto FSM1;
+</I>&gt;<i> 	}
+</I>&gt;<i>
+</I>&gt;<i> and let execute:
+</I>&gt;<i>
+</I>&gt;<i> test A\&quot;12345FFF01\&quot;B
+</I>&gt;<i> 1
+</I>&gt;<i> 2
+</I>&gt;<i> 3
+</I>&gt;<i> 4
+</I>&gt;<i> 5
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> F
+</I>&gt;<i> OK
+</I>&gt;<i> 12345FFF
+</I>&gt;<i> *** 15   ***
+</I>&gt;<i> OK pt2
+</I>&gt;<i>
+</I>&gt;<i> it seems to work, but action to-state start of FSM1 fails, it cannot
+</I>&gt;<i> print neither fc character nor pfc string...
+</I>&gt;<i>
+</I>&gt;<i> is this the right way to do this?
+</I>&gt;<i>
+</I>&gt;<i> thanks
+</I>&gt;<i> -- 
+</I>&gt;<i> Et nunc, auxilium solis, vincam!
+</I>&gt;<i> Oppugnatio solaris!
+</I>&gt;<i> VIS!
+</I>&gt;<i>
+</I>&gt;<i> Massimiliano Cialdi
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">cia... at gmail.com</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">massimiliano.cia... at powersoft.it</A>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: 2.rl
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20080607/46f32987/attachment-0001.ksh">http://www.colm.net/pipermail/ragel-users/attachments/20080607/46f32987/attachment-0001.ksh</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002402.html">[ragel-users] Re: two state machines
+</A></li>
+	<LI>Next message: <A HREF="000641.html">two state machines in single source - I cannot believe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2403">[ date ]</a>
+              <a href="thread.html#2403">[ thread ]</a>
+              <a href="subject.html#2403">[ subject ]</a>
+              <a href="author.html#2403">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

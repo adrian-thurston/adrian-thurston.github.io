@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] parsing c comments
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20parsing%20c%20comments&In-Reply-To=%3C4E739604.5050404%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001439.html">
+   <LINK REL="Next"  HREF="001441.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] parsing c comments</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20parsing%20c%20comments&In-Reply-To=%3C4E739604.5050404%40complang.org%3E"
+       TITLE="[ragel-users] parsing c comments">thurston at complang.org
+       </A><BR>
+    <I>Fri Sep 16 18:31:32 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001439.html">[ragel-users] parsing c comments
+</A></li>
+        <LI>Next message: <A HREF="001441.html">[ragel-users] parsing c comments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1440">[ date ]</a>
+              <a href="thread.html#1440">[ thread ]</a>
+              <a href="subject.html#1440">[ subject ]</a>
+              <a href="author.html#1440">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Either you have to hack the string you've captured, like you did in this 
+solution, or you have to use a scanner. This parsing problem requires 
+delaying the action on the first '*' since you don't know if it is a 
+containing '*', or the first character in the terminating string.
+
+On 11-09-16 11:12 AM, Henrique Pantarotto wrote:
+&gt;<i> Well, I solved this problem by using something like this:
+</I>&gt;<i>
+</I>&gt;<i> action mark { text_start = fpc; }
+</I>&gt;<i> action show { printf(&quot;'%.*s'\n&quot;, fpc - text_start - 1, text_start); }
+</I>&gt;<i>
+</I>&gt;<i> main := '/*' &gt;mark any* :&gt;&gt; '*/' @show;
+</I>&gt;<i>
+</I>&gt;<i> I don't know if this is the &quot;correct way&quot; to solve this, but it worked. ;-)
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Thanks
+</I>&gt;<i>
+</I>&gt;<i> On Thu, Sep 15, 2011 at 6:37 PM, Henrique Pantarotto &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel at henpa.com</A>
+</I>&gt;<i> &lt;mailto:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel at henpa.com</A>&gt;&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i>     Hi, I've read the ragel manual a couple of times and searched the
+</I>&gt;<i>     mailing list and I couldn't find the solution to this problem. I
+</I>&gt;<i>     imagine the solution is there somewhere, but I couldn't find it
+</I>&gt;<i>     since I couldn't search the mailing list archive properly.
+</I>&gt;<i>
+</I>&gt;<i>     BTW, I don't really need to parse c comments, but I found this
+</I>&gt;<i>     example to match perfectly what I am trying to accomplish. I'm
+</I>&gt;<i>     really trying to parse and print data separated by a multi-character
+</I>&gt;<i>     token.
+</I>&gt;<i>
+</I>&gt;<i>     Page 29 of Ragel 6.7 manual shows an example on how to properly
+</I>&gt;<i>     parse C language comments, but the action @comm also parses the *
+</I>&gt;<i>     caracter at the ending &quot;*/&quot; as shown in the Graphviz image.
+</I>&gt;<i>
+</I>&gt;<i>     I tried many ways to solve this problem, but I couldn't do it. Can
+</I>&gt;<i>     someone help?
+</I>&gt;<i>
+</I>&gt;<i>     action comm { printf(&quot;%c&quot;, fc); }
+</I>&gt;<i>     p = &quot;/* foo *** bar */&quot;;
+</I>&gt;<i>
+</I>&gt;<i>     I tried:
+</I>&gt;<i>
+</I>&gt;<i>     main := '/*' (any* -- '/*')@comm '*/';
+</I>&gt;<i>     main := '/*' any*@comm :&gt;&gt; '*/';
+</I>&gt;<i>     main := '/*' ( ( any @comm )* - ( any* '*/' any* ) ) '*/';
+</I>&gt;<i>
+</I>&gt;<i>     But it always prints: &quot;foo *** bar *&quot; (note the * at the end) and I
+</I>&gt;<i>     looking for a way for it to print just &quot; foo *** bar &quot;.
+</I>&gt;<i>
+</I>&gt;<i>     Is there an easy way to fix this?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>     Thanks in advance!
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001439.html">[ragel-users] parsing c comments
+</A></li>
+	<LI>Next message: <A HREF="001441.html">[ragel-users] parsing c comments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1440">[ date ]</a>
+              <a href="thread.html#1440">[ thread ]</a>
+              <a href="subject.html#1440">[ subject ]</a>
+              <a href="author.html#1440">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Newbie advice
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Newbie%20advice&In-Reply-To=%3C1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-%40bxe124.bisx.prod.on.blackberry%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002085.html">
+   <LINK REL="Next"  HREF="002087.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Newbie advice</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Newbie%20advice&In-Reply-To=%3C1998033191-1188236198-cardhu_decombobulator_blackberry.rim.net-1101900704-%40bxe124.bisx.prod.on.blackberry%3E"
+       TITLE="[ragel-users] Re: Newbie advice">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Aug 27 17:37:10 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002085.html">Newbie advice
+</A></li>
+        <LI>Next message: <A HREF="002087.html">Newbie advice
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2086">[ date ]</a>
+              <a href="thread.html#2086">[ thread ]</a>
+              <a href="subject.html#2086">[ subject ]</a>
+              <a href="author.html#2086">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Dave,
+
+Counting works in this case but it doesn't work for arbitrary terminating patterns. Consider the pattern that begins to match but then fails and restarts half-way through with the two potential matches overlapping. You can't get an accurate count. In more general tems the problem is that the machine is matching concurrently but using a single instance of context data.
+
+This is where the pure state machine model breaks down and scanners begin to shine because they delay their pattern actions until after the pattern matches (made possible by backtracking).
+
+Adrian
+-----Original Message-----
+From: Dave Dribin &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ddribin at gmail.com</A>&gt;
+
+Date: Mon, 27 Aug 2007 16:53:24 
+To:ragel-users &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at googlegroups.com</A>&gt;
+Subject: [ragel-users] Re: Newbie advice
+
+
+
+Thanks, again.  Can you see anything wrong with the following
+approach?  To make it more interesting, I want to handle both Unix and
+Windows newlines:
+
+    newline = '\r'? '\n' @onNewline;
+    any_line = [^\r\n]* newline;
+    marker_line = '--' newline;
+    section_body = (any_line - marker_line)*;
+
+    section = (section_body marker_line $countMarker) $onChar
+@onSection;
+
+Thus, onChar buffers up the entire section, including the full marker
+line.  But countMarker counts the number of characters in used in the
+variable length marker, and onSection strips that many characters from
+the buffer.
+
+This seems to handle the general case of a variable length terminating
+marker.  The downside is that it buffers up extra characters only to
+yank them off, at the end.  So long as the terminating marker is
+fairly short, I don't see this being a major issue.
+
+Is it possible for countMarker to set an &quot;ignore&quot; flag that onChar
+checks?  This would require that the countMarker action be called
+before onChar, though, and I don't know if that is guaranteed.
+
+-Dave
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002085.html">Newbie advice
+</A></li>
+	<LI>Next message: <A HREF="002087.html">Newbie advice
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2086">[ date ]</a>
+              <a href="thread.html#2086">[ thread ]</a>
+              <a href="subject.html#2086">[ subject ]</a>
+              <a href="author.html#2086">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

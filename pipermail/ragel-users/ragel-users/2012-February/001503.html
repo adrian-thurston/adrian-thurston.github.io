@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Action for leaving a machine from a non-final	state
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20for%20leaving%20a%20machine%20from%20a%20non-final%0A%09state&In-Reply-To=%3CCACRFBJXZ5xx0q9H7av-FS73H-3-9v_wXqFH3cssQLgtwpKOsYA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001502.html">
+   <LINK REL="Next"  HREF="001504.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Action for leaving a machine from a non-final	state</H1>
+    <B>Ivan Reche</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20for%20leaving%20a%20machine%20from%20a%20non-final%0A%09state&In-Reply-To=%3CCACRFBJXZ5xx0q9H7av-FS73H-3-9v_wXqFH3cssQLgtwpKOsYA%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Action for leaving a machine from a non-final	state">ivan.reche at gmail.com
+       </A><BR>
+    <I>Tue Feb 21 23:27:18 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001502.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+        <LI>Next message: <A HREF="001504.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1503">[ date ]</a>
+              <a href="thread.html#1503">[ thread ]</a>
+              <a href="subject.html#1503">[ subject ]</a>
+              <a href="author.html#1503">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2012/2/20 &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-user at jgoettgens.de</A>&gt;
+
+&gt;<i>   Ivan,
+</I>&gt;<i>
+</I>&gt;<i> so you need to mark the beginning and the end of either “command” or
+</I>&gt;<i> “data” mode given the keywords “*OPEN*”  and “*CLOS*”. Right? Once matched
+</I>&gt;<i> it is entirely up to you what to do with the matched text (User Actions,
+</I>&gt;<i> chapter 3). You could post a typical token stream and an outline of your
+</I>&gt;<i> ragel specs. Otherwise it is difficult to see the cause of your problem.
+</I>&gt;<i>
+</I>&gt;<i> jg
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+I'm sorry if my post wasn't clear enough.
+
+I've managed to achieve the results that I expect, although I don't know if
+it is the most effective way to do it. I'm gonna post it in this e-mail. My
+objective is to read the stream of characters between the *OPEN* and *CLOS*
+&quot;tokens&quot;. Thanks in advance for any tips or insights on this.
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdbool.h&gt;
+
+%%{
+
+    machine test;
+
+    action open_found {
+        printf(&quot;FOUND OPEN\r\n&quot;);
+        fgoto data;
+    }
+    action close_found {
+        printf(&quot;FOUND CLOSE\r\n&quot;);
+        fgoto main;
+    }
+    action new_data_char {
+        printf(&quot;NEW CHAR: %c, lock: %d\n&quot;, fc, lock_data);
+        if (!lock_data)
+            rec[count++] = fc;
+    }
+    action close_candidate {
+        printf(&quot;CLOSE CANDIDATE: %c\n&quot;, fc);
+        lock_data = true;
+        cacount = 0;
+        fhold; fgoto clos;
+    }
+    action not_close {
+        printf(&quot;NOT CLOSE: %c, candidate: %s, cacount: %d\n&quot;, fc,
+candidate, cacount);
+        lock_data = false;
+        strncat(rec, candidate, cacount);
+        count += cacount;
+        fgoto data;
+    }
+    action store_candidate_char {
+        printf(&quot;CANDIDATE CHAR: %c\n&quot;, fc);
+        candidate[cacount++] = fc;
+    }
+
+    open = /.*\*OPEN\*/;
+    close = /.*\*CLOS\*/;
+
+    main :=
+        (open %open_found)+;
+
+    data := /.*\*/ @~new_data_char %~close_candidate;
+    clos := /\*CLOS\*/ $/{fbreak;} $store_candidate_char @!(not_close)
+@close_found;
+
+}%%
+
+%% write data;
+
+const char *p, *pe, *eof;
+int cs;
+const char *ts, *te;
+int act;
+int stack[128] = {0};
+int top;
+
+char rec[1024] = {0};
+unsigned int count = 0;
+char candidate[1024] = {0};;
+unsigned int cacount = 0;
+bool lock_data = false;
+
+bool parse(const char * str) {
+    p = str; pe = str + strlen(str); eof = pe;
+
+    %% write exec;
+
+    return true;
+}
+
+int main(int argc, char **argv) {
+    char buf[2048] =
+&quot;aaaaaaaaaa*OPEN*bbbbbbbb*CLbbbbbbbbb*CLOS*aaaaaaaaaaaaaaaaaaaa&quot;;
+
+    %% write init;
+
+    parse(buf);
+
+    printf(&quot;data[%d] = %s\n&quot;, count, rec);
+    return 0;
+}
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20120221/b2aabe79/attachment.html">http://www.colm.net/pipermail/ragel/attachments/20120221/b2aabe79/attachment.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001502.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+	<LI>Next message: <A HREF="001504.html">[ragel-users] Action for leaving a machine from a non-final	state
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1503">[ date ]</a>
+              <a href="thread.html#1503">[ thread ]</a>
+              <a href="subject.html#1503">[ subject ]</a>
+              <a href="author.html#1503">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> two state machines in single source - I cannot believe
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20two%20state%20machines%20in%20single%20source%20-%20I%20cannot%20believe&In-Reply-To=%3Cbbf55670-7b88-4d20-9934-98e10343ee07%40f36g2000hsa.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000643.html">
+   <LINK REL="Next"  HREF="000645.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>two state machines in single source - I cannot believe</H1>
+    <B>pazzodalegare</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20two%20state%20machines%20in%20single%20source%20-%20I%20cannot%20believe&In-Reply-To=%3Cbbf55670-7b88-4d20-9934-98e10343ee07%40f36g2000hsa.googlegroups.com%3E"
+       TITLE="two state machines in single source - I cannot believe">pazzodaleg... at gmail.com
+       </A><BR>
+    <I>Sat Jun  7 16:03:14 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000643.html">two state machines in single source - I cannot believe
+</A></li>
+        <LI>Next message: <A HREF="000645.html">two state machines in single source - I cannot believe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#644">[ date ]</a>
+              <a href="thread.html#644">[ thread ]</a>
+              <a href="subject.html#644">[ subject ]</a>
+              <a href="author.html#644">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear all,
+
+I'm playing with two machines too. I code a dummy ragel-machine to
+match a string:
+A&quot;12345FFF01&quot;B. For exercise, I would like to match the string using
+two machines (ragel code follows).
+
+With the first machine (main, see below) I want to extract the string
+between ' &quot; ' which should match a set of strings defined by:
+
+digit{2} (digit|'F')(3} 'F'{3}
+
+then, with the second one (FSM1, see below) I match the string
+12345FFF.
+I found an unexpected behaviour: calling the FSM1 with fgoto it seems
+it starts to process from p++ (where p is the pointer to the first
+character for the called machine FSM1).
+
+Uncommenting the line in action endpt1:
+		//p--;
+
+FSM1 machine behaves as expected (&quot;OK pt2&quot; is printed&quot;)..could you
+help to find my mistake?
+
+Tnx
+
+pazzo
+
+------------------ ragel code ------------------------
+
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+%%{
+	# dummy machine to match A&quot;12345FFF01&quot;B
+
+	machine test1;
+
+	action cpch
+	{
+		printf(&quot;%c\n&quot;,fc);
+		*fn = fc;
+		fn++;
+	}
+
+	action _error
+	{
+		res = 0;
+		printf(&quot;ERROR %d, %c\n&quot;,cs,fc);
+		fbreak;
+	}
+
+	action endpt1
+	{
+		printf(&quot;OK\n%s\n&quot;, FN);
+		p = FN;
+		pe = p + strlen(p) + 1;
+		//p--;
+		fgoto FSM1;
+	}
+
+	action endsubstr
+	{
+		*fn = '\0';
+	}
+
+	action endpt2
+	{
+		printf(&quot;OK pt2\n&quot;);
+	}
+
+	FSM1 := '12345FFF' @!_error @endpt2 &gt;~{printf(&quot;*** %d %c %s ***
+\n&quot;,cs, fc, fpc);};
+
+	main := ( 'A&quot;' ( digit{2} (digit | 'F'){3} 'F'{3} ) $cpch @endsubstr
+digit{2}  '&quot;B' ) @!_error @endpt1 ;
+
+}%%
+
+%% write data;
+
+
+int parse(char *buf)
+{
+	int res = 0;
+	int cs;
+	char *eof = 0;
+	char *p = buf;
+	char *pe = p + strlen(p) + 1;
+	char FN[16];
+	char *fn;
+	int top, stack[32];
+
+	fn = FN;
+	%% write init;
+	%% write exec;
+
+	return res;
+}
+
+int main( int argc, char **argv )
+{
+	int res = 0;
+	if ( argc &gt; 1 ) {
+		res = parse(argv[1]);
+	}
+	printf(&quot;result = %i\n&quot;, res );
+	return 0;
+}
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000643.html">two state machines in single source - I cannot believe
+</A></li>
+	<LI>Next message: <A HREF="000645.html">two state machines in single source - I cannot believe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#644">[ date ]</a>
+              <a href="thread.html#644">[ thread ]</a>
+              <a href="subject.html#644">[ subject ]</a>
+              <a href="author.html#644">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

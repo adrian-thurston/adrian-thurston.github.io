@@ -1,0 +1,1412 @@
+From thurston at complang.org  Fri Mar  6 03:46:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Mar 2009 22:46:49 -0500
+Subject: [ragel-users] State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>	<47FD2D3B.6060405@cs.queensu.ca>	<a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>	<480511ED.2060000@cs.queensu.ca>	<a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>	<4816719F.8050502@cs.queensu.ca>	<a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+	<a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+Message-ID: <49B09CA9.1030708@complang.org>
+
+You should use any @0, or use @(blink,1) for the SM events. The 
+priorities need to have the same name. Without a name the name of the 
+machine "blinks" (with an s) is used.
+
+Also, this will only work if the SM events are one character. I don't 
+see their definitions so I'm not sure if that's the problem.
+
+-Adrian
+
+Bob Paddock wrote:
+> On Mon, Apr 28, 2008 at 7:53 PM, Adrian Thurston <thurston at cs.queensu.ca> wrote:
+>> Hi Bob, you can use priorities to do this.
+>>
+>> (
+>>   'a' |
+>>   'b' |
+>>   'c' |
+>>   ...
+>> ) @1 |
+>> (
+>>   any @0
+>> )
+>>
+>> Though there really should be a guarded union operator that does this.
+> 
+> I'm not getting that to work.  Here is a simplified example,
+> (with several non-working tries commented out):
+> 
+>    blinks = (
+>        start: (
+>                SM2008_MODEL_EVENT -> SM2008_MODEL |
+>                SM2009_MODEL_EVENT -> SM2009_MODEL
+>               )@1 |
+>               (
+> #               any @(blink, 0)
+>                any $(blink, 0)
+> #               any @0
+>               )
+> #              )@blink
+> 
+> 
+> If I get any character besides 2008 or 2009 events I want to call the
+> action 'blink'.
+> 
+> I am never seeing blink called.  Machine always returns -1 on
+> non-2008/2009 events (blink never returns).
+> 
+> What is the correct syntax here?
+> 
+>>>     I think what you want instead of any* is [^>].
+>>>
+>>>
+>>> [^>] worked fine when I have a few states.
+>>> Is there a better way to do it if you have say
+>>> forty states that would be valid?
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Wed Mar 11 21:09:24 2009
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Wed, 11 Mar 2009 14:09:24 -0700
+Subject: [ragel-users] Strange behavior with included files on Windows/MinGW
+Message-ID: <49B82884.7050404@ordinate.com>
+
+Hello,
+
+Including files does not seem to work properly on Ragel compiled for 
+Windows using mingw.
+
+Everything works fine with both files in the same directory:
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+
+Move one of the files into a  subdirectory:
+
+C:\Documents and Settings\jose>move atoi-machine.rl subdir
+
+Ragel complains correctly if we forget to add the subdirectory to the 
+search path:
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+atoi-actions.rl:20:27: include: failed to locate file
+atoi-actions.rl:20:27: include: attempted: "atoi-machine.rl"
+
+
+However, if we do add the directory to the search path, ragel finds the 
+file but fails to import anything from it!
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe -Isubdir 
+atoi-actions.rl
+atoi-actions.rl:22:2: write statement given but there are no machine 
+instantiations
+
+
+I suspect this is an MinGW bug as it's not reproducible on Mac OS X.  I 
+figured people might want to know anyway, since MinGW is listed on the 
+home page as an option.
+
+Saludos,
+Jose.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: atoi-actions.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090311/d30ad599/attachment.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: atoi-machine.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090311/d30ad599/attachment-0001.ksh>
+
+From flameeyes at gmail.com  Thu Mar 12 11:11:39 2009
+From: flameeyes at gmail.com (Diego E. 'Flameeyes' =?ISO-8859-1?Q?Petten=F2?=)
+Date: Thu, 12 Mar 2009 12:11:39 +0100
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+Message-ID: <1236856299.11830.61.camel@localhost>
+
+Hi everybody,
+
+since I wrote these for a project I'm working on, I thought they might
+be useful to others too; they should be pretty generic and well suited
+for being integrated in other projects.
+
+There are two macros, CHECK_RAGEL and CHECK_RAGEL_AM, the latter will
+enable the HAVE_RAGEL conditional, while the former will just do the
+autoconf check.
+
+The macros both accept a single parameter, the relative path to a source
+file generated by Ragel (i.e.: the .c file not the .rl file) that can be
+checked to be present or not.
+
+The make rule uses RAGELFLAGS to pass extra options to Ragel so the user
+is able to choose a different FSM implementation rather than the default
+-T0.
+
+HTH,
+-- 
+Diego "Flameeyes" Pettenò
+http://blog.flameeyes.eu/
+
+-------------- next part --------------
+# -*- Makefile -*-
+
+SUFFIXES = .rl
+
+.rl.c:
+	$(RAGEL) $(RAGELFLAGS) -C $< -o $@
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel.m4
+Type: application/x-m4
+Size: 1386 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090312/832b4d51/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090312/832b4d51/attachment.sig>
+
+From graceindustries at gmail.com  Thu Mar 12 11:46:16 2009
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Thu, 12 Mar 2009 07:46:16 -0400
+Subject: [ragel-users] Strange behavior with included files on
+	Windows/MinGW
+In-Reply-To: <49B82884.7050404@ordinate.com>
+References: <49B82884.7050404@ordinate.com>
+Message-ID: <a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+
+> Move one of the files into a  subdirectory:
+>
+> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+
+> However, if we do add the directory to the search path, ragel finds the file
+> but fails to import anything from it!
+
+> I suspect this is an MinGW bug
+
+Does it work with subdirectories with no spaces in them?
+Best to avoid spaces in files names and paths.
+
+
+
+From jose at ordinate.com  Thu Mar 12 15:51:30 2009
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 12 Mar 2009 08:51:30 -0700
+Subject: [ragel-users] Strange behavior with included files
+	on	Windows/MinGW
+In-Reply-To: <a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+References: <49B82884.7050404@ordinate.com>
+	<a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+Message-ID: <49B92F82.4000903@ordinate.com>
+
+The directory I tried had no spaces in it.
+
+Thanks,
+Jose.
+
+Bob Paddock wrote:
+>> Move one of the files into a  subdirectory:
+>>
+>> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+> 
+>> However, if we do add the directory to the search path, ragel finds the file
+>> but fails to import anything from it!
+> 
+>> I suspect this is an MinGW bug
+> 
+> Does it work with subdirectories with no spaces in them?
+> Best to avoid spaces in files names and paths.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jg at jasongarber.com  Fri Mar 13 21:03:36 2009
+From: jg at jasongarber.com (Jason Garber)
+Date: Fri, 13 Mar 2009 17:03:36 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+Message-ID: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+
+Since Ragel makes it so easy to generate code in several languages,  
+I'm adding a pure-ruby parser to RedCloth (it already has C and Java  
+extensions).  My only problem is that the actions of the last pattern  
+matched by the scanner don't happen.  It is happening in both my  
+block-level scanner and my inline scanner and it's different patters/ 
+actions that fail to execute, but always at the end of the string.  I  
+traced it through using ruby-debug but couldn't tell anything because  
+it was deep in the scanner (i.e. all the code I recognized as actions  
+worked as intended, but I couldn't tell what was going on with  
+scanner internals).  I'm sure it's just something I'm doing wrong,  
+but just wanted to check if anyone had any ideas before I spend hours  
+trying to figure it out.
+
+If you want to try it hand-on, git clone the pureruby branch of git:// 
+github.com/jgarber/redcloth.git and try rake pureruby test.  You can  
+also peek at it at http://github.com/jgarber/redcloth/tree/pureruby  
+to see if you notice anything obvious.
+
+Thanks in advance for any insight you might be able to provide.
+
+Jason Garber
+
+
+
+From ibc at aliax.net  Fri Mar 13 21:07:53 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Fri, 13 Mar 2009 22:07:53 +0100
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+Message-ID: <200903132207.53162.ibc@aliax.net>
+
+El Viernes, 13 de Marzo de 2009, Jason Garber escribió:
+> Since Ragel makes it so easy to generate code in several languages,
+> I'm adding a pure-ruby parser to RedCloth (it already has C and Java
+> extensions).  My only problem is that the actions of the last pattern
+> matched by the scanner don't happen.  It is happening in both my
+> block-level scanner and my inline scanner and it's different patters/
+> actions that fail to execute, but always at the end of the string.
+
+Add '\0' to the Ruby string you want to parse.
+
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Sat Mar 14 01:07:23 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 13 Mar 2009 21:07:23 -0400
+Subject: [ragel-users] Strange behavior with included files on
+	Windows/MinGW
+In-Reply-To: <49B82884.7050404@ordinate.com>
+References: <49B82884.7050404@ordinate.com>
+Message-ID: <49BB034B.6030503@complang.org>
+
+Okay, thanks for the report.
+
+Jose Quinteiro wrote:
+> Hello,
+> 
+> Including files does not seem to work properly on Ragel compiled for 
+> Windows using mingw.
+> 
+> Everything works fine with both files in the same directory:
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+> 
+> Move one of the files into a  subdirectory:
+> 
+> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+> 
+> Ragel complains correctly if we forget to add the subdirectory to the 
+> search path:
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+> atoi-actions.rl:20:27: include: failed to locate file
+> atoi-actions.rl:20:27: include: attempted: "atoi-machine.rl"
+> 
+> 
+> However, if we do add the directory to the search path, ragel finds the 
+> file but fails to import anything from it!
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe -Isubdir 
+> atoi-actions.rl
+> atoi-actions.rl:22:2: write statement given but there are no machine 
+> instantiations
+> 
+> 
+> I suspect this is an MinGW bug as it's not reproducible on Mac OS X.  I 
+> figured people might want to know anyway, since MinGW is listed on the 
+> home page as an option.
+> 
+> Saludos,
+> Jose.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Mar 14 01:13:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 13 Mar 2009 21:13:26 -0400
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+In-Reply-To: <1236856299.11830.61.camel@localhost>
+References: <1236856299.11830.61.camel@localhost>
+Message-ID: <49BB04B6.5060104@complang.org>
+
+Thanks!
+
+By the way, I've been using automake lately and I'll probably move ragel 
+over to it after the next release (which contains a big restructuring). 
+I wasn't so warm to it before, but I've been using it at work lately and 
+it's growing on me :)
+
+-Adrian
+
+Diego E. 'Flameeyes' Pettenò wrote:
+> Hi everybody,
+> 
+> since I wrote these for a project I'm working on, I thought they might
+> be useful to others too; they should be pretty generic and well suited
+> for being integrated in other projects.
+> 
+> There are two macros, CHECK_RAGEL and CHECK_RAGEL_AM, the latter will
+> enable the HAVE_RAGEL conditional, while the former will just do the
+> autoconf check.
+> 
+> The macros both accept a single parameter, the relative path to a source
+> file generated by Ragel (i.e.: the .c file not the .rl file) that can be
+> checked to be present or not.
+> 
+> The make rule uses RAGELFLAGS to pass extra options to Ragel so the user
+> is able to choose a different FSM implementation rather than the default
+> -T0.
+> 
+> HTH,
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Sat Mar 14 11:45:53 2009
+From: flameeyes at gmail.com (Diego E. 'Flameeyes' =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 14 Mar 2009 12:45:53 +0100
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+In-Reply-To: <49BB04B6.5060104@complang.org>
+References: <1236856299.11830.61.camel@localhost>
+	<49BB04B6.5060104@complang.org>
+Message-ID: <1237031153.24598.7.camel@localhost>
+
+On Fri, 2009-03-13 at 21:13 -0400, Adrian Thurston wrote:
+> 
+> 
+> By the way, I've been using automake lately and I'll probably move
+> ragel 
+> over to it after the next release (which contains a big
+> restructuring). 
+> I wasn't so warm to it before, but I've been using it at work lately
+> and 
+> it's growing on me :)
+
+This is seriously good news :)
+
+If you need any help at all feel free to ask!
+
+-- 
+Diego "Flameeyes" Pettenò
+http://blog.flameeyes.eu/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090314/579a3afb/attachment.sig>
+
+From ibc at aliax.net  Sat Mar 14 11:58:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 14 Mar 2009 12:58:00 +0100
+Subject: [ragel-users] <|  |>  operators
+Message-ID: <200903141258.00904.ibc@aliax.net>
+
+Hi, I read in Ragel TODO about possible future <| and |> operators. They would 
+be *really* useful. Is it planned?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From jg at jasongarber.com  Mon Mar 16 13:29:07 2009
+From: jg at jasongarber.com (Jason Garber)
+Date: Mon, 16 Mar 2009 09:29:07 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <200903132207.53162.ibc@aliax.net>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+	<200903132207.53162.ibc@aliax.net>
+Message-ID: <214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+
+Thank you.  That worked perfectly.
+
+On Mar 13, 2009, at 5:07 PM, Iñaki Baz Castillo wrote:
+
+> Add '\0' to the Ruby string you want to parse.
+> -- 
+> Iñaki Baz Castillo
+
+
+
+
+From thurston at complang.org  Wed Mar 18 03:20:28 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 17 Mar 2009 23:20:28 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>	<200903132207.53162.ibc@aliax.net>
+	<214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+Message-ID: <49C0687C.90504@complang.org>
+
+This happens because, by the nature of your patterns, one char of 
+lookahead is required to determine when a match occurs. The '\0' 
+provides that. Alternatively, you can set eof = pe on the last block and 
+the final token will be flushed.
+
+-Adrian
+
+Jason Garber wrote:
+> Thank you.  That worked perfectly.
+> 
+> On Mar 13, 2009, at 5:07 PM, Iñaki Baz Castillo wrote:
+> 
+>> Add '\0' to the Ruby string you want to parse.
+>> -- 
+>> Iñaki Baz Castillo
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Mar 18 03:21:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 17 Mar 2009 23:21:14 -0400
+Subject: [ragel-users] <|  |>  operators
+In-Reply-To: <200903141258.00904.ibc@aliax.net>
+References: <200903141258.00904.ibc@aliax.net>
+Message-ID: <49C068AA.7030403@complang.org>
+
+They're planned ... just not done yet :)
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I read in Ragel TODO about possible future <| and |> operators. They would 
+> be *really* useful. Is it planned?
+> 
+> Thanks a lot.
+> 
+
+
+
+From thurston at complang.org  Sun Mar 22 17:18:44 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 22 Mar 2009 13:18:44 -0400
+Subject: [ragel-users] ragel 6.4 released
+Message-ID: <49C672F4.4080901@complang.org>
+
+Hello Ragel Users,
+
+I released 6.4 today. This one took me way too long to get out. The time 
+to the next release should be shorter, given that finishing and 
+defending my thesis is out of the way :) Also, I'm using Ragel at my new 
+job which has me thinking about it a lot more. It's bound to get some 
+more attention :)
+
+Ragel is now back to a single executable. There are also some bug fixes 
+in this release. See the ChangeLog for details.
+
+http://www.complang.org/ragel/ChangeLog
+
+Cheers,
+  Adrian
+
+
+
+From ibc at aliax.net  Sun Mar 22 19:52:27 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Sun, 22 Mar 2009 20:52:27 +0100
+Subject: [ragel-users] ragel 6.4 released
+In-Reply-To: <49C672F4.4080901@complang.org>
+References: <49C672F4.4080901@complang.org>
+Message-ID: <200903222052.27932.ibc@aliax.net>
+
+El Domingo, 22 de Marzo de 2009, Adrian Thurston escribió:
+> Hello Ragel Users,
+>
+> I released 6.4 today. This one took me way too long to get out. The time
+> to the next release should be shorter, given that finishing and
+> defending my thesis is out of the way :) Also, I'm using Ragel at my new
+> job which has me thinking about it a lot more. It's bound to get some
+> more attention :)
+>
+> Ragel is now back to a single executable. There are also some bug fixes
+> in this release. See the ChangeLog for details.
+>
+> http://www.complang.org/ragel/ChangeLog
+
+Good news, thanks a lot for this great project.
+
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Thu Mar 26 02:20:20 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 25 Mar 2009 22:20:20 -0400
+Subject: [ragel-users] fixed a crash in 6.4 that occurs when using -V and -M
+Message-ID: <49CAE664.1040803@complang.org>
+
+Hello,
+
+Ragel 6.4 crashes when using the -V option and -M to specify a machine 
+instantiation. When the specified machine references some other machine 
+with fgoto, fcall, fnext, or fenty (which is common) a null dereference 
+occurs. This has been fixed in the development tree.
+
+-Adrian
+
+
+
+From flameeyes at gmail.com  Fri Mar 27 23:44:44 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 28 Mar 2009 00:44:44 +0100
+Subject: [ragel-users] [Ugly PATCH] Build on OpenSolaris
+Message-ID: <1238197485.4207.7.camel@localhost>
+
+I was working on fixing up some stuff on OpenSolaris, and I had Ragel
+6.4 failing to build. The problem is that CS has not one but two
+definitions inside OpenSolaris's system headers.
+
+The patch is _very_ ugly but gets the job done; sincerely I'd recommend
+to rename the method in something slightly longer to avoid macros on
+other systems too.
+
+HTH!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-6.4-solaris.patch
+Type: text/x-patch
+Size: 2207 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090328/ee674066/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel/attachments/20090328/ee674066/attachment.sig>
+
+From ragel-user at jgoettgens.de  Sat Mar 28 13:49:56 2009
+From: ragel-user at jgoettgens.de (RU)
+Date: Sat, 28 Mar 2009 14:49:56 +0100
+Subject: [ragel-users] Windows vs. 6.4 update
+Message-ID: <DC0D9EC757AE424CBCD1514D633A159A@lynx>
+
+I have update the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+It also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+
+From ragel-user at jgoettgens.de  Sat Mar 28 13:53:49 2009
+From: ragel-user at jgoettgens.de (RU)
+Date: Sat, 28 Mar 2009 14:53:49 +0100
+Subject: [ragel-users] Windows vs. 6.4 update
+Message-ID: <1C14F448C139486EAA9245199DF432C2@lynx>
+
+I have updated the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+The archive also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+
+(no new content--just fewer typos in the message)
+
+From thurston at complang.org  Sat Mar 28 16:11:24 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Mar 2009 12:11:24 -0400
+Subject: [ragel-users] [Ugly PATCH] Build on OpenSolaris
+In-Reply-To: <1238197485.4207.7.camel@localhost>
+References: <1238197485.4207.7.camel@localhost>
+Message-ID: <49CE4C2C.6080004@complang.org>
+
+I just changed the function name. It's now vCS() along with vEOF().
+
+Thanks!
+
+-Adrian
+
+Diego E. “Flameeyes” Pettenò wrote:
+> I was working on fixing up some stuff on OpenSolaris, and I had Ragel
+> 6.4 failing to build. The problem is that CS has not one but two
+> definitions inside OpenSolaris's system headers.
+> 
+> The patch is _very_ ugly but gets the job done; sincerely I'd recommend
+> to rename the method in something slightly longer to avoid macros on
+> other systems too.
+> 
+> HTH!
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Mar 28 22:00:53 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Mar 2009 18:00:53 -0400
+Subject: [ragel-users] Windows vs. 6.4 update
+In-Reply-To: <1C14F448C139486EAA9245199DF432C2@lynx>
+References: <1C14F448C139486EAA9245199DF432C2@lynx>
+Message-ID: <49CE9E15.90707@complang.org>
+
+Thanks, I just updated the ragel homepage.
+
+-Adrian
+
+RU wrote:
+> I have updated the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+> The archive also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+> 
+> (no new content--just fewer typos in the message)
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Fri Mar  6 03:46:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 05 Mar 2009 22:46:49 -0500
+Subject: [ragel-users] State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>	<47FD2D3B.6060405@cs.queensu.ca>	<a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>	<480511ED.2060000@cs.queensu.ca>	<a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>	<4816719F.8050502@cs.queensu.ca>	<a3aee9a50902250658s14280f08l5ca2dcf31641d51c@mail.gmail.com>
+	<a3aee9a50902250705l1cbb2bedn8fff827a93d0416f@mail.gmail.com>
+Message-ID: <49B09CA9.1030708@complang.org>
+
+You should use any @0, or use @(blink,1) for the SM events. The 
+priorities need to have the same name. Without a name the name of the 
+machine "blinks" (with an s) is used.
+
+Also, this will only work if the SM events are one character. I don't 
+see their definitions so I'm not sure if that's the problem.
+
+-Adrian
+
+Bob Paddock wrote:
+> On Mon, Apr 28, 2008 at 7:53 PM, Adrian Thurston <thurston at cs.queensu.ca> wrote:
+>> Hi Bob, you can use priorities to do this.
+>>
+>> (
+>>   'a' |
+>>   'b' |
+>>   'c' |
+>>   ...
+>> ) @1 |
+>> (
+>>   any @0
+>> )
+>>
+>> Though there really should be a guarded union operator that does this.
+> 
+> I'm not getting that to work.  Here is a simplified example,
+> (with several non-working tries commented out):
+> 
+>    blinks = (
+>        start: (
+>                SM2008_MODEL_EVENT -> SM2008_MODEL |
+>                SM2009_MODEL_EVENT -> SM2009_MODEL
+>               )@1 |
+>               (
+> #               any @(blink, 0)
+>                any $(blink, 0)
+> #               any @0
+>               )
+> #              )@blink
+> 
+> 
+> If I get any character besides 2008 or 2009 events I want to call the
+> action 'blink'.
+> 
+> I am never seeing blink called.  Machine always returns -1 on
+> non-2008/2009 events (blink never returns).
+> 
+> What is the correct syntax here?
+> 
+>>>     I think what you want instead of any* is [^>].
+>>>
+>>>
+>>> [^>] worked fine when I have a few states.
+>>> Is there a better way to do it if you have say
+>>> forty states that would be valid?
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jose at ordinate.com  Wed Mar 11 21:09:24 2009
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Wed, 11 Mar 2009 14:09:24 -0700
+Subject: [ragel-users] Strange behavior with included files on Windows/MinGW
+Message-ID: <49B82884.7050404@ordinate.com>
+
+Hello,
+
+Including files does not seem to work properly on Ragel compiled for 
+Windows using mingw.
+
+Everything works fine with both files in the same directory:
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+
+Move one of the files into a  subdirectory:
+
+C:\Documents and Settings\jose>move atoi-machine.rl subdir
+
+Ragel complains correctly if we forget to add the subdirectory to the 
+search path:
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+atoi-actions.rl:20:27: include: failed to locate file
+atoi-actions.rl:20:27: include: attempted: "atoi-machine.rl"
+
+
+However, if we do add the directory to the search path, ragel finds the 
+file but fails to import anything from it!
+
+C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe -Isubdir 
+atoi-actions.rl
+atoi-actions.rl:22:2: write statement given but there are no machine 
+instantiations
+
+
+I suspect this is an MinGW bug as it's not reproducible on Mac OS X.  I 
+figured people might want to know anyway, since MinGW is listed on the 
+home page as an option.
+
+Saludos,
+Jose.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: atoi-actions.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090311/d30ad599/attachment-0002.ksh>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: atoi-machine.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090311/d30ad599/attachment-0003.ksh>
+
+From flameeyes at gmail.com  Thu Mar 12 11:11:39 2009
+From: flameeyes at gmail.com (Diego E. 'Flameeyes' =?ISO-8859-1?Q?Petten=F2?=)
+Date: Thu, 12 Mar 2009 12:11:39 +0100
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+Message-ID: <1236856299.11830.61.camel@localhost>
+
+Hi everybody,
+
+since I wrote these for a project I'm working on, I thought they might
+be useful to others too; they should be pretty generic and well suited
+for being integrated in other projects.
+
+There are two macros, CHECK_RAGEL and CHECK_RAGEL_AM, the latter will
+enable the HAVE_RAGEL conditional, while the former will just do the
+autoconf check.
+
+The macros both accept a single parameter, the relative path to a source
+file generated by Ragel (i.e.: the .c file not the .rl file) that can be
+checked to be present or not.
+
+The make rule uses RAGELFLAGS to pass extra options to Ragel so the user
+is able to choose a different FSM implementation rather than the default
+-T0.
+
+HTH,
+-- 
+Diego "Flameeyes" Pettenò
+http://blog.flameeyes.eu/
+
+-------------- next part --------------
+# -*- Makefile -*-
+
+SUFFIXES = .rl
+
+.rl.c:
+	$(RAGEL) $(RAGELFLAGS) -C $< -o $@
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel.m4
+Type: application/x-m4
+Size: 1386 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090312/832b4d51/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090312/832b4d51/attachment-0001.sig>
+
+From graceindustries at gmail.com  Thu Mar 12 11:46:16 2009
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Thu, 12 Mar 2009 07:46:16 -0400
+Subject: [ragel-users] Strange behavior with included files on
+	Windows/MinGW
+In-Reply-To: <49B82884.7050404@ordinate.com>
+References: <49B82884.7050404@ordinate.com>
+Message-ID: <a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+
+> Move one of the files into a  subdirectory:
+>
+> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+
+> However, if we do add the directory to the search path, ragel finds the file
+> but fails to import anything from it!
+
+> I suspect this is an MinGW bug
+
+Does it work with subdirectories with no spaces in them?
+Best to avoid spaces in files names and paths.
+
+
+
+From jose at ordinate.com  Thu Mar 12 15:51:30 2009
+From: jose at ordinate.com (Jose Quinteiro)
+Date: Thu, 12 Mar 2009 08:51:30 -0700
+Subject: [ragel-users] Strange behavior with included files
+	on	Windows/MinGW
+In-Reply-To: <a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+References: <49B82884.7050404@ordinate.com>
+	<a3aee9a50903120446u5d80404bi9de5e696d085fef3@mail.gmail.com>
+Message-ID: <49B92F82.4000903@ordinate.com>
+
+The directory I tried had no spaces in it.
+
+Thanks,
+Jose.
+
+Bob Paddock wrote:
+>> Move one of the files into a  subdirectory:
+>>
+>> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+> 
+>> However, if we do add the directory to the search path, ragel finds the file
+>> but fails to import anything from it!
+> 
+>> I suspect this is an MinGW bug
+> 
+> Does it work with subdirectories with no spaces in them?
+> Best to avoid spaces in files names and paths.
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From jg at jasongarber.com  Fri Mar 13 21:03:36 2009
+From: jg at jasongarber.com (Jason Garber)
+Date: Fri, 13 Mar 2009 17:03:36 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+Message-ID: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+
+Since Ragel makes it so easy to generate code in several languages,  
+I'm adding a pure-ruby parser to RedCloth (it already has C and Java  
+extensions).  My only problem is that the actions of the last pattern  
+matched by the scanner don't happen.  It is happening in both my  
+block-level scanner and my inline scanner and it's different patters/ 
+actions that fail to execute, but always at the end of the string.  I  
+traced it through using ruby-debug but couldn't tell anything because  
+it was deep in the scanner (i.e. all the code I recognized as actions  
+worked as intended, but I couldn't tell what was going on with  
+scanner internals).  I'm sure it's just something I'm doing wrong,  
+but just wanted to check if anyone had any ideas before I spend hours  
+trying to figure it out.
+
+If you want to try it hand-on, git clone the pureruby branch of git:// 
+github.com/jgarber/redcloth.git and try rake pureruby test.  You can  
+also peek at it at http://github.com/jgarber/redcloth/tree/pureruby  
+to see if you notice anything obvious.
+
+Thanks in advance for any insight you might be able to provide.
+
+Jason Garber
+
+
+
+From ibc at aliax.net  Fri Mar 13 21:07:53 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Fri, 13 Mar 2009 22:07:53 +0100
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+Message-ID: <200903132207.53162.ibc@aliax.net>
+
+El Viernes, 13 de Marzo de 2009, Jason Garber escribió:
+> Since Ragel makes it so easy to generate code in several languages,
+> I'm adding a pure-ruby parser to RedCloth (it already has C and Java
+> extensions).  My only problem is that the actions of the last pattern
+> matched by the scanner don't happen.  It is happening in both my
+> block-level scanner and my inline scanner and it's different patters/
+> actions that fail to execute, but always at the end of the string.
+
+Add '\0' to the Ruby string you want to parse.
+
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Sat Mar 14 01:07:23 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 13 Mar 2009 21:07:23 -0400
+Subject: [ragel-users] Strange behavior with included files on
+	Windows/MinGW
+In-Reply-To: <49B82884.7050404@ordinate.com>
+References: <49B82884.7050404@ordinate.com>
+Message-ID: <49BB034B.6030503@complang.org>
+
+Okay, thanks for the report.
+
+Jose Quinteiro wrote:
+> Hello,
+> 
+> Including files does not seem to work properly on Ragel compiled for 
+> Windows using mingw.
+> 
+> Everything works fine with both files in the same directory:
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+> 
+> Move one of the files into a  subdirectory:
+> 
+> C:\Documents and Settings\jose>move atoi-machine.rl subdir
+> 
+> Ragel complains correctly if we forget to add the subdirectory to the 
+> search path:
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe atoi-actions.rl
+> atoi-actions.rl:20:27: include: failed to locate file
+> atoi-actions.rl:20:27: include: attempted: "atoi-machine.rl"
+> 
+> 
+> However, if we do add the directory to the search path, ragel finds the 
+> file but fails to import anything from it!
+> 
+> C:\Documents and Settings\jose>w:\ragel-6.3\ragel\ragel.exe -Isubdir 
+> atoi-actions.rl
+> atoi-actions.rl:22:2: write statement given but there are no machine 
+> instantiations
+> 
+> 
+> I suspect this is an MinGW bug as it's not reproducible on Mac OS X.  I 
+> figured people might want to know anyway, since MinGW is listed on the 
+> home page as an option.
+> 
+> Saludos,
+> Jose.
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Mar 14 01:13:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 13 Mar 2009 21:13:26 -0400
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+In-Reply-To: <1236856299.11830.61.camel@localhost>
+References: <1236856299.11830.61.camel@localhost>
+Message-ID: <49BB04B6.5060104@complang.org>
+
+Thanks!
+
+By the way, I've been using automake lately and I'll probably move ragel 
+over to it after the next release (which contains a big restructuring). 
+I wasn't so warm to it before, but I've been using it at work lately and 
+it's growing on me :)
+
+-Adrian
+
+Diego E. 'Flameeyes' Pettenò wrote:
+> Hi everybody,
+> 
+> since I wrote these for a project I'm working on, I thought they might
+> be useful to others too; they should be pretty generic and well suited
+> for being integrated in other projects.
+> 
+> There are two macros, CHECK_RAGEL and CHECK_RAGEL_AM, the latter will
+> enable the HAVE_RAGEL conditional, while the former will just do the
+> autoconf check.
+> 
+> The macros both accept a single parameter, the relative path to a source
+> file generated by Ragel (i.e.: the .c file not the .rl file) that can be
+> checked to be present or not.
+> 
+> The make rule uses RAGELFLAGS to pass extra options to Ragel so the user
+> is able to choose a different FSM implementation rather than the default
+> -T0.
+> 
+> HTH,
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From flameeyes at gmail.com  Sat Mar 14 11:45:53 2009
+From: flameeyes at gmail.com (Diego E. 'Flameeyes' =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 14 Mar 2009 12:45:53 +0100
+Subject: [ragel-users] Autoconf/automake spport for Ragel
+In-Reply-To: <49BB04B6.5060104@complang.org>
+References: <1236856299.11830.61.camel@localhost>
+	<49BB04B6.5060104@complang.org>
+Message-ID: <1237031153.24598.7.camel@localhost>
+
+On Fri, 2009-03-13 at 21:13 -0400, Adrian Thurston wrote:
+> 
+> 
+> By the way, I've been using automake lately and I'll probably move
+> ragel 
+> over to it after the next release (which contains a big
+> restructuring). 
+> I wasn't so warm to it before, but I've been using it at work lately
+> and 
+> it's growing on me :)
+
+This is seriously good news :)
+
+If you need any help at all feel free to ask!
+
+-- 
+Diego "Flameeyes" Pettenò
+http://blog.flameeyes.eu/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090314/579a3afb/attachment-0001.sig>
+
+From ibc at aliax.net  Sat Mar 14 11:58:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 14 Mar 2009 12:58:00 +0100
+Subject: [ragel-users] <|  |>  operators
+Message-ID: <200903141258.00904.ibc@aliax.net>
+
+Hi, I read in Ragel TODO about possible future <| and |> operators. They would 
+be *really* useful. Is it planned?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From jg at jasongarber.com  Mon Mar 16 13:29:07 2009
+From: jg at jasongarber.com (Jason Garber)
+Date: Mon, 16 Mar 2009 09:29:07 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <200903132207.53162.ibc@aliax.net>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>
+	<200903132207.53162.ibc@aliax.net>
+Message-ID: <214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+
+Thank you.  That worked perfectly.
+
+On Mar 13, 2009, at 5:07 PM, Iñaki Baz Castillo wrote:
+
+> Add '\0' to the Ruby string you want to parse.
+> -- 
+> Iñaki Baz Castillo
+
+
+
+
+From thurston at complang.org  Wed Mar 18 03:20:28 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 17 Mar 2009 23:20:28 -0400
+Subject: [ragel-users] Last action not executing with Ruby-generated code
+In-Reply-To: <214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+References: <EFEE4FC8-9632-4FD8-9E4F-6336E6EDE03C@jasongarber.com>	<200903132207.53162.ibc@aliax.net>
+	<214B7257-BD75-48FB-9A4F-203D5BB084BE@jasongarber.com>
+Message-ID: <49C0687C.90504@complang.org>
+
+This happens because, by the nature of your patterns, one char of 
+lookahead is required to determine when a match occurs. The '\0' 
+provides that. Alternatively, you can set eof = pe on the last block and 
+the final token will be flushed.
+
+-Adrian
+
+Jason Garber wrote:
+> Thank you.  That worked perfectly.
+> 
+> On Mar 13, 2009, at 5:07 PM, Iñaki Baz Castillo wrote:
+> 
+>> Add '\0' to the Ruby string you want to parse.
+>> -- 
+>> Iñaki Baz Castillo
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Mar 18 03:21:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 17 Mar 2009 23:21:14 -0400
+Subject: [ragel-users] <|  |>  operators
+In-Reply-To: <200903141258.00904.ibc@aliax.net>
+References: <200903141258.00904.ibc@aliax.net>
+Message-ID: <49C068AA.7030403@complang.org>
+
+They're planned ... just not done yet :)
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I read in Ragel TODO about possible future <| and |> operators. They would 
+> be *really* useful. Is it planned?
+> 
+> Thanks a lot.
+> 
+
+
+
+From thurston at complang.org  Sun Mar 22 17:18:44 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 22 Mar 2009 13:18:44 -0400
+Subject: [ragel-users] ragel 6.4 released
+Message-ID: <49C672F4.4080901@complang.org>
+
+Hello Ragel Users,
+
+I released 6.4 today. This one took me way too long to get out. The time 
+to the next release should be shorter, given that finishing and 
+defending my thesis is out of the way :) Also, I'm using Ragel at my new 
+job which has me thinking about it a lot more. It's bound to get some 
+more attention :)
+
+Ragel is now back to a single executable. There are also some bug fixes 
+in this release. See the ChangeLog for details.
+
+http://www.complang.org/ragel/ChangeLog
+
+Cheers,
+  Adrian
+
+
+
+From ibc at aliax.net  Sun Mar 22 19:52:27 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Sun, 22 Mar 2009 20:52:27 +0100
+Subject: [ragel-users] ragel 6.4 released
+In-Reply-To: <49C672F4.4080901@complang.org>
+References: <49C672F4.4080901@complang.org>
+Message-ID: <200903222052.27932.ibc@aliax.net>
+
+El Domingo, 22 de Marzo de 2009, Adrian Thurston escribió:
+> Hello Ragel Users,
+>
+> I released 6.4 today. This one took me way too long to get out. The time
+> to the next release should be shorter, given that finishing and
+> defending my thesis is out of the way :) Also, I'm using Ragel at my new
+> job which has me thinking about it a lot more. It's bound to get some
+> more attention :)
+>
+> Ragel is now back to a single executable. There are also some bug fixes
+> in this release. See the ChangeLog for details.
+>
+> http://www.complang.org/ragel/ChangeLog
+
+Good news, thanks a lot for this great project.
+
+
+
+-- 
+Iñaki Baz Castillo
+
+
+
+From thurston at complang.org  Thu Mar 26 02:20:20 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 25 Mar 2009 22:20:20 -0400
+Subject: [ragel-users] fixed a crash in 6.4 that occurs when using -V and -M
+Message-ID: <49CAE664.1040803@complang.org>
+
+Hello,
+
+Ragel 6.4 crashes when using the -V option and -M to specify a machine 
+instantiation. When the specified machine references some other machine 
+with fgoto, fcall, fnext, or fenty (which is common) a null dereference 
+occurs. This has been fixed in the development tree.
+
+-Adrian
+
+
+
+From flameeyes at gmail.com  Fri Mar 27 23:44:44 2009
+From: flameeyes at gmail.com (Diego E. =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sat, 28 Mar 2009 00:44:44 +0100
+Subject: [ragel-users] [Ugly PATCH] Build on OpenSolaris
+Message-ID: <1238197485.4207.7.camel@localhost>
+
+I was working on fixing up some stuff on OpenSolaris, and I had Ragel
+6.4 failing to build. The problem is that CS has not one but two
+definitions inside OpenSolaris's system headers.
+
+The patch is _very_ ugly but gets the job done; sincerely I'd recommend
+to rename the method in something slightly longer to avoid macros on
+other systems too.
+
+HTH!
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-6.4-solaris.patch
+Type: text/x-patch
+Size: 2207 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090328/ee674066/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20090328/ee674066/attachment-0001.sig>
+
+From ragel-user at jgoettgens.de  Sat Mar 28 13:49:56 2009
+From: ragel-user at jgoettgens.de (RU)
+Date: Sat, 28 Mar 2009 14:49:56 +0100
+Subject: [ragel-users] Windows vs. 6.4 update
+Message-ID: <DC0D9EC757AE424CBCD1514D633A159A@lynx>
+
+I have update the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+It also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+
+From ragel-user at jgoettgens.de  Sat Mar 28 13:53:49 2009
+From: ragel-user at jgoettgens.de (RU)
+Date: Sat, 28 Mar 2009 14:53:49 +0100
+Subject: [ragel-users] Windows vs. 6.4 update
+Message-ID: <1C14F448C139486EAA9245199DF432C2@lynx>
+
+I have updated the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+The archive also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+
+(no new content--just fewer typos in the message)
+
+From thurston at complang.org  Sat Mar 28 16:11:24 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Mar 2009 12:11:24 -0400
+Subject: [ragel-users] [Ugly PATCH] Build on OpenSolaris
+In-Reply-To: <1238197485.4207.7.camel@localhost>
+References: <1238197485.4207.7.camel@localhost>
+Message-ID: <49CE4C2C.6080004@complang.org>
+
+I just changed the function name. It's now vCS() along with vEOF().
+
+Thanks!
+
+-Adrian
+
+Diego E. “Flameeyes” Pettenò wrote:
+> I was working on fixing up some stuff on OpenSolaris, and I had Ragel
+> 6.4 failing to build. The problem is that CS has not one but two
+> definitions inside OpenSolaris's system headers.
+> 
+> The patch is _very_ ugly but gets the job done; sincerely I'd recommend
+> to rename the method in something slightly longer to avoid macros on
+> other systems too.
+> 
+> HTH!
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Sat Mar 28 22:00:53 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 28 Mar 2009 18:00:53 -0400
+Subject: [ragel-users] Windows vs. 6.4 update
+In-Reply-To: <1C14F448C139486EAA9245199DF432C2@lynx>
+References: <1C14F448C139486EAA9245199DF432C2@lynx>
+Message-ID: <49CE9E15.90707@complang.org>
+
+Thanks, I just updated the ragel homepage.
+
+-Adrian
+
+RU wrote:
+> I have updated the binaries and sources (revision 766) (http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z)
+> The archive also contains the parser generator kelbt. Only C/C++ targets were tested (as usual).
+> 
+> (no new content--just fewer typos in the message)
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+

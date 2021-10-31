@@ -1,0 +1,496 @@
+Index: test/testcase.txl
+===================================================================
+--- test/testcase.txl	(revision 3739)
++++ test/testcase.txl	(working copy)
+@@ -16,7 +16,7 @@
+ keys
+ 	'int 'bool 'true 'false 'char 'ptr
+ 	'if 'else 'printi 'prints 
+-	'fc 'fpc 'fbreak 'fgoto 'fhold 'fret
++	'fc 'fpc 'fbreak 'fgoto 'fcall 'fret 'fhold 'fexec
+ end keys
+ 
+ define lang_indep
+@@ -134,6 +134,7 @@
+ define al_ragel_stmt
+ 		'fbreak '; [NL]
+ 	|	'fhold '; [NL]
++	|	'fexec [repeat al_expr] '; [NL]
+ 	|	'fnext [id] '; [NL]
+ 	|	'fgoto [id] '; [NL]
+ 	|	'fcall [id] '; [NL]
+@@ -156,13 +157,13 @@
+ end define
+ 
+ define scanner_item
+-		[repeat machine_expr_item] ';
++		[repeat machine_expr_item] '; [NL]
+ end define
+ 
+ define machine_expr_item
+ 		[action_embed] [al_host_block]
+ 	|	'|* [repeat scanner_item] '*|
+-	|	[not ';] [token]
++	|	[not ';] [not '*|] [token]
+ end define
+ 
+ define al_host_block
+Index: test/patact.rl
+===================================================================
+--- test/patact.rl	(revision 0)
++++ test/patact.rl	(revision 0)
+@@ -0,0 +1,91 @@
++/*
++ * @LANG: indep
++ */
++
++char comm;
++int top;
++int stack[32];
++ptr tokstart;
++ptr tokend;
++int act;
++int val;
++%%
++%%{
++	machine patact;
++
++	other := |* 
++		[a-z]+ => { prints "word\n"; };
++		[0-9]+ => { prints "num\n"; };
++		[\n ] => { prints "space\n"; };
++	*|;
++
++	exec_test := |* 
++		[a-z]+ => { prints "word (w/lbh)\n"; fexec tokend-1; fgoto other; };
++		[a-z]+ ' foil' => { prints "word (c/lbh)\n"; };
++		[\n ] => { prints "space\n"; };
++		'22' => { prints "num (w/switch)\n"; };
++		[0-9]+ => { prints "num (w/switch)\n"; fexec tokend-1; fgoto other;};
++		[0-9]+ ' foil' => {prints "num (c/switch)\n"; };
++		'!';# => { prints "immdiate\n"; fgoto exec_test; };
++	*|;
++
++	main := |* 
++		[a-z]+ => { prints "word (w/lbh)\n"; fhold; fgoto other; };
++		[a-z]+ ' foil' => { prints "word (c/lbh)\n"; };
++		[\n ] => { prints "space\n"; };
++		'22' => { prints "num (w/switch)\n"; };
++		[0-9]+ => { prints "num (w/switch)\n"; fhold; fgoto other;};
++		[0-9]+ ' foil' => {prints "num (c/switch)\n"; };
++		'!' => { prints "immdiate\n"; fgoto exec_test; };
++	*|;
++}%%
++/* _____INPUT_____
++"abcd foix\n"
++"abcd\nanother\n"
++"123 foix\n"
++"!abcd foix\n"
++"!abcd\nanother\n"
++"!123 foix\n"
++_____INPUT_____ */
++/* _____OUTPUT_____
++word (w/lbh)
++word
++space
++word
++space
++ACCEPT
++word (w/lbh)
++word
++space
++word
++space
++ACCEPT
++num (w/switch)
++num
++space
++word
++space
++ACCEPT
++immdiate
++word (w/lbh)
++word
++space
++word
++space
++ACCEPT
++immdiate
++word (w/lbh)
++word
++space
++word
++space
++ACCEPT
++immdiate
++num (w/switch)
++num
++space
++word
++space
++ACCEPT
++_____OUTPUT_____ */
++
+Index: ragel/parsedata.cpp
+===================================================================
+--- ragel/parsedata.cpp	(revision 3739)
++++ ragel/parsedata.cpp	(working copy)
+@@ -1230,12 +1230,6 @@
+ 			}
+ 		}
+ 
+-		/* Check for holds in a the pattern action of a scanner item. */
+-		if ( act->isLmAction && item->type == InlineItem::Hold ) {
+-			error(item->loc) << "fhold is not permitted within a "
+-					"scanner pattern action" << endl;
+-		}
+-
+ 		/* Recurse. */
+ 		if ( item->children != 0 )
+ 			checkInlineList( act, item->children );
+Index: ragel/xmlcodegen.cpp
+===================================================================
+--- ragel/xmlcodegen.cpp	(revision 3739)
++++ ragel/xmlcodegen.cpp	(working copy)
+@@ -205,14 +205,17 @@
+ 		out << "</text>";
+ }
+ 
+-void XMLCodeGen::writeWithContext( InlineItem *item, InlineItem *context )
++void XMLCodeGen::writeCtrlFlow( InlineItem *item, InlineItem *context )
+ {
+ 	if ( context != 0 ) {
+ 		out << "<sub_action>";
+ 
+ 		switch ( context->type ) {
++		case InlineItem::LmOnLast:
++			out << "<exec><get_tokend></get_tokend></exec>";
++			break;
+ 		case InlineItem::LmOnNext:
+-			out << "<hold></hold>";
++			out << "<exec><get_tokend></get_tokend></exec>";
+ 			break;
+ 		case InlineItem::LmOnLagBehind:
+ 			out << "<exec><get_tokend></get_tokend></exec>";
+@@ -256,6 +259,36 @@
+ 		out << "</sub_action>";
+ }
+ 
++void XMLCodeGen::writePtrMod( InlineItem *item, InlineItem *context )
++{
++	if ( context != 0 && ( context->type == InlineItem::LmOnNext ||
++			context->type == InlineItem::LmOnLagBehind ||
++			context->type == InlineItem::LmSwitch ) )
++	{
++		switch ( item->type ) {
++		case InlineItem::Hold:
++			out << "<holdte></holdte>";
++			break;
++		case InlineItem::Exec:
++			writeActionExecTE( item );
++			break;
++		default: break;
++		}
++	}
++	else {
++		switch ( item->type ) {
++		case InlineItem::Hold:
++			out << "<hold></hold>";
++			break;
++		case InlineItem::Exec:
++			writeActionExec( item );
++			break;
++		default: break;
++		}
++	}
++}
++
++
+ void XMLCodeGen::writeGoto( InlineItem *item, InlineItem *context )
+ {
+ 	if ( pd->generatingSectionSubset )
+@@ -324,31 +357,42 @@
+ 	out << "</exec>";
+ }
+ 
++void XMLCodeGen::writeActionExecTE( InlineItem *item )
++{
++	out << "<execte>";
++	writeInlineList( item->children, 0 );
++	out << "</execte>";
++}
++
+ void XMLCodeGen::writeLmOnLast( InlineItem *item )
+ {
+ 	out << "<set_tokend>1</set_tokend>";
+-	out << "<sub_action>";
+-	if ( item->longestMatchPart->action != 0 )
+-		writeInlineList( item->longestMatchPart->action->inlineList, 0 );
+-	out << "</sub_action>";
++	if ( item->longestMatchPart->action != 0 ) {
++		out << "<sub_action>";
++		writeInlineList( item->longestMatchPart->action->inlineList, item );
++		out << "</sub_action>";
++	}
++	out << "<exec><get_tokend></get_tokend></exec>";
+ }
+ 
+ void XMLCodeGen::writeLmOnNext( InlineItem *item )
+ {
+ 	out << "<set_tokend>0</set_tokend>";
+-	out << "<sub_action>";
+-	if ( item->longestMatchPart->action != 0 )
++	if ( item->longestMatchPart->action != 0 ) {
++		out << "<sub_action>";
+ 		writeInlineList( item->longestMatchPart->action->inlineList, item );
+-	out << "</sub_action>";
+-	out << "<hold></hold>";
++		out << "</sub_action>";
++	}
++	out << "<exec><get_tokend></get_tokend></exec>";
+ }
+ 
+ void XMLCodeGen::writeLmOnLagBehind( InlineItem *item )
+ {
+-	out << "<sub_action>";
+-	if ( item->longestMatchPart->action != 0 )
++	if ( item->longestMatchPart->action != 0 ) {
++		out << "<sub_action>";
+ 		writeInlineList( item->longestMatchPart->action->inlineList, item );
+-	out << "</sub_action>";
++		out << "</sub_action>";
++	}
+ 	out << "<exec><get_tokend></get_tokend></exec>";
+ }
+ 
+@@ -364,7 +408,7 @@
+ 		case InlineItem::Call: case InlineItem::CallExpr:
+ 		case InlineItem::Next: case InlineItem::NextExpr:
+ 		case InlineItem::Break: case InlineItem::Ret: 
+-			writeWithContext( item, context );
++			writeCtrlFlow( item, context );
+ 			break;
+ 		case InlineItem::PChar:
+ 			out << "<pchar></pchar>";
+@@ -372,9 +416,6 @@
+ 		case InlineItem::Char: 
+ 			out << "<char></char>";
+ 			break;
+-		case InlineItem::Hold:
+-			out << "<hold></hold>";
+-			break;
+ 		case InlineItem::Curs: 
+ 			out << "<curs></curs>";
+ 			break;
+@@ -384,9 +425,12 @@
+ 		case InlineItem::Entry:
+ 			writeEntry( item );
+ 			break;
++
++		case InlineItem::Hold:
+ 		case InlineItem::Exec:
+-			writeActionExec( item );
++			writePtrMod( item, context );
+ 			break;
++
+ 		case InlineItem::LmSwitch: 
+ 			writeLmSwitch( item );
+ 			break;
+Index: ragel/xmlcodegen.h
+===================================================================
+--- ragel/xmlcodegen.h	(revision 3739)
++++ ragel/xmlcodegen.h	(working copy)
+@@ -90,7 +90,8 @@
+ 
+ 	void writeKey( Key key );
+ 	void writeText( InlineItem *item );
+-	void writeWithContext( InlineItem *item, InlineItem *context );
++	void writeCtrlFlow( InlineItem *item, InlineItem *context );
++	void writePtrMod( InlineItem *item, InlineItem *context );
+ 	void writeGoto( InlineItem *item, InlineItem *context );
+ 	void writeGotoExpr( InlineItem *item, InlineItem *context );
+ 	void writeCall( InlineItem *item, InlineItem *context );
+@@ -120,6 +121,7 @@
+ 	void writeLmSwitch( InlineItem *item );
+ 	void writeMachine();
+ 	void writeActionExec( InlineItem *item );
++	void writeActionExecTE( InlineItem *item );
+ 
+ 	char *fsmName;
+ 	ParseData *pd;
+Index: rlcodegen/xmltags.gperf
+===================================================================
+--- rlcodegen/xmltags.gperf	(revision 3739)
++++ rlcodegen/xmltags.gperf	(working copy)
+@@ -55,10 +55,12 @@
+ pchar, TAG_pchar
+ char, TAG_char
+ hold, TAG_hold
++exec, TAG_exec
++holdte, TAG_holdte
++execte, TAG_execte
+ curs, TAG_curs
+ targs, TAG_targs
+ entry, TAG_entry
+-exec, TAG_exec
+ data, TAG_data
+ lm_switch, TAG_lm_switch
+ sub_action, TAG_sub_action
+Index: rlcodegen/fsmcodegen.cpp
+===================================================================
+--- rlcodegen/fsmcodegen.cpp	(revision 3739)
++++ rlcodegen/fsmcodegen.cpp	(working copy)
+@@ -514,6 +514,19 @@
+ 	ret << "))-1;}";
+ }
+ 
++void FsmCodeGen::EXECTE( ostream &ret, InlineItem *item, int targState, int inFinish )
++{
++	/* Tokend version of exec. */
++
++	/* The parser gives fexec two children. The double brackets are for D
++	 * code. If the inline list is a single word it will get interpreted as a
++	 * C-style cast by the D compiler. */
++	ret << "{" << TOKEND() << " = ((";
++	INLINE_LIST( ret, item->children, targState, inFinish );
++	ret << "));}";
++}
++
++
+ void FsmCodeGen::LM_SWITCH( ostream &ret, InlineItem *item, 
+ 		int targState, int inFinish )
+ {
+@@ -626,6 +639,12 @@
+ 		case InlineItem::Exec:
+ 			EXEC( ret, item, targState, inFinish );
+ 			break;
++		case InlineItem::HoldTE:
++			ret << TOKEND() << "--;";
++			break;
++		case InlineItem::ExecTE:
++			EXECTE( ret, item, targState, inFinish );
++			break;
+ 		case InlineItem::Curs:
+ 			CURS( ret, inFinish );
+ 			break;
+Index: rlcodegen/xmlparse.y
+===================================================================
+--- rlcodegen/xmlparse.y	(revision 3739)
++++ rlcodegen/xmlparse.y	(working copy)
+@@ -102,10 +102,12 @@
+ %token TAG_pchar
+ %token TAG_char
+ %token TAG_hold
++%token TAG_exec
++%token TAG_holdte
++%token TAG_execte
+ %token TAG_curs
+ %token TAG_targs
+ %token TAG_entry
+-%token TAG_exec
+ %token TAG_data
+ %token TAG_lm_switch
+ %token TAG_init_act
+@@ -140,10 +142,12 @@
+ %type <ilitem> TagPChar
+ %type <ilitem> TagChar
+ %type <ilitem> TagHold
++%type <ilitem> TagExec
++%type <ilitem> TagHoldTE
++%type <ilitem> TagExecTE
+ %type <ilitem> TagCurs
+ %type <ilitem> TagTargs
+ %type <ilitem> TagIlEntry
+-%type <ilitem> TagExec
+ %type <ilitem> TagLmSwitch
+ %type <ilitem> TagLmSetActId
+ %type <ilitem> TagLmGetTokEnd
+@@ -610,10 +614,12 @@
+ 	TagPChar |
+ 	TagChar |
+ 	TagHold |
++	TagExec |
++	TagHoldTE |
++	TagExecTE |
+ 	TagCurs |
+ 	TagTargs |
+ 	TagIlEntry |
+-	TagExec |
+ 	TagLmSwitch |
+ 	TagLmSetActId |
+ 	TagLmSetTokEnd |
+@@ -702,6 +708,28 @@
+ 		$$ = new InlineItem( InputLoc(), InlineItem::Hold );
+ 	};
+ 
++TagExec:
++	'<' TAG_exec '>'
++	InlineList
++	'<' '/' TAG_exec '>' {
++		$$ = new InlineItem( InputLoc(), InlineItem::Exec );
++		$$->children = $4;
++	};
++
++TagHoldTE:
++	'<' TAG_holdte '>'
++	'<' '/' TAG_holdte '>' {
++		$$ = new InlineItem( InputLoc(), InlineItem::HoldTE );
++	};
++
++TagExecTE:
++	'<' TAG_execte '>'
++	InlineList
++	'<' '/' TAG_execte '>' {
++		$$ = new InlineItem( InputLoc(), InlineItem::ExecTE );
++		$$->children = $4;
++	};
++
+ TagCurs:
+ 	'<' TAG_curs '>'
+ 	'<' '/' TAG_curs '>' {
+@@ -722,14 +750,6 @@
+ 		$$->targId = targ;
+ 	};
+ 
+-TagExec:
+-	'<' TAG_exec '>'
+-	InlineList
+-	'<' '/' TAG_exec '>' {
+-		$$ = new InlineItem( InputLoc(), InlineItem::Exec );
+-		$$->children = $4;
+-	};
+-
+ TagBreak:
+ 	'<' TAG_break '>'
+ 	'<' '/' TAG_break '>' {
+Index: rlcodegen/fsmcodegen.h
+===================================================================
+--- rlcodegen/fsmcodegen.h	(revision 3739)
++++ rlcodegen/fsmcodegen.h	(working copy)
+@@ -147,6 +147,7 @@
+ 	virtual void CURS( ostream &ret, bool inFinish ) = 0;
+ 	virtual void TARGS( ostream &ret, bool inFinish, int targState ) = 0;
+ 	void EXEC( ostream &ret, InlineItem *item, int targState, int inFinish );
++	void EXECTE( ostream &ret, InlineItem *item, int targState, int inFinish );
+ 	void LM_SWITCH( ostream &ret, InlineItem *item, int targState, int inFinish );
+ 	void SET_ACT( ostream &ret, InlineItem *item );
+ 	void INIT_TOKSTART( ostream &ret, InlineItem *item );
+Index: rlcodegen/redfsm.h
+===================================================================
+--- rlcodegen/redfsm.h	(revision 3739)
++++ rlcodegen/redfsm.h	(working copy)
+@@ -57,10 +57,10 @@
+ {
+ 	enum Type 
+ 	{
+-		Text, Goto, Call, Next, GotoExpr, CallExpr, NextExpr, Ret, PChar,
+-		Char, Hold, Curs, Targs, Entry, Exec, LmSwitch, LmSetActId,
+-		LmSetTokEnd, LmGetTokEnd, LmInitTokStart, LmInitAct, LmSetTokStart,
+-		SubAction, Break
++		Text, Goto, Call, Next, GotoExpr, CallExpr, NextExpr, Ret, 
++		PChar, Char, Hold, Exec, HoldTE, ExecTE, Curs, Targs, Entry,
++		LmSwitch, LmSetActId, LmSetTokEnd, LmGetTokEnd, LmInitTokStart,
++		LmInitAct, LmSetTokStart, SubAction, Break
+ 	};
+ 
+ 	InlineItem( const InputLoc &loc, Type type ) : 

@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Preprocessor System Proposal
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Preprocessor%20System%20Proposal&In-Reply-To=%3C483DCB19.8010807%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000629.html">
+   <LINK REL="Next"  HREF="000631.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Preprocessor System Proposal</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Preprocessor%20System%20Proposal&In-Reply-To=%3C483DCB19.8010807%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Preprocessor System Proposal">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed May 28 21:14:01 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000629.html">Preprocessor System Proposal
+</A></li>
+        <LI>Next message: <A HREF="000631.html">Testing beginning of line in a scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2393">[ date ]</a>
+              <a href="thread.html#2393">[ thread ]</a>
+              <a href="subject.html#2393">[ subject ]</a>
+              <a href="author.html#2393">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Mitchell,
+
+So I've been meaning to work on some kind of macro language for a long
+time now, but haven't had the chance to sit down and do it. I'm hoping
+in the latter part of 2008, by then I should be finished with my thesis.
+I'm actually planning on using my thesis project to implement the macro
+system, which is another reason I've been delaying on the macros.
+
+The macro system needs to solve a whole lot of problems at once so I'm
+expecting it to take quite a bit of research/work.
+
+Using the C preprocessing language is attractive, but unfortunately
+won't do since the general trend with ragel is language independence. We
+do need something a lot like it though.
+
+-Adrian
+
+mitchell wrote:
+&gt;<i> Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> I just wanted to condense a couple of earlier topics I started into a
+</I>&gt;<i> proposal for a kind of preprocessor system.
+</I>&gt;<i> 
+</I>&gt;<i> If you weren't already aware, I'm interning at Ohloh this summer for
+</I>&gt;<i> Google summer of Code and we've been very impressed with Ragel over
+</I>&gt;<i> the last few weeks. I've talked with the project leaders about the
+</I>&gt;<i> problems I've run into (discussed in my topics here), and they're very
+</I>&gt;<i> interested in a solution -- even offering incentives (though they
+</I>&gt;<i> wouldn't divulge any details).
+</I>&gt;<i> 
+</I>&gt;<i> My first problem was the multiple inclusions of the same file. My
+</I>&gt;<i> second problem was duplicate 'write' statements I want to perform
+</I>&gt;<i> conditionally. I believe both can be solved by a preprocessor system.
+</I>&gt;<i> 
+</I>&gt;<i> I'm no expert with Ragel's source code, but I think I may have an idea
+</I>&gt;<i> of how this can be implemented.
+</I>&gt;<i> 
+</I>&gt;<i> In rlscan.rl's 'section_parse' machine we can add some preprocessor
+</I>&gt;<i> statements. All I was thinking of for now was 'define' and 'if'. Each
+</I>&gt;<i> would have an &quot;action&quot; comprised of C code that is executed. 'define'
+</I>&gt;<i> would have nothing after the &quot;action&quot;, so something like:
+</I>&gt;<i>   define { int foo = 1; };
+</I>&gt;<i> would suffice.
+</I>&gt;<i> 
+</I>&gt;<i> The 'if' statement would be slightly more complicated. There are two
+</I>&gt;<i> ideas I had on structure:
+</I>&gt;<i> 
+</I>&gt;<i> Idea #1:
+</I>&gt;<i> 
+</I>&gt;<i>   if { foo } {
+</I>&gt;<i>     include 'some_file.rl';
+</I>&gt;<i>     write 'something';
+</I>&gt;<i>     # do other things conditionally
+</I>&gt;<i>   }
+</I>&gt;<i>   So this 'if' acts like the 'when' conditional, but the block of
+</I>&gt;<i> Ragel *after* the &quot;action&quot; is parsed if &quot;action&quot; evaluates to true.
+</I>&gt;<i> 
+</I>&gt;<i> Idea #2:
+</I>&gt;<i> 
+</I>&gt;<i>   {
+</I>&gt;<i>     include 'some_file.rl';
+</I>&gt;<i>     write 'something';
+</I>&gt;<i>     # do other things conditionally
+</I>&gt;<i>   } when { foo };
+</I>&gt;<i>   In this case we don't need an 'if', but use the existing 'when'
+</I>&gt;<i> keyword. This might be easier to implement, but could be a strange
+</I>&gt;<i> read to developers browsing Ragel code.
+</I>&gt;<i> 
+</I>&gt;<i> Either way we will need to parse the Ragel inside the { }'s using the
+</I>&gt;<i> 'main' machine which will be modified to contain this preprocessor
+</I>&gt;<i> system.
+</I>&gt;<i> 
+</I>&gt;<i> Overall I think this system using the embedded C statements would be
+</I>&gt;<i> much easier than keeping a list of defines in the Ragel source code
+</I>&gt;<i> and writing your own preprocessor executor for an 'if' statement. I
+</I>&gt;<i> think it will also provide for more flexibility.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for your time,
+</I>&gt;<i> -Mitchell;
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000629.html">Preprocessor System Proposal
+</A></li>
+	<LI>Next message: <A HREF="000631.html">Testing beginning of line in a scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2393">[ date ]</a>
+              <a href="thread.html#2393">[ thread ]</a>
+              <a href="subject.html#2393">[ subject ]</a>
+              <a href="author.html#2393">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

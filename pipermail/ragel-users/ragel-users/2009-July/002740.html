@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem consuming whitespaces
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20consuming%20whitespaces&In-Reply-To=%3C4A535DAA.1080902%40esentire.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002739.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem consuming whitespaces</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20consuming%20whitespaces&In-Reply-To=%3C4A535DAA.1080902%40esentire.com%3E"
+       TITLE="[ragel-users] Problem consuming whitespaces">adrian.thurston at esentire.com
+       </A><BR>
+    <I>Tue Jul  7 14:37:30 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002739.html">[ragel-users] Problem consuming whitespaces
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2740">[ date ]</a>
+              <a href="thread.html#2740">[ thread ]</a>
+              <a href="subject.html#2740">[ subject ]</a>
+              <a href="author.html#2740">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Ihor,
+
+Unless you require the speed of an integrated lexer and parser I would 
+suggest using the traditional lexing then parsing approach. That would 
+avoid having to put whitespace the grammar.
+
+-Adrian
+
+Ihor Kaharlichenko wrote:
+&gt;<i> Hi, all.
+</I>&gt;<i> 
+</I>&gt;<i> I'm very new to ragel and the solution to my problem may seem obvious, but I googled a lot and could not find a solution to it.
+</I>&gt;<i> 
+</I>&gt;<i> I need to parse simplified mental ray shader declarations &lt;<A HREF="http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59">http://download.autodesk.com/us/maya/2009help/mr/manual/node61.html#SECTION59</A>&gt;.
+</I>&gt;<i> 
+</I>&gt;<i> In general input looks like this:
+</I>&gt;<i> 
+</I>&gt;<i> declare shader
+</I>&gt;<i>     [/type/] &quot;/shader_name/&quot; (
+</I>&gt;<i>         /type/ &quot;/parameter_name/&quot;,
+</I>&gt;<i>         /type/ &quot;/parameter_name/&quot;,
+</I>&gt;<i>               ...
+</I>&gt;<i>         /type/ &quot;/parameter_name/&quot;
+</I>&gt;<i>     )
+</I>&gt;<i>     [version /version/_int ]
+</I>&gt;<i> end declare
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> My problem is that mental ray files are not restrictive to spaces and newlines, so two following declarations should be considered the same:
+</I>&gt;<i> 
+</I>&gt;<i>    1. declare shader &quot;myShader&quot; ( int &quot;param1&quot;, boolean &quot;param2&quot; ) 
+</I>&gt;<i>       version 12 end declare
+</I>&gt;<i>    2.
+</I>&gt;<i> 
+</I>&gt;<i>       declare              shader      &quot;myShader&quot; (
+</I>&gt;<i>           int     &quot;param1&quot;   ,
+</I>&gt;<i>           boolean &quot;param2&quot;
+</I>&gt;<i>           )
+</I>&gt;<i>           version 12
+</I>&gt;<i>       end declare
+</I>&gt;<i> 
+</I>&gt;<i> Here's my machine declaration:
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine shader;
+</I>&gt;<i>    
+</I>&gt;<i>     sep = space+;
+</I>&gt;<i>    
+</I>&gt;<i>     shader_start = 'declare' . sep . 'shader' . sep;
+</I>&gt;<i>     shader_end = 'end' . sep . 'declare' . sep;
+</I>&gt;<i>    
+</I>&gt;<i>     string = '&quot;' . (alnum | '_')+ . '&quot;' . sep;
+</I>&gt;<i>    
+</I>&gt;<i>     type = ('boolean' | 'integer' | 'scalar') . sep;
+</I>&gt;<i>     version = 'version' . sep . digit+ . sep;
+</I>&gt;<i>    
+</I>&gt;<i>     parameter = string . type;
+</I>&gt;<i>    
+</I>&gt;<i>     parameter_block = parameter . (',' . sep . parameter)*;
+</I>&gt;<i>     shader =
+</I>&gt;<i>         shader_start .
+</I>&gt;<i>         type? . string .
+</I>&gt;<i>         '(' . sep? . parameter_block? . ')' . sep .
+</I>&gt;<i>         version? .
+</I>&gt;<i>         shader_end;
+</I>&gt;<i>    
+</I>&gt;<i>     main := shader;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> As you can see there are too many &quot;sep&quot;s used in the declaration. They 
+</I>&gt;<i> seem to be a total mess to me, as I don't cannot even match the 
+</I>&gt;<i> following with my machine: *int &quot;qwe&quot; ,* (note the space between a quote 
+</I>&gt;<i> and a coma)
+</I>&gt;<i> 
+</I>&gt;<i> Can anybody suggest a better way to define my machine in order to parse 
+</I>&gt;<i> such this kind of declarations? Maybe scanners could help me, but I'm 
+</I>&gt;<i> not sure whether they are capable to detect format errors or not.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks, Ihor
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ------------------------------------------------------------------------
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002739.html">[ragel-users] Problem consuming whitespaces
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2740">[ date ]</a>
+              <a href="thread.html#2740">[ thread ]</a>
+              <a href="subject.html#2740">[ subject ]</a>
+              <a href="author.html#2740">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

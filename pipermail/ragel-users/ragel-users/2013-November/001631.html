@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] When does Ragel mark a state as 'Final'?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20When%20does%20Ragel%20mark%20a%20state%20as%20%27Final%27%3F&In-Reply-To=%3C52921B77.5010305%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001629.html">
+   <LINK REL="Next"  HREF="001632.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] When does Ragel mark a state as 'Final'?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20When%20does%20Ragel%20mark%20a%20state%20as%20%27Final%27%3F&In-Reply-To=%3C52921B77.5010305%40complang.org%3E"
+       TITLE="[ragel-users] When does Ragel mark a state as 'Final'?">thurston at complang.org
+       </A><BR>
+    <I>Sun Nov 24 15:29:59 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001629.html">[ragel-users] Keywords and actions in a minimal example
+</A></li>
+        <LI>Next message: <A HREF="001632.html">[ragel-users] Some clarifications needed
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1631">[ date ]</a>
+              <a href="thread.html#1631">[ thread ]</a>
+              <a href="subject.html#1631">[ subject ]</a>
+              <a href="author.html#1631">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Every sub-expression has a set of final states. An FSM operation may add 
+or remove final-state status as it builds new machines. So your main 
+machine may not have any final states, but they were present as the 
+machine was built up, and so you see variations in how the eof embedding 
+operators affect the result.
+
+Arian
+
+On 13-07-25 12:31 AM, Solomon Gibbs wrote:
+&gt;<i> Hello,
+</I>&gt;<i>
+</I>&gt;<i> I'm not sure I understand what Ragel considers a &quot;final&quot; state. IIRC
+</I>&gt;<i> the User's Guide says that states that are final before machine
+</I>&gt;<i> simplification remain final thereafter.
+</I>&gt;<i>
+</I>&gt;<i>     When exactly is a state final, and how does one recognize this?
+</I>&gt;<i>
+</I>&gt;<i> I'm using the state machine syntax to implement a string finder --
+</I>&gt;<i> find ASCII strings with length greater than n, and print them. This
+</I>&gt;<i> means implementing a maximum length matcher, as below.
+</I>&gt;<i>
+</I>&gt;<i> Despite the fact that the dot output shows no final states, the EOF
+</I>&gt;<i> transitions behave differently depending on which flavor of {$%@}eof
+</I>&gt;<i> is used. I do not understand why this should be. For example, in the
+</I>&gt;<i> &quot;has_string&quot; state below, using %eof instead of @eof causes both the
+</I>&gt;<i> &quot;commit_nonstring_eof&quot; and &quot;commit_string_eof&quot; actions to be called
+</I>&gt;<i> from one of the generated/synthetic states terminating the matching
+</I>&gt;<i> state.
+</I>&gt;<i>
+</I>&gt;<i> (State graphics for this machine are are available via
+</I>&gt;<i> <A HREF="http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof">http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof</A>)
+</I>&gt;<i>
+</I>&gt;<i> action commit_string {    }
+</I>&gt;<i>
+</I>&gt;<i> action commit_string_eof { }
+</I>&gt;<i>
+</I>&gt;<i> action commit_nonstring_eof { }
+</I>&gt;<i>
+</I>&gt;<i> action set_mark { }
+</I>&gt;<i>
+</I>&gt;<i> action reset {
+</I>&gt;<i>     /* Force the machine back into state 1. This happens after
+</I>&gt;<i>      * an incomplete match when some graphical characters are
+</I>&gt;<i>      * consumed, but not enough for use to keep the string. */
+</I>&gt;<i>     fgoto start;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> # Matching classes union to 0x00 .. 0xFF
+</I>&gt;<i> graphic = (0x09 | 0x20 .. 0x7E);
+</I>&gt;<i> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+</I>&gt;<i>
+</I>&gt;<i> collector = (
+</I>&gt;<i>
+</I>&gt;<i>     start: (
+</I>&gt;<i>        # Set the mark if we have a graphic character,
+</I>&gt;<i>        # otherwise go to non_graphic state and consume input
+</I>&gt;<i>        graphic @set_mark -&gt;  has_glyph |
+</I>&gt;<i>        non_graphic -&gt;  no_glyph
+</I>&gt;<i>     ) $eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     no_glyph: (
+</I>&gt;<i>           # Consume input until a graphic character is encountered
+</I>&gt;<i>           non_graphic -&gt;  no_glyph |
+</I>&gt;<i>           graphic @set_mark -&gt;  has_glyph
+</I>&gt;<i>     ) $eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     has_glyph: (
+</I>&gt;<i>            # We already matched one graphic character to get here
+</I>&gt;<i>            # from start or no_glyph. Try to match N-1 before allowing
+</I>&gt;<i>                # the string to be committed. If we don't get to N-1,
+</I>&gt;<i>                # drop back to the start state
+</I>&gt;<i>                graphic{3} $lerr(reset) -&gt;  has_string
+</I>&gt;<i>     ) @eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     has_string: (
+</I>&gt;<i>                 # Already consumed our quota of N graphic characters;
+</I>&gt;<i>                 # consume input until we run out of graphic characters
+</I>&gt;<i>                 # then reset the machine. All exiting edges should commit
+</I>&gt;<i>                 # the string. We diferentiate between exiting on a non-graphic
+</I>&gt;<i>                 # input that shouldn't be added to the string and exiting
+</I>&gt;<i>                 # on a (graphic) EOF that should be added.
+</I>&gt;<i>                 graphic* non_graphic -&gt;  start
+</I>&gt;<i>     ) %from(commit_string) @eof(commit_string_eof)
+</I>&gt;<i>     #) %from(commit_string) %eof(commit_string_eof) // bad
+</I>&gt;<i>
+</I>&gt;<i> ); #$debug;
+</I>&gt;<i>
+</I>&gt;<i> main := (collector)+;Hello,
+</I>&gt;<i>
+</I>&gt;<i> I'm not sure I understand what Ragel considers a &quot;final&quot; state. IIRC
+</I>&gt;<i> the User's Guide says that states that are final before machine
+</I>&gt;<i> simplification remain final thereafter.
+</I>&gt;<i>
+</I>&gt;<i>     When exactly is a state final, and how does one recognize this?
+</I>&gt;<i>
+</I>&gt;<i> I'm using the state machine syntax to implement a string finder --
+</I>&gt;<i> find ASCII strings with length greater than n, and print them. This
+</I>&gt;<i> means implementing a maximum length matcher, as below.
+</I>&gt;<i>
+</I>&gt;<i> Despite the fact that the dot output shows no final states, the EOF
+</I>&gt;<i> transitions behave differently depending on which flavor of {$%@}eof
+</I>&gt;<i> is used. I do not understand why this should be. For example, in the
+</I>&gt;<i> &quot;has_string&quot; state below, using %eof instead of @eof causes both the
+</I>&gt;<i> &quot;commit_nonstring_eof&quot; and &quot;commit_string_eof&quot; actions to be called
+</I>&gt;<i> from one of the generated/synthetic states terminating the matching
+</I>&gt;<i> state.
+</I>&gt;<i>
+</I>&gt;<i> (State graphics for this machine are are available via
+</I>&gt;<i> <A HREF="http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof">http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof</A>)
+</I>&gt;<i>
+</I>&gt;<i> action commit_string {    }
+</I>&gt;<i>
+</I>&gt;<i> action commit_string_eof { }
+</I>&gt;<i>
+</I>&gt;<i> action commit_nonstring_eof { }
+</I>&gt;<i>
+</I>&gt;<i> action set_mark { }
+</I>&gt;<i>
+</I>&gt;<i> action reset {
+</I>&gt;<i>     /* Force the machine back into state 1. This happens after
+</I>&gt;<i>      * an incomplete match when some graphical characters are
+</I>&gt;<i>      * consumed, but not enough for use to keep the string. */
+</I>&gt;<i>     fgoto start;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> # Matching classes union to 0x00 .. 0xFF
+</I>&gt;<i> graphic = (0x09 | 0x20 .. 0x7E);
+</I>&gt;<i> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+</I>&gt;<i>
+</I>&gt;<i> collector = (
+</I>&gt;<i>
+</I>&gt;<i>     start: (
+</I>&gt;<i>        # Set the mark if we have a graphic character,
+</I>&gt;<i>        # otherwise go to non_graphic state and consume input
+</I>&gt;<i>        graphic @set_mark -&gt;  has_glyph |
+</I>&gt;<i>        non_graphic -&gt;  no_glyph
+</I>&gt;<i>     ) $eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     no_glyph: (
+</I>&gt;<i>           # Consume input until a graphic character is encountered
+</I>&gt;<i>           non_graphic -&gt;  no_glyph |
+</I>&gt;<i>           graphic @set_mark -&gt;  has_glyph
+</I>&gt;<i>     ) $eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     has_glyph: (
+</I>&gt;<i>            # We already matched one graphic character to get here
+</I>&gt;<i>            # from start or no_glyph. Try to match N-1 before allowing
+</I>&gt;<i>                # the string to be committed. If we don't get to N-1,
+</I>&gt;<i>                # drop back to the start state
+</I>&gt;<i>                graphic{3} $lerr(reset) -&gt;  has_string
+</I>&gt;<i>     ) @eof(commit_nonstring_eof),
+</I>&gt;<i>
+</I>&gt;<i>     has_string: (
+</I>&gt;<i>                 # Already consumed our quota of N graphic characters;
+</I>&gt;<i>                 # consume input until we run out of graphic characters
+</I>&gt;<i>                 # then reset the machine. All exiting edges should commit
+</I>&gt;<i>                 # the string. We diferentiate between exiting on a non-graphic
+</I>&gt;<i>                 # input that shouldn't be added to the string and exiting
+</I>&gt;<i>                 # on a (graphic) EOF that should be added.
+</I>&gt;<i>                 graphic* non_graphic -&gt;  start
+</I>&gt;<i>     ) %from(commit_string) @eof(commit_string_eof)
+</I>&gt;<i>     #) %from(commit_string) %eof(commit_string_eof) // bad
+</I>&gt;<i>
+</I>&gt;<i> ); #$debug;
+</I>&gt;<i>
+</I>&gt;<i> main := (collector)+;
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/r">http://www.complang.org/mailman/listinfo/r</A>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001629.html">[ragel-users] Keywords and actions in a minimal example
+</A></li>
+	<LI>Next message: <A HREF="001632.html">[ragel-users] Some clarifications needed
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1631">[ date ]</a>
+              <a href="thread.html#1631">[ thread ]</a>
+              <a href="subject.html#1631">[ subject ]</a>
+              <a href="author.html#1631">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

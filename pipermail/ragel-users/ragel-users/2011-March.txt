@@ -1,0 +1,4554 @@
+From ah08010-d at yahoo.com  Tue Mar 22 18:27:02 2011
+From: ah08010-d at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 14:27:02 -0400
+Subject: [ragel-users] Trouble referencing definitions from included
+	machines (6.6)
+Message-ID: <4D88E9F6.4050308@yahoo.com>
+
+Howdy,
+
+I was playing a bit with Ragel, and trying to include one machine from 
+another. I spent some time with a "graph lookup ... failed" error, until 
+I put my test file in the same place.
+
+As a test case, I have this:
+
+===== testinc.rl =====
+%%{
+machine inner;
+one = "one";
+two = "two";
+}%%
+===== test.rl =====
+%%{
+     machine test;
+     include inner "testinc.rl";
+
+     main := one;
+}%%
+===== =====
+
+When I have test.rl and testinc.rl in the same directory, I can do
+
+     ragel test.rl
+
+with no problems. When I move testinc.rl to a different directory:
+
+     mkdir x
+     mv testinc.rl x
+     ragel test.rl
+
+I get errors (as expected):
+
+test.rl:3:28: include: failed to locate file
+test.rl:3:28: include: attempted: "testinc.rl"
+test.rl:5:10: graph lookup of "one" failed
+
+When I then specify the include path:
+
+     ragel -I x test.rl
+
+I get:
+
+$ ragel -I x test.rl
+test.rl:5:10: graph lookup of "one" failed
+
+Apparently ragel now finds the included file okay, but for some reason 
+the exact same file which worked before has problems with finding the 
+"one" tag.
+
+What am I doing wrong, or is this a bug?
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Tue Mar 22 19:05:31 2011
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 22 Mar 2011 12:05:31 -0700
+Subject: [ragel-users] Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D88E9F6.4050308@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com>
+Message-ID: <4D88F2FB.7020005@esentire.com>
+
+I've been unable to reproduce this problem using the ragel 6.6 
+distribution tarball on my ubuntu lucid system. Can you tell me which 
+architecture you are on? Where did you get the build? Also, could you 
+attach an strace log?
+
+Thanks,
+  Adrian
+
+On 11-03-22 11:27 AM, Austin Hastings wrote:
+> Howdy,
+>
+> I was playing a bit with Ragel, and trying to include one machine from
+> another. I spent some time with a "graph lookup ... failed" error, until
+> I put my test file in the same place.
+>
+> As a test case, I have this:
+>
+> ===== testinc.rl =====
+> %%{
+> machine inner;
+> one = "one";
+> two = "two";
+> }%%
+> ===== test.rl =====
+> %%{
+> machine test;
+> include inner "testinc.rl";
+>
+> main := one;
+> }%%
+> ===== =====
+>
+> When I have test.rl and testinc.rl in the same directory, I can do
+>
+> ragel test.rl
+>
+> with no problems. When I move testinc.rl to a different directory:
+>
+> mkdir x
+> mv testinc.rl x
+> ragel test.rl
+>
+> I get errors (as expected):
+>
+> test.rl:3:28: include: failed to locate file
+> test.rl:3:28: include: attempted: "testinc.rl"
+> test.rl:5:10: graph lookup of "one" failed
+>
+> When I then specify the include path:
+>
+> ragel -I x test.rl
+>
+> I get:
+>
+> $ ragel -I x test.rl
+> test.rl:5:10: graph lookup of "one" failed
+>
+> Apparently ragel now finds the included file okay, but for some reason
+> the exact same file which worked before has problems with finding the
+> "one" tag.
+>
+> What am I doing wrong, or is this a bug?
+>
+> =Austin
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ah08010-ragel at yahoo.com  Tue Mar 22 22:44:32 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 18:44:32 -0400
+Subject: [ragel-users] Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D88F2FB.7020005@esentire.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+Message-ID: <4D892650.5040109@yahoo.com>
+
+This is on windows (32bit, XP pro sp3, en-us), using the binary 
+distribution linked from the ragel home page. FWIW, I'm invoking the 
+commands under Mingw bash.
+
+I've attached some output from procmon, with the good bits at about line 
+135. The file is apparently located and successfully read, but then 
+somehow ragel decides to fail.
+
+
+=Austin
+
+
+On 3/22/2011 3:05 PM, Adrian Thurston wrote:
+> I've been unable to reproduce this problem using the ragel 6.6
+> distribution tarball on my ubuntu lucid system. Can you tell me which
+> architecture you are on? Where did you get the build? Also, could you
+> attach an strace log?
+>
+> Thanks,
+>  Adrian
+>
+> On 11-03-22 11:27 AM, Austin Hastings wrote:
+>> Howdy,
+>>
+>> I was playing a bit with Ragel, and trying to include one machine from
+>> another. I spent some time with a "graph lookup ... failed" error, until
+>> I put my test file in the same place.
+>>
+>> As a test case, I have this:
+>>
+>> ===== testinc.rl =====
+>> %%{
+>> machine inner;
+>> one = "one";
+>> two = "two";
+>> }%%
+>> ===== test.rl =====
+>> %%{
+>> machine test;
+>> include inner "testinc.rl";
+>>
+>> main := one;
+>> }%%
+>> ===== =====
+>>
+>> When I have test.rl and testinc.rl in the same directory, I can do
+>>
+>> ragel test.rl
+>>
+>> with no problems. When I move testinc.rl to a different directory:
+>>
+>> mkdir x
+>> mv testinc.rl x
+>> ragel test.rl
+>>
+>> I get errors (as expected):
+>>
+>> test.rl:3:28: include: failed to locate file
+>> test.rl:3:28: include: attempted: "testinc.rl"
+>> test.rl:5:10: graph lookup of "one" failed
+>>
+>> When I then specify the include path:
+>>
+>> ragel -I x test.rl
+>>
+>> I get:
+>>
+>> $ ragel -I x test.rl
+>> test.rl:5:10: graph lookup of "one" failed
+>>
+>> Apparently ragel now finds the included file okay, but for some reason
+>> the exact same file which worked before has problems with finding the
+>> "one" tag.
+>>
+>> What am I doing wrong, or is this a bug?
+>>
+>> =Austin
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: Logfile.CSV
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110322/95eb1748/attachment.ksh>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Tue Mar 22 22:55:57 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 18:55:57 -0400
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D892650.5040109@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+	<4D892650.5040109@yahoo.com>
+Message-ID: <4D8928FD.8080306@yahoo.com>
+
+Following up a little more:  I decided to try running under windows 
+cmd.exe, instead of mingw. That didn't have any effect.
+
+Frustrated, I rebuilt the ragel within mingw entirely, starting from 
+"./configure".
+
+That has apparently solved the problem. The same command line as 
+described below now completes with no errors reported, and running ragel 
+-V produces a .dot file that looks like what I expect.
+
+Woo-hoo!
+
+Can I request an option, --vis-char-transitions (defaulting to "on") to 
+emit character based transitions as quoted letters instead of integer 
+numbers during visualization?
+
+That is, in the dot generator, produce something like:
+
+1 -> 2 [ label = "'o'" ];
+
+Instead of the current:
+
+1 -> 2 [ label = "111" ];
+
+(At least whenever isgraph(ch)?)
+
+Thanks,
+
+=Austin
+
+
+On 3/22/2011 6:44 PM, Austin Hastings wrote:
+> This is on windows (32bit, XP pro sp3, en-us), using the binary 
+> distribution linked from the ragel home page. FWIW, I'm invoking the 
+> commands under Mingw bash.
+>
+> I've attached some output from procmon, with the good bits at about 
+> line 135. The file is apparently located and successfully read, but 
+> then somehow ragel decides to fail.
+>
+>
+> =Austin
+>
+>
+> On 3/22/2011 3:05 PM, Adrian Thurston wrote:
+>> I've been unable to reproduce this problem using the ragel 6.6
+>> distribution tarball on my ubuntu lucid system. Can you tell me which
+>> architecture you are on? Where did you get the build? Also, could you
+>> attach an strace log?
+>>
+>> Thanks,
+>>  Adrian
+>>
+>> On 11-03-22 11:27 AM, Austin Hastings wrote:
+>>> Howdy,
+>>>
+>>> I was playing a bit with Ragel, and trying to include one machine from
+>>> another. I spent some time with a "graph lookup ... failed" error, 
+>>> until
+>>> I put my test file in the same place.
+>>>
+>>> As a test case, I have this:
+>>>
+>>> ===== testinc.rl =====
+>>> %%{
+>>> machine inner;
+>>> one = "one";
+>>> two = "two";
+>>> }%%
+>>> ===== test.rl =====
+>>> %%{
+>>> machine test;
+>>> include inner "testinc.rl";
+>>>
+>>> main := one;
+>>> }%%
+>>> ===== =====
+>>>
+>>> When I have test.rl and testinc.rl in the same directory, I can do
+>>>
+>>> ragel test.rl
+>>>
+>>> with no problems. When I move testinc.rl to a different directory:
+>>>
+>>> mkdir x
+>>> mv testinc.rl x
+>>> ragel test.rl
+>>>
+>>> I get errors (as expected):
+>>>
+>>> test.rl:3:28: include: failed to locate file
+>>> test.rl:3:28: include: attempted: "testinc.rl"
+>>> test.rl:5:10: graph lookup of "one" failed
+>>>
+>>> When I then specify the include path:
+>>>
+>>> ragel -I x test.rl
+>>>
+>>> I get:
+>>>
+>>> $ ragel -I x test.rl
+>>> test.rl:5:10: graph lookup of "one" failed
+>>>
+>>> Apparently ragel now finds the included file okay, but for some reason
+>>> the exact same file which worked before has problems with finding the
+>>> "one" tag.
+>>>
+>>> What am I doing wrong, or is this a bug?
+>>>
+>>> =Austin
+>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ygrek at autistici.org  Wed Mar 23 20:15:18 2011
+From: ygrek at autistici.org (ygrek)
+Date: Wed, 23 Mar 2011 22:15:18 +0200
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included machines (6.6)
+In-Reply-To: <4D8928FD.8080306@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+	<4D892650.5040109@yahoo.com> <4D8928FD.8080306@yahoo.com>
+Message-ID: <20110323221518.6ee7f054.ygrek@autistici.org>
+
+On Tue, 22 Mar 2011 18:55:57 -0400
+Austin Hastings <ah08010-ragel at yahoo.com> wrote:
+
+> Can I request an option, --vis-char-transitions (defaulting to "on") to 
+> emit character based transitions as quoted letters instead of integer 
+> numbers during visualization?
+> 
+> That is, in the dot generator, produce something like:
+> 
+> 1 -> 2 [ label = "'o'" ];
+> 
+> Instead of the current:
+> 
+> 1 -> 2 [ label = "111" ];
+> 
+> (At least whenever isgraph(ch)?)
+ 
+This option is named -p
+
+-- 
+ ygrek
+ http://ygrek.org.ua/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed Mar 23 23:25:31 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 00:25:31 +0100
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+	included machines (6.6)
+In-Reply-To: <mailman.1.1300906802.23698.ragel-users@complang.org>
+References: <mailman.1.1300906802.23698.ragel-users@complang.org>
+Message-ID: <3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+
+I'll have a look at this issue. I haven't included from different dirs 
+myself so far, but I have a vague idea what it could be...
+
+Nevertheless, the Windows version comes with the VS solution (the Express 
+version suffices), so running Ragel under the native debugger should 
+pinpoint the bug without much effort.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Mar 24 00:14:11 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 23 Mar 2011 17:14:11 -0700
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included machines (6.6)
+In-Reply-To: <3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+References: <mailman.1.1300906802.23698.ragel-users@complang.org>
+	<3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+Message-ID: <4D8A8CD3.5080400@complang.org>
+
+Thanks Josef.
+
+http://www.complang.org/redmine/issues/244
+
+-Adrian
+
+On 11-03-23 04:25 PM, ragel-user at jgoettgens.de wrote:
+> I'll have a look at this issue. I haven't included from different dirs
+> myself so far, but I have a vague idea what it could be...
+>
+> Nevertheless, the Windows version comes with the VS solution (the
+> Express version suffices), so running Ragel under the native debugger
+> should pinpoint the bug without much effort.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Thu Mar 24 09:21:17 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 24 Mar 2011 12:21:17 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+Message-ID: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+
+Hi Adrian,
+
+A week ago i start ragel and found that it is a very usefull tool.
+
+I use it for generate C and C# code (from Microsoft Visual Studio).
+
+it seems that ragel didn't rename data variable for C# code.
+
+use:
+            %% variable  data   _ctx.data;
+            %% variable  p        _ctx.current;
+            %% variable  pe      _ctx.end;
+
+code will:
+
+  ...  if ( data[(      _ctx.current)] < _test_trans_keys[_mid] ) ...
+
+
+Also i have some feature request:
+1.
+Sometime it would be very convenient to set options in rl file rathe
+than command line.
+something like:
+   %% option lang = C#                         (in addition to -C, -A ...)
+
+   %% option line  = on/off/1/0/yes/no   (-L)
+
+   %% option minimization = off/end/most/every   (-n/-m/-l/-e)
+
+   %% option mode = table/table1/flat/flat1/goto/goto1 ...  (-T0/-T1...)
+
+   %% option output = "<filename>"  (-o <filename>)
+
+   %% option error = gnu/msvc ...
+
+
+to change this from IDE more convenient than change project settings.
+This can be alternative way to set options and options from command
+line (if set) will have max priority.
+
+2.
+Mode for option -o <filename>.
+-o -  (-o "-") - for output generated code into stdout.
+This usefull for VS custom tool (custom code generator extention for
+VisualStudio).
+Now i create temp file for output - read it to std-stream and delete
+temp file to work around this.
+
+
+Best regards,
+Denis Naumov.
+
+
+PS: sorry for my english :)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Thu Mar 24 16:47:50 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 24 Mar 2011 19:47:50 +0300
+Subject: [ragel-users] Bad code generation for C# ?
+In-Reply-To: <mailman.23.1300981981.2543.ragel-users@complang.org>
+References: <mailman.23.1300981981.2543.ragel-users@complang.org>
+Message-ID: <AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+
+Hi Adrian,
+
+I found that Alphtype Statement probably not work for C#.
+
+By default type is 'char'
+
+and ragel generate
+    static readonly char[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+
+for -T0 mode and
+
+   switch( data[(      _ctx.current)] )
+       {  case '\u0009': goto tr0;  ...  }
+
+for -G0 mode
+
+it's ok.
+
+but if i use "alphtype byte;" ragel generate
+
+    static readonly byte[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+
+for -T0 mode and
+
+   switch( data[(      _ctx.current)] )
+       {  case '\u0009': goto tr0;  ...  }
+
+for -G0 mode
+
+it's wrong. It must be
+    static readonly byte[] _test_trans_keys =  new ushort [] { 22, .... }
+and
+   switch( data[(      _ctx.current)] )
+       {  case 9: goto tr0;  ...  }
+
+it seems to be that ragel generate '\u****' constants for all alphtypes.
+
+
+Best regards,
+Denis Naumov.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:33:31 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:33:31 +0100
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+	included machines (6.6) (Austin Hastings)
+Message-ID: <DAC8149FC3B5400AA8965449AF56306E@localdomain>
+
+I can confirm the odd behavior as described, however
+
+include inner "xdir/testinc.rl";  works, if xdir is a subdirectory, but it 
+shouldn't because of '/' (*)
+
+include inner "xdir\testinc.rl";  fails, though it should work because '\' 
+is correct here
+
+In line 48 in rlscan.cpp there is a definition for the OS dependent path 
+separator, but there are only 2 references to it in rlscan (lines 838 and 
+857). I would have expected more occurences.
+
+My guess is that the problem is related to a possibly inconsistent handling 
+of the Windows path separator '\' in various parts of the code (mea culpa 
+verisimilis). I don't know much about mingw, but its older brother cygwin 
+handles path issues pretty much transparently inside its lib and allows '/' 
+and '\' as far as I remember.
+
+Since includes works on other platforms and partially on Windows boxes (see 
+*), the scanner with its basic include handling is very unlikely part of the 
+problem.
+
+I'll probably find some more time tomorrow to verify this and in case it is 
+the problem, there will be some design decisions to be made:
+
+(1) Use PATH_SEP and patch wherever necessary with a lot of #ifdefs: ugly 
+and then one could use only '\' on the VisualStudio build, i.e. one cannot 
+really move code between different platforms
+
+(2) Factor out path handling using a small number of support routines to 
+mimic the behavior of cygwin/mingw: looks good to me
+
+Actually, I'd prefer to allow any character on any platform like you can use 
+any delimiter for regular expressions. In this case there would be different 
+defaults for different platforms, but this could be changed with a command 
+line switch. It could even make sense to allow an array of path separators, 
+where '/' and '\' would be the default on Windows machines.
+
+jg 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110324/f3bd1f71/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:34:01 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:34:01 +0100
+Subject: [ragel-users]  ragel didn't rename data variable for C# code.
+Message-ID: <85EBB67343744176965950A6DAECAF7A@localdomain>
+
+Denis,
+
+inside the share directory of the Windows distribution there are 2 files (Ragel.rules and usertype.dat) to support custom builds so you don’t have to do everything by hand with new projects. When you install them you can set Ragel options inside your solution, pretty much like with the C/C++ compiler and they are saved with the other settings. The build chain is just a little bit longer and due to the mapping betwen the suffix .rl to the rules , Ragel
+
+You could decide to debug the .rl file or the generated file. On the Windows platform, there might currently be a problem handling all paths correctly. At least I have not checked the #line directives lately, but I guess the MS compiler understands the Unix path conventions.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110324/ae22678c/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:47:07 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:47:07 +0100
+Subject: [ragel-users]  ragel didn't rename data variable for C# code.
+Message-ID: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+
+Whoops---I probably deleted part of a sentence shortly before I hit the send button...
+
+...
+The build chain is just a little bit longer. Due to the mapping betwen the suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110324/94ad7407/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexander.me at gmail.com  Fri Mar 25 06:38:45 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 09:38:45 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+Message-ID: <AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+
+Thanks :)
+
+I know about .rules files.  but this is a little not what I need.
+It's not problem to setup project options after project creation.
+But...
+
+before ragel i used re2c compiler and there was in-file-options like
+   /*!re2c
+        re2c:yyfill:enable = 1;
+        re2c:yyfill:check  = 1;
+       ...
+
+   */
+
+and before re2c i used flex. Flex has in-file scanner options like
+     %option   8bit reentrant bison-bridge
+     %option   warn nodefault
+     %option   yylineno
+     %option   outfile="scanner.c" header-file="scanner.h"
+
+
+For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+
+build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+this. 2010 have .target files for this.
+and this all - only for C/C++. In C# projects there is no .rules files at all.
+For C# projects VS use "Custom tool" - for code generators. I write
+custom tool extention for VS to call ragel, but command line options -
+it's problem.
+There is no simple way to pass command line options to ragel.
+Now my custom tool read comment like this:
+           // BUILD-COMMAND-LINE: -L -A
+from first string of rl file and pass it to ragel.
+
+In this all situations - simplest universal way to save options for
+various projects - save them in rl file (IMHO).
+like re2c or flex. Something like
+    %%option name = value;
+And - this options is simple to change from IDE while writing file.
+Just change text in file rather than clicks for menu and dialog boxes
+every time.
+
+If the same option set from rl file and from command line - option
+value from command line have max priority or vice versa.
+
+Ragel have %%alphtype ... %%variable ... and other commands. I think
+it's not so difficult to add %% option name=value; command for command
+line options.
+
+it's all my IMHO. :)
+
+Best regards,
+Denis Naumov.
+
+PS: Sprry for bad english. :)
+
+2011/3/24  <ragel-user at jgoettgens.de>:
+> Whoops---I probably deleted part of a sentence shortly before I hit the send
+> button...
+>
+> ...
+> The build chain is just a little bit longer. Due to the mapping betwen the
+> suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Fri Mar 25 08:16:31 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 11:16:31 +0300
+Subject: [ragel-users] Bad code generation for C# ?
+In-Reply-To: <AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+References: <mailman.23.1300981981.2543.ragel-users@complang.org>
+	<AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+Message-ID: <AANLkTikpxaG27_=TZcqjWrPjvmiDTJEGYdRkTiMXFFV0@mail.gmail.com>
+
+Hi Adrian,
+
+To solve problem with alphtype... i search ragel source code and found
+string CSharpFsmCodeGen::ALPHA_KEY( Key key ) in cscodegen.cpp
+
+is this the the only place where ALPHA constants generates? or is
+where any one else?
+
+C# type is sbyte, byte, short, ushort, char, int, uint, long, ulong
+from common.cpp
+
+and for only for 'char' type ragel must generate '\u****' constants.
+for all other types it must generate number.
+
+simple patch:
+
+==================================================================
+ FILE     => cscodegen.cpp
+ FUNCTION => string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+==================================================================
+---- OLD CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() > 0xFFFF) {
+        ret << key.getVal();
+    } else {
+        ret << "'\\u" << std::hex << std::setw(4) << std::setfill('0') <<
+            key.getVal() << "'";
+    }
+    //ret << "(char) " << key.getVal();
+    return ret.str();
+}
+
+---- NEW CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() > 0xFFFF) {
+        ret << key.getVal();
+    } else {
+        if (strcmp(keyOps->alphType->data1, "char") == 0)
+            ret << "'\\u" << std::hex << std::setw(4) <<
+std::setfill('0') << key.getVal() << "'";
+        else
+            ret << key.getVal();
+    }
+    //ret << "(char) " << key.getVal();
+    return ret.str();
+}
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     => cstable.cpp
+ FUNCTION => std::ostream &CSharpTabCodeGen::KEYS()
+==================================================================
+---- OLD CODE (at the end of function) ---------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out << "(char) " << 0 << "\n";
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps->alphType->data1, "char") == 0)
+        out << "(char) " << 0 << "\n";
+    else
+        out << 0 << "\n";
+    return out;
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     => csflat.cpp
+ FUNCTION => std::ostream &CSharpFlatCodeGen::KEYS()
+ FUNCTION => std::ostream &CSharpFlatCodeGen::COND_KEYS()
+==================================================================
+---- OLD CODE (at the end of functions) --------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out << "(char) " << 0 << "\n";
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps->alphType->data1, "char") == 0)
+        out << "(char) " << 0 << "\n";
+    else
+    out << 0 << "\n";
+    return out;
+
+---- END ---------------------------------------------------------
+
+Please, check this code. Is it right ? or i forgot something?
+
+
+Best regards,
+Denis Naumov.
+
+
+
+2011/3/24 Denis Naumov <alexander.me at gmail.com>:
+> Hi Adrian,
+>
+> I found that Alphtype Statement probably not work for C#.
+>
+> By default type is 'char'
+>
+> and ragel generate
+>     static readonly char[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+>
+> for -T0 mode and
+>
+>    switch( data[(      _ctx.current)] )
+>        {  case '\u0009': goto tr0;  ...  }
+>
+> for -G0 mode
+>
+> it's ok.
+>
+> but if i use "alphtype byte;" ragel generate
+>
+>     static readonly byte[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+>
+> for -T0 mode and
+>
+>    switch( data[(      _ctx.current)] )
+>        {  case '\u0009': goto tr0;  ...  }
+>
+> for -G0 mode
+>
+> it's wrong. It must be
+>     static readonly byte[] _test_trans_keys =  new ushort [] { 22, .... }
+> and
+>    switch( data[(      _ctx.current)] )
+>        {  case 9: goto tr0;  ...  }
+>
+> it seems to be that ragel generate '\u****' constants for all alphtypes.
+>
+>
+> Best regards,
+> Denis Naumov.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Fri Mar 25 08:52:10 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 11:52:10 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+References: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+Message-ID: <AANLkTinHAvvZqGK=vrTrBkyQSgVNsuGrV2cVQ9vtxRD4@mail.gmail.com>
+
+Hi Adrian,
+
+about
+      %% variable  data
+didn't rename access to data variable for C#.
+
+To solve this problem i search ragel source code and found
+"string CSharpCodeGen::GET_KEY()" function in cscodegen.cpp
+
+simple patch:
+
+==================================================================
+ FILE     => cscodegen.cpp
+ FUNCTION => string CSharpCodeGen::GET_KEY()
+==================================================================
+---- OLD CODE ----------------------------------------------------
+
+string CSharpCodeGen::GET_KEY()
+{
+    ostringstream ret;
+    if ( getKeyExpr != 0 ) {
+        /* Emit the user supplied method of retrieving the key. */
+        ret << "(";
+        INLINE_LIST( ret, getKeyExpr, 0, false );
+        ret << ")";
+    }
+    else {
+        /* Expression for retrieving the key, use simple dereference. */
+        ret << "data[" << P() << "]";
+    }
+    return ret.str();
+}
+
+---- NEW CODE ----------------------------------------------------
+
+string CSharpCodeGen::GET_KEY()
+{
+    ostringstream ret;
+    if ( getKeyExpr != 0 ) {
+        /* Emit the user supplied method of retrieving the key. */
+        ret << "(";
+        INLINE_LIST( ret, getKeyExpr, 0, false );
+        ret << ")";
+    }
+    else {
+        /* Expression for retrieving the key, use simple dereference. */
+
+        if ( dataExpr == 0 )
+            ret << "data";
+        else
+            INLINE_LIST( ret, dataExpr, 0, false );
+
+        ret << "[" << P() << "]";
+    }
+    return ret.str();
+}
+
+---- END ---------------------------------------------------------
+
+Please, check this code. Is it right ? or i forgot something?
+
+Best regards,
+Denis Naumov.
+
+
+2011/3/24 Denis Naumov <alexander.me at gmail.com>:
+> Hi Adrian,
+>
+> A week ago i start ragel and found that it is a very usefull tool.
+>
+> I use it for generate C and C# code (from Microsoft Visual Studio).
+>
+> it seems that ragel didn't rename data variable for C# code.
+>
+> use:
+>            %% variable  data   _ctx.data;
+>            %% variable  p        _ctx.current;
+>            %% variable  pe      _ctx.end;
+>
+> code will:
+>
+>  ...  if ( data[(      _ctx.current)] < _test_trans_keys[_mid] ) ...
+>
+>
+> Also i have some feature request:
+> 1.
+> Sometime it would be very convenient to set options in rl file rathe
+> than command line.
+> something like:
+>   %% option lang = C#                         (in addition to -C, -A ...)
+>
+>   %% option line  = on/off/1/0/yes/no   (-L)
+>
+>   %% option minimization = off/end/most/every   (-n/-m/-l/-e)
+>
+>   %% option mode = table/table1/flat/flat1/goto/goto1 ...  (-T0/-T1...)
+>
+>   %% option output = "<filename>"  (-o <filename>)
+>
+>   %% option error = gnu/msvc ...
+>
+>
+> to change this from IDE more convenient than change project settings.
+> This can be alternative way to set options and options from command
+> line (if set) will have max priority.
+>
+> 2.
+> Mode for option -o <filename>.
+> -o -  (-o "-") - for output generated code into stdout.
+> This usefull for VS custom tool (custom code generator extention for
+> VisualStudio).
+> Now i create temp file for output - read it to std-stream and delete
+> temp file to work around this.
+>
+>
+> Best regards,
+> Denis Naumov.
+>
+>
+> PS: sorry for my english :)
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Fri Mar 25 13:59:46 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 25 Mar 2011 09:59:46 -0400
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+	<AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+Message-ID: <AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+
+Hi Denis,
+
+I also made a Ragel custom code generator recently. It also suffered the
+parameters issue, of course, but I mainly stopped using it because it
+doesn't work from command line builds, only in VS. Do you have a way around
+that? I changed to a prebuild event instead and just type out all the
+parameters there and each ragel file manually. Unfortunately that runs for
+every build instead of just when the .rl file changes. Now I'm working on
+developing an msbuild task that can be used in .csproj the same way Compile
+appears there.
+
+Shawn
+
+On Fri, Mar 25, 2011 at 2:38 AM, Denis Naumov <alexander.me at gmail.com>wrote:
+
+> Thanks :)
+>
+> I know about .rules files.  but this is a little not what I need.
+> It's not problem to setup project options after project creation.
+> But...
+>
+> before ragel i used re2c compiler and there was in-file-options like
+>   /*!re2c
+>        re2c:yyfill:enable = 1;
+>        re2c:yyfill:check  = 1;
+>       ...
+>
+>   */
+>
+> and before re2c i used flex. Flex has in-file scanner options like
+>     %option   8bit reentrant bison-bridge
+>     %option   warn nodefault
+>     %option   yylineno
+>     %option   outfile="scanner.c" header-file="scanner.h"
+>
+>
+> For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+>
+> build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+> this. 2010 have .target files for this.
+> and this all - only for C/C++. In C# projects there is no .rules files at
+> all.
+> For C# projects VS use "Custom tool" - for code generators. I write
+> custom tool extention for VS to call ragel, but command line options -
+> it's problem.
+> There is no simple way to pass command line options to ragel.
+> Now my custom tool read comment like this:
+>           // BUILD-COMMAND-LINE: -L -A
+> from first string of rl file and pass it to ragel.
+>
+> In this all situations - simplest universal way to save options for
+> various projects - save them in rl file (IMHO).
+> like re2c or flex. Something like
+>    %%option name = value;
+> And - this options is simple to change from IDE while writing file.
+> Just change text in file rather than clicks for menu and dialog boxes
+> every time.
+>
+> If the same option set from rl file and from command line - option
+> value from command line have max priority or vice versa.
+>
+> Ragel have %%alphtype ... %%variable ... and other commands. I think
+> it's not so difficult to add %% option name=value; command for command
+> line options.
+>
+> it's all my IMHO. :)
+>
+> Best regards,
+> Denis Naumov.
+>
+> PS: Sprry for bad english. :)
+>
+> 2011/3/24  <ragel-user at jgoettgens.de>:
+> > Whoops---I probably deleted part of a sentence shortly before I hit the
+> send
+> > button...
+> >
+> > ...
+> > The build chain is just a little bit longer. Due to the mapping betwen
+> the
+> > suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+> >
+> > jg
+> >
+> > _______________________________________________
+> > ragel-users mailing list
+> > ragel-users at complang.org
+> > http://www.complang.org/mailman/listinfo/ragel-users
+> >
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110325/7368e4bf/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexander.me at gmail.com  Fri Mar 25 15:06:23 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 18:06:23 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+	<AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+	<AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+Message-ID: <AANLkTikF=qta-pd1wo8yA2QamA3My_TNyp0dxwdwg_3y@mail.gmail.com>
+
+Hi,
+:)
+
+I have not encountered this problem yet. but i think msbuild task - right way.
+As alternative - run some script before msbuild.
+script can does the same thing as custom tool - call ragel.exe +
+scaned params + file.
+or scan directories for .rl files, scan file for command line params
+and call ragel.
+
+Best regards,
+Denis Naumov.
+
+
+2011/3/25 Shawn Hoover <shawn at bighugh.com>:
+> Hi Denis,
+> I also made a Ragel custom code generator recently. It also suffered the
+> parameters issue, of course, but I mainly stopped using it because it
+> doesn't work from command line builds, only in VS. Do you have a way around
+> that? I changed to a prebuild event instead and just type out all the
+> parameters there and each ragel file manually. Unfortunately that runs for
+> every build instead of just when the .rl file changes. Now I'm working on
+> developing an msbuild task that can be used in .csproj the same way Compile
+> appears there.
+> Shawn
+>
+> On Fri, Mar 25, 2011 at 2:38 AM, Denis Naumov <alexander.me at gmail.com>
+> wrote:
+>>
+>> Thanks :)
+>>
+>> I know about .rules files.  but this is a little not what I need.
+>> It's not problem to setup project options after project creation.
+>> But...
+>>
+>> before ragel i used re2c compiler and there was in-file-options like
+>>   /*!re2c
+>>        re2c:yyfill:enable = 1;
+>>        re2c:yyfill:check  = 1;
+>>       ...
+>>
+>>   */
+>>
+>> and before re2c i used flex. Flex has in-file scanner options like
+>>     %option   8bit reentrant bison-bridge
+>>     %option   warn nodefault
+>>     %option   yylineno
+>>     %option   outfile="scanner.c" header-file="scanner.h"
+>>
+>>
+>> For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+>>
+>> build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+>> this. 2010 have .target files for this.
+>> and this all - only for C/C++. In C# projects there is no .rules files at
+>> all.
+>> For C# projects VS use "Custom tool" - for code generators. I write
+>> custom tool extention for VS to call ragel, but command line options -
+>> it's problem.
+>> There is no simple way to pass command line options to ragel.
+>> Now my custom tool read comment like this:
+>>           // BUILD-COMMAND-LINE: -L -A
+>> from first string of rl file and pass it to ragel.
+>>
+>> In this all situations - simplest universal way to save options for
+>> various projects - save them in rl file (IMHO).
+>> like re2c or flex. Something like
+>>    %%option name = value;
+>> And - this options is simple to change from IDE while writing file.
+>> Just change text in file rather than clicks for menu and dialog boxes
+>> every time.
+>>
+>> If the same option set from rl file and from command line - option
+>> value from command line have max priority or vice versa.
+>>
+>> Ragel have %%alphtype ... %%variable ... and other commands. I think
+>> it's not so difficult to add %% option name=value; command for command
+>> line options.
+>>
+>> it's all my IMHO. :)
+>>
+>> Best regards,
+>> Denis Naumov.
+>>
+>> PS: Sprry for bad english. :)
+>>
+>> 2011/3/24  <ragel-user at jgoettgens.de>:
+>> > Whoops---I probably deleted part of a sentence shortly before I hit the
+>> > send
+>> > button...
+>> >
+>> > ...
+>> > The build chain is just a little bit longer. Due to the mapping betwen
+>> > the
+>> > suffix .rl to the rules, Ragel now looks almost like a VisualStudio
+>> > tool.
+>> >
+>> > jg
+>> >
+>> > _______________________________________________
+>> > ragel-users mailing list
+>> > ragel-users at complang.org
+>> > http://www.complang.org/mailman/listinfo/ragel-users
+>> >
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Mar 26 16:30:00 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 26 Mar 2011 17:30:00 +0100
+Subject: [ragel-users] Path handling of the native Windows build
+Message-ID: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+
+Recently Austin Hastings reported about a bug of the native Windows build when further machines are included when the include directories are given on the command line. There is more than the bug Austin discovered as path handling for non Posix platforms is at least somewhat incomplete and inconsistent.  You can blame the maintainer of the Windows port for this :)
+
+I have patched the source code such that you can now include additional machines by specifying sub directories from the include statement and by specifying them on the command line with the -I option. All include directories may be specified as relative or absolute paths and the path separator may be either '/' odr '\'---you can even mix them.
+
+The patched sources and binaries can be downloaded from:
+
+http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+
+Please test the patched version as I have done only basic testing, and drop a line in case of any dodgy behavior.
+
+Although there is a Windows specific (aka _WIN32 is defined) definition for a path separator, include statements like  #include inner "xdir\testinc.rl";  work, because the current Windows runtime libraries accept also the separtor '/'.  Using '\' is not enforced by Ragel.  Interestingly, statements like  #include inner "xdir\testinc.rl";  fail, because the include file is handled by the scanner inside Ragel which calls prepareLitString() for new tokens.  If the path contains a valid '\', the next char is either dropped or translated, because the '\' is interpreted as an escape character.  So when it is time to open the include file, its name has been changed to "xdir<tab char>estinc.rl". Obviously, this file exists only by coincidence.
+
+Since I did not want to touch the data structures of Ragel, I simply hacked argv as various paths are just pointers into argv.  The only source code change was to remove the constness of argv in addition to a routine that normalizes paths.  If Adrian decides to copy the names, my patches are obsolete, but then his path data will be no longer read-only and a similar patch could be applied to these variables. Of course a better solution would be to make Ragel platform path agnostic...
+
+As far as the failing -I <include dir> is concerned, it's just that the Microsoft compiler doesn't let you read or write to a file when its state is not "good".  The good old days are over when gcc was the stricter compiler.  When iterating through all possible file names, the state of the ifstream is "fail".  The patch (the correct way?) is to call  inFile->clear()  if opening fails.  If you specify a sub directory inside your FSM description, the current algorithm at first tries to open this file relative to the path of the main file (unless it is an absolute path, which also works).  The first file never suffers from the state problem, so this method worked without patching, although the same routines are involved.
+
+To explore my source code changes use WinMerge or Meld on the entire source trees.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110326/1143a800/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 10:04:21 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 06:04:21 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in .dot
+	files?
+Message-ID: <4D8F0BA5.7060002@yahoo.com>
+
+Howdy,
+
+I'm poring over some .dot files, trying to understand what's wrong with 
+my tokenizer. And I'm on Windows (XPpro, sp3, en-us), which means that 
+my stuff probably doesn't work like anyone else's.
+
+I can see the .dot file contains labels generated like '\\t'  (that's 
+apos-backslash-backslash-tee-apos).
+
+But dotty is suppressing the backslash, for some reason.
+
+If I change them to 4 slashes:  '\\\\t' then I see one slash in the 
+dotty window.
+
+Is this a ragel bug (not generating the right number of slashes) or a 
+dotty bug (ignoring too many slashes) ?
+
+For example:
+
+     2 -> 2 [ label = "'\\t', '\\f'..'\\r', SP / whitespace_act, 
+buffer_input" ];
+     2 -> 2 [ label = "'\\n' / newline_act, whitespace_act, buffer_input" ];
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 11:41:11 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 07:41:11 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in
+	.dotfiles?
+In-Reply-To: <1D137513DEA84D33AF06BEC20A138A26@localdomain>
+References: <4D8F0BA5.7060002@yahoo.com>
+	<1D137513DEA84D33AF06BEC20A138A26@localdomain>
+Message-ID: <4D8F2257.4080101@yahoo.com>
+
+Sure. I think this is a "dotty" bug, though.
+
+I start with this .ragel file:
+
+%%{
+     machine test;
+     ws = 0x20 | 0x09 | 0x0A ;
+     action ws_act { }
+     main := ( ws @ws_act )+;
+}%%
+
+Which produces this .dot file:
+
+digraph test {
+         rankdir=LR;
+         node [ shape = point ];
+         ENTRY;
+         en_1;
+         node [ shape = circle, height = 0.2 ];
+         node [ fixedsize = true, height = 0.65, shape = doublecircle ];
+         2;
+         node [ shape = circle ];
+         1 -> 2 [ label = "'\\t'..'\\n', SP / ws_act" ];
+         2 -> 2 [ label = "'\\t'..'\\n', SP / ws_act" ];
+         ENTRY -> 1 [ label = "IN" ];
+         en_1 -> 1 [ label = "main" ];
+}
+
+I was then viewing it with the "dotty" tool, part of Graphviz. I got the 
+image captured in the attached file (ragel-dotty.png). You'll notice 
+there are no backslashes before 't'.
+
+Next I tried to generate the png directly with:
+
+     dot -Tpng -o ragel-dot.png ragel.dot
+
+But that png file, also attached (ragel-dot.png), contains backslashes. 
+Apparently, this is a "dotty" bug, since two of their tools are 
+producing different results. It's definitely not a ragel issue.
+
+=Austin
+
+
+On 3/27/2011 7:14 AM, Josef Göttgens wrote:
+> Hi Austin,
+>
+> I guess your example shows part of a .dot file. Backslashes are 
+> regarded by dot and friends as escape chars, i.e. in order to print \t 
+> you need to have \\t in your dot file. Whether you surround \\t with 
+> single quotes or not doesn't matter.
+>
+> I am not sure whether you need to be concerned about this because 
+> calling Ragel with the option -Vp takes care of proper escaping when 
+> needed.  Could you publish you .rl file to see what you are trying to do?
+>
+> jg
+>
+>
+> -----Ursprüngliche Nachricht----- From: Austin Hastings
+> Sent: Sunday, March 27, 2011 12:04 PM
+> To: ragel-users at complang.org
+> Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in 
+> .dotfiles?
+>
+> Howdy,
+>
+> I'm poring over some .dot files, trying to understand what's wrong with
+> my tokenizer. And I'm on Windows (XPpro, sp3, en-us), which means that
+> my stuff probably doesn't work like anyone else's.
+>
+> I can see the .dot file contains labels generated like '\\t'  (that's
+> apos-backslash-backslash-tee-apos).
+>
+> But dotty is suppressing the backslash, for some reason.
+>
+> If I change them to 4 slashes:  '\\\\t' then I see one slash in the
+> dotty window.
+>
+> Is this a ragel bug (not generating the right number of slashes) or a
+> dotty bug (ignoring too many slashes) ?
+>
+> For example:
+>
+>     2 -> 2 [ label = "'\\t', '\\f'..'\\r', SP / whitespace_act,
+> buffer_input" ];
+>     2 -> 2 [ label = "'\\n' / newline_act, whitespace_act, 
+> buffer_input" ];
+>
+> =Austin
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dotty.png
+Type: image/png
+Size: 13767 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dot.png
+Type: image/png
+Size: 14523 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110327/f033a5ad/attachment-0001.png>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 12:05:42 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 08:05:42 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough
+	in	.dotfiles?
+In-Reply-To: <4D8F2257.4080101@yahoo.com>
+References: <4D8F0BA5.7060002@yahoo.com>	<1D137513DEA84D33AF06BEC20A138A26@localdomain>
+	<4D8F2257.4080101@yahoo.com>
+Message-ID: <4D8F2816.6090106@yahoo.com>
+
+On 3/27/2011 7:41 AM, Austin Hastings wrote:
+> Sure. I think this is a "dotty" bug, though.
+>
+
+I have submitted this as a bug against graphviz.
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Mar 27 12:31:03 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 27 Mar 2011 14:31:03 +0200
+Subject: [ragel-users] Bug? Backslash-escapes not escaped
+	enoughin	.dotfiles?
+In-Reply-To: <4D8F2816.6090106@yahoo.com>
+References: <4D8F0BA5.7060002@yahoo.com>	<1D137513DEA84D33AF06BEC20A138A26@localdomain><4D8F2257.4080101@yahoo.com>
+	<4D8F2816.6090106@yahoo.com>
+Message-ID: <7A351F0DADDB45989610C004AC058A11@localdomain>
+
+Sorry, this is not really a reply---I am just trying to find out why some of
+my replies never make it to the list and others are not sorted properly....
+
+Well, you could also use Gvedit which is part of the graphviz distribution.
+The status of dotty is probably "almost obsolete".
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Mar 28 22:15:06 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 28 Mar 2011 15:15:06 -0700
+Subject: [ragel-users] code review
+In-Reply-To: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+References: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+Message-ID: <4D91086A.6020705@complang.org>
+
+Hi Nate,
+
+My apologies for taking so long to look at this. Code reviews are 
+sometimes quite involved so I often put them off ... I just grabbed the 
+latest and it seems the number of states is down to 113. That is 
+certainly reasonable for a ragel program. Are you happy with it?
+
+-Adrian
+
+On 02/23/2011 07:03 PM, Nate wrote:
+> Hi,
+>
+> I am using Ragel to parse a DSL for grid-based GUI layouts. What I have
+> is working, but I'm not sure it is done well. I would love feedback on
+> how it can be improved. I generated a graph with Graphviz... it was 10mb
+> and
+> 32767x5625 pixels, which makes me think maybe I'm not doing this right.
+>
+> My Ragel file:
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> My project, with a description of the language:
+> http://code.google.com/p/table-layout/
+>
+> The language is hierarchical. I'm using fjump/fret to handle that. Also,
+> FWIW, I chose Ragel over JavaCC and ANTLR because I like the small
+> amount of code generated. I also don't like that ANTLR has a runtime
+> dependency.
+>
+> Thanks!
+> -Nate
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> --===============1214348
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gordeev.vladimir.v at gmail.com  Tue Mar 29 20:15:27 2011
+From: gordeev.vladimir.v at gmail.com (Gordeev Vladimir)
+Date: Tue, 29 Mar 2011 23:15:27 +0300
+Subject: [ragel-users] One question.
+Message-ID: <4D923DDF.3030805@gmail.com>
+
+Hi everyone,
+
+Actually I just started to work with Ragel and probably don't understand 
+right the concept.
+
+I'm trying to write parser for toy programming language. All was ok, 
+before I mess with recursive
+definitions.
+
+I want to read lisp-like expressions, e.g. ((((one)) (two)) three), and 
+try to write recursive definition for it.
+
+the same at gist: https://gist.github.com/893142
+
+%%{
+   machine lisp;
+   integer = '-'? . ('0'|[1-9][0-9]*);
+   string = '"' . (any - '"') . '"';
+   list = '(' . (integer|string|list)* . ')';
+   main := list;
+}%%
+%% write data;
+%% write init;
+%% write exec;
+
+
+So I got following error:
+
+     test.rl:7:32: graph lookup of "list" failed
+
+So, the question is: How to define parser for such language.
+
+Yea, sorry my bad English.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110329/4eb64c4f/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From halogenandtoast at gmail.com  Tue Mar 29 20:44:04 2011
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Tue, 29 Mar 2011 16:44:04 -0400
+Subject: [ragel-users] One question.
+In-Reply-To: <4D923DDF.3030805@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+Message-ID: <AANLkTi=w-Y-0HLyE=VUinXJ7tFwVojAu4H1oXZrbivi4@mail.gmail.com>
+
+So I had to look this one up too, but from the documentation:
+
+6.7 Parsing Recursive Language Structures
+In general Ragel cannot handle recursive structures because the grammar is
+interpreted as a regular
+language. However, depending on what needs to be parsed it is sometimes
+practical to implement
+the recursive parts using manual coding techniques. This often works in
+cases where the recursive
+structures are simple and easy to recognize, such as in the balancing of
+parentheses
+One approach to parsing recursive structures is to use actions that
+increment and decrement
+counters or otherwise recognize the entry to and exit from recursive
+structures and then jump to
+the appropriate machine defnition using fcall and fret. Alternatively,
+semantic conditions can
+be used to test counter variables.
+A more traditional approach is to call a separate parsing function
+(expressed in the host lan-
+guage) when a recursive structure is entered, then later return when the end
+is recognized.
+
+Hope this helps.
+
+On Tue, Mar 29, 2011 at 4:15 PM, Gordeev Vladimir <
+gordeev.vladimir.v at gmail.com> wrote:
+
+>  Hi everyone,
+>
+> Actually I just started to work with Ragel and probably don't understand
+> right the concept.
+>
+> I'm trying to write parser for toy programming language. All was ok, before
+> I mess with recursive
+> definitions.
+>
+> I want to read lisp-like expressions, e.g. ((((one)) (two)) three), and try
+> to write recursive definition for it.
+>
+> the same at gist: https://gist.github.com/893142
+>
+>  %%{
+>   machine lisp;
+>   integer = '-'? . ('0'|[1-9][0-9]*);
+>   string = '"' . (any - '"') . '"';
+>   list = '(' . (integer|string|list)* . ')';
+>   main := list;
+> }%%
+> %% write data;
+> %% write init;
+> %% write exec;
+>
+>
+> So I got following error:
+>
+>     test.rl:7:32: graph lookup of "list" failed
+>
+> So, the question is: How to define parser for such language.
+>
+> Yea, sorry my bad English.
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110329/f6c85605/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From twisolar at gmail.com  Tue Mar 29 21:55:35 2011
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Tue, 29 Mar 2011 14:55:35 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <4D923DDF.3030805@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+Message-ID: <AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+
+On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+<gordeev.vladimir.v at gmail.com> wrote:
+> So I got following error:
+>
+>     test.rl:7:32: graph lookup of "list" failed
+
+The reason you get that error is because a rule can only reference
+definitions that came before it. "list" doesn't exist until the
+definition is finished, so it can't reference itself. (That would
+create a recursive structure anyways, which Ragel isn't equipped to
+handle natively.)
+
+~Jonathan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Tue Mar 29 21:59:39 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Tue, 29 Mar 2011 14:59:39 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+Message-ID: <AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+
+You can use fcall to jump to a machine, then fret to resume where you were.
+It's a bit tricky, but once you understand it you can parse recursively. See
+the startTable action here (though this is a pretty hairy parser):
+http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+
+-Nate
+
+
+On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com>wrote:
+
+> On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+> <gordeev.vladimir.v at gmail.com> wrote:
+> > So I got following error:
+> >
+> >     test.rl:7:32: graph lookup of "list" failed
+>
+> The reason you get that error is because a rule can only reference
+> definitions that came before it. "list" doesn't exist until the
+> definition is finished, so it can't reference itself. (That would
+> create a recursive structure anyways, which Ragel isn't equipped to
+> handle natively.)
+>
+> ~Jonathan
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110329/5d7f26cc/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From gordeev.vladimir.v at gmail.com  Wed Mar 30 04:38:09 2011
+From: gordeev.vladimir.v at gmail.com (Gordeev Vladimir)
+Date: Wed, 30 Mar 2011 07:38:09 +0300
+Subject: [ragel-users] One question.
+In-Reply-To: <AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+References: <4D923DDF.3030805@gmail.com>	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+	<AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+Message-ID: <4D92B3B1.3070509@gmail.com>
+
+Hm, this looks like solution. I will try it. Thanks.
+
+Related question: Does Ragel have some inner stack to handle nested 
+fcall/fret?
+
+On 30.03.2011 00:59, Nate wrote:
+> You can use fcall to jump to a machine, then fret to resume where you 
+> were. It's a bit tricky, but once you understand it you can parse 
+> recursively. See the startTable action here (though this is a pretty 
+> hairy parser):
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> -Nate
+>
+>
+> On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com 
+> <mailto:twisolar at gmail.com>> wrote:
+>
+>     On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+>     <gordeev.vladimir.v at gmail.com
+>     <mailto:gordeev.vladimir.v at gmail.com>> wrote:
+>     > So I got following error:
+>     >
+>     >     test.rl:7:32: graph lookup of "list" failed
+>
+>     The reason you get that error is because a rule can only reference
+>     definitions that came before it. "list" doesn't exist until the
+>     definition is finished, so it can't reference itself. (That would
+>     create a recursive structure anyways, which Ragel isn't equipped to
+>     handle natively.)
+>
+>     ~Jonathan
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110330/c36200f4/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From nathan.sweet at gmail.com  Wed Mar 30 04:59:03 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Tue, 29 Mar 2011 21:59:03 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <4D92B3B1.3070509@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+	<AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+	<4D92B3B1.3070509@gmail.com>
+Message-ID: <AANLkTi=_k5ph=Cd+9a21vJOXDahdY_C+YPjov62e=Wia@mail.gmail.com>
+
+Yes, see the int[] stack in the link. :) Also note the code under "prepush".
+
+-Nate
+
+
+On Tue, Mar 29, 2011 at 9:38 PM, Gordeev Vladimir <
+gordeev.vladimir.v at gmail.com> wrote:
+
+>  Hm, this looks like solution. I will try it. Thanks.
+>
+> Related question: Does Ragel have some inner stack to handle nested
+> fcall/fret?
+>
+>
+> On 30.03.2011 00:59, Nate wrote:
+>
+> You can use fcall to jump to a machine, then fret to resume where you were.
+> It's a bit tricky, but once you understand it you can parse recursively. See
+> the startTable action here (though this is a pretty hairy parser):
+>
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> -Nate
+>
+>
+>  On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com>wrote:
+>
+>> On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+>> <gordeev.vladimir.v at gmail.com> wrote:
+>>  > So I got following error:
+>> >
+>> >     test.rl:7:32: graph lookup of "list" failed
+>>
+>>  The reason you get that error is because a rule can only reference
+>> definitions that came before it. "list" doesn't exist until the
+>> definition is finished, so it can't reference itself. (That would
+>> create a recursive structure anyways, which Ragel isn't equipped to
+>> handle natively.)
+>>
+>> ~Jonathan
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+> _______________________________________________
+> ragel-users mailing listragel-users at complang.orghttp://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110329/1836df7b/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From nathan.sweet at gmail.com  Wed Mar 30 23:12:38 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 30 Mar 2011 16:12:38 -0700
+Subject: [ragel-users] code review
+In-Reply-To: <4D91086A.6020705@complang.org>
+References: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+	<4D91086A.6020705@complang.org>
+Message-ID: <AANLkTi=2iN47khVZLtRxjBq9i9Fc5JmN2FkxQqFz0nLH@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for taking a look. Yeah, I'm happy with it, I just wasn't sure I was
+using it right. I'm a little worried about edge cases, where things might
+parse unexpectedly. I generated a graph, but couldn't really make much use
+of it.
+
+Ragel is a really neat tool, and the documentation is very good. I think
+state charts could use a little more explanation.
+
+I wrote a little XML parser using Ragel last night, blogged about it here:
+http://www.badlogicgames.com/wordpress/?p=1712
+
+-Nate
+
+
+On Mon, Mar 28, 2011 at 3:15 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Nate,
+>
+> My apologies for taking so long to look at this. Code reviews are sometimes
+> quite involved so I often put them off ... I just grabbed the latest and it
+> seems the number of states is down to 113. That is certainly reasonable for
+> a ragel program. Are you happy with it?
+>
+> -Adrian
+>
+>
+> On 02/23/2011 07:03 PM, Nate wrote:
+>
+>> Hi,
+>>
+>> I am using Ragel to parse a DSL for grid-based GUI layouts. What I have
+>> is working, but I'm not sure it is done well. I would love feedback on
+>> how it can be improved. I generated a graph with Graphviz... it was 10mb
+>> and
+>> 32767x5625 pixels, which makes me think maybe I'm not doing this right.
+>>
+>> My Ragel file:
+>>
+>> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>>
+>> My project, with a description of the language:
+>> http://code.google.com/p/table-layout/
+>>
+>> The language is hierarchical. I'm using fjump/fret to handle that. Also,
+>> FWIW, I chose Ragel over JavaCC and ANTLR because I like the small
+>> amount of code generated. I also don't like that ANTLR has a runtime
+>> dependency.
+>>
+>> Thanks!
+>> -Nate
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> --===============1214348
+>>
+>
+> --
+> Adrian D. Thurston
+> http://www.complang.org/thurston/
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110330/70fa5d3d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Mar 31 04:42:52 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 30 Mar 2011 21:42:52 -0700
+Subject: [ragel-users] Path handling of the native Windows build
+In-Reply-To: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+References: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+Message-ID: <4D94064C.50409@complang.org>
+
+I've applied your fix for the failing -I option. I'm not yet sure what 
+to do about the other path issues ... there seems to be no pressing 
+issue, just overall design problems. I've got urgent coding to do 
+elsewhere (DSNP) so I'm going to leave that for now.
+
+On 03/26/2011 09:30 AM, ragel-user at jgoettgens.de wrote:
+> Recently Austin Hastings reported about a bug of the native Windows
+> build when further machines are included when the include directories
+> are given on the command line. There is more than the bug Austin
+> discovered as path handling for non Posix platforms is at least somewhat
+> incomplete and inconsistent. You can blame the maintainer of the Windows
+> port for this :)
+> I have patched the source code such that you can now include additional
+> machines by specifying sub directories from the include statement and by
+> specifying them on the command line with the -I option. All include
+> directories may be specified as relative or absolute paths and the path
+> separator may be either '/' odr '\'---you can even mix them.
+> The patched sources and binaries can be downloaded from:
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+> Please test the patched version as I have done only basic testing, and
+> drop a line in case of any dodgy behavior.
+> Although there is a Windows specific (aka _WIN32 is defined) definition
+> for a path separator, include statements like #include inner
+> "xdir\testinc.rl"; work, because the current Windows runtime libraries
+> accept also the separtor '/'. Using '\' is not enforced by Ragel.
+> Interestingly, statements like #include inner "xdir\testinc.rl"; fail,
+> because the include file is handled by the scanner inside Ragel which
+> calls prepareLitString() for new tokens. If the path contains a valid
+> '\', the next char is either dropped or translated, because the '\' is
+> interpreted as an escape character. So when it is time to open the
+> include file, its name has been changed to "xdir<tab char>estinc.rl".
+> Obviously, this file exists only by coincidence.
+> Since I did not want to touch the data structures of Ragel, I simply
+> hacked argv as various paths are just pointers into argv. The only
+> source code change was to remove the constness of argv in addition to a
+> routine that normalizes paths. If Adrian decides to copy the names, my
+> patches are obsolete, but then his path data will be no longer read-only
+> and a similar patch could be applied to these variables. Of course a
+> better solution would be to make Ragel platform path agnostic...
+> As far as the failing -I <include dir> is concerned, it's just that the
+> Microsoft compiler doesn't let you read or write to a file when its
+> state is not "good". The good old days are over when gcc was the
+> stricter compiler. When iterating through all possible file names, the
+> state of the ifstream is "fail". The patch (the correct way?) is to call
+> inFile->clear() if opening fails. If you specify a sub directory inside
+> your FSM description, the current algorithm at first tries to open this
+> file relative to the path of the main file (unless it is an absolute
+> path, which also works). The first file never suffers from the state
+> problem, so this method worked without patching, although the same
+> routines are involved.
+> To explore my source code changes use WinMerge or Meld on the entire
+> source trees.
+> jg
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Mar 31 04:43:56 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 30 Mar 2011 21:43:56 -0700
+Subject: [ragel-users] Path handling of the native Windows build
+In-Reply-To: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+References: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+Message-ID: <4D94068C.9060308@complang.org>
+
+Thank you for getting to the bottom of this!
+
+-Adrian
+
+On 03/26/2011 09:30 AM, ragel-user at jgoettgens.de wrote:
+> Recently Austin Hastings reported about a bug of the native Windows
+> build when further machines are included when the include directories
+> are given on the command line. There is more than the bug Austin
+> discovered as path handling for non Posix platforms is at least somewhat
+> incomplete and inconsistent. You can blame the maintainer of the Windows
+> port for this :)
+> I have patched the source code such that you can now include additional
+> machines by specifying sub directories from the include statement and by
+> specifying them on the command line with the -I option. All include
+> directories may be specified as relative or absolute paths and the path
+> separator may be either '/' odr '\'---you can even mix them.
+> The patched sources and binaries can be downloaded from:
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+> Please test the patched version as I have done only basic testing, and
+> drop a line in case of any dodgy behavior.
+> Although there is a Windows specific (aka _WIN32 is defined) definition
+> for a path separator, include statements like #include inner
+> "xdir\testinc.rl"; work, because the current Windows runtime libraries
+> accept also the separtor '/'. Using '\' is not enforced by Ragel.
+> Interestingly, statements like #include inner "xdir\testinc.rl"; fail,
+> because the include file is handled by the scanner inside Ragel which
+> calls prepareLitString() for new tokens. If the path contains a valid
+> '\', the next char is either dropped or translated, because the '\' is
+> interpreted as an escape character. So when it is time to open the
+> include file, its name has been changed to "xdir<tab char>estinc.rl".
+> Obviously, this file exists only by coincidence.
+> Since I did not want to touch the data structures of Ragel, I simply
+> hacked argv as various paths are just pointers into argv. The only
+> source code change was to remove the constness of argv in addition to a
+> routine that normalizes paths. If Adrian decides to copy the names, my
+> patches are obsolete, but then his path data will be no longer read-only
+> and a similar patch could be applied to these variables. Of course a
+> better solution would be to make Ragel platform path agnostic...
+> As far as the failing -I <include dir> is concerned, it's just that the
+> Microsoft compiler doesn't let you read or write to a file when its
+> state is not "good". The good old days are over when gcc was the
+> stricter compiler. When iterating through all possible file names, the
+> state of the ifstream is "fail". The patch (the correct way?) is to call
+> inFile->clear() if opening fails. If you specify a sub directory inside
+> your FSM description, the current algorithm at first tries to open this
+> file relative to the path of the main file (unless it is an absolute
+> path, which also works). The first file never suffers from the state
+> problem, so this method worked without patching, although the same
+> routines are involved.
+> To explore my source code changes use WinMerge or Meld on the entire
+> source trees.
+> jg
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ah08010-d at yahoo.com  Tue Mar 22 18:27:02 2011
+From: ah08010-d at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 14:27:02 -0400
+Subject: [ragel-users] Trouble referencing definitions from included
+	machines (6.6)
+Message-ID: <4D88E9F6.4050308@yahoo.com>
+
+Howdy,
+
+I was playing a bit with Ragel, and trying to include one machine from 
+another. I spent some time with a "graph lookup ... failed" error, until 
+I put my test file in the same place.
+
+As a test case, I have this:
+
+===== testinc.rl =====
+%%{
+machine inner;
+one = "one";
+two = "two";
+}%%
+===== test.rl =====
+%%{
+     machine test;
+     include inner "testinc.rl";
+
+     main := one;
+}%%
+===== =====
+
+When I have test.rl and testinc.rl in the same directory, I can do
+
+     ragel test.rl
+
+with no problems. When I move testinc.rl to a different directory:
+
+     mkdir x
+     mv testinc.rl x
+     ragel test.rl
+
+I get errors (as expected):
+
+test.rl:3:28: include: failed to locate file
+test.rl:3:28: include: attempted: "testinc.rl"
+test.rl:5:10: graph lookup of "one" failed
+
+When I then specify the include path:
+
+     ragel -I x test.rl
+
+I get:
+
+$ ragel -I x test.rl
+test.rl:5:10: graph lookup of "one" failed
+
+Apparently ragel now finds the included file okay, but for some reason 
+the exact same file which worked before has problems with finding the 
+"one" tag.
+
+What am I doing wrong, or is this a bug?
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Tue Mar 22 19:05:31 2011
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 22 Mar 2011 12:05:31 -0700
+Subject: [ragel-users] Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D88E9F6.4050308@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com>
+Message-ID: <4D88F2FB.7020005@esentire.com>
+
+I've been unable to reproduce this problem using the ragel 6.6 
+distribution tarball on my ubuntu lucid system. Can you tell me which 
+architecture you are on? Where did you get the build? Also, could you 
+attach an strace log?
+
+Thanks,
+  Adrian
+
+On 11-03-22 11:27 AM, Austin Hastings wrote:
+> Howdy,
+>
+> I was playing a bit with Ragel, and trying to include one machine from
+> another. I spent some time with a "graph lookup ... failed" error, until
+> I put my test file in the same place.
+>
+> As a test case, I have this:
+>
+> ===== testinc.rl =====
+> %%{
+> machine inner;
+> one = "one";
+> two = "two";
+> }%%
+> ===== test.rl =====
+> %%{
+> machine test;
+> include inner "testinc.rl";
+>
+> main := one;
+> }%%
+> ===== =====
+>
+> When I have test.rl and testinc.rl in the same directory, I can do
+>
+> ragel test.rl
+>
+> with no problems. When I move testinc.rl to a different directory:
+>
+> mkdir x
+> mv testinc.rl x
+> ragel test.rl
+>
+> I get errors (as expected):
+>
+> test.rl:3:28: include: failed to locate file
+> test.rl:3:28: include: attempted: "testinc.rl"
+> test.rl:5:10: graph lookup of "one" failed
+>
+> When I then specify the include path:
+>
+> ragel -I x test.rl
+>
+> I get:
+>
+> $ ragel -I x test.rl
+> test.rl:5:10: graph lookup of "one" failed
+>
+> Apparently ragel now finds the included file okay, but for some reason
+> the exact same file which worked before has problems with finding the
+> "one" tag.
+>
+> What am I doing wrong, or is this a bug?
+>
+> =Austin
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ah08010-ragel at yahoo.com  Tue Mar 22 22:44:32 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 18:44:32 -0400
+Subject: [ragel-users] Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D88F2FB.7020005@esentire.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+Message-ID: <4D892650.5040109@yahoo.com>
+
+This is on windows (32bit, XP pro sp3, en-us), using the binary 
+distribution linked from the ragel home page. FWIW, I'm invoking the 
+commands under Mingw bash.
+
+I've attached some output from procmon, with the good bits at about line 
+135. The file is apparently located and successfully read, but then 
+somehow ragel decides to fail.
+
+
+=Austin
+
+
+On 3/22/2011 3:05 PM, Adrian Thurston wrote:
+> I've been unable to reproduce this problem using the ragel 6.6
+> distribution tarball on my ubuntu lucid system. Can you tell me which
+> architecture you are on? Where did you get the build? Also, could you
+> attach an strace log?
+>
+> Thanks,
+>  Adrian
+>
+> On 11-03-22 11:27 AM, Austin Hastings wrote:
+>> Howdy,
+>>
+>> I was playing a bit with Ragel, and trying to include one machine from
+>> another. I spent some time with a "graph lookup ... failed" error, until
+>> I put my test file in the same place.
+>>
+>> As a test case, I have this:
+>>
+>> ===== testinc.rl =====
+>> %%{
+>> machine inner;
+>> one = "one";
+>> two = "two";
+>> }%%
+>> ===== test.rl =====
+>> %%{
+>> machine test;
+>> include inner "testinc.rl";
+>>
+>> main := one;
+>> }%%
+>> ===== =====
+>>
+>> When I have test.rl and testinc.rl in the same directory, I can do
+>>
+>> ragel test.rl
+>>
+>> with no problems. When I move testinc.rl to a different directory:
+>>
+>> mkdir x
+>> mv testinc.rl x
+>> ragel test.rl
+>>
+>> I get errors (as expected):
+>>
+>> test.rl:3:28: include: failed to locate file
+>> test.rl:3:28: include: attempted: "testinc.rl"
+>> test.rl:5:10: graph lookup of "one" failed
+>>
+>> When I then specify the include path:
+>>
+>> ragel -I x test.rl
+>>
+>> I get:
+>>
+>> $ ragel -I x test.rl
+>> test.rl:5:10: graph lookup of "one" failed
+>>
+>> Apparently ragel now finds the included file okay, but for some reason
+>> the exact same file which worked before has problems with finding the
+>> "one" tag.
+>>
+>> What am I doing wrong, or is this a bug?
+>>
+>> =Austin
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: Logfile.CSV
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110322/95eb1748/attachment-0001.ksh>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Tue Mar 22 22:55:57 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Tue, 22 Mar 2011 18:55:57 -0400
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included	machines (6.6)
+In-Reply-To: <4D892650.5040109@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+	<4D892650.5040109@yahoo.com>
+Message-ID: <4D8928FD.8080306@yahoo.com>
+
+Following up a little more:  I decided to try running under windows 
+cmd.exe, instead of mingw. That didn't have any effect.
+
+Frustrated, I rebuilt the ragel within mingw entirely, starting from 
+"./configure".
+
+That has apparently solved the problem. The same command line as 
+described below now completes with no errors reported, and running ragel 
+-V produces a .dot file that looks like what I expect.
+
+Woo-hoo!
+
+Can I request an option, --vis-char-transitions (defaulting to "on") to 
+emit character based transitions as quoted letters instead of integer 
+numbers during visualization?
+
+That is, in the dot generator, produce something like:
+
+1 -> 2 [ label = "'o'" ];
+
+Instead of the current:
+
+1 -> 2 [ label = "111" ];
+
+(At least whenever isgraph(ch)?)
+
+Thanks,
+
+=Austin
+
+
+On 3/22/2011 6:44 PM, Austin Hastings wrote:
+> This is on windows (32bit, XP pro sp3, en-us), using the binary 
+> distribution linked from the ragel home page. FWIW, I'm invoking the 
+> commands under Mingw bash.
+>
+> I've attached some output from procmon, with the good bits at about 
+> line 135. The file is apparently located and successfully read, but 
+> then somehow ragel decides to fail.
+>
+>
+> =Austin
+>
+>
+> On 3/22/2011 3:05 PM, Adrian Thurston wrote:
+>> I've been unable to reproduce this problem using the ragel 6.6
+>> distribution tarball on my ubuntu lucid system. Can you tell me which
+>> architecture you are on? Where did you get the build? Also, could you
+>> attach an strace log?
+>>
+>> Thanks,
+>>  Adrian
+>>
+>> On 11-03-22 11:27 AM, Austin Hastings wrote:
+>>> Howdy,
+>>>
+>>> I was playing a bit with Ragel, and trying to include one machine from
+>>> another. I spent some time with a "graph lookup ... failed" error, 
+>>> until
+>>> I put my test file in the same place.
+>>>
+>>> As a test case, I have this:
+>>>
+>>> ===== testinc.rl =====
+>>> %%{
+>>> machine inner;
+>>> one = "one";
+>>> two = "two";
+>>> }%%
+>>> ===== test.rl =====
+>>> %%{
+>>> machine test;
+>>> include inner "testinc.rl";
+>>>
+>>> main := one;
+>>> }%%
+>>> ===== =====
+>>>
+>>> When I have test.rl and testinc.rl in the same directory, I can do
+>>>
+>>> ragel test.rl
+>>>
+>>> with no problems. When I move testinc.rl to a different directory:
+>>>
+>>> mkdir x
+>>> mv testinc.rl x
+>>> ragel test.rl
+>>>
+>>> I get errors (as expected):
+>>>
+>>> test.rl:3:28: include: failed to locate file
+>>> test.rl:3:28: include: attempted: "testinc.rl"
+>>> test.rl:5:10: graph lookup of "one" failed
+>>>
+>>> When I then specify the include path:
+>>>
+>>> ragel -I x test.rl
+>>>
+>>> I get:
+>>>
+>>> $ ragel -I x test.rl
+>>> test.rl:5:10: graph lookup of "one" failed
+>>>
+>>> Apparently ragel now finds the included file okay, but for some reason
+>>> the exact same file which worked before has problems with finding the
+>>> "one" tag.
+>>>
+>>> What am I doing wrong, or is this a bug?
+>>>
+>>> =Austin
+>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ygrek at autistici.org  Wed Mar 23 20:15:18 2011
+From: ygrek at autistici.org (ygrek)
+Date: Wed, 23 Mar 2011 22:15:18 +0200
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included machines (6.6)
+In-Reply-To: <4D8928FD.8080306@yahoo.com>
+References: <4D88E9F6.4050308@yahoo.com> <4D88F2FB.7020005@esentire.com>
+	<4D892650.5040109@yahoo.com> <4D8928FD.8080306@yahoo.com>
+Message-ID: <20110323221518.6ee7f054.ygrek@autistici.org>
+
+On Tue, 22 Mar 2011 18:55:57 -0400
+Austin Hastings <ah08010-ragel at yahoo.com> wrote:
+
+> Can I request an option, --vis-char-transitions (defaulting to "on") to 
+> emit character based transitions as quoted letters instead of integer 
+> numbers during visualization?
+> 
+> That is, in the dot generator, produce something like:
+> 
+> 1 -> 2 [ label = "'o'" ];
+> 
+> Instead of the current:
+> 
+> 1 -> 2 [ label = "111" ];
+> 
+> (At least whenever isgraph(ch)?)
+ 
+This option is named -p
+
+-- 
+ ygrek
+ http://ygrek.org.ua/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Wed Mar 23 23:25:31 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 00:25:31 +0100
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+	included machines (6.6)
+In-Reply-To: <mailman.1.1300906802.23698.ragel-users@complang.org>
+References: <mailman.1.1300906802.23698.ragel-users@complang.org>
+Message-ID: <3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+
+I'll have a look at this issue. I haven't included from different dirs 
+myself so far, but I have a vague idea what it could be...
+
+Nevertheless, the Windows version comes with the VS solution (the Express 
+version suffices), so running Ragel under the native debugger should 
+pinpoint the bug without much effort.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Mar 24 00:14:11 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 23 Mar 2011 17:14:11 -0700
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+ included machines (6.6)
+In-Reply-To: <3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+References: <mailman.1.1300906802.23698.ragel-users@complang.org>
+	<3B12DBCB49EF4FAB9F296D90528AA10D@localdomain>
+Message-ID: <4D8A8CD3.5080400@complang.org>
+
+Thanks Josef.
+
+http://www.complang.org/redmine/issues/244
+
+-Adrian
+
+On 11-03-23 04:25 PM, ragel-user at jgoettgens.de wrote:
+> I'll have a look at this issue. I haven't included from different dirs
+> myself so far, but I have a vague idea what it could be...
+>
+> Nevertheless, the Windows version comes with the VS solution (the
+> Express version suffices), so running Ragel under the native debugger
+> should pinpoint the bug without much effort.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Thu Mar 24 09:21:17 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 24 Mar 2011 12:21:17 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+Message-ID: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+
+Hi Adrian,
+
+A week ago i start ragel and found that it is a very usefull tool.
+
+I use it for generate C and C# code (from Microsoft Visual Studio).
+
+it seems that ragel didn't rename data variable for C# code.
+
+use:
+            %% variable  data   _ctx.data;
+            %% variable  p        _ctx.current;
+            %% variable  pe      _ctx.end;
+
+code will:
+
+  ...  if ( data[(      _ctx.current)] < _test_trans_keys[_mid] ) ...
+
+
+Also i have some feature request:
+1.
+Sometime it would be very convenient to set options in rl file rathe
+than command line.
+something like:
+   %% option lang = C#                         (in addition to -C, -A ...)
+
+   %% option line  = on/off/1/0/yes/no   (-L)
+
+   %% option minimization = off/end/most/every   (-n/-m/-l/-e)
+
+   %% option mode = table/table1/flat/flat1/goto/goto1 ...  (-T0/-T1...)
+
+   %% option output = "<filename>"  (-o <filename>)
+
+   %% option error = gnu/msvc ...
+
+
+to change this from IDE more convenient than change project settings.
+This can be alternative way to set options and options from command
+line (if set) will have max priority.
+
+2.
+Mode for option -o <filename>.
+-o -  (-o "-") - for output generated code into stdout.
+This usefull for VS custom tool (custom code generator extention for
+VisualStudio).
+Now i create temp file for output - read it to std-stream and delete
+temp file to work around this.
+
+
+Best regards,
+Denis Naumov.
+
+
+PS: sorry for my english :)
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Thu Mar 24 16:47:50 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Thu, 24 Mar 2011 19:47:50 +0300
+Subject: [ragel-users] Bad code generation for C# ?
+In-Reply-To: <mailman.23.1300981981.2543.ragel-users@complang.org>
+References: <mailman.23.1300981981.2543.ragel-users@complang.org>
+Message-ID: <AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+
+Hi Adrian,
+
+I found that Alphtype Statement probably not work for C#.
+
+By default type is 'char'
+
+and ragel generate
+    static readonly char[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+
+for -T0 mode and
+
+   switch( data[(      _ctx.current)] )
+       {  case '\u0009': goto tr0;  ...  }
+
+for -G0 mode
+
+it's ok.
+
+but if i use "alphtype byte;" ragel generate
+
+    static readonly byte[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+
+for -T0 mode and
+
+   switch( data[(      _ctx.current)] )
+       {  case '\u0009': goto tr0;  ...  }
+
+for -G0 mode
+
+it's wrong. It must be
+    static readonly byte[] _test_trans_keys =  new ushort [] { 22, .... }
+and
+   switch( data[(      _ctx.current)] )
+       {  case 9: goto tr0;  ...  }
+
+it seems to be that ragel generate '\u****' constants for all alphtypes.
+
+
+Best regards,
+Denis Naumov.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:33:31 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:33:31 +0100
+Subject: [ragel-users] (resolved?) Trouble referencing definitions from
+	included machines (6.6) (Austin Hastings)
+Message-ID: <DAC8149FC3B5400AA8965449AF56306E@localdomain>
+
+I can confirm the odd behavior as described, however
+
+include inner "xdir/testinc.rl";  works, if xdir is a subdirectory, but it 
+shouldn't because of '/' (*)
+
+include inner "xdir\testinc.rl";  fails, though it should work because '\' 
+is correct here
+
+In line 48 in rlscan.cpp there is a definition for the OS dependent path 
+separator, but there are only 2 references to it in rlscan (lines 838 and 
+857). I would have expected more occurences.
+
+My guess is that the problem is related to a possibly inconsistent handling 
+of the Windows path separator '\' in various parts of the code (mea culpa 
+verisimilis). I don't know much about mingw, but its older brother cygwin 
+handles path issues pretty much transparently inside its lib and allows '/' 
+and '\' as far as I remember.
+
+Since includes works on other platforms and partially on Windows boxes (see 
+*), the scanner with its basic include handling is very unlikely part of the 
+problem.
+
+I'll probably find some more time tomorrow to verify this and in case it is 
+the problem, there will be some design decisions to be made:
+
+(1) Use PATH_SEP and patch wherever necessary with a lot of #ifdefs: ugly 
+and then one could use only '\' on the VisualStudio build, i.e. one cannot 
+really move code between different platforms
+
+(2) Factor out path handling using a small number of support routines to 
+mimic the behavior of cygwin/mingw: looks good to me
+
+Actually, I'd prefer to allow any character on any platform like you can use 
+any delimiter for regular expressions. In this case there would be different 
+defaults for different platforms, but this could be changed with a command 
+line switch. It could even make sense to allow an array of path separators, 
+where '/' and '\' would be the default on Windows machines.
+
+jg 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110324/f3bd1f71/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:34:01 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:34:01 +0100
+Subject: [ragel-users]  ragel didn't rename data variable for C# code.
+Message-ID: <85EBB67343744176965950A6DAECAF7A@localdomain>
+
+Denis,
+
+inside the share directory of the Windows distribution there are 2 files (Ragel.rules and usertype.dat) to support custom builds so you don’t have to do everything by hand with new projects. When you install them you can set Ragel options inside your solution, pretty much like with the C/C++ compiler and they are saved with the other settings. The build chain is just a little bit longer and due to the mapping betwen the suffix .rl to the rules , Ragel
+
+You could decide to debug the .rl file or the generated file. On the Windows platform, there might currently be a problem handling all paths correctly. At least I have not checked the #line directives lately, but I guess the MS compiler understands the Unix path conventions.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110324/ae22678c/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Thu Mar 24 20:47:07 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Thu, 24 Mar 2011 21:47:07 +0100
+Subject: [ragel-users]  ragel didn't rename data variable for C# code.
+Message-ID: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+
+Whoops---I probably deleted part of a sentence shortly before I hit the send button...
+
+...
+The build chain is just a little bit longer. Due to the mapping betwen the suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110324/94ad7407/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexander.me at gmail.com  Fri Mar 25 06:38:45 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 09:38:45 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+Message-ID: <AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+
+Thanks :)
+
+I know about .rules files.  but this is a little not what I need.
+It's not problem to setup project options after project creation.
+But...
+
+before ragel i used re2c compiler and there was in-file-options like
+   /*!re2c
+        re2c:yyfill:enable = 1;
+        re2c:yyfill:check  = 1;
+       ...
+
+   */
+
+and before re2c i used flex. Flex has in-file scanner options like
+     %option   8bit reentrant bison-bridge
+     %option   warn nodefault
+     %option   yylineno
+     %option   outfile="scanner.c" header-file="scanner.h"
+
+
+For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+
+build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+this. 2010 have .target files for this.
+and this all - only for C/C++. In C# projects there is no .rules files at all.
+For C# projects VS use "Custom tool" - for code generators. I write
+custom tool extention for VS to call ragel, but command line options -
+it's problem.
+There is no simple way to pass command line options to ragel.
+Now my custom tool read comment like this:
+           // BUILD-COMMAND-LINE: -L -A
+from first string of rl file and pass it to ragel.
+
+In this all situations - simplest universal way to save options for
+various projects - save them in rl file (IMHO).
+like re2c or flex. Something like
+    %%option name = value;
+And - this options is simple to change from IDE while writing file.
+Just change text in file rather than clicks for menu and dialog boxes
+every time.
+
+If the same option set from rl file and from command line - option
+value from command line have max priority or vice versa.
+
+Ragel have %%alphtype ... %%variable ... and other commands. I think
+it's not so difficult to add %% option name=value; command for command
+line options.
+
+it's all my IMHO. :)
+
+Best regards,
+Denis Naumov.
+
+PS: Sprry for bad english. :)
+
+2011/3/24  <ragel-user at jgoettgens.de>:
+> Whoops---I probably deleted part of a sentence shortly before I hit the send
+> button...
+>
+> ...
+> The build chain is just a little bit longer. Due to the mapping betwen the
+> suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Fri Mar 25 08:16:31 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 11:16:31 +0300
+Subject: [ragel-users] Bad code generation for C# ?
+In-Reply-To: <AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+References: <mailman.23.1300981981.2543.ragel-users@complang.org>
+	<AANLkTi=hgZTXpx+qsB6Mie_LBF8uRZMtuuNY31cW_9Cw@mail.gmail.com>
+Message-ID: <AANLkTikpxaG27_=TZcqjWrPjvmiDTJEGYdRkTiMXFFV0@mail.gmail.com>
+
+Hi Adrian,
+
+To solve problem with alphtype... i search ragel source code and found
+string CSharpFsmCodeGen::ALPHA_KEY( Key key ) in cscodegen.cpp
+
+is this the the only place where ALPHA constants generates? or is
+where any one else?
+
+C# type is sbyte, byte, short, ushort, char, int, uint, long, ulong
+from common.cpp
+
+and for only for 'char' type ragel must generate '\u****' constants.
+for all other types it must generate number.
+
+simple patch:
+
+==================================================================
+ FILE     => cscodegen.cpp
+ FUNCTION => string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+==================================================================
+---- OLD CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() > 0xFFFF) {
+        ret << key.getVal();
+    } else {
+        ret << "'\\u" << std::hex << std::setw(4) << std::setfill('0') <<
+            key.getVal() << "'";
+    }
+    //ret << "(char) " << key.getVal();
+    return ret.str();
+}
+
+---- NEW CODE ----------------------------------------------------
+
+string CSharpFsmCodeGen::ALPHA_KEY( Key key )
+{
+    ostringstream ret;
+    if (key.getVal() > 0xFFFF) {
+        ret << key.getVal();
+    } else {
+        if (strcmp(keyOps->alphType->data1, "char") == 0)
+            ret << "'\\u" << std::hex << std::setw(4) <<
+std::setfill('0') << key.getVal() << "'";
+        else
+            ret << key.getVal();
+    }
+    //ret << "(char) " << key.getVal();
+    return ret.str();
+}
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     => cstable.cpp
+ FUNCTION => std::ostream &CSharpTabCodeGen::KEYS()
+==================================================================
+---- OLD CODE (at the end of function) ---------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out << "(char) " << 0 << "\n";
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps->alphType->data1, "char") == 0)
+        out << "(char) " << 0 << "\n";
+    else
+        out << 0 << "\n";
+    return out;
+
+---- END ---------------------------------------------------------
+
+
+
+==================================================================
+ FILE     => csflat.cpp
+ FUNCTION => std::ostream &CSharpFlatCodeGen::KEYS()
+ FUNCTION => std::ostream &CSharpFlatCodeGen::COND_KEYS()
+==================================================================
+---- OLD CODE (at the end of functions) --------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    out << "(char) " << 0 << "\n";
+    return out;
+
+---- NEW CODE ----------------------------------------------------
+
+    /* Output one last number so we don't have to figure out when the last
+     * entry is and avoid writing a comma. */
+    if (strcmp(keyOps->alphType->data1, "char") == 0)
+        out << "(char) " << 0 << "\n";
+    else
+    out << 0 << "\n";
+    return out;
+
+---- END ---------------------------------------------------------
+
+Please, check this code. Is it right ? or i forgot something?
+
+
+Best regards,
+Denis Naumov.
+
+
+
+2011/3/24 Denis Naumov <alexander.me at gmail.com>:
+> Hi Adrian,
+>
+> I found that Alphtype Statement probably not work for C#.
+>
+> By default type is 'char'
+>
+> and ragel generate
+>     static readonly char[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+>
+> for -T0 mode and
+>
+>    switch( data[(      _ctx.current)] )
+>        {  case '\u0009': goto tr0;  ...  }
+>
+> for -G0 mode
+>
+> it's ok.
+>
+> but if i use "alphtype byte;" ragel generate
+>
+>     static readonly byte[] _test_trans_keys =  new ushort [] { '\u0022' .... }
+>
+> for -T0 mode and
+>
+>    switch( data[(      _ctx.current)] )
+>        {  case '\u0009': goto tr0;  ...  }
+>
+> for -G0 mode
+>
+> it's wrong. It must be
+>     static readonly byte[] _test_trans_keys =  new ushort [] { 22, .... }
+> and
+>    switch( data[(      _ctx.current)] )
+>        {  case 9: goto tr0;  ...  }
+>
+> it seems to be that ragel generate '\u****' constants for all alphtypes.
+>
+>
+> Best regards,
+> Denis Naumov.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Fri Mar 25 08:52:10 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 11:52:10 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+References: <AANLkTim3mUijTzhRru1Crhwj6ooVkV6g1yxitVGS1bBb@mail.gmail.com>
+Message-ID: <AANLkTinHAvvZqGK=vrTrBkyQSgVNsuGrV2cVQ9vtxRD4@mail.gmail.com>
+
+Hi Adrian,
+
+about
+      %% variable  data
+didn't rename access to data variable for C#.
+
+To solve this problem i search ragel source code and found
+"string CSharpCodeGen::GET_KEY()" function in cscodegen.cpp
+
+simple patch:
+
+==================================================================
+ FILE     => cscodegen.cpp
+ FUNCTION => string CSharpCodeGen::GET_KEY()
+==================================================================
+---- OLD CODE ----------------------------------------------------
+
+string CSharpCodeGen::GET_KEY()
+{
+    ostringstream ret;
+    if ( getKeyExpr != 0 ) {
+        /* Emit the user supplied method of retrieving the key. */
+        ret << "(";
+        INLINE_LIST( ret, getKeyExpr, 0, false );
+        ret << ")";
+    }
+    else {
+        /* Expression for retrieving the key, use simple dereference. */
+        ret << "data[" << P() << "]";
+    }
+    return ret.str();
+}
+
+---- NEW CODE ----------------------------------------------------
+
+string CSharpCodeGen::GET_KEY()
+{
+    ostringstream ret;
+    if ( getKeyExpr != 0 ) {
+        /* Emit the user supplied method of retrieving the key. */
+        ret << "(";
+        INLINE_LIST( ret, getKeyExpr, 0, false );
+        ret << ")";
+    }
+    else {
+        /* Expression for retrieving the key, use simple dereference. */
+
+        if ( dataExpr == 0 )
+            ret << "data";
+        else
+            INLINE_LIST( ret, dataExpr, 0, false );
+
+        ret << "[" << P() << "]";
+    }
+    return ret.str();
+}
+
+---- END ---------------------------------------------------------
+
+Please, check this code. Is it right ? or i forgot something?
+
+Best regards,
+Denis Naumov.
+
+
+2011/3/24 Denis Naumov <alexander.me at gmail.com>:
+> Hi Adrian,
+>
+> A week ago i start ragel and found that it is a very usefull tool.
+>
+> I use it for generate C and C# code (from Microsoft Visual Studio).
+>
+> it seems that ragel didn't rename data variable for C# code.
+>
+> use:
+>            %% variable  data   _ctx.data;
+>            %% variable  p        _ctx.current;
+>            %% variable  pe      _ctx.end;
+>
+> code will:
+>
+>  ...  if ( data[(      _ctx.current)] < _test_trans_keys[_mid] ) ...
+>
+>
+> Also i have some feature request:
+> 1.
+> Sometime it would be very convenient to set options in rl file rathe
+> than command line.
+> something like:
+>   %% option lang = C#                         (in addition to -C, -A ...)
+>
+>   %% option line  = on/off/1/0/yes/no   (-L)
+>
+>   %% option minimization = off/end/most/every   (-n/-m/-l/-e)
+>
+>   %% option mode = table/table1/flat/flat1/goto/goto1 ...  (-T0/-T1...)
+>
+>   %% option output = "<filename>"  (-o <filename>)
+>
+>   %% option error = gnu/msvc ...
+>
+>
+> to change this from IDE more convenient than change project settings.
+> This can be alternative way to set options and options from command
+> line (if set) will have max priority.
+>
+> 2.
+> Mode for option -o <filename>.
+> -o -  (-o "-") - for output generated code into stdout.
+> This usefull for VS custom tool (custom code generator extention for
+> VisualStudio).
+> Now i create temp file for output - read it to std-stream and delete
+> temp file to work around this.
+>
+>
+> Best regards,
+> Denis Naumov.
+>
+>
+> PS: sorry for my english :)
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Fri Mar 25 13:59:46 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Fri, 25 Mar 2011 09:59:46 -0400
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+	<AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+Message-ID: <AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+
+Hi Denis,
+
+I also made a Ragel custom code generator recently. It also suffered the
+parameters issue, of course, but I mainly stopped using it because it
+doesn't work from command line builds, only in VS. Do you have a way around
+that? I changed to a prebuild event instead and just type out all the
+parameters there and each ragel file manually. Unfortunately that runs for
+every build instead of just when the .rl file changes. Now I'm working on
+developing an msbuild task that can be used in .csproj the same way Compile
+appears there.
+
+Shawn
+
+On Fri, Mar 25, 2011 at 2:38 AM, Denis Naumov <alexander.me at gmail.com>wrote:
+
+> Thanks :)
+>
+> I know about .rules files.  but this is a little not what I need.
+> It's not problem to setup project options after project creation.
+> But...
+>
+> before ragel i used re2c compiler and there was in-file-options like
+>   /*!re2c
+>        re2c:yyfill:enable = 1;
+>        re2c:yyfill:check  = 1;
+>       ...
+>
+>   */
+>
+> and before re2c i used flex. Flex has in-file scanner options like
+>     %option   8bit reentrant bison-bridge
+>     %option   warn nodefault
+>     %option   yylineno
+>     %option   outfile="scanner.c" header-file="scanner.h"
+>
+>
+> For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+>
+> build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+> this. 2010 have .target files for this.
+> and this all - only for C/C++. In C# projects there is no .rules files at
+> all.
+> For C# projects VS use "Custom tool" - for code generators. I write
+> custom tool extention for VS to call ragel, but command line options -
+> it's problem.
+> There is no simple way to pass command line options to ragel.
+> Now my custom tool read comment like this:
+>           // BUILD-COMMAND-LINE: -L -A
+> from first string of rl file and pass it to ragel.
+>
+> In this all situations - simplest universal way to save options for
+> various projects - save them in rl file (IMHO).
+> like re2c or flex. Something like
+>    %%option name = value;
+> And - this options is simple to change from IDE while writing file.
+> Just change text in file rather than clicks for menu and dialog boxes
+> every time.
+>
+> If the same option set from rl file and from command line - option
+> value from command line have max priority or vice versa.
+>
+> Ragel have %%alphtype ... %%variable ... and other commands. I think
+> it's not so difficult to add %% option name=value; command for command
+> line options.
+>
+> it's all my IMHO. :)
+>
+> Best regards,
+> Denis Naumov.
+>
+> PS: Sprry for bad english. :)
+>
+> 2011/3/24  <ragel-user at jgoettgens.de>:
+> > Whoops---I probably deleted part of a sentence shortly before I hit the
+> send
+> > button...
+> >
+> > ...
+> > The build chain is just a little bit longer. Due to the mapping betwen
+> the
+> > suffix .rl to the rules, Ragel now looks almost like a VisualStudio tool.
+> >
+> > jg
+> >
+> > _______________________________________________
+> > ragel-users mailing list
+> > ragel-users at complang.org
+> > http://www.complang.org/mailman/listinfo/ragel-users
+> >
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110325/7368e4bf/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexander.me at gmail.com  Fri Mar 25 15:06:23 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Fri, 25 Mar 2011 18:06:23 +0300
+Subject: [ragel-users] ragel didn't rename data variable for C# code.
+In-Reply-To: <AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+References: <E5C0C4D7A4524E4DB84B7A8AE07E0465@localdomain>
+	<AANLkTin4V=LNZXj92+SeEMN=t1Kv8aK4aquX2tFgh563@mail.gmail.com>
+	<AANLkTimG7h7QUAs7rEVK0XQXeRAvwL1rWkq96Csm7Nhh@mail.gmail.com>
+Message-ID: <AANLkTikF=qta-pd1wo8yA2QamA3My_TNyp0dxwdwg_3y@mail.gmail.com>
+
+Hi,
+:)
+
+I have not encountered this problem yet. but i think msbuild task - right way.
+As alternative - run some script before msbuild.
+script can does the same thing as custom tool - call ragel.exe +
+scaned params + file.
+or scan directories for .rl files, scan file for command line params
+and call ragel.
+
+Best regards,
+Denis Naumov.
+
+
+2011/3/25 Shawn Hoover <shawn at bighugh.com>:
+> Hi Denis,
+> I also made a Ragel custom code generator recently. It also suffered the
+> parameters issue, of course, but I mainly stopped using it because it
+> doesn't work from command line builds, only in VS. Do you have a way around
+> that? I changed to a prebuild event instead and just type out all the
+> parameters there and each ragel file manually. Unfortunately that runs for
+> every build instead of just when the .rl file changes. Now I'm working on
+> developing an msbuild task that can be used in .csproj the same way Compile
+> appears there.
+> Shawn
+>
+> On Fri, Mar 25, 2011 at 2:38 AM, Denis Naumov <alexander.me at gmail.com>
+> wrote:
+>>
+>> Thanks :)
+>>
+>> I know about .rules files.  but this is a little not what I need.
+>> It's not problem to setup project options after project creation.
+>> But...
+>>
+>> before ragel i used re2c compiler and there was in-file-options like
+>>   /*!re2c
+>>        re2c:yyfill:enable = 1;
+>>        re2c:yyfill:check  = 1;
+>>       ...
+>>
+>>   */
+>>
+>> and before re2c i used flex. Flex has in-file scanner options like
+>>     %option   8bit reentrant bison-bridge
+>>     %option   warn nodefault
+>>     %option   yylineno
+>>     %option   outfile="scanner.c" header-file="scanner.h"
+>>
+>>
+>> For my developing i use VisualStudio .NET/2008/2010 and C++/C#.
+>>
+>> build .rules file - used in VS.NET/2008, but VS 2010 - not work with
+>> this. 2010 have .target files for this.
+>> and this all - only for C/C++. In C# projects there is no .rules files at
+>> all.
+>> For C# projects VS use "Custom tool" - for code generators. I write
+>> custom tool extention for VS to call ragel, but command line options -
+>> it's problem.
+>> There is no simple way to pass command line options to ragel.
+>> Now my custom tool read comment like this:
+>>           // BUILD-COMMAND-LINE: -L -A
+>> from first string of rl file and pass it to ragel.
+>>
+>> In this all situations - simplest universal way to save options for
+>> various projects - save them in rl file (IMHO).
+>> like re2c or flex. Something like
+>>    %%option name = value;
+>> And - this options is simple to change from IDE while writing file.
+>> Just change text in file rather than clicks for menu and dialog boxes
+>> every time.
+>>
+>> If the same option set from rl file and from command line - option
+>> value from command line have max priority or vice versa.
+>>
+>> Ragel have %%alphtype ... %%variable ... and other commands. I think
+>> it's not so difficult to add %% option name=value; command for command
+>> line options.
+>>
+>> it's all my IMHO. :)
+>>
+>> Best regards,
+>> Denis Naumov.
+>>
+>> PS: Sprry for bad english. :)
+>>
+>> 2011/3/24  <ragel-user at jgoettgens.de>:
+>> > Whoops---I probably deleted part of a sentence shortly before I hit the
+>> > send
+>> > button...
+>> >
+>> > ...
+>> > The build chain is just a little bit longer. Due to the mapping betwen
+>> > the
+>> > suffix .rl to the rules, Ragel now looks almost like a VisualStudio
+>> > tool.
+>> >
+>> > jg
+>> >
+>> > _______________________________________________
+>> > ragel-users mailing list
+>> > ragel-users at complang.org
+>> > http://www.complang.org/mailman/listinfo/ragel-users
+>> >
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Mar 26 16:30:00 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 26 Mar 2011 17:30:00 +0100
+Subject: [ragel-users] Path handling of the native Windows build
+Message-ID: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+
+Recently Austin Hastings reported about a bug of the native Windows build when further machines are included when the include directories are given on the command line. There is more than the bug Austin discovered as path handling for non Posix platforms is at least somewhat incomplete and inconsistent.  You can blame the maintainer of the Windows port for this :)
+
+I have patched the source code such that you can now include additional machines by specifying sub directories from the include statement and by specifying them on the command line with the -I option. All include directories may be specified as relative or absolute paths and the path separator may be either '/' odr '\'---you can even mix them.
+
+The patched sources and binaries can be downloaded from:
+
+http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+
+Please test the patched version as I have done only basic testing, and drop a line in case of any dodgy behavior.
+
+Although there is a Windows specific (aka _WIN32 is defined) definition for a path separator, include statements like  #include inner "xdir\testinc.rl";  work, because the current Windows runtime libraries accept also the separtor '/'.  Using '\' is not enforced by Ragel.  Interestingly, statements like  #include inner "xdir\testinc.rl";  fail, because the include file is handled by the scanner inside Ragel which calls prepareLitString() for new tokens.  If the path contains a valid '\', the next char is either dropped or translated, because the '\' is interpreted as an escape character.  So when it is time to open the include file, its name has been changed to "xdir<tab char>estinc.rl". Obviously, this file exists only by coincidence.
+
+Since I did not want to touch the data structures of Ragel, I simply hacked argv as various paths are just pointers into argv.  The only source code change was to remove the constness of argv in addition to a routine that normalizes paths.  If Adrian decides to copy the names, my patches are obsolete, but then his path data will be no longer read-only and a similar patch could be applied to these variables. Of course a better solution would be to make Ragel platform path agnostic...
+
+As far as the failing -I <include dir> is concerned, it's just that the Microsoft compiler doesn't let you read or write to a file when its state is not "good".  The good old days are over when gcc was the stricter compiler.  When iterating through all possible file names, the state of the ifstream is "fail".  The patch (the correct way?) is to call  inFile->clear()  if opening fails.  If you specify a sub directory inside your FSM description, the current algorithm at first tries to open this file relative to the path of the main file (unless it is an absolute path, which also works).  The first file never suffers from the state problem, so this method worked without patching, although the same routines are involved.
+
+To explore my source code changes use WinMerge or Meld on the entire source trees.
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110326/1143a800/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 10:04:21 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 06:04:21 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in .dot
+	files?
+Message-ID: <4D8F0BA5.7060002@yahoo.com>
+
+Howdy,
+
+I'm poring over some .dot files, trying to understand what's wrong with 
+my tokenizer. And I'm on Windows (XPpro, sp3, en-us), which means that 
+my stuff probably doesn't work like anyone else's.
+
+I can see the .dot file contains labels generated like '\\t'  (that's 
+apos-backslash-backslash-tee-apos).
+
+But dotty is suppressing the backslash, for some reason.
+
+If I change them to 4 slashes:  '\\\\t' then I see one slash in the 
+dotty window.
+
+Is this a ragel bug (not generating the right number of slashes) or a 
+dotty bug (ignoring too many slashes) ?
+
+For example:
+
+     2 -> 2 [ label = "'\\t', '\\f'..'\\r', SP / whitespace_act, 
+buffer_input" ];
+     2 -> 2 [ label = "'\\n' / newline_act, whitespace_act, buffer_input" ];
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 11:41:11 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 07:41:11 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in
+	.dotfiles?
+In-Reply-To: <1D137513DEA84D33AF06BEC20A138A26@localdomain>
+References: <4D8F0BA5.7060002@yahoo.com>
+	<1D137513DEA84D33AF06BEC20A138A26@localdomain>
+Message-ID: <4D8F2257.4080101@yahoo.com>
+
+Sure. I think this is a "dotty" bug, though.
+
+I start with this .ragel file:
+
+%%{
+     machine test;
+     ws = 0x20 | 0x09 | 0x0A ;
+     action ws_act { }
+     main := ( ws @ws_act )+;
+}%%
+
+Which produces this .dot file:
+
+digraph test {
+         rankdir=LR;
+         node [ shape = point ];
+         ENTRY;
+         en_1;
+         node [ shape = circle, height = 0.2 ];
+         node [ fixedsize = true, height = 0.65, shape = doublecircle ];
+         2;
+         node [ shape = circle ];
+         1 -> 2 [ label = "'\\t'..'\\n', SP / ws_act" ];
+         2 -> 2 [ label = "'\\t'..'\\n', SP / ws_act" ];
+         ENTRY -> 1 [ label = "IN" ];
+         en_1 -> 1 [ label = "main" ];
+}
+
+I was then viewing it with the "dotty" tool, part of Graphviz. I got the 
+image captured in the attached file (ragel-dotty.png). You'll notice 
+there are no backslashes before 't'.
+
+Next I tried to generate the png directly with:
+
+     dot -Tpng -o ragel-dot.png ragel.dot
+
+But that png file, also attached (ragel-dot.png), contains backslashes. 
+Apparently, this is a "dotty" bug, since two of their tools are 
+producing different results. It's definitely not a ragel issue.
+
+=Austin
+
+
+On 3/27/2011 7:14 AM, Josef Göttgens wrote:
+> Hi Austin,
+>
+> I guess your example shows part of a .dot file. Backslashes are 
+> regarded by dot and friends as escape chars, i.e. in order to print \t 
+> you need to have \\t in your dot file. Whether you surround \\t with 
+> single quotes or not doesn't matter.
+>
+> I am not sure whether you need to be concerned about this because 
+> calling Ragel with the option -Vp takes care of proper escaping when 
+> needed.  Could you publish you .rl file to see what you are trying to do?
+>
+> jg
+>
+>
+> -----Ursprüngliche Nachricht----- From: Austin Hastings
+> Sent: Sunday, March 27, 2011 12:04 PM
+> To: ragel-users at complang.org
+> Subject: [ragel-users] Bug? Backslash-escapes not escaped enough in 
+> .dotfiles?
+>
+> Howdy,
+>
+> I'm poring over some .dot files, trying to understand what's wrong with
+> my tokenizer. And I'm on Windows (XPpro, sp3, en-us), which means that
+> my stuff probably doesn't work like anyone else's.
+>
+> I can see the .dot file contains labels generated like '\\t'  (that's
+> apos-backslash-backslash-tee-apos).
+>
+> But dotty is suppressing the backslash, for some reason.
+>
+> If I change them to 4 slashes:  '\\\\t' then I see one slash in the
+> dotty window.
+>
+> Is this a ragel bug (not generating the right number of slashes) or a
+> dotty bug (ignoring too many slashes) ?
+>
+> For example:
+>
+>     2 -> 2 [ label = "'\\t', '\\f'..'\\r', SP / whitespace_act,
+> buffer_input" ];
+>     2 -> 2 [ label = "'\\n' / newline_act, whitespace_act, 
+> buffer_input" ];
+>
+> =Austin
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dotty.png
+Type: image/png
+Size: 13767 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110327/f033a5ad/attachment-0002.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-dot.png
+Type: image/png
+Size: 14523 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110327/f033a5ad/attachment-0003.png>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ah08010-ragel at yahoo.com  Sun Mar 27 12:05:42 2011
+From: ah08010-ragel at yahoo.com (Austin Hastings)
+Date: Sun, 27 Mar 2011 08:05:42 -0400
+Subject: [ragel-users] Bug? Backslash-escapes not escaped enough
+	in	.dotfiles?
+In-Reply-To: <4D8F2257.4080101@yahoo.com>
+References: <4D8F0BA5.7060002@yahoo.com>	<1D137513DEA84D33AF06BEC20A138A26@localdomain>
+	<4D8F2257.4080101@yahoo.com>
+Message-ID: <4D8F2816.6090106@yahoo.com>
+
+On 3/27/2011 7:41 AM, Austin Hastings wrote:
+> Sure. I think this is a "dotty" bug, though.
+>
+
+I have submitted this as a bug against graphviz.
+
+=Austin
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Sun Mar 27 12:31:03 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sun, 27 Mar 2011 14:31:03 +0200
+Subject: [ragel-users] Bug? Backslash-escapes not escaped
+	enoughin	.dotfiles?
+In-Reply-To: <4D8F2816.6090106@yahoo.com>
+References: <4D8F0BA5.7060002@yahoo.com>	<1D137513DEA84D33AF06BEC20A138A26@localdomain><4D8F2257.4080101@yahoo.com>
+	<4D8F2816.6090106@yahoo.com>
+Message-ID: <7A351F0DADDB45989610C004AC058A11@localdomain>
+
+Sorry, this is not really a reply---I am just trying to find out why some of
+my replies never make it to the list and others are not sorted properly....
+
+Well, you could also use Gvedit which is part of the graphviz distribution.
+The status of dotty is probably "almost obsolete".
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Mar 28 22:15:06 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 28 Mar 2011 15:15:06 -0700
+Subject: [ragel-users] code review
+In-Reply-To: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+References: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+Message-ID: <4D91086A.6020705@complang.org>
+
+Hi Nate,
+
+My apologies for taking so long to look at this. Code reviews are 
+sometimes quite involved so I often put them off ... I just grabbed the 
+latest and it seems the number of states is down to 113. That is 
+certainly reasonable for a ragel program. Are you happy with it?
+
+-Adrian
+
+On 02/23/2011 07:03 PM, Nate wrote:
+> Hi,
+>
+> I am using Ragel to parse a DSL for grid-based GUI layouts. What I have
+> is working, but I'm not sure it is done well. I would love feedback on
+> how it can be improved. I generated a graph with Graphviz... it was 10mb
+> and
+> 32767x5625 pixels, which makes me think maybe I'm not doing this right.
+>
+> My Ragel file:
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> My project, with a description of the language:
+> http://code.google.com/p/table-layout/
+>
+> The language is hierarchical. I'm using fjump/fret to handle that. Also,
+> FWIW, I chose Ragel over JavaCC and ANTLR because I like the small
+> amount of code generated. I also don't like that ANTLR has a runtime
+> dependency.
+>
+> Thanks!
+> -Nate
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> --===============1214348
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From gordeev.vladimir.v at gmail.com  Tue Mar 29 20:15:27 2011
+From: gordeev.vladimir.v at gmail.com (Gordeev Vladimir)
+Date: Tue, 29 Mar 2011 23:15:27 +0300
+Subject: [ragel-users] One question.
+Message-ID: <4D923DDF.3030805@gmail.com>
+
+Hi everyone,
+
+Actually I just started to work with Ragel and probably don't understand 
+right the concept.
+
+I'm trying to write parser for toy programming language. All was ok, 
+before I mess with recursive
+definitions.
+
+I want to read lisp-like expressions, e.g. ((((one)) (two)) three), and 
+try to write recursive definition for it.
+
+the same at gist: https://gist.github.com/893142
+
+%%{
+   machine lisp;
+   integer = '-'? . ('0'|[1-9][0-9]*);
+   string = '"' . (any - '"') . '"';
+   list = '(' . (integer|string|list)* . ')';
+   main := list;
+}%%
+%% write data;
+%% write init;
+%% write exec;
+
+
+So I got following error:
+
+     test.rl:7:32: graph lookup of "list" failed
+
+So, the question is: How to define parser for such language.
+
+Yea, sorry my bad English.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110329/4eb64c4f/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From halogenandtoast at gmail.com  Tue Mar 29 20:44:04 2011
+From: halogenandtoast at gmail.com (Matt Mongeau)
+Date: Tue, 29 Mar 2011 16:44:04 -0400
+Subject: [ragel-users] One question.
+In-Reply-To: <4D923DDF.3030805@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+Message-ID: <AANLkTi=w-Y-0HLyE=VUinXJ7tFwVojAu4H1oXZrbivi4@mail.gmail.com>
+
+So I had to look this one up too, but from the documentation:
+
+6.7 Parsing Recursive Language Structures
+In general Ragel cannot handle recursive structures because the grammar is
+interpreted as a regular
+language. However, depending on what needs to be parsed it is sometimes
+practical to implement
+the recursive parts using manual coding techniques. This often works in
+cases where the recursive
+structures are simple and easy to recognize, such as in the balancing of
+parentheses
+One approach to parsing recursive structures is to use actions that
+increment and decrement
+counters or otherwise recognize the entry to and exit from recursive
+structures and then jump to
+the appropriate machine defnition using fcall and fret. Alternatively,
+semantic conditions can
+be used to test counter variables.
+A more traditional approach is to call a separate parsing function
+(expressed in the host lan-
+guage) when a recursive structure is entered, then later return when the end
+is recognized.
+
+Hope this helps.
+
+On Tue, Mar 29, 2011 at 4:15 PM, Gordeev Vladimir <
+gordeev.vladimir.v at gmail.com> wrote:
+
+>  Hi everyone,
+>
+> Actually I just started to work with Ragel and probably don't understand
+> right the concept.
+>
+> I'm trying to write parser for toy programming language. All was ok, before
+> I mess with recursive
+> definitions.
+>
+> I want to read lisp-like expressions, e.g. ((((one)) (two)) three), and try
+> to write recursive definition for it.
+>
+> the same at gist: https://gist.github.com/893142
+>
+>  %%{
+>   machine lisp;
+>   integer = '-'? . ('0'|[1-9][0-9]*);
+>   string = '"' . (any - '"') . '"';
+>   list = '(' . (integer|string|list)* . ')';
+>   main := list;
+> }%%
+> %% write data;
+> %% write init;
+> %% write exec;
+>
+>
+> So I got following error:
+>
+>     test.rl:7:32: graph lookup of "list" failed
+>
+> So, the question is: How to define parser for such language.
+>
+> Yea, sorry my bad English.
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110329/f6c85605/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From twisolar at gmail.com  Tue Mar 29 21:55:35 2011
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Tue, 29 Mar 2011 14:55:35 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <4D923DDF.3030805@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+Message-ID: <AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+
+On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+<gordeev.vladimir.v at gmail.com> wrote:
+> So I got following error:
+>
+>     test.rl:7:32: graph lookup of "list" failed
+
+The reason you get that error is because a rule can only reference
+definitions that came before it. "list" doesn't exist until the
+definition is finished, so it can't reference itself. (That would
+create a recursive structure anyways, which Ragel isn't equipped to
+handle natively.)
+
+~Jonathan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Tue Mar 29 21:59:39 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Tue, 29 Mar 2011 14:59:39 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+Message-ID: <AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+
+You can use fcall to jump to a machine, then fret to resume where you were.
+It's a bit tricky, but once you understand it you can parse recursively. See
+the startTable action here (though this is a pretty hairy parser):
+http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+
+-Nate
+
+
+On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com>wrote:
+
+> On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+> <gordeev.vladimir.v at gmail.com> wrote:
+> > So I got following error:
+> >
+> >     test.rl:7:32: graph lookup of "list" failed
+>
+> The reason you get that error is because a rule can only reference
+> definitions that came before it. "list" doesn't exist until the
+> definition is finished, so it can't reference itself. (That would
+> create a recursive structure anyways, which Ragel isn't equipped to
+> handle natively.)
+>
+> ~Jonathan
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110329/5d7f26cc/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From gordeev.vladimir.v at gmail.com  Wed Mar 30 04:38:09 2011
+From: gordeev.vladimir.v at gmail.com (Gordeev Vladimir)
+Date: Wed, 30 Mar 2011 07:38:09 +0300
+Subject: [ragel-users] One question.
+In-Reply-To: <AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+References: <4D923DDF.3030805@gmail.com>	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+	<AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+Message-ID: <4D92B3B1.3070509@gmail.com>
+
+Hm, this looks like solution. I will try it. Thanks.
+
+Related question: Does Ragel have some inner stack to handle nested 
+fcall/fret?
+
+On 30.03.2011 00:59, Nate wrote:
+> You can use fcall to jump to a machine, then fret to resume where you 
+> were. It's a bit tricky, but once you understand it you can parse 
+> recursively. See the startTable action here (though this is a pretty 
+> hairy parser):
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> -Nate
+>
+>
+> On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com 
+> <mailto:twisolar at gmail.com>> wrote:
+>
+>     On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+>     <gordeev.vladimir.v at gmail.com
+>     <mailto:gordeev.vladimir.v at gmail.com>> wrote:
+>     > So I got following error:
+>     >
+>     >     test.rl:7:32: graph lookup of "list" failed
+>
+>     The reason you get that error is because a rule can only reference
+>     definitions that came before it. "list" doesn't exist until the
+>     definition is finished, so it can't reference itself. (That would
+>     create a recursive structure anyways, which Ragel isn't equipped to
+>     handle natively.)
+>
+>     ~Jonathan
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110330/c36200f4/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From nathan.sweet at gmail.com  Wed Mar 30 04:59:03 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Tue, 29 Mar 2011 21:59:03 -0700
+Subject: [ragel-users] One question.
+In-Reply-To: <4D92B3B1.3070509@gmail.com>
+References: <4D923DDF.3030805@gmail.com>
+	<AANLkTimY-6S91R5Q+cgmEOy3JSGtUpjzKHoXmM_nBb7Y@mail.gmail.com>
+	<AANLkTik-fdHdO=WCZmytbVnvtxv+ZPx=PAAv8Sauh6Zo@mail.gmail.com>
+	<4D92B3B1.3070509@gmail.com>
+Message-ID: <AANLkTi=_k5ph=Cd+9a21vJOXDahdY_C+YPjov62e=Wia@mail.gmail.com>
+
+Yes, see the int[] stack in the link. :) Also note the code under "prepush".
+
+-Nate
+
+
+On Tue, Mar 29, 2011 at 9:38 PM, Gordeev Vladimir <
+gordeev.vladimir.v at gmail.com> wrote:
+
+>  Hm, this looks like solution. I will try it. Thanks.
+>
+> Related question: Does Ragel have some inner stack to handle nested
+> fcall/fret?
+>
+>
+> On 30.03.2011 00:59, Nate wrote:
+>
+> You can use fcall to jump to a machine, then fret to resume where you were.
+> It's a bit tricky, but once you understand it you can parse recursively. See
+> the startTable action here (though this is a pretty hairy parser):
+>
+> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>
+> -Nate
+>
+>
+>  On Tue, Mar 29, 2011 at 2:55 PM, Jonathan Castello <twisolar at gmail.com>wrote:
+>
+>> On Tue, Mar 29, 2011 at 1:15 PM, Gordeev Vladimir
+>> <gordeev.vladimir.v at gmail.com> wrote:
+>>  > So I got following error:
+>> >
+>> >     test.rl:7:32: graph lookup of "list" failed
+>>
+>>  The reason you get that error is because a rule can only reference
+>> definitions that came before it. "list" doesn't exist until the
+>> definition is finished, so it can't reference itself. (That would
+>> create a recursive structure anyways, which Ragel isn't equipped to
+>> handle natively.)
+>>
+>> ~Jonathan
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+>
+> _______________________________________________
+> ragel-users mailing listragel-users at complang.orghttp://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110329/1836df7b/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From nathan.sweet at gmail.com  Wed Mar 30 23:12:38 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 30 Mar 2011 16:12:38 -0700
+Subject: [ragel-users] code review
+In-Reply-To: <4D91086A.6020705@complang.org>
+References: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+	<4D91086A.6020705@complang.org>
+Message-ID: <AANLkTi=2iN47khVZLtRxjBq9i9Fc5JmN2FkxQqFz0nLH@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for taking a look. Yeah, I'm happy with it, I just wasn't sure I was
+using it right. I'm a little worried about edge cases, where things might
+parse unexpectedly. I generated a graph, but couldn't really make much use
+of it.
+
+Ragel is a really neat tool, and the documentation is very good. I think
+state charts could use a little more explanation.
+
+I wrote a little XML parser using Ragel last night, blogged about it here:
+http://www.badlogicgames.com/wordpress/?p=1712
+
+-Nate
+
+
+On Mon, Mar 28, 2011 at 3:15 PM, Adrian Thurston <thurston at complang.org>wrote:
+
+> Hi Nate,
+>
+> My apologies for taking so long to look at this. Code reviews are sometimes
+> quite involved so I often put them off ... I just grabbed the latest and it
+> seems the number of states is down to 113. That is certainly reasonable for
+> a ragel program. Are you happy with it?
+>
+> -Adrian
+>
+>
+> On 02/23/2011 07:03 PM, Nate wrote:
+>
+>> Hi,
+>>
+>> I am using Ragel to parse a DSL for grid-based GUI layouts. What I have
+>> is working, but I'm not sure it is done well. I would love feedback on
+>> how it can be improved. I generated a graph with Graphviz... it was 10mb
+>> and
+>> 32767x5625 pixels, which makes me think maybe I'm not doing this right.
+>>
+>> My Ragel file:
+>>
+>> http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+>>
+>> My project, with a description of the language:
+>> http://code.google.com/p/table-layout/
+>>
+>> The language is hierarchical. I'm using fjump/fret to handle that. Also,
+>> FWIW, I chose Ragel over JavaCC and ANTLR because I like the small
+>> amount of code generated. I also don't like that ANTLR has a runtime
+>> dependency.
+>>
+>> Thanks!
+>> -Nate
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> --===============1214348
+>>
+>
+> --
+> Adrian D. Thurston
+> http://www.complang.org/thurston/
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110330/70fa5d3d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Thu Mar 31 04:42:52 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 30 Mar 2011 21:42:52 -0700
+Subject: [ragel-users] Path handling of the native Windows build
+In-Reply-To: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+References: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+Message-ID: <4D94064C.50409@complang.org>
+
+I've applied your fix for the failing -I option. I'm not yet sure what 
+to do about the other path issues ... there seems to be no pressing 
+issue, just overall design problems. I've got urgent coding to do 
+elsewhere (DSNP) so I'm going to leave that for now.
+
+On 03/26/2011 09:30 AM, ragel-user at jgoettgens.de wrote:
+> Recently Austin Hastings reported about a bug of the native Windows
+> build when further machines are included when the include directories
+> are given on the command line. There is more than the bug Austin
+> discovered as path handling for non Posix platforms is at least somewhat
+> incomplete and inconsistent. You can blame the maintainer of the Windows
+> port for this :)
+> I have patched the source code such that you can now include additional
+> machines by specifying sub directories from the include statement and by
+> specifying them on the command line with the -I option. All include
+> directories may be specified as relative or absolute paths and the path
+> separator may be either '/' odr '\'---you can even mix them.
+> The patched sources and binaries can be downloaded from:
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+> Please test the patched version as I have done only basic testing, and
+> drop a line in case of any dodgy behavior.
+> Although there is a Windows specific (aka _WIN32 is defined) definition
+> for a path separator, include statements like #include inner
+> "xdir\testinc.rl"; work, because the current Windows runtime libraries
+> accept also the separtor '/'. Using '\' is not enforced by Ragel.
+> Interestingly, statements like #include inner "xdir\testinc.rl"; fail,
+> because the include file is handled by the scanner inside Ragel which
+> calls prepareLitString() for new tokens. If the path contains a valid
+> '\', the next char is either dropped or translated, because the '\' is
+> interpreted as an escape character. So when it is time to open the
+> include file, its name has been changed to "xdir<tab char>estinc.rl".
+> Obviously, this file exists only by coincidence.
+> Since I did not want to touch the data structures of Ragel, I simply
+> hacked argv as various paths are just pointers into argv. The only
+> source code change was to remove the constness of argv in addition to a
+> routine that normalizes paths. If Adrian decides to copy the names, my
+> patches are obsolete, but then his path data will be no longer read-only
+> and a similar patch could be applied to these variables. Of course a
+> better solution would be to make Ragel platform path agnostic...
+> As far as the failing -I <include dir> is concerned, it's just that the
+> Microsoft compiler doesn't let you read or write to a file when its
+> state is not "good". The good old days are over when gcc was the
+> stricter compiler. When iterating through all possible file names, the
+> state of the ifstream is "fail". The patch (the correct way?) is to call
+> inFile->clear() if opening fails. If you specify a sub directory inside
+> your FSM description, the current algorithm at first tries to open this
+> file relative to the path of the main file (unless it is an absolute
+> path, which also works). The first file never suffers from the state
+> problem, so this method worked without patching, although the same
+> routines are involved.
+> To explore my source code changes use WinMerge or Meld on the entire
+> source trees.
+> jg
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Thu Mar 31 04:43:56 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 30 Mar 2011 21:43:56 -0700
+Subject: [ragel-users] Path handling of the native Windows build
+In-Reply-To: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+References: <17B587A11A814C0499E07DCC05B3F2CD@localdomain>
+Message-ID: <4D94068C.9060308@complang.org>
+
+Thank you for getting to the bottom of this!
+
+-Adrian
+
+On 03/26/2011 09:30 AM, ragel-user at jgoettgens.de wrote:
+> Recently Austin Hastings reported about a bug of the native Windows
+> build when further machines are included when the include directories
+> are given on the command line. There is more than the bug Austin
+> discovered as path handling for non Posix platforms is at least somewhat
+> incomplete and inconsistent. You can blame the maintainer of the Windows
+> port for this :)
+> I have patched the source code such that you can now include additional
+> machines by specifying sub directories from the include statement and by
+> specifying them on the command line with the -I option. All include
+> directories may be specified as relative or absolute paths and the path
+> separator may be either '/' odr '\'---you can even mix them.
+> The patched sources and binaries can be downloaded from:
+> http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008-patched.7z
+> Please test the patched version as I have done only basic testing, and
+> drop a line in case of any dodgy behavior.
+> Although there is a Windows specific (aka _WIN32 is defined) definition
+> for a path separator, include statements like #include inner
+> "xdir\testinc.rl"; work, because the current Windows runtime libraries
+> accept also the separtor '/'. Using '\' is not enforced by Ragel.
+> Interestingly, statements like #include inner "xdir\testinc.rl"; fail,
+> because the include file is handled by the scanner inside Ragel which
+> calls prepareLitString() for new tokens. If the path contains a valid
+> '\', the next char is either dropped or translated, because the '\' is
+> interpreted as an escape character. So when it is time to open the
+> include file, its name has been changed to "xdir<tab char>estinc.rl".
+> Obviously, this file exists only by coincidence.
+> Since I did not want to touch the data structures of Ragel, I simply
+> hacked argv as various paths are just pointers into argv. The only
+> source code change was to remove the constness of argv in addition to a
+> routine that normalizes paths. If Adrian decides to copy the names, my
+> patches are obsolete, but then his path data will be no longer read-only
+> and a similar patch could be applied to these variables. Of course a
+> better solution would be to make Ragel platform path agnostic...
+> As far as the failing -I <include dir> is concerned, it's just that the
+> Microsoft compiler doesn't let you read or write to a file when its
+> state is not "good". The good old days are over when gcc was the
+> stricter compiler. When iterating through all possible file names, the
+> state of the ifstream is "fail". The patch (the correct way?) is to call
+> inFile->clear() if opening fails. If you specify a sub directory inside
+> your FSM description, the current algorithm at first tries to open this
+> file relative to the path of the main file (unless it is an absolute
+> path, which also works). The first file never suffers from the state
+> problem, so this method worked without patching, although the same
+> routines are involved.
+> To explore my source code changes use WinMerge or Meld on the entire
+> source trees.
+> jg
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

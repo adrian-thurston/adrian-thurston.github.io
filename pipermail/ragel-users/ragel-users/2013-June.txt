@@ -1,0 +1,820 @@
+From aquarhead at gmail.com  Sat Jun 15 18:15:20 2013
+From: aquarhead at gmail.com (AquarHEAD Lou)
+Date: Sun, 16 Jun 2013 02:15:20 +0800
+Subject: [ragel-users] Need help using ragel with ObjC
+Message-ID: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+
+I'm writing a scanner for a compiler course work, and trying to use ragel with ObjC,
+
+The question is is there any example using ragel with ObjC, or how should I set the
+`p` and `pe` ?
+
+Thanks.  
+
+楼洵(AquarHEAD)
+----------
+Blossoms which were the joys that fell,
+And leaves, the hopes that yet remain.
+
+Learn, Code, Debug and Share.
+----------
+http://about.AquarHEAD.me (http://about.aquarhead.me/)
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20130616/6adca1ab/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Jun 23 17:42:52 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 23 Jun 2013 13:42:52 -0400
+Subject: [ragel-users] Basic question on use of grouping in Ragel
+In-Reply-To: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+References: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+Message-ID: <51C7339C.2090301@complang.org>
+
+It is unnecessary, only there to make the parse of the expression explicit.
+
+On 13-04-21 07:06 AM, Programmist Setevik wrote:
+> Reading through Ragel guide, I see examples like this one:
+>
+> # Match a word followed by a newline. Execute A when
+> # finishing the word.
+> main :=*(* lower+ %A *)* . '\n';
+>
+> Question I have is: why is grouping used here ? Could this be written
+> simply as
+>
+> main :=** lower+ %A  . '\n';
+>
+> And if not, what would be the difference ?
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From daniel.salzman at nic.cz  Tue Jun 25 11:18:09 2013
+From: daniel.salzman at nic.cz (Daniel Salzman)
+Date: Tue, 25 Jun 2013 13:18:09 +0200
+Subject: [ragel-users] Difference between generated C code using -G0 and -T0
+Message-ID: <51C97C71.7060802@nic.cz>
+
+Hi,
+
+At the beginning I would like to thank you for the great project Ragel.
+It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone files.
+
+But I have recently noticed that there is a small bug in C code 
+generation with G{0,1,2},
+because there is different behaviour between G and T, F modes.
+
+Meaningless and very pruned snippet of code which can demonstrate the 
+problem:
+
+== test.rl ==
+#include <stdlib.h>
+#include <stdio.h>
+
+%%{
+         machine zone_scanner;
+
+         newline = '\n';
+         comment = ';' . (^newline)*;
+         wchar = [ \t\n;];
+
+         sep = ( [ \t]
+               | (comment? . newline) when { 0 }
+)+;
+
+         err_line := (^newline)* . newline @{ fgoto main; };
+
+         action _text_char_error {
+printf("!TXT_ERROR!\n");
+                 fhold; fgoto err_line;
+}
+
+         text = ^wchar . (alpha $!_text_char_error)+;
+
+         main := "$INCLUDE" . sep . text . newline;
+}%%
+
+%% write data;
+
+int main(int argc, char **argv)
+{
+         char buffer[4096];
+         FILE* f;
+         long numbytes;
+
+         f = fopen(argv[1], "r");
+         fseek(f, 0, SEEK_END);
+         numbytes = ftell(f);
+         fseek(f, 0, SEEK_SET);
+         fread(buffer, 1, numbytes, f);
+
+         char *p = buffer;
+         char *pe = buffer + numbytes;
+         char *eof = pe;
+         int stack[16];
+         int  cs = zone_scanner_start;
+         int top;
+
+         %% write exec;
+
+         if (cs == zone_scanner_error) {
+printf("!MISC_ERROR!\n");
+                 return -1;
+}
+
+         return 0;
+}
+
+== input.txt ==
+$INCLUDE        ; Missing filename
+==========
+
+ragel -T0 test.rl -o testT.c
+gcc testT.c -o testT
+./testT ./input.txt
+!MISC_ERROR!
+
+ragel -G0 test.rl -o testG.c
+gcc testG.c -o testG
+./testG ./input.txt
+!TXT_ERROR!
+
+Here you can see the state machines stop in different states.
+
+Although this problem is marginal in our project, it would be nice if 
+Ragel is absolute perfect :-)
+
+Best regards,
+Dan
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dowobeha at gmail.com  Tue Jun 25 18:20:00 2013
+From: dowobeha at gmail.com (Lane Schwartz)
+Date: Tue, 25 Jun 2013 14:20:00 -0400
+Subject: [ragel-users] Keywords and actions in a minimal example
+Message-ID: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+
+I have a minimal example, where tokens are separated by spaces. In
+this example "a" is one allowed pattern, and alpha+ is the other.
+
+I would like to trigger one particular action (let's say it prints
+"keyword") when the pattern "a" has been recognized, and a different
+action when the alpha+ pattern has been recognized (let's say it
+prints "variable").
+
+I've worked through most of the samples in the tutorial, but I'm still
+stumped on this basic question:
+
+How can I trigger these actions such that the action that prints
+"keyword" is triggered for the input "a" but not for the input "abc",
+and the action that prints "variable" is triggered for the input "abc"
+but not for the input "a"?
+
+Given the input "a bc abc def a gh a", I would like to see the following output:
+keyword
+variable
+variable
+variable
+keyword
+variable
+keyword
+
+My exact example is below. This is my first time posting to this list.
+I appreciate any help or tips, and if this isn't the right place to
+post please let me know. FWIW, I've tried using key @keyword, key
+%keyword, key %*keyword, var @name, var %name, var %*name, and several
+other user action triggers from chapter 3 of the manual.
+
+#include <iostream>
+#include <sstream>
+#include <string.h>
+#include <stdio.h>
+
+void parse() {
+
+     char *p   = "a bc abc def a gh a";
+     char *pe  = p + strlen(p);
+     char *eof = p + strlen(p);
+     int cs;
+
+     %%{
+
+	machine minimal;
+	write data;
+
+	action keyword {
+	       std::cerr << "keyword" << std::endl;
+	}
+
+	action name {
+	       std::cerr << "variable" << std::endl;
+	}
+
+	key = "a";
+
+	var = alpha+;
+
+	whitespace = ' '*;
+
+	main := (( key | var ) whitespace )* ;
+
+	write init;
+	write exec;
+
+     }%%
+
+}
+
+int main() {
+    parse();
+}
+
+
+Thanks,
+Lane
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 26 00:01:41 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 25 Jun 2013 20:01:41 -0400
+Subject: [ragel-users] Equivalent of PCRE \b
+In-Reply-To: <CALuryF9RqaOryGocFvsQ3YH5Ca4502-9vfYMVZ6Vkw8N0NQFyA@mail.gmail.com>
+References: <CALuryF9RqaOryGocFvsQ3YH5Ca4502-9vfYMVZ6Vkw8N0NQFyA@mail.gmail.com>
+Message-ID: <51CA2F65.9020704@complang.org>
+
+I don't believe there are any purely regular solutions.
+
+Best approximation I can think of is a condition that inspects p[0] and 
+p[-1]. You'll need to ensure one char of context is always around though.
+
+On 13-05-06 07:58 PM, Zach Levow wrote:
+> Hi all,
+> We're attempting to port a large collection of PCRE patterns into
+> Ragel.  Most of the patterns are very straightforward, but a number of
+> them use the \b directive (zero-width, non-word char followed by word
+> char or vise-versa).  For example "my.*\btest" should match "my first
+> test", but *not* "my shortest".  I'm sure we could handle this on a
+> case-by-case basis, but I was wondering if anyone has an easy conversion.
+> Thanks in advance!
+> -Zach
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 26 01:51:38 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 25 Jun 2013 21:51:38 -0400
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAFygSNk_UHkZ6z+E653Y=pn9GRF3m+26bjpJGGvYLd1VPTaz6w@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+	<CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+	<69F08538-562C-4352-BC0C-527E9CD82BF9@adelaide.edu.au>
+	<CAFygSNk_UHkZ6z+E653Y=pn9GRF3m+26bjpJGGvYLd1VPTaz6w@mail.gmail.com>
+Message-ID: <51CA492A.7020000@complang.org>
+
+Thanks, just merged.
+
+On 13-05-07 01:46 PM, Anton Ageev wrote:
+> On Mon, Apr 29, 2013 at 1:32 AM, Dan Kortschak
+> <dan.kortschak at adelaide.edu.au <mailto:dan.kortschak at adelaide.edu.au>>
+> wrote:
+>
+>     This would a useful addition to the process though, so it is
+>     probably worth filing an issue with the Go project.
+>
+>
+> I realized it isn't a bug. Go compiler takes in consideration a distance
+> between '//line' directive and a line with error.
+> I added experimental support for '//line' directive at
+> https://github.com/antage/ragel-go/tree/golang-6
+> I need a feedback about how to accurate go compiler report error line
+> location in *.rl file.
+>
+>     On 28/04/2013, at 5:30 PM, "Anton Ageev" <antage at gmail.com
+>     <mailto:antage at gmail.com>> wrote:
+>
+>      > It's interesting undocumented feature. I played with go examples
+>     and I got very discouraging behaviour.
+>      >
+>      > Example 1.
+>      >
+>      > atoi.go:
+>      > ...
+>      > //line atoi.rl:34
+>      >  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>      >     case 1:
+>      > //line atoi.rl:35
+>      >
+>      > val = val * 10 + (int(data[p]) - '0')
+>      > ...
+>      >
+>      > I run `go run atoi.go` and I got following message:
+>      >
+>      > # command-line-arguments
+>      >
+>     atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]:
+>     undefined: ttrue
+>      >
+>      > It's looking fine.
+>      >
+>      > Example 2.
+>      >
+>      > atoi.go:
+>      > ...
+>      > //line atoi.rl:34
+>      >
+>      >  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>      >     case 1:
+>      > //line atoi.rl:35
+>      >
+>      > val = val * 10 + (int(data[p]) - '0')
+>      > ...
+>      >
+>      > I just add empty line after '//line atoi.rl:34' directive.
+>      > I got following message:
+>      >
+>      > # command-line-arguments
+>      >
+>     atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]:
+>     undefined: ttrue
+>      >
+>      > It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+>      >
+>      > Ragel generates a lot of empty lines when embedding an action
+>     code. So we can't rely on '//line' directive to locate errors in .rl
+>     files.
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+>
+> --
+> WBR, Anton
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From aquarhead at gmail.com  Sat Jun 15 18:15:20 2013
+From: aquarhead at gmail.com (AquarHEAD Lou)
+Date: Sun, 16 Jun 2013 02:15:20 +0800
+Subject: [ragel-users] Need help using ragel with ObjC
+Message-ID: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+
+I'm writing a scanner for a compiler course work, and trying to use ragel with ObjC,
+
+The question is is there any example using ragel with ObjC, or how should I set the
+`p` and `pe` ?
+
+Thanks.  
+
+楼洵(AquarHEAD)
+----------
+Blossoms which were the joys that fell,
+And leaves, the hopes that yet remain.
+
+Learn, Code, Debug and Share.
+----------
+http://about.AquarHEAD.me (http://about.aquarhead.me/)
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20130616/6adca1ab/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Jun 23 17:42:52 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 23 Jun 2013 13:42:52 -0400
+Subject: [ragel-users] Basic question on use of grouping in Ragel
+In-Reply-To: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+References: <CAFJo5kw27n8PuZeHWM-+G1BhWcq1TvnbJmT3=c6CBw9J=-Yw4Q@mail.gmail.com>
+Message-ID: <51C7339C.2090301@complang.org>
+
+It is unnecessary, only there to make the parse of the expression explicit.
+
+On 13-04-21 07:06 AM, Programmist Setevik wrote:
+> Reading through Ragel guide, I see examples like this one:
+>
+> # Match a word followed by a newline. Execute A when
+> # finishing the word.
+> main :=*(* lower+ %A *)* . '\n';
+>
+> Question I have is: why is grouping used here ? Could this be written
+> simply as
+>
+> main :=** lower+ %A  . '\n';
+>
+> And if not, what would be the difference ?
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From daniel.salzman at nic.cz  Tue Jun 25 11:18:09 2013
+From: daniel.salzman at nic.cz (Daniel Salzman)
+Date: Tue, 25 Jun 2013 13:18:09 +0200
+Subject: [ragel-users] Difference between generated C code using -G0 and -T0
+Message-ID: <51C97C71.7060802@nic.cz>
+
+Hi,
+
+At the beginning I would like to thank you for the great project Ragel.
+It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone files.
+
+But I have recently noticed that there is a small bug in C code 
+generation with G{0,1,2},
+because there is different behaviour between G and T, F modes.
+
+Meaningless and very pruned snippet of code which can demonstrate the 
+problem:
+
+== test.rl ==
+#include <stdlib.h>
+#include <stdio.h>
+
+%%{
+         machine zone_scanner;
+
+         newline = '\n';
+         comment = ';' . (^newline)*;
+         wchar = [ \t\n;];
+
+         sep = ( [ \t]
+               | (comment? . newline) when { 0 }
+)+;
+
+         err_line := (^newline)* . newline @{ fgoto main; };
+
+         action _text_char_error {
+printf("!TXT_ERROR!\n");
+                 fhold; fgoto err_line;
+}
+
+         text = ^wchar . (alpha $!_text_char_error)+;
+
+         main := "$INCLUDE" . sep . text . newline;
+}%%
+
+%% write data;
+
+int main(int argc, char **argv)
+{
+         char buffer[4096];
+         FILE* f;
+         long numbytes;
+
+         f = fopen(argv[1], "r");
+         fseek(f, 0, SEEK_END);
+         numbytes = ftell(f);
+         fseek(f, 0, SEEK_SET);
+         fread(buffer, 1, numbytes, f);
+
+         char *p = buffer;
+         char *pe = buffer + numbytes;
+         char *eof = pe;
+         int stack[16];
+         int  cs = zone_scanner_start;
+         int top;
+
+         %% write exec;
+
+         if (cs == zone_scanner_error) {
+printf("!MISC_ERROR!\n");
+                 return -1;
+}
+
+         return 0;
+}
+
+== input.txt ==
+$INCLUDE        ; Missing filename
+==========
+
+ragel -T0 test.rl -o testT.c
+gcc testT.c -o testT
+./testT ./input.txt
+!MISC_ERROR!
+
+ragel -G0 test.rl -o testG.c
+gcc testG.c -o testG
+./testG ./input.txt
+!TXT_ERROR!
+
+Here you can see the state machines stop in different states.
+
+Although this problem is marginal in our project, it would be nice if 
+Ragel is absolute perfect :-)
+
+Best regards,
+Dan
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From dowobeha at gmail.com  Tue Jun 25 18:20:00 2013
+From: dowobeha at gmail.com (Lane Schwartz)
+Date: Tue, 25 Jun 2013 14:20:00 -0400
+Subject: [ragel-users] Keywords and actions in a minimal example
+Message-ID: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+
+I have a minimal example, where tokens are separated by spaces. In
+this example "a" is one allowed pattern, and alpha+ is the other.
+
+I would like to trigger one particular action (let's say it prints
+"keyword") when the pattern "a" has been recognized, and a different
+action when the alpha+ pattern has been recognized (let's say it
+prints "variable").
+
+I've worked through most of the samples in the tutorial, but I'm still
+stumped on this basic question:
+
+How can I trigger these actions such that the action that prints
+"keyword" is triggered for the input "a" but not for the input "abc",
+and the action that prints "variable" is triggered for the input "abc"
+but not for the input "a"?
+
+Given the input "a bc abc def a gh a", I would like to see the following output:
+keyword
+variable
+variable
+variable
+keyword
+variable
+keyword
+
+My exact example is below. This is my first time posting to this list.
+I appreciate any help or tips, and if this isn't the right place to
+post please let me know. FWIW, I've tried using key @keyword, key
+%keyword, key %*keyword, var @name, var %name, var %*name, and several
+other user action triggers from chapter 3 of the manual.
+
+#include <iostream>
+#include <sstream>
+#include <string.h>
+#include <stdio.h>
+
+void parse() {
+
+     char *p   = "a bc abc def a gh a";
+     char *pe  = p + strlen(p);
+     char *eof = p + strlen(p);
+     int cs;
+
+     %%{
+
+	machine minimal;
+	write data;
+
+	action keyword {
+	       std::cerr << "keyword" << std::endl;
+	}
+
+	action name {
+	       std::cerr << "variable" << std::endl;
+	}
+
+	key = "a";
+
+	var = alpha+;
+
+	whitespace = ' '*;
+
+	main := (( key | var ) whitespace )* ;
+
+	write init;
+	write exec;
+
+     }%%
+
+}
+
+int main() {
+    parse();
+}
+
+
+Thanks,
+Lane
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 26 00:01:41 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 25 Jun 2013 20:01:41 -0400
+Subject: [ragel-users] Equivalent of PCRE \b
+In-Reply-To: <CALuryF9RqaOryGocFvsQ3YH5Ca4502-9vfYMVZ6Vkw8N0NQFyA@mail.gmail.com>
+References: <CALuryF9RqaOryGocFvsQ3YH5Ca4502-9vfYMVZ6Vkw8N0NQFyA@mail.gmail.com>
+Message-ID: <51CA2F65.9020704@complang.org>
+
+I don't believe there are any purely regular solutions.
+
+Best approximation I can think of is a condition that inspects p[0] and 
+p[-1]. You'll need to ensure one char of context is always around though.
+
+On 13-05-06 07:58 PM, Zach Levow wrote:
+> Hi all,
+> We're attempting to port a large collection of PCRE patterns into
+> Ragel.  Most of the patterns are very straightforward, but a number of
+> them use the \b directive (zero-width, non-word char followed by word
+> char or vise-versa).  For example "my.*\btest" should match "my first
+> test", but *not* "my shortest".  I'm sure we could handle this on a
+> case-by-case basis, but I was wondering if anyone has an easy conversion.
+> Thanks in advance!
+> -Zach
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Jun 26 01:51:38 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 25 Jun 2013 21:51:38 -0400
+Subject: [ragel-users] Go line directives
+In-Reply-To: <CAFygSNk_UHkZ6z+E653Y=pn9GRF3m+26bjpJGGvYLd1VPTaz6w@mail.gmail.com>
+References: <CAEosaS-Yss4N8rRp3JbY8RUYHqaW9MSnSUtCaVrkm1G7fmstCA@mail.gmail.com>
+	<CAFygSNkobzdWDJg3_BDuAuipK2uPr58QgfhoMG4QLywOTReRjw@mail.gmail.com>
+	<69F08538-562C-4352-BC0C-527E9CD82BF9@adelaide.edu.au>
+	<CAFygSNk_UHkZ6z+E653Y=pn9GRF3m+26bjpJGGvYLd1VPTaz6w@mail.gmail.com>
+Message-ID: <51CA492A.7020000@complang.org>
+
+Thanks, just merged.
+
+On 13-05-07 01:46 PM, Anton Ageev wrote:
+> On Mon, Apr 29, 2013 at 1:32 AM, Dan Kortschak
+> <dan.kortschak at adelaide.edu.au <mailto:dan.kortschak at adelaide.edu.au>>
+> wrote:
+>
+>     This would a useful addition to the process though, so it is
+>     probably worth filing an issue with the Go project.
+>
+>
+> I realized it isn't a bug. Go compiler takes in consideration a distance
+> between '//line' directive and a line with error.
+> I added experimental support for '//line' directive at
+> https://github.com/antage/ragel-go/tree/golang-6
+> I need a feedback about how to accurate go compiler report error line
+> location in *.rl file.
+>
+>     On 28/04/2013, at 5:30 PM, "Anton Ageev" <antage at gmail.com
+>     <mailto:antage at gmail.com>> wrote:
+>
+>      > It's interesting undocumented feature. I played with go examples
+>     and I got very discouraging behaviour.
+>      >
+>      > Example 1.
+>      >
+>      > atoi.go:
+>      > ...
+>      > //line atoi.rl:34
+>      >  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>      >     case 1:
+>      > //line atoi.rl:35
+>      >
+>      > val = val * 10 + (int(data[p]) - '0')
+>      > ...
+>      >
+>      > I run `go run atoi.go` and I got following message:
+>      >
+>      > # command-line-arguments
+>      >
+>     atoi.rl:34[/home/antage/workspace/ragel-go/examples/go/atoi.go:163]:
+>     undefined: ttrue
+>      >
+>      > It's looking fine.
+>      >
+>      > Example 2.
+>      >
+>      > atoi.go:
+>      > ...
+>      > //line atoi.rl:34
+>      >
+>      >  neg = ttrue // I change 'true' to 'ttrue' to make error message
+>      >     case 1:
+>      > //line atoi.rl:35
+>      >
+>      > val = val * 10 + (int(data[p]) - '0')
+>      > ...
+>      >
+>      > I just add empty line after '//line atoi.rl:34' directive.
+>      > I got following message:
+>      >
+>      > # command-line-arguments
+>      >
+>     atoi.rl:35[/home/antage/workspace/ragel-go/examples/go/atoi.go:164]:
+>     undefined: ttrue
+>      >
+>      > It's not fine. Error isn't at atoi.rl:35, it's at atoi.rl:34.
+>      >
+>      > Ragel generates a lot of empty lines when embedding an action
+>     code. So we can't rely on '//line' directive to locate errors in .rl
+>     files.
+>
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+>
+>
+> --
+> WBR, Anton
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

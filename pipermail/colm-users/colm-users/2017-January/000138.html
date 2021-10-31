@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm] patch for colm to handle with '-I' and '-L' command line options
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20patch%20for%20colm%20to%20handle%20with%20%27-I%27%20and%20%27-L%27%20command%20line%0A%20options&In-Reply-To=%3Ca8846a616bbe17e24bb9378f6881249f%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000137.html">
+   <LINK REL="Next"  HREF="000140.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm] patch for colm to handle with '-I' and '-L' command line options</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20patch%20for%20colm%20to%20handle%20with%20%27-I%27%20and%20%27-L%27%20command%20line%0A%20options&In-Reply-To=%3Ca8846a616bbe17e24bb9378f6881249f%40mail.colm.net%3E"
+       TITLE="[colm] patch for colm to handle with '-I' and '-L' command line options">thurston at colm.net
+       </A><BR>
+    <I>Mon Jan  2 16:09:47 UTC 2017</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000137.html">[colm] patch for colm to handle with '-I' and '-L' command line options
+</A></li>
+        <LI>Next message: <A HREF="000140.html">[colm] patch for colm to handle with '-I' and '-L' command line options
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#138">[ date ]</a>
+              <a href="thread.html#138">[ thread ]</a>
+              <a href="subject.html#138">[ subject ]</a>
+              <a href="author.html#138">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Haha, hacky new year to you too!
+
+So just testing it out and I get a failure on compilation in source.
+
+compiling with: 'gcc -Wall -Wwrite-strings -g -lcolm -o tmp tmp.c 
+-I/home/thurston/pkgs/colm/include -L/home/thurston/pkgs/colm/lib'
+/tmp/ccc1LnSi.o: In function `colm_object_host_call':
+/home/thurston/devel/colm/src/tmp.c:383: undefined reference to 
+`vm_bs_add'
+/tmp/ccc1LnSi.o: In function `colm_object_commit_reduce_forward':
+/home/thurston/devel/colm/src/tmp.c:389: undefined reference to 
+`commit_clear_parse_tree'
+/tmp/ccc1LnSi.o: In function `main':
+/home/thurston/devel/colm/src/tmp.c:402: undefined reference to 
+`colm_new_program'
+/home/thurston/devel/colm/src/tmp.c:403: undefined reference to 
+`colm_set_debug'
+/home/thurston/devel/colm/src/tmp.c:404: undefined reference to 
+`colm_run_program'
+/home/thurston/devel/colm/src/tmp.c:405: undefined reference to 
+`colm_delete_program'
+collect2: error: ld returned 1 exit status
+error: colm: there was a problem compiling the output
+
+Looks like because the order of things has changed. -lcolm is before the 
+objects.
+
+I just added a coding convention file to the doc directory. I've never 
+been very strict with that in the past, however, colm and ragel are now 
+part of the Colm Networks code base and I'd like to maintain some 
+consistency.
+
+Thanks!
+
+Adrian
+
+On 2017-01-01 05:00, Peter Reijnders wrote:
+&gt;<i> Hacky newyear!
+</I>&gt;<i> 
+</I>&gt;<i> Sorry. My bad. My git-foo is not so strong.
+</I>&gt;<i> 
+</I>&gt;<i> Here is a new patch, from my branch, without any whitespace ignores.
+</I>&gt;<i> 
+</I>&gt;<i> ```
+</I>&gt;<i> # thefollowing seems to work
+</I>&gt;<i> git checkout master
+</I>&gt;<i> git apply --stat /tmp/colm-refractor-gcc-cmd.patch
+</I>&gt;<i> git apply --check /tmp/colm-refractor-gcc-cmd.patch
+</I>&gt;<i> git apply /tmp/colm-refractor-gcc-cmd.patch
+</I>&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Peter Reijnders
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> On Sat, 2016-12-31 at 18:49 -0330, Adrian Thurston wrote:
+</I>&gt;&gt;<i> Hi Peter,
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I can't seem to get the patch to apply. I don't have the base commit.
+</I>&gt;&gt;<i> Maybe there is a missing intermediate commit?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Thanks,
+</I>&gt;&gt;<i>   Adrian
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> On 2016-12-31 06:58, Peter Reijnders wrote:
+</I>&gt;&gt;<i> &gt; hello
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; I found it quite cumbersome to 'make install' and 'make uninstall' to
+</I>&gt;&gt;<i> &gt; assert that colm uses the correct headers.
+</I>&gt;&gt;<i> &gt; Upon further analyzing it turned out that:
+</I>&gt;&gt;<i> &gt; 1) the '-I' command line option was not active
+</I>&gt;&gt;<i> &gt; 2) there were 2 almost identical functions that to build the gcc
+</I>&gt;&gt;<i> &gt; commands.
+</I>&gt;&gt;<i> &gt; After refractoring and testing, I added also the '-L' command line
+</I>&gt;&gt;<i> &gt; argument to extend the library path.
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; With these 2 command line options working, it is possible to use colm
+</I>&gt;&gt;<i> &gt; from an arbitrary directory.
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; I hope that the attached patch is usefull for somebody to ease
+</I>&gt;&gt;<i> &gt; development.
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; Peter Reijnders
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; _______________________________________________
+</I>&gt;&gt;<i> &gt; colm mailing list
+</I>&gt;&gt;<i> &gt; <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm at colm.net</A>
+</I>&gt;&gt;<i> &gt; <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm">http://www.colm.net/cgi-bin/mailman/listinfo/colm</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> colm mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm">http://www.colm.net/cgi-bin/mailman/listinfo/colm</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000137.html">[colm] patch for colm to handle with '-I' and '-L' command line options
+</A></li>
+	<LI>Next message: <A HREF="000140.html">[colm] patch for colm to handle with '-I' and '-L' command line options
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#138">[ date ]</a>
+              <a href="thread.html#138">[ thread ]</a>
+              <a href="subject.html#138">[ subject ]</a>
+              <a href="author.html#138">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

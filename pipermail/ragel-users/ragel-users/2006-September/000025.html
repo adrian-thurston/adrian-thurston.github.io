@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Grammar testing proposal
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Grammar%20testing%20proposal&In-Reply-To=%3C2d4d6bd0609160853r719c2039n8de67bccdf09d21a%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000024.html">
+   <LINK REL="Next"  HREF="000026.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Grammar testing proposal</H1>
+    <B>Colin Fleming</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Grammar%20testing%20proposal&In-Reply-To=%3C2d4d6bd0609160853r719c2039n8de67bccdf09d21a%40mail.gmail.com%3E"
+       TITLE="Grammar testing proposal">colin.flem... at coreproc.com
+       </A><BR>
+    <I>Sat Sep 16 15:53:01 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000024.html">Grammar testing proposal
+</A></li>
+        <LI>Next message: <A HREF="000026.html">Grammar testing proposal
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#25">[ date ]</a>
+              <a href="thread.html#25">[ thread ]</a>
+              <a href="subject.html#25">[ subject ]</a>
+              <a href="author.html#25">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hehe, TXL does actually look really interesting -  and potentially
+appropriate! I'd be worried about raising the bar to Ragel though, it
+looks like TXL might take some time to wrap your head round.
+
+BTW do you have a grammar spec for Ragel?
+
+On 9/15/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> Colin, great idea. One issue might be specifying language independent
+</I>&gt;<i> actions. This could get tough if in the future we support non c-like
+</I>&gt;<i> languages. For example, there was mention of supporting Ruby.
+</I>&gt;<i>
+</I>&gt;<i> Perhaps TXL (<A HREF="http://www.txl.ca/">http://www.txl.ca/</A>) might be useful. It could be used to define
+</I>&gt;<i> a mini toy language and to write transformations to the host languages.
+</I>&gt;<i> Though I'm connected to that project so I'm biased in regard to it being
+</I>&gt;<i> appropriate :)
+</I>&gt;<i>
+</I>&gt;<i> -Adrian
+</I>&gt;<i>
+</I>&gt;<i> Colin Fleming wrote:
+</I>&gt;<i> &gt; Hi all,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I've been thinking about various ways to test Ragel and the generated
+</I>&gt;<i> &gt; grammars, here's what I've come up with. I'm really interested in any
+</I>&gt;<i> &gt; feedback. I'm currently developing a couple of grammars that I'm
+</I>&gt;<i> &gt; primarily interested in using with Java. The Java generation is still
+</I>&gt;<i> &gt; a bit experimental, so I'd like to be able to use acceptance tests
+</I>&gt;<i> &gt; that confirm that a) the grammar works as expected, b) the results are
+</I>&gt;<i> &gt; consistent across Java/C++/whatever, and c) that the results are also
+</I>&gt;<i> &gt; consistent across different code generation strategies.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This last one is probably currently more useful to Adrian than anyone,
+</I>&gt;<i> &gt; but I'm probably going to reimplement rlcodegen in Java shortly, so it
+</I>&gt;<i> &gt; will be great for testing that as well as testing code generation
+</I>&gt;<i> &gt; implementations for any new languages, or new code generation
+</I>&gt;<i> &gt; strategies.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; So, I propose a parser class generator that will take a raw Ragel
+</I>&gt;<i> &gt; grammar and generate an rl file for whichever of the supported
+</I>&gt;<i> &gt; languages the user requests. This rl file will generate a basic
+</I>&gt;<i> &gt; parsing class, with the standard methods: init, execute, finish. The
+</I>&gt;<i> &gt; Ragel syntax would be slightly extended to specify features of the
+</I>&gt;<i> &gt; generated class, and these extensions stripped out when the rl file is
+</I>&gt;<i> &gt; written. This would actually probably be pretty generally useful too,
+</I>&gt;<i> &gt; a lot of people just want a support class that they can integrate into
+</I>&gt;<i> &gt; a larger project, I imagine.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The whole point of this thing is testing, so unit test data and
+</I>&gt;<i> &gt; expected values would be encoded in the source file. Either a test
+</I>&gt;<i> &gt; class or just the parser could be generated, or both.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; An example is worth a thousand words, so here goes:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; %%{
+</I>&gt;<i> &gt;   # Variables for the generated class, initialised in init() method
+</I>&gt;<i> &gt;   # public vars generate getters
+</I>&gt;<i> &gt;   public int val = 0;
+</I>&gt;<i> &gt;   private boolean neg = true;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   action see_neg {
+</I>&gt;<i> &gt;     neg = true;
+</I>&gt;<i> &gt;   }
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   action add_digit {
+</I>&gt;<i> &gt;     val = val * 10 + (fc - '0');
+</I>&gt;<i> &gt;   }
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   main :=
+</I>&gt;<i> &gt;     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+</I>&gt;<i> &gt;     '\n' @{ fbreak; };
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   test {
+</I>&gt;<i> &gt;     input &quot;1\n&quot;;
+</I>&gt;<i> &gt;     output &quot;1&quot;;
+</I>&gt;<i> &gt;   }
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   test {
+</I>&gt;<i> &gt;     input &quot;213 3213\n&quot;;
+</I>&gt;<i> &gt;     output &quot;unexpected char ' ' in input&quot;;
+</I>&gt;<i> &gt;     failure;
+</I>&gt;<i> &gt;   }
+</I>&gt;<i> &gt; }%%
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Obviously one concern here is overloading the Ragel syntax, maybe a
+</I>&gt;<i> &gt; prefix would be good to highlight the new keywords as preprocessor
+</I>&gt;<i> &gt; directives.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; A few more thoughts:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; It would be good to be able to specify variables of the alphabet type:
+</I>&gt;<i> &gt; public alphtype character;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; It would also be interesting to track the states the machine moves
+</I>&gt;<i> &gt; through on each run, they could be compared to ensure that the
+</I>&gt;<i> &gt; different strategies are behaving equally.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I'm also not sure about having the test code in with the actual
+</I>&gt;<i> &gt; grammar, but I guess an include directive would make that easier.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Any thoughts or ideas?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Cheers,
+</I>&gt;<i> &gt; Colin
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000024.html">Grammar testing proposal
+</A></li>
+	<LI>Next message: <A HREF="000026.html">Grammar testing proposal
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#25">[ date ]</a>
+              <a href="thread.html#25">[ thread ]</a>
+              <a href="subject.html#25">[ subject ]</a>
+              <a href="author.html#25">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

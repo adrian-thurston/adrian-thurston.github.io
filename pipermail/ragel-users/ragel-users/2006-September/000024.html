@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Grammar testing proposal
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Grammar%20testing%20proposal&In-Reply-To=%3C450B07B1.4030803%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000023.html">
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Grammar testing proposal</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Grammar%20testing%20proposal&In-Reply-To=%3C450B07B1.4030803%40cs.queensu.ca%3E"
+       TITLE="Grammar testing proposal">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Fri Sep 15 20:06:09 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000023.html">Grammar testing proposal
+</A></li>
+        <LI>Next message: <A HREF="000025.html">Grammar testing proposal
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Colin, great idea. One issue might be specifying language independent 
+actions. This could get tough if in the future we support non c-like 
+languages. For example, there was mention of supporting Ruby.
+
+Perhaps TXL (<A HREF="http://www.txl.ca/">http://www.txl.ca/</A>) might be useful. It could be used to define 
+a mini toy language and to write transformations to the host languages. 
+Though I'm connected to that project so I'm biased in regard to it being 
+appropriate :)
+
+-Adrian
+
+Colin Fleming wrote:
+&gt;<i> Hi all,
+</I>&gt;<i> 
+</I>&gt;<i> I've been thinking about various ways to test Ragel and the generated
+</I>&gt;<i> grammars, here's what I've come up with. I'm really interested in any
+</I>&gt;<i> feedback. I'm currently developing a couple of grammars that I'm
+</I>&gt;<i> primarily interested in using with Java. The Java generation is still
+</I>&gt;<i> a bit experimental, so I'd like to be able to use acceptance tests
+</I>&gt;<i> that confirm that a) the grammar works as expected, b) the results are
+</I>&gt;<i> consistent across Java/C++/whatever, and c) that the results are also
+</I>&gt;<i> consistent across different code generation strategies.
+</I>&gt;<i> 
+</I>&gt;<i> This last one is probably currently more useful to Adrian than anyone,
+</I>&gt;<i> but I'm probably going to reimplement rlcodegen in Java shortly, so it
+</I>&gt;<i> will be great for testing that as well as testing code generation
+</I>&gt;<i> implementations for any new languages, or new code generation
+</I>&gt;<i> strategies.
+</I>&gt;<i> 
+</I>&gt;<i> So, I propose a parser class generator that will take a raw Ragel
+</I>&gt;<i> grammar and generate an rl file for whichever of the supported
+</I>&gt;<i> languages the user requests. This rl file will generate a basic
+</I>&gt;<i> parsing class, with the standard methods: init, execute, finish. The
+</I>&gt;<i> Ragel syntax would be slightly extended to specify features of the
+</I>&gt;<i> generated class, and these extensions stripped out when the rl file is
+</I>&gt;<i> written. This would actually probably be pretty generally useful too,
+</I>&gt;<i> a lot of people just want a support class that they can integrate into
+</I>&gt;<i> a larger project, I imagine.
+</I>&gt;<i> 
+</I>&gt;<i> The whole point of this thing is testing, so unit test data and
+</I>&gt;<i> expected values would be encoded in the source file. Either a test
+</I>&gt;<i> class or just the parser could be generated, or both.
+</I>&gt;<i> 
+</I>&gt;<i> An example is worth a thousand words, so here goes:
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>   # Variables for the generated class, initialised in init() method
+</I>&gt;<i>   # public vars generate getters
+</I>&gt;<i>   public int val = 0;
+</I>&gt;<i>   private boolean neg = true;
+</I>&gt;<i> 
+</I>&gt;<i>   action see_neg {
+</I>&gt;<i>     neg = true;
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   action add_digit {
+</I>&gt;<i>     val = val * 10 + (fc - '0');
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   main :=
+</I>&gt;<i>     ( '-'@see_neg | '+' )? ( digit @add_digit )+
+</I>&gt;<i>     '\n' @{ fbreak; };
+</I>&gt;<i> 
+</I>&gt;<i>   test {
+</I>&gt;<i>     input &quot;1\n&quot;;
+</I>&gt;<i>     output &quot;1&quot;;
+</I>&gt;<i>   }
+</I>&gt;<i> 
+</I>&gt;<i>   test {
+</I>&gt;<i>     input &quot;213 3213\n&quot;;
+</I>&gt;<i>     output &quot;unexpected char ' ' in input&quot;;
+</I>&gt;<i>     failure;
+</I>&gt;<i>   }
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> Obviously one concern here is overloading the Ragel syntax, maybe a
+</I>&gt;<i> prefix would be good to highlight the new keywords as preprocessor
+</I>&gt;<i> directives.
+</I>&gt;<i> 
+</I>&gt;<i> A few more thoughts:
+</I>&gt;<i> 
+</I>&gt;<i> It would be good to be able to specify variables of the alphabet type:
+</I>&gt;<i> public alphtype character;
+</I>&gt;<i> 
+</I>&gt;<i> It would also be interesting to track the states the machine moves
+</I>&gt;<i> through on each run, they could be compared to ensure that the
+</I>&gt;<i> different strategies are behaving equally.
+</I>&gt;<i> 
+</I>&gt;<i> I'm also not sure about having the test code in with the actual
+</I>&gt;<i> grammar, but I guess an include directive would make that easier.
+</I>&gt;<i> 
+</I>&gt;<i> Any thoughts or ideas?
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Colin
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000023.html">Grammar testing proposal
+</A></li>
+	<LI>Next message: <A HREF="000025.html">Grammar testing proposal
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

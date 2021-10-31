@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Can someone supply a Simple example of C# Ragel State machine code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Can%20someone%20supply%20a%20Simple%20example%20of%20C%23%20Ragel%0A%20State%20machine%20code&In-Reply-To=%3C53B02A61.4040006%40complang.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001690.html">
+   <LINK REL="Next"  HREF="001692.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Can someone supply a Simple example of C# Ragel State machine code</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Can%20someone%20supply%20a%20Simple%20example%20of%20C%23%20Ragel%0A%20State%20machine%20code&In-Reply-To=%3C53B02A61.4040006%40complang.org%3E"
+       TITLE="[ragel-users] Can someone supply a Simple example of C# Ragel State machine code">thurston at complang.org
+       </A><BR>
+    <I>Sun Jun 29 15:01:53 UTC 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001690.html">[ragel-users] How to check if a list of strings exist?
+</A></li>
+        <LI>Next message: <A HREF="001692.html">[ragel-users] Can someone supply a Simple example of C# Ragel	State machine code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1691">[ date ]</a>
+              <a href="thread.html#1691">[ thread ]</a>
+              <a href="subject.html#1691">[ subject ]</a>
+              <a href="author.html#1691">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>This was created by the C# test case translator. You need TXL and GMCS 
+in order for the C# test cases to be created.
+
+-Adrian
+
+On 14-05-30 03:39 PM, Jerry wrote:
+&gt;<i> I am attempting to use QFSM which outputs in Ragel but is C based so I
+</I>&gt;<i> need to see if I can create a template for easy conversion of the QFSM
+</I>&gt;<i> Ragel output to C#. A simple example would be a great start.
+</I>&gt;<i>
+</I>&gt;<i> Thanks
+</I>&gt;<i>
+</I>&gt;<i> Jerry
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+/*
+ * @LANG: csharp
+ * @GENERATED: yes
+ */
+using System;
+// Disables lots of warnings that appear in the test suite
+#pragma warning disable 0168, 0169, 0219, 0162, 0414
+namespace Test {
+class atoi1_csharp
+{
+	bool neg;
+	int val;
+	%%{
+	    machine atoi1_csharp;
+	    action begin {
+	        neg = false;
+	        val = 0;
+	    }
+	    action see_neg {
+	        neg = true;
+	    }
+	    action add_digit {
+	        val = val * 10 + (fc - 48);
+	    }
+	    action finish {
+	        if (neg)
+	        {
+	            val = - 1 * val;
+	        }
+	    }
+	    action print {
+	        Console.Write (val);
+	        Console.Write (&quot;\n&quot;);
+	    }
+	    atoi = (('-' @ see_neg | '+') ? (digit @ add_digit) +) &gt; begin % finish;
+	    main := atoi '\n' @ print;
+	}%%
+
+	int cs;
+	%% write data;
+
+	void init()
+	{
+		val = 0;
+		neg = false;
+		%% write init;
+	}
+
+	void exec( char[] data, int len )
+	{
+		int p = 0;
+		int pe = len;
+		int eof = len;
+		string _s;
+		%% write exec;
+	}
+
+	void finish( )
+	{
+		if ( cs &gt;= atoi1_csharp_first_final )
+			Console.WriteLine( &quot;ACCEPT&quot; );
+		else
+			Console.WriteLine( &quot;FAIL&quot; );
+	}
+
+	static readonly string[] inp = {
+		&quot;1\n&quot;,
+		&quot;12\n&quot;,
+		&quot;222222\n&quot;,
+		&quot;+2123\n&quot;,
+		&quot;213 3213\n&quot;,
+		&quot;-12321\n&quot;,
+		&quot;--123\n&quot;,
+		&quot;-99\n&quot;,
+		&quot; -3000\n&quot;,
+	};
+
+	static readonly int inplen = 9;
+
+	public static void Main (string[] args)
+	{
+		atoi1_csharp machine = new atoi1_csharp();
+		for ( int i = 0; i &lt; inplen; i++ ) {
+			machine.init();
+			machine.exec( inp[i].ToCharArray(), inp[i].Length );
+			machine.finish();
+		}
+	}
+}
+}
+/* _____OUTPUT_____
+1
+ACCEPT
+12
+ACCEPT
+222222
+ACCEPT
+2123
+ACCEPT
+FAIL
+-12321
+ACCEPT
+FAIL
+-99
+ACCEPT
+FAIL
+_____OUTPUT_____ */
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001690.html">[ragel-users] How to check if a list of strings exist?
+</A></li>
+	<LI>Next message: <A HREF="001692.html">[ragel-users] Can someone supply a Simple example of C# Ragel	State machine code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1691">[ date ]</a>
+              <a href="thread.html#1691">[ thread ]</a>
+              <a href="subject.html#1691">[ subject ]</a>
+              <a href="author.html#1691">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

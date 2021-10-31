@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Bug or feature?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Bug%20or%20feature%3F&In-Reply-To=%3C46993646.8000607%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002049.html">
+   <LINK REL="Next"  HREF="002051.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Bug or feature?</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Bug%20or%20feature%3F&In-Reply-To=%3C46993646.8000607%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Bug or feature?">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Sat Jul 14 20:47:02 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002049.html">[ragel-users] Re: Bug or feature?
+</A></li>
+        <LI>Next message: <A HREF="002051.html">[ragel-users] Re: Bug or feature?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2050">[ date ]</a>
+              <a href="thread.html#2050">[ thread ]</a>
+              <a href="subject.html#2050">[ subject ]</a>
+              <a href="author.html#2050">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Carlos,
+
+The leaving action is run because the machine accepts the zero-length
+word at the time that it is embedded. That is, the start state is also
+final. When you 'pass over' a machine that accepts the zero-length word
+you are always passing through the start state which is also final. And
+so you are 'leaving' it.
+
+But entering actions are always associated with transitions inside the
+machine. This is how you can leave a machine you have never 'entered.'
+
+It's true, the wording of things doesn't perfectly match the semantics,
+and they used to match better (see the thread), but to me the current
+state of things seems the best way to go. The semantics of the operators
+are simple and easy to define.
+
+If you make a habit of factoring out zero-length machines then you can
+avoid this problem.
+
+word = char+ &gt;enter %leave;
+opt_word = word?;
+
+-Adrian
+
+Carlos Antunes wrote:
+&gt;<i> Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Ok, read the thread and that message specifically. I still don't get
+</I>&gt;<i> why a machine that doesn't get entered gets to be exited. If a
+</I>&gt;<i> transition goes around, not through, the machine, why would the exit
+</I>&gt;<i> action of that machine be called? After all, that optional machine
+</I>&gt;<i> final state may never be transitioned to, right? How come it can be
+</I>&gt;<i> transitioned from, then?
+</I>&gt;<i> 
+</I>&gt;<i> Thanks!
+</I>&gt;<i> 
+</I>&gt;<i> Carlos
+</I>&gt;<i> 
+</I>&gt;<i> On 7/14/07, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Hi Carlos,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> See this thread:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="http://groups.google.com/group/ragel-users/browse_thread/thread/9509ab83d7f022f1/">http://groups.google.com/group/ragel-users/browse_thread/thread/9509ab83d7f022f1/</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> And in particular this message:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="http://groups.google.com/group/ragel-users/msg/79546a93494e6773">http://groups.google.com/group/ragel-users/msg/79546a93494e6773</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Carlos Antunes wrote:
+</I>&gt;&gt;&gt;<i> Adrian,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I have the following construct:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> password = password_char**
+</I>&gt;&gt;&gt;<i>                &gt;{ capture_start(capid_password, p); }
+</I>&gt;&gt;&gt;<i>                %{ capture_stop(capid_password, p); };
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> When I feed a string that doesn't match &quot;password&quot;, &quot;capture_stop&quot; is
+</I>&gt;&gt;&gt;<i> immediately called but not &quot;capture_start&quot;. I would expect that either
+</I>&gt;&gt;&gt;<i> both or none are called (I prefer both). What say you?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Thanks!
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Carlos
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20070714/32252be3/attachment-0001.sig">http://www.colm.net/pipermail/ragel-users/attachments/20070714/32252be3/attachment-0001.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002049.html">[ragel-users] Re: Bug or feature?
+</A></li>
+	<LI>Next message: <A HREF="002051.html">[ragel-users] Re: Bug or feature?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2050">[ date ]</a>
+              <a href="thread.html#2050">[ thread ]</a>
+              <a href="subject.html#2050">[ subject ]</a>
+              <a href="author.html#2050">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

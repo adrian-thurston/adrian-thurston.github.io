@@ -1,0 +1,7 @@
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.10 (GNU/Linux)
+
+iEYEABECAAYFAkm47esACgkQe2h1+2mHVWOopQCgpDXn7dw3YKAXsXair4QURABQ
+ZiEAnRyMw4aEfzqiguMzZ6z4/2n/hfwE
+=Pw44
+-----END PGP SIGNATURE-----

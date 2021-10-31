@@ -1,0 +1,42 @@
+<tt>
+&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Mon,&nbsp;Jan&nbsp;23,&nbsp;2012&nbsp;at&nbsp;11:11&nbsp;AM,&nbsp;Gerald&nbsp;Gutierrez&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:gerald.gutierrez@gmail.com&quot;&gt;gerald.gutierrez@gmail.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+Hello&nbsp;folks,&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&nbsp;recently&nbsp;found&nbsp;Ragel&nbsp;and&nbsp;have&nbsp;discovered&nbsp;that&nbsp;it&nbsp;is&nbsp;a&nbsp;very&nbsp;pleasant&lt;br&gt;<br>
+piece&nbsp;of&nbsp;software.&nbsp;That&nbsp;said,&nbsp;I&#39;ve&nbsp;run&nbsp;into&nbsp;a&nbsp;problem&nbsp;that&nbsp;I&nbsp;was&lt;br&gt;<br>
+hoping&nbsp;is&nbsp;common&nbsp;and&nbsp;a&nbsp;solution&nbsp;available.&lt;br&gt;<br>
+&lt;br&gt;&lt;/blockquote&gt;&lt;div&gt;Sadly&nbsp;the&nbsp;problem&nbsp;is&nbsp;common&nbsp;but&nbsp;solution&nbsp;is&nbsp;quite&nbsp;explicitly&nbsp;is&nbsp;NOT&nbsp;available.&lt;br&gt; &lt;/div&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0pt&nbsp;0pt&nbsp;0pt&nbsp;0.8ex;border-left:1px&nbsp;solid&nbsp;rgb(204,204,204);padding-left:1ex&quot;&gt;<br>
+<br>
+Please&nbsp;see&nbsp;the&nbsp;example&nbsp;code&nbsp;at &lt;a&nbsp;href=&quot;https://gist.github.com/1661150&quot;&nbsp;target=&quot;_blank&quot;&gt;https://gist.github.com/1661150&lt;/a&gt;.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Basically,&nbsp;I&#39;d&nbsp;like&nbsp;to&nbsp;parse&nbsp;the&nbsp;following:&lt;br&gt;<br>
+&lt;br&gt;<br>
+name:name&lt;br&gt;<br>
+&lt;br&gt;<br>
+where&nbsp;the&nbsp;names&nbsp;start&nbsp;and&nbsp;end&nbsp;with&nbsp;an&nbsp;alnum,&nbsp;and&nbsp;can&nbsp;contain&nbsp;any&lt;br&gt;<br>
+combination&nbsp;of&nbsp;alnum&nbsp;and&nbsp;spaces&nbsp;inside.&nbsp;They&nbsp;could&nbsp;also&nbsp;be&nbsp;blank.&nbsp;My&lt;br&gt;<br>
+rules&nbsp;for&nbsp;this&nbsp;are:&lt;br&gt;<br>
+&lt;br&gt;<br>
+identifier&nbsp;=&nbsp;alnum&nbsp;(space*&nbsp;alnum)*;&lt;br&gt;<br>
+name&nbsp; &nbsp; &nbsp; &nbsp;=&nbsp;(identifier&nbsp;|&nbsp;zlen)&nbsp;&gt;sName&nbsp;$pName&nbsp;%fName;&lt;br&gt;<br>
+&lt;br&gt;<br>
+The&nbsp;names&nbsp;can&nbsp;be&nbsp;separated&nbsp;by&nbsp;a&nbsp;colon&nbsp;and&nbsp;optionally&nbsp;spaces&nbsp;inbetween&lt;br&gt;<br>
+the&nbsp;names&nbsp;and&nbsp;the&nbsp;colon.&nbsp;My&nbsp;rules&nbsp;for&nbsp;this&nbsp;are:&lt;br&gt;<br>
+&lt;br&gt;<br>
+sep&nbsp;=&nbsp;space*&nbsp;&quot;:&quot;&nbsp;space*;&lt;br&gt;<br>
+main&nbsp;:=&nbsp;name&nbsp;sep&nbsp;name;&lt;br&gt;<br>
+&lt;br&gt;<br>
+This&nbsp;doesn&#39;t&nbsp;work&nbsp;because&nbsp;apparently&nbsp;the&nbsp;space*&nbsp;in&nbsp;identifier&nbsp;and&nbsp;the&lt;br&gt;<br>
+space*&nbsp;in&nbsp;sep&nbsp;confuse&nbsp;the&nbsp;parser.&nbsp;I&nbsp;end&nbsp;up&nbsp;getting&nbsp;the&nbsp;action&nbsp;fName&lt;br&gt;<br>
+executed&nbsp;in&nbsp;every&nbsp;space&nbsp;of&nbsp;the&nbsp;name.&lt;br&gt;<br>
+&lt;br&gt;<br>
+If&nbsp;I&nbsp;change&nbsp;sep&nbsp;to:&lt;br&gt;<br>
+&lt;br&gt;<br>
+sep&nbsp;=&nbsp;&quot;:&quot;;&lt;br&gt;<br>
+&lt;br&gt;<br>
+then&nbsp;everything&nbsp;is&nbsp;fine.&nbsp;How&nbsp;do&nbsp;I&nbsp;modify&nbsp;these&nbsp;rules&nbsp;so&nbsp;that&nbsp;the&lt;br&gt;<br>
+parser&nbsp;does&nbsp;what&nbsp;I&nbsp;intend?&lt;br&gt;&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;The&nbsp;answer&nbsp;is&nbsp;simple:&nbsp;you&nbsp;can&#39;t.&nbsp;Ragel&nbsp;generates&nbsp;DFA&nbsp;with&nbsp;actions&nbsp;attached.&nbsp;This&nbsp;means:&nbsp;symbol&nbsp;in&nbsp;=&gt;&nbsp;action&nbsp;out.&lt;br&gt;&lt;br&gt;Your&nbsp;definition&nbsp;is&nbsp;ambigous:&nbsp;when&nbsp;you&nbsp;see&nbsp;a&nbsp;space&nbsp;you&nbsp;have&nbsp;no&nbsp;idea&nbsp;if&nbsp;it&nbsp;belongs&nbsp;to&nbsp;the&nbsp;identifier&nbsp;or&nbsp;not.&nbsp;You&nbsp;must&nbsp;scan&nbsp;ahead&nbsp;and&nbsp;look&nbsp;for&nbsp;the&nbsp;next&nbsp;non-space&nbsp;char:&nbsp;if&nbsp;it&#39;s&nbsp;colon&nbsp;then&nbsp;the&nbsp;previous&nbsp;space&nbsp;was&nbsp;not&nbsp;part&nbsp;of&nbsp;the&nbsp;identifier,&nbsp;if&nbsp;it&#39;s&nbsp;alnum&nbsp;then&nbsp;it&nbsp;is.&nbsp;This&nbsp;is&nbsp;not&nbsp;something&nbsp;DFA&nbsp;can/should&nbsp;do...&lt;br&gt;<br>
+&lt;br&gt;To&nbsp;solve&nbsp;your&nbsp;problem&nbsp;you&nbsp;need&nbsp;something&nbsp;more&nbsp;powerful:&nbsp;scanner&nbsp;(see&nbsp;the&nbsp;last&nbsp;chapter&nbsp;of&nbsp;ragel&nbsp;documentation),&nbsp;or&nbsp;full-blown&nbsp;parser:&nbsp;kelbt&nbsp;-&nbsp;&lt;a&nbsp;href=&quot;http://www.complang.org/kelbt/&quot;&gt;http://www.complang.org/kelbt/&lt;/a&gt;&nbsp;(ragel&nbsp;itself&nbsp;uses&nbsp;it),&nbsp;bison&nbsp;-&nbsp;&lt;a&nbsp;href=&quot;http://www.gnu.org/software/bison/&quot;&gt;http://www.gnu.org/software/bison/&lt;/a&gt;&nbsp;(most&nbsp;commonly&nbsp;used&nbsp;parser),&nbsp;etc.&lt;br&gt;<br>
+&lt;br&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Acting when EOF
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Acting%20when%20EOF&In-Reply-To=%3C1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-%40bxe246.bisx.prod.on.blackberry%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000841.html">
+   <LINK REL="Next"  HREF="000846.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Acting when EOF</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Acting%20when%20EOF&In-Reply-To=%3C1037095783-1233542888-cardhu_decombobulator_blackberry.rim.net-1218256216-%40bxe246.bisx.prod.on.blackberry%3E"
+       TITLE="[ragel-users] Acting when EOF">thurston at complang.org
+       </A><BR>
+    <I>Mon Feb  2 02:48:38 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000841.html">[ragel-users] Acting when EOF
+</A></li>
+        <LI>Next message: <A HREF="000846.html">[ragel-users] Acting when EOF
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#842">[ date ]</a>
+              <a href="thread.html#842">[ thread ]</a>
+              <a href="subject.html#842">[ subject ]</a>
+              <a href="author.html#842">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Inaki,
+
+You can either add another character or set eof = pe to induce the final action. Leaving actions require one char of lookahead.
+
+Adrian
+------Original Message------
+From: Iñaki Baz Castillo
+To: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+ReplyTo: <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+Sent: Jan 30, 2009 7:08 AM
+Subject: Re: [ragel-users] Acting when EOF
+
+2009/1/27 Iñaki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;:
+&gt;<i> Hi, I've done a simple parser for a SIP URI (&quot;sip:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">user at domain.org</A>&quot;)
+</I>&gt;<i> but I can't get the last field (&quot;host&quot;):
+</I>&gt;<i>
+</I>&gt;<i> --------------------------------------------------------
+</I>&gt;<i> %%{
+</I>&gt;<i>        machine sip_uri;
+</I>&gt;<i>
+</I>&gt;<i>        action _tag { mark_tag = p }
+</I>&gt;<i>        action protocol { @uri.user = data[mark_tag..p-1].pack('c*') }
+</I>&gt;<i>        action user { @uri.protocol = data[mark_tag..p-1].pack('c*') }
+</I>&gt;<i>        action host { @uri.host = data[mark_tag..p-1].pack('c*') }
+</I>&gt;<i>
+</I>&gt;<i>        protocol = ('sip'i|'sips'i) &gt;_tag %protocol ;
+</I>&gt;<i>        user = [a-zA-Z0-9]+ &gt;_tag %user ;
+</I>&gt;<i>        host = [.a-zA-Z0-9]+ &gt;_tag %host ;
+</I>&gt;<i>
+</I>&gt;<i>        main := protocol ':' user '@' host ;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i> run_machine &quot;sip:<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">user at domain.org</A>&quot;
+</I>&gt;<i> -------------------------------------------------------
+</I>&gt;<i>
+</I>&gt;<i> The actions &quot;protocol&quot; and &quot;user&quot; are executed, storing the parsed
+</I>&gt;<i> data into a Ruby attribute, but the action &quot;host&quot; is not executed. I
+</I>&gt;<i> assume this occurs because leaving action (%) doesn't take place but
+</I>&gt;<i> EOF action. So I try to use a EOF action:
+</I>&gt;<i>
+</I>&gt;<i>        host = [.a-zA-Z0-9]+ &gt;_tag %/host ;
+</I>&gt;<i>
+</I>&gt;<i> But it doesn't work. I can't imagine how to get this &quot;host&quot; field, any
+</I>&gt;<i> help please?
+</I>
+I can solve it by adding '\0' and the end of the Ruby String acting as
+&quot;run_machine&quot; argument, and also adding the following to the machine
+&quot;main&quot;:
+
+   main := protocol ':' user '@' host '\0' ;
+
+Not sure, however, if this is the cleaner solution.
+
+
+
+-- 
+Iñaki Baz Castillo
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000841.html">[ragel-users] Acting when EOF
+</A></li>
+	<LI>Next message: <A HREF="000846.html">[ragel-users] Acting when EOF
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#842">[ date ]</a>
+              <a href="thread.html#842">[ thread ]</a>
+              <a href="subject.html#842">[ subject ]</a>
+              <a href="author.html#842">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

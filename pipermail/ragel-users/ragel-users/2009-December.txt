@@ -1,0 +1,2520 @@
+From tcurdt at vafer.org  Tue Dec  1 01:46:29 2009
+From: tcurdt at vafer.org (Torsten Curdt)
+Date: Tue, 1 Dec 2009 02:46:29 +0100
+Subject: [ragel-users] properties list
+Message-ID: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+
+Hey folks,
+
+I just stumbled across Ragel. In order to get a bit into it I though I
+give it a try to parse some properties files looking like this:
+
+--
+  /* general comment */
+  // another comment
+
+  /* comment for the next property (key1) */
+  "key1" = "value1"
+
+  // comment for the next property (key2)
+  "key2" = "value2"
+--
+
+I got something working but it's not even fully working to parse the
+above. It would be great if you could point me into the right
+direction. I will tomorrow continue to read up in the docs but here
+are a couple of question that I did not immediately find.
+
+1. Are actions the right way to access/extract the content of the
+tokens? I would love to have the key/value pair available in the
+machine definition of the assignment.
+2. I've had a look at the C grammar but did not really understand how
+the comment rules worked. I tried with that approach but I could not
+capture and access the comment text.
+3. Does whitespace has to be handled just as any other input? No
+special treatment?
+4. What about unicode support? I've read that UTF8 should be possible.
+What about UTF16?
+
+Sorry for the newbie questions. Here is my first try (of course
+knowing that this still needs work)
+
+--
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+
+  %%{
+  	machine strings;
+    alphtype char;
+
+  	newline = '\n' @{
+  	  curline += 1;
+  	};
+
+    action key {
+      printf("KEY: %c\n", fc);
+    }
+
+    action value {
+      printf("VALUE: %c\n", fc);
+    }
+
+    action comment {
+      printf("COMMENT: %c\n", fc);
+    }
+
+    # single line comment
+    comment_line = '//' [^\n]* @comment '\n';
+
+  	# quoted string
+  	quoted_char = [^"\\] | newline;
+
+    # assignment
+    assignment = '"' quoted_char* @key '"' " "* "=" " "* '"'
+quoted_char* @value '"';
+
+  	main := comment_line? ( comment_line? assignment newline )*;
+
+  }%%
+
+  %% write data nofinal;
+
+  void scanner()
+  {
+    char *s = "\"a\"=\"b\"\n \"c\" = \"d\" \n";
+
+  	int act, curline = 1;
+  	char *ts, *te = 0;
+
+    int cs;
+  	char *p = s;
+  	char *pe = p + strlen(p) + 1;
+  	char *eof = pe;
+
+  	%% write init;
+  	%% write exec;
+  }
+
+  int main()
+  {
+  	scanner();
+  	return 0;
+  }
+--
+
+Any comments appreciated.
+
+cheers
+--
+Torsten
+
+
+
+From adrian.thurston at esentire.com  Tue Dec  1 18:10:57 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 01 Dec 2009 13:10:57 -0500
+Subject: [ragel-users] properties list
+In-Reply-To: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+Message-ID: <4B155C31.9050707@esentire.com>
+
+Torsten Curdt wrote:
+> 1. Are actions the right way to access/extract the content of the
+> tokens? I would love to have the key/value pair available in the
+> machine definition of the assignment.
+
+Yes. Ragel makes no assumptions about how the programmer wishes to 
+allocate memory for input buffers. Avoiding such assumptions precludes 
+automatic capture of matched items.
+
+Your choices are to copy characters into a buffer byte by byte, or to 
+retain pointers. The latter approach requires more care if it is 
+expected that interesting items span input buffers.
+
+> 2. I've had a look at the C grammar but did not really understand how
+> the comment rules worked. I tried with that approach but I could not
+> capture and access the comment text.
+
+See Chapter Four of the manual.
+
+> 3. Does whitespace has to be handled just as any other input? No
+> special treatment?
+
+Correct.
+
+> 4. What about unicode support? I've read that UTF8 should be possible.
+> What about UTF16?
+
+Yes, parsing UTF16 is possible. Ragel is only concerned with processing 
+arrays of fixed size characters. These can be 1, 2, 4, etc bytes wide. 
+The rest is up to you.
+
+-Adrian
+
+
+
+
+From tcurdt at vafer.org  Thu Dec  3 00:59:36 2009
+From: tcurdt at vafer.org (Torsten Curdt)
+Date: Thu, 3 Dec 2009 01:59:36 +0100
+Subject: [ragel-users] properties list
+In-Reply-To: <4B155C31.9050707@esentire.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+	<4B155C31.9050707@esentire.com>
+Message-ID: <6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+
+Thanks for the response, Adrian.
+
+I got much further today.
+
+> Yes. Ragel makes no assumptions about how the programmer wishes to
+> allocate memory for input buffers. Avoiding such assumptions precludes
+> automatic capture of matched items.
+>
+> Your choices are to copy characters into a buffer byte by byte, or to
+> retain pointers. The latter approach requires more care if it is
+> expected that interesting items span input buffers.
+
+Great. That's essentially what I've been doing now.
+
+  key = '"' @key (any - '"' )* @key_append '"';
+  value = '"' @value (any - '"' )* @value_append '"';
+  assignment = whitespace* key whitespace* "=" whitespace* value
+whitespace* @assignment;
+
+One thing that still seems problematic are escaped quotes though.
+
+ "this here \"test\" is a"
+
+Wondering what the approach is to express this. I was thinking
+something along the lines of
+
+  key = '"' @key (any - ([^\\] '"') )* @key_append '"';
+
+...but that obviously doesn't work as hoped. Any pointers here?
+
+>> 2. I've had a look at the C grammar but did not really understand how
+>> the comment rules worked. I tried with that approach but I could not
+>> capture and access the comment text.
+>
+> See Chapter Four of the manual.
+
+Cool, I came up with something very similar. But now I have changed it to
+
+  comment_c = "/*" @comment ((any @comment_append)* - (any* "*/" any*)) "*/";
+  comment_cpp = "//" @comment (any - "\n")* @comment_append "\n";
+
+Thanks for the pointer.
+
+It just seems that my @comment_append method is not positioned correctly.
+I am still getting a trailing "*" for the "comment_c". Not sure I
+understand why.
+
+>> 4. What about unicode support? I've read that UTF8 should be possible.
+>> What about UTF16?
+>
+> Yes, parsing UTF16 is possible. Ragel is only concerned with processing
+> arrays of fixed size characters. These can be 1, 2, 4, etc bytes wide.
+> The rest is up to you.
+
+Sounds like converting UTF16 -> UTF8 and then use the proper byte
+sequences might be a little easier.
+I found the character sequence definitions here:
+
+ http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+
+action non_printable_ascii {
+    c = *p & 0x7f;
+}
+
+action two_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 1)) & 0x1f) << 6 |
+        (*p & 0x3f);
+}
+
+action three_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 2)) & 0x0f) << 12 |
+        ((uint32_t)(*(p - 1)) & 0x3f) << 6 |
+        (*p & 0x3f);
+}
+
+action four_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 3)) & 0x07) << 18 |
+        ((uint32_t)(*(p - 2)) & 0x3f) << 12 |
+        ((uint32_t)(*(p - 1)) & 0x3f) << 6 |
+        (*p & 0x3f);
+}
+
+(0x01..0x1f | 0x7f)                             @non_printable_ascii        |
+(0xc2..0xdf 0x80..0xbf)                         @two_byte_utf8_sequence     |
+(0xe0..0xef 0x80..0xbf 0x80..0xbf)              @three_byte_utf8_sequence   |
+(0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf)   @four_byte_utf8_sequence
+
+Still trying to figure out to use those though :)
+
+Is there any other example available somewhere?
+
+cheers
+--
+Torsten
+
+
+
+From thurston at complang.org  Thu Dec  3 02:06:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 02 Dec 2009 21:06:14 -0500
+Subject: [ragel-users] ragel 6.6 released
+Message-ID: <4B171D16.1030004@complang.org>
+
+Ragel 6.6 is now available. Thanks to all who contributed bug reports 
+and patches.
+
+-Adrian
+
+
+
+From aslak.hellesoy at gmail.com  Thu Dec  3 05:18:23 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Thu, 3 Dec 2009 06:18:23 +0100
+Subject: [ragel-users] ragel 6.6 released
+In-Reply-To: <4B171D16.1030004@complang.org>
+References: <4B171D16.1030004@complang.org>
+Message-ID: <8d961d900912022118n2f0e88dak198582c26a935c06@mail.gmail.com>
+
+> Ragel 6.6 is now available. Thanks to all who contributed bug reports
+> and patches.
+>
+
+I'm not sure how new C# support is, but it's missing from the homepage.
+
+Cheers,
+Aslak
+
+> -Adrian
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From ibc at aliax.net  Fri Dec  4 00:39:06 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 01:39:06 +0100
+Subject: [ragel-users] How to get a C "int" value?
+Message-ID: <200912040139.06814.ibc@aliax.net>
+
+Hi, for sure I miss something very easy...
+  
+  alphtype unsigned char;
+  DIGIT    = "0".."9";
+  position = ( DIGIT )+ >start_position %end_position;
+
+I just want to get the 'position' numeric value into a 'position' int C 
+variable, so I try:
+
+  int *position_pointer = NULL;
+  int position;
+  [...]
+  action start_position  { position_pointer = p; }
+  action end_position    { position = *position_pointer; }
+
+However, even if the parser works perfectly I get these values when printing 
+the variable position with "printf("position = %i\n", position);".
+
+This is the mapping I get between the numbers I pass to the parser and the 
+value of obtained "position" C int variable:
+
+  1 => 1681204529
+  2 => 1681204530
+  3 => 1681204531
+
+So obviously I do somethign wrong when taking the bytes for the integer. Any 
+help please?
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 00:57:27 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 01:57:27 +0100
+Subject: [ragel-users] How to get a C "int" value?
+In-Reply-To: <200912040139.06814.ibc@aliax.net>
+References: <200912040139.06814.ibc@aliax.net>
+Message-ID: <200912040157.27931.ibc@aliax.net>
+
+El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, for sure I miss something very easy...
+> 
+>   alphtype unsigned char;
+>   DIGIT    = "0".."9";
+>   position = ( DIGIT )+ >start_position %end_position;
+> 
+> I just want to get the 'position' numeric value into a 'position' int C
+> variable, so I try:
+> 
+>   int *position_pointer = NULL;
+>   int position;
+>   [...]
+>   action start_position  { position_pointer = p; }
+>   action end_position    { position = *position_pointer; }
+> 
+> However, even if the parser works perfectly I get these values when
+>  printing the variable position with "printf("position = %i\n",
+>  position);".
+> 
+> This is the mapping I get between the numbers I pass to the parser and the
+> value of obtained "position" C int variable:
+> 
+>   1 => 1681204529
+>   2 => 1681204530
+>   3 => 1681204531
+
+Ok, I understand: what I'm getting from Ragel are chars, not int values.
+I must convert the string representing a integer to a real int variable, but 
+that's out of the Ragel's scope :)
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 01:13:55 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 02:13:55 +0100
+Subject: [ragel-users] How to get a C "int" value? [SOLVED]
+In-Reply-To: <200912040157.27931.ibc@aliax.net>
+References: <200912040139.06814.ibc@aliax.net>
+	<200912040157.27931.ibc@aliax.net>
+Message-ID: <200912040213.55782.ibc@aliax.net>
+
+El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> > Hi, for sure I miss something very easy...
+> >
+> >   alphtype unsigned char;
+> >   DIGIT    = "0".."9";
+> >   position = ( DIGIT )+ >start_position %end_position;
+> >
+> > I just want to get the 'position' numeric value into a 'position' int C
+> > variable, so I try:
+> >
+> >   int *position_pointer = NULL;
+> >   int position;
+> >   [...]
+> >   action start_position  { position_pointer = p; }
+> >   action end_position    { position = *position_pointer; }
+> >
+> > However, even if the parser works perfectly I get these values when
+> >  printing the variable position with "printf("position = %i\n",
+> >  position);".
+> >
+> > This is the mapping I get between the numbers I pass to the parser and
+> > the value of obtained "position" C int variable:
+> >
+> >   1 => 1681204529
+> >   2 => 1681204530
+> >   3 => 1681204531
+> 
+> Ok, I understand: what I'm getting from Ragel are chars, not int values.
+> I must convert the string representing a integer to a real int variable,
+>  but that's out of the Ragel's scope :)
+
+It was easy. I just need to store the pointer where "position" start so get a 
+char*, and use atoi(pointer).
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 23:55:57 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 5 Dec 2009 00:55:57 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues?
+Message-ID: <200912050055.58034.ibc@aliax.net>
+
+Hi, I have a simple grammar:
+
+  pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+  L_BRACKET = "%5b";
+  node_name = ( pchar )+ -- L_BRACKET
+  step      = node_name %command L_BRACKET ..... 
+
+As you can see, when parsing "step" Ragel calls "command" action when 
+L_BRACKET is detected. However, if any other hex-escaped appears into 
+node_name then Ragel runs "command" action and then continues still into 
+"node_name".
+
+This is: when Ragel is parsing "node_name" and founds "%" (even if it's "%99" 
+rather than "%5b") then it runs "command" action. I expected that Ragel 
+wouldn't run the leaving action as it remains into node_name.
+
+Why doe Ragel run the % leaving action when finding "%"? perhaps because Ragel 
+must take the decision per byte without reading more than one byte?
+If so, is there any way to avoid "command" action being called several times 
+for the same node_name?
+
+To clarify: if "step" is:
+  qqq%00www%11eee%5bzzz
+
+then Ragel calls "command" action 3 times (each times it finds "%").
+
+Thanks for any help.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Dec  5 00:07:01 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 5 Dec 2009 01:07:01 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues? [SOLVED]
+In-Reply-To: <200912050055.58034.ibc@aliax.net>
+References: <200912050055.58034.ibc@aliax.net>
+Message-ID: <200912050107.01886.ibc@aliax.net>
+
+El Sábado, 5 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, I have a simple grammar:
+> 
+>   pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+>   L_BRACKET = "%5b";
+>   node_name = ( pchar )+ -- L_BRACKET
+>   step      = node_name %command L_BRACKET .....
+> 
+> As you can see, when parsing "step" Ragel calls "command" action when
+> L_BRACKET is detected. However, if any other hex-escaped appears into
+> node_name then Ragel runs "command" action and then continues still into
+> "node_name".
+> 
+> This is: when Ragel is parsing "node_name" and founds "%" (even if it's
+>  "%99" rather than "%5b") then it runs "command" action. I expected that
+>  Ragel wouldn't run the leaving action as it remains into node_name.
+> 
+> Why doe Ragel run the % leaving action when finding "%"? perhaps because
+>  Ragel must take the decision per byte without reading more than one byte?
+>  If so, is there any way to avoid "command" action being called several
+>  times for the same node_name?
+> 
+> To clarify: if "step" is:
+>   qqq%00www%11eee%5bzzz
+> 
+> then Ragel calls "command" action 3 times (each times it finds "%").
+
+Ok, I've solved it by adding a "boolean" variable (well, a "int" as there is 
+no boolean into C) so when running "command" action I just perform the code if 
+the variable is 1 and then set it to 0.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From flameeyes at gmail.com  Sun Dec  6 18:43:18 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sun, 06 Dec 2009 19:43:18 +0100
+Subject: [ragel-users] New ragel.m4 for checking for Ragel in autoconf
+Message-ID: <1260124998.13102.22.camel@yamato>
+
+Since in the side branch we're currently working on we need a newer
+version of Ragel (6.6, as 6.5 crashes on our code), I've implemented
+some basic version checking, so that a project can ask a minimum Ragel
+version it works with.
+
+This has one catch though: it assumes that the current scheme of x.y
+with y < 10 is kept indefinitely. For obvious reasons this might not be
+that absolute so I should probably look to solve this in a more sensible
+way.
+
+On the other hand it should work great on the short term, which is
+exactly what I was looking for right now.
+
+HTH,
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel.m4
+Type: application/x-m4
+Size: 1838 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091206/160f4ccf/attachment.bin>
+
+From adrian.thurston at esentire.com  Mon Dec  7 13:31:54 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 07 Dec 2009 08:31:54 -0500
+Subject: [ragel-users] How to avoid % action being called when the match
+ continues?
+In-Reply-To: <200912050055.58034.ibc@aliax.net>
+References: <200912050055.58034.ibc@aliax.net>
+Message-ID: <4B1D03CA.20704@esentire.com>
+
+When the '%' is seen it is unknown whether ragel is trying to parse more 
+of node name, or the start of L_BRACKET. Since it can't know, it does 
+both. Refactor like this:
+
+step      = node_name L_BRACKET @command .....
+
+Now when command is called, it is no longer unclear what is being 
+parsed. The node_name is ended.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I have a simple grammar:
+> 
+>   pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+>   L_BRACKET = "%5b";
+>   node_name = ( pchar )+ -- L_BRACKET
+>   step      = node_name %command L_BRACKET ..... 
+> 
+> As you can see, when parsing "step" Ragel calls "command" action when 
+> L_BRACKET is detected. However, if any other hex-escaped appears into 
+> node_name then Ragel runs "command" action and then continues still into 
+> "node_name".
+> 
+> This is: when Ragel is parsing "node_name" and founds "%" (even if it's "%99" 
+> rather than "%5b") then it runs "command" action. I expected that Ragel 
+> wouldn't run the leaving action as it remains into node_name.
+> 
+> Why doe Ragel run the % leaving action when finding "%"? perhaps because Ragel 
+> must take the decision per byte without reading more than one byte?
+> If so, is there any way to avoid "command" action being called several times 
+> for the same node_name?
+> 
+> To clarify: if "step" is:
+>   qqq%00www%11eee%5bzzz
+> 
+> then Ragel calls "command" action 3 times (each times it finds "%").
+> 
+> Thanks for any help.
+> 
+> 
+
+
+
+From adrian.thurston at esentire.com  Mon Dec  7 13:33:46 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 07 Dec 2009 08:33:46 -0500
+Subject: [ragel-users] New ragel.m4 for checking for Ragel in autoconf
+In-Reply-To: <1260124998.13102.22.camel@yamato>
+References: <1260124998.13102.22.camel@yamato>
+Message-ID: <4B1D043A.5060805@esentire.com>
+
+I'm expecting to go up to 6.10 and beyond, but that won't happen for at 
+least a year.
+
+Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Since in the side branch we're currently working on we need a newer
+> version of Ragel (6.6, as 6.5 crashes on our code), I've implemented
+> some basic version checking, so that a project can ask a minimum Ragel
+> version it works with.
+> 
+> This has one catch though: it assumes that the current scheme of x.y
+> with y < 10 is kept indefinitely. For obvious reasons this might not be
+> that absolute so I should probably look to solve this in a more sensible
+> way.
+> 
+> On the other hand it should work great on the short term, which is
+> exactly what I was looking for right now.
+> 
+> HTH,
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Mon Dec  7 14:49:17 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 7 Dec 2009 15:49:17 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues?
+In-Reply-To: <4B1D03CA.20704@esentire.com>
+References: <200912050055.58034.ibc@aliax.net> <4B1D03CA.20704@esentire.com>
+Message-ID: <200912071549.17799.ibc@aliax.net>
+
+El Lunes, 7 de Diciembre de 2009, Adrian Thurston escribió:
+> When the '%' is seen it is unknown whether ragel is trying to parse more
+> of node name, or the start of L_BRACKET. Since it can't know, it does
+> both. Refactor like this:
+> 
+> step      = node_name L_BRACKET @command .....
+> 
+> Now when command is called, it is no longer unclear what is being
+> parsed. The node_name is ended.
+
+Thanks, that makes sense but it's not 100% valid for me as I've more kind of 
+valid "speps":
+
+step1     = node_name
+step2     = node_name L_BRACKET position R_BRACKET
+step3     = node_name L_BRACKET attr R_BRACKET L_BRACKET position R_BRACKET
+step      = step1 | step2 | step3
+
+The separator after any step could be "/" or eof, so it wouldn't be very 
+ellegant if I must inspect the remaining char (or chars as L_BRACKET) to 
+decide where "node_name" ends.
+
+However I already resolved it by adding a "sempaphore".
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From dalke at dalkescientific.com  Mon Dec  7 17:01:13 2009
+From: dalke at dalkescientific.com (Andrew Dalke)
+Date: Mon, 7 Dec 2009 18:01:13 +0100
+Subject: [ragel-users] short strings,
+	including some which are 1-letter prefixes of other
+Message-ID: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+
+Hi all,
+
+I'm updating a parser I wrote a couple of years ago, which parses a molecular format called SMILES. Molecules contain atoms and bonds. The atoms include the element name as an abbreviation.
+
+Consider C and Cl as two such abbreviations. One is a prefix of the other. I had
+
+  is_raw_atom = (
+      #
+      'B' % raw_atom_B_5_action |
+      'C' % raw_atom_C_6_action |
+      'Cl' % raw_atom_Cl_17_action |
+        ...
+
+and that worked for what I was doing before, but now I'm trying to get error handling to work. Suppose someone does "CQ". I want raw_atom_C_6_action to occur and then an error.
+
+Ragel doesn't do that. It reports the error at the 'C', because it never transitions out from the end state.
+
+What I did in my current update (in addition to changing the action names) is this:
+
+aliphatic_organic = (
+  'B'  %is_aliphatic_B  %err(is_aliphatic_B)  |
+  'C'  %is_aliphatic_C  %err(is_aliphatic_C)  |
+  'N'  >is_aliphatic_N |
+     ...
+  'Cl' %is_aliphatic_Cl %err(is_aliphatic_Cl) |
+  'Br' @is_aliphatic_Br |
+      ...
+);
+
+
+It works, but is it correct and proper? I did see there was the |* ... *| construct designed for things like this, but I didn't want the backtracking.
+
+Best regards,
+
+
+				Andrew
+				dalke at dalkescientific.com
+
+
+
+
+
+From richardosborn at mac.com  Tue Dec  8 07:50:19 2009
+From: richardosborn at mac.com (Richard Osborn)
+Date: Tue, 08 Dec 2009 01:50:19 -0600
+Subject: [ragel-users] Actions executing too often.
+Message-ID: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+
+Hi,
+	I've just recently started learning Ragel. I have read the guide pdf  
+and I can't seem to find a solution to this problem.
+Let's say I have this grammar:
+	%%{
+		op = '+'+;
+		word = alpha+;
+		spaces = ' '+;
+		base = 	  spaces
+				| word >start_word $in_word %end_word
+				| op >start_op $in_op %end_op
+				;
+		main := base+;
+	}%%
+
+What I would like to see is this:
+	http://imgur.com/POP8U.png
+
+What Ragel compiles is this:
+	http://imgur.com/x36VA.png
+
+Can anyone help me get the behavior I'm looking?
+
+Much thanks,
+Rich.
+
+
+
+From ibc at aliax.net  Tue Dec  8 11:47:33 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Tue, 8 Dec 2009 12:47:33 +0100
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+Message-ID: <200912081247.34037.ibc@aliax.net>
+
+El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+> Hi,
+> 	I've just recently started learning Ragel. I have read the guide pdf
+> and I can't seem to find a solution to this problem.
+> Let's say I have this grammar:
+> 	%%{
+> 		op = '+'+;
+> 		word = alpha+;
+> 		spaces = ' '+;
+> 		base = 	  spaces
+> 
+> 				| word >start_word $in_word %end_word
+> 				| op >start_op $in_op %end_op
+> 
+> 				;
+> 		main := base+;
+> 	}%%
+> 
+> What I would like to see is this:
+> 	http://imgur.com/POP8U.png
+> 
+> What Ragel compiles is this:
+> 	http://imgur.com/x36VA.png
+> 
+> Can anyone help me get the behavior I'm looking?
+
+Imagine you parse "abc".
+Note that "main := base+;".
+
+
+So when Ragel reads "a" it performs ">start_word".
+
+Then Ragel reads "b". How can Ragel know if "b" is part of the first 'base' or 
+the first char of a new 'base'? Both options are valid, so Ragel runs action 
+for both (in parallel), so it runs:
+
+- ">start_word" because "b" could be the start of a new 'base'.
+
+- "$in_word" because "b" could be part of the previous 'base' and it's a valid 
+existing point.
+
+- ">end_word" because when considering "b" as a new 'base' it means that first 
+'base' ("a") has totally ended.
+
+Of course, this will happen for each char. The main problem of your grammar is 
+that Ragel cannot determine (who can?) how to split "base+;" into different 
+"words" so it takes *all* the valid options *in parallel*.
+
+
+Hope this helps. Regards.
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From richardosborn at mac.com  Wed Dec  9 00:34:16 2009
+From: richardosborn at mac.com (Richard Osborn)
+Date: Tue, 08 Dec 2009 18:34:16 -0600
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <200912081247.34037.ibc@aliax.net>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+	<200912081247.34037.ibc@aliax.net>
+Message-ID: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+
+Is there any way to refactor the code to get the behavior I desire? I  
+understand why I am getting the current behavior, but I am unsure of  
+how I can use the given actions to my liking. It seems as though there  
+should be another set of action types for transitioning to different  
+states.
+On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+
+> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+>> Hi,
+>> 	I've just recently started learning Ragel. I have read the guide pdf
+>> and I can't seem to find a solution to this problem.
+>> Let's say I have this grammar:
+>> 	%%{
+>> 		op = '+'+;
+>> 		word = alpha+;
+>> 		spaces = ' '+;
+>> 		base = 	  spaces
+>>
+>> 				| word >start_word $in_word %end_word
+>> 				| op >start_op $in_op %end_op
+>>
+>> 				;
+>> 		main := base+;
+>> 	}%%
+>>
+>> What I would like to see is this:
+>> 	http://imgur.com/POP8U.png
+>>
+>> What Ragel compiles is this:
+>> 	http://imgur.com/x36VA.png
+>>
+>> Can anyone help me get the behavior I'm looking?
+>
+> Imagine you parse "abc".
+> Note that "main := base+;".
+>
+>
+> So when Ragel reads "a" it performs ">start_word".
+>
+> Then Ragel reads "b". How can Ragel know if "b" is part of the first  
+> 'base' or
+> the first char of a new 'base'? Both options are valid, so Ragel  
+> runs action
+> for both (in parallel), so it runs:
+>
+> - ">start_word" because "b" could be the start of a new 'base'.
+>
+> - "$in_word" because "b" could be part of the previous 'base' and  
+> it's a valid
+> existing point.
+>
+> - ">end_word" because when considering "b" as a new 'base' it means  
+> that first
+> 'base' ("a") has totally ended.
+>
+> Of course, this will happen for each char. The main problem of your  
+> grammar is
+> that Ragel cannot determine (who can?) how to split "base+;" into  
+> different
+> "words" so it takes *all* the valid options *in parallel*.
+>
+>
+> Hope this helps. Regards.
+>
+>
+>
+>
+> -- 
+> Iñaki Baz Castillo <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From ibc at aliax.net  Wed Dec  9 13:48:50 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Wed, 9 Dec 2009 14:48:50 +0100
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+	<200912081247.34037.ibc@aliax.net>
+	<4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+Message-ID: <200912091448.51018.ibc@aliax.net>
+
+El Miércoles, 9 de Diciembre de 2009, Richard Osborn escribió:
+> Is there any way to refactor the code to get the behavior I desire? I
+> understand why I am getting the current behavior, but I am unsure of
+> how I can use the given actions to my liking. It seems as though there
+> should be another set of action types for transitioning to different
+> states.
+
+Let's iamgine this string to parse with your grammar:
+
+  helloworld
+
+Please tell me which actions (and where/when) do you want to be called.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From brianp at brianp.net  Wed Dec 23 02:51:56 2009
+From: brianp at brianp.net (Brian Pane)
+Date: Tue, 22 Dec 2009 18:51:56 -0800
+Subject: [ragel-users] Is it safe to modify the buffer on which a
+	Ragel-generated FSM is operating?
+Message-ID: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+
+In an action, can I safely modify the part of the input buffer prior
+to the the current position p?  I'm doing so currently, and it seems
+to work just fine, but I want to confirm that this is a behavior I can
+count on (due to the generated code inherently not requiring
+backtracking) rather than an implementation detail that might change
+in future Ragel releases.
+
+Thanks,
+-Brian
+
+
+
+From thurston at complang.org  Wed Dec 23 04:02:35 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:02:35 -0500
+Subject: [ragel-users] properties list
+In-Reply-To: <6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>	<4B155C31.9050707@esentire.com>
+	<6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+Message-ID: <4B31965B.9030602@complang.org>
+
+
+Torsten Curdt wrote:
+> 
+> One thing that still seems problematic are escaped quotes though.
+> 
+>  "this here \"test\" is a"
+
+key = '" ( [^\\"] | '\\' any )* '"';
+
+> Cool, I came up with something very similar. But now I have changed it to
+> 
+>   comment_c = "/*" @comment ((any @comment_append)* - (any* "*/" any*)) "*/";
+>   comment_cpp = "//" @comment (any - "\n")* @comment_append "\n";
+> 
+> Thanks for the pointer.
+> 
+> It just seems that my @comment_append method is not positioned correctly.
+> I am still getting a trailing "*" for the "comment_c". Not sure I
+> understand why.
+
+Go further into the chapter. These can simplify to:
+
+comment_c = '/*' any* :>> '*/';
+comment_cpp = '//' any * :> '*/';
+
+> Sounds like converting UTF16 -> UTF8 and then use the proper byte
+> sequences might be a little easier.
+> I found the character sequence definitions here:
+> 
+>  http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+> 
+> Is there any other example available somewhere?
+
+If you haven't seen it already, look at the ruby script in contrib. It 
+is relevant.
+
+
+Regards,
+  Adrian
+
+
+
+From thurston at complang.org  Wed Dec 23 04:11:57 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:11:57 -0500
+Subject: [ragel-users] short strings,
+ including some which are 1-letter prefixes of other
+In-Reply-To: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+References: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+Message-ID: <4B31988D.5010406@complang.org>
+
+Hi Andrew,
+
+Hmmm, that's an idea. Leaving actions executed on error ... I'm going to 
+have to mull over that. Might be the right thing to do.
+
+How is the aliphatic_organic used?
+
+You may be able to do the following:
+
+something = (
+	aliphatic_organic @1 |
+	any @0 @{raise error}
+)**
+
+Andrew Dalke wrote:
+> Hi all,
+> 
+> I'm updating a parser I wrote a couple of years ago, which parses a molecular format called SMILES. Molecules contain atoms and bonds. The atoms include the element name as an abbreviation.
+> 
+> Consider C and Cl as two such abbreviations. One is a prefix of the other. I had
+> 
+>   is_raw_atom = (
+>       #
+>       'B' % raw_atom_B_5_action |
+>       'C' % raw_atom_C_6_action |
+>       'Cl' % raw_atom_Cl_17_action |
+>         ...
+> 
+> and that worked for what I was doing before, but now I'm trying to get error handling to work. Suppose someone does "CQ". I want raw_atom_C_6_action to occur and then an error.
+> 
+> Ragel doesn't do that. It reports the error at the 'C', because it never transitions out from the end state.
+> 
+> What I did in my current update (in addition to changing the action names) is this:
+> 
+> aliphatic_organic = (
+>   'B'  %is_aliphatic_B  %err(is_aliphatic_B)  |
+>   'C'  %is_aliphatic_C  %err(is_aliphatic_C)  |
+>   'N'  >is_aliphatic_N |
+>      ...
+>   'Cl' %is_aliphatic_Cl %err(is_aliphatic_Cl) |
+>   'Br' @is_aliphatic_Br |
+>       ...
+> );
+> 
+> 
+> It works, but is it correct and proper? I did see there was the |* ... *| construct designed for things like this, but I didn't want the backtracking.
+> 
+> Best regards,
+> 
+> 
+> 				Andrew
+> 				dalke at dalkescientific.com
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec 23 04:19:27 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:19:27 -0500
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>	<200912081247.34037.ibc@aliax.net>
+	<4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+Message-ID: <4B319A4F.9010704@complang.org>
+
+If you had base* you could just change it to base**. But you don't so 
+you have to use:
+
+main := base <: base**;
+
+-Adrian
+
+Richard Osborn wrote:
+> Is there any way to refactor the code to get the behavior I desire? I  
+> understand why I am getting the current behavior, but I am unsure of  
+> how I can use the given actions to my liking. It seems as though there  
+> should be another set of action types for transitioning to different  
+> states.
+> On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+> 
+>> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+>>> Hi,
+>>> 	I've just recently started learning Ragel. I have read the guide pdf
+>>> and I can't seem to find a solution to this problem.
+>>> Let's say I have this grammar:
+>>> 	%%{
+>>> 		op = '+'+;
+>>> 		word = alpha+;
+>>> 		spaces = ' '+;
+>>> 		base = 	  spaces
+>>>
+>>> 				| word >start_word $in_word %end_word
+>>> 				| op >start_op $in_op %end_op
+>>>
+>>> 				;
+>>> 		main := base+;
+>>> 	}%%
+>>>
+>>> What I would like to see is this:
+>>> 	http://imgur.com/POP8U.png
+>>>
+>>> What Ragel compiles is this:
+>>> 	http://imgur.com/x36VA.png
+>>>
+>>> Can anyone help me get the behavior I'm looking?
+>> Imagine you parse "abc".
+>> Note that "main := base+;".
+>>
+>>
+>> So when Ragel reads "a" it performs ">start_word".
+>>
+>> Then Ragel reads "b". How can Ragel know if "b" is part of the first  
+>> 'base' or
+>> the first char of a new 'base'? Both options are valid, so Ragel  
+>> runs action
+>> for both (in parallel), so it runs:
+>>
+>> - ">start_word" because "b" could be the start of a new 'base'.
+>>
+>> - "$in_word" because "b" could be part of the previous 'base' and  
+>> it's a valid
+>> existing point.
+>>
+>> - ">end_word" because when considering "b" as a new 'base' it means  
+>> that first
+>> 'base' ("a") has totally ended.
+>>
+>> Of course, this will happen for each char. The main problem of your  
+>> grammar is
+>> that Ragel cannot determine (who can?) how to split "base+;" into  
+>> different
+>> "words" so it takes *all* the valid options *in parallel*.
+>>
+>>
+>> Hope this helps. Regards.
+>>
+>>
+>>
+>>
+>> -- 
+>> Iñaki Baz Castillo <ibc at aliax.net>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec 23 04:20:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:20:49 -0500
+Subject: [ragel-users] Is it safe to modify the buffer on which
+ a	Ragel-generated FSM is operating?
+In-Reply-To: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+References: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+Message-ID: <4B319AA1.7050303@complang.org>
+
+For sure, this is a behaviour you can count on.
+
+-Adrian
+
+Brian Pane wrote:
+> In an action, can I safely modify the part of the input buffer prior
+> to the the current position p?  I'm doing so currently, and it seems
+> to work just fine, but I want to confirm that this is a behavior I can
+> count on (due to the generated code inherently not requiring
+> backtracking) rather than an implementation detail that might change
+> in future Ragel releases.
+> 
+> Thanks,
+> -Brian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From nesreenfawzy at gmail.com  Wed Dec 23 09:22:09 2009
+From: nesreenfawzy at gmail.com (Nesreen Fawzy)
+Date: Wed, 23 Dec 2009 11:22:09 +0200
+Subject: [ragel-users] First time to use ragel
+Message-ID: <000501ca83b1$6866d460$39347d20$@com>
+
+Hi Adrian,
+
+ 
+
+This is my first time to know about ragel and I was wondering how to run a
+sample code?? On Windows platform.
+
+ 
+
+Your response is highly appreciated,
+
+ 
+
+Best Regards,
+
+Nesreen Fawzy
+
++2 0125838968
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091223/0a7bcbe0/attachment.html>
+
+From tcurdt at vafer.org  Tue Dec  1 01:46:29 2009
+From: tcurdt at vafer.org (Torsten Curdt)
+Date: Tue, 1 Dec 2009 02:46:29 +0100
+Subject: [ragel-users] properties list
+Message-ID: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+
+Hey folks,
+
+I just stumbled across Ragel. In order to get a bit into it I though I
+give it a try to parse some properties files looking like this:
+
+--
+  /* general comment */
+  // another comment
+
+  /* comment for the next property (key1) */
+  "key1" = "value1"
+
+  // comment for the next property (key2)
+  "key2" = "value2"
+--
+
+I got something working but it's not even fully working to parse the
+above. It would be great if you could point me into the right
+direction. I will tomorrow continue to read up in the docs but here
+are a couple of question that I did not immediately find.
+
+1. Are actions the right way to access/extract the content of the
+tokens? I would love to have the key/value pair available in the
+machine definition of the assignment.
+2. I've had a look at the C grammar but did not really understand how
+the comment rules worked. I tried with that approach but I could not
+capture and access the comment text.
+3. Does whitespace has to be handled just as any other input? No
+special treatment?
+4. What about unicode support? I've read that UTF8 should be possible.
+What about UTF16?
+
+Sorry for the newbie questions. Here is my first try (of course
+knowing that this still needs work)
+
+--
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+
+  %%{
+  	machine strings;
+    alphtype char;
+
+  	newline = '\n' @{
+  	  curline += 1;
+  	};
+
+    action key {
+      printf("KEY: %c\n", fc);
+    }
+
+    action value {
+      printf("VALUE: %c\n", fc);
+    }
+
+    action comment {
+      printf("COMMENT: %c\n", fc);
+    }
+
+    # single line comment
+    comment_line = '//' [^\n]* @comment '\n';
+
+  	# quoted string
+  	quoted_char = [^"\\] | newline;
+
+    # assignment
+    assignment = '"' quoted_char* @key '"' " "* "=" " "* '"'
+quoted_char* @value '"';
+
+  	main := comment_line? ( comment_line? assignment newline )*;
+
+  }%%
+
+  %% write data nofinal;
+
+  void scanner()
+  {
+    char *s = "\"a\"=\"b\"\n \"c\" = \"d\" \n";
+
+  	int act, curline = 1;
+  	char *ts, *te = 0;
+
+    int cs;
+  	char *p = s;
+  	char *pe = p + strlen(p) + 1;
+  	char *eof = pe;
+
+  	%% write init;
+  	%% write exec;
+  }
+
+  int main()
+  {
+  	scanner();
+  	return 0;
+  }
+--
+
+Any comments appreciated.
+
+cheers
+--
+Torsten
+
+
+
+From adrian.thurston at esentire.com  Tue Dec  1 18:10:57 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 01 Dec 2009 13:10:57 -0500
+Subject: [ragel-users] properties list
+In-Reply-To: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+Message-ID: <4B155C31.9050707@esentire.com>
+
+Torsten Curdt wrote:
+> 1. Are actions the right way to access/extract the content of the
+> tokens? I would love to have the key/value pair available in the
+> machine definition of the assignment.
+
+Yes. Ragel makes no assumptions about how the programmer wishes to 
+allocate memory for input buffers. Avoiding such assumptions precludes 
+automatic capture of matched items.
+
+Your choices are to copy characters into a buffer byte by byte, or to 
+retain pointers. The latter approach requires more care if it is 
+expected that interesting items span input buffers.
+
+> 2. I've had a look at the C grammar but did not really understand how
+> the comment rules worked. I tried with that approach but I could not
+> capture and access the comment text.
+
+See Chapter Four of the manual.
+
+> 3. Does whitespace has to be handled just as any other input? No
+> special treatment?
+
+Correct.
+
+> 4. What about unicode support? I've read that UTF8 should be possible.
+> What about UTF16?
+
+Yes, parsing UTF16 is possible. Ragel is only concerned with processing 
+arrays of fixed size characters. These can be 1, 2, 4, etc bytes wide. 
+The rest is up to you.
+
+-Adrian
+
+
+
+
+From tcurdt at vafer.org  Thu Dec  3 00:59:36 2009
+From: tcurdt at vafer.org (Torsten Curdt)
+Date: Thu, 3 Dec 2009 01:59:36 +0100
+Subject: [ragel-users] properties list
+In-Reply-To: <4B155C31.9050707@esentire.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>
+	<4B155C31.9050707@esentire.com>
+Message-ID: <6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+
+Thanks for the response, Adrian.
+
+I got much further today.
+
+> Yes. Ragel makes no assumptions about how the programmer wishes to
+> allocate memory for input buffers. Avoiding such assumptions precludes
+> automatic capture of matched items.
+>
+> Your choices are to copy characters into a buffer byte by byte, or to
+> retain pointers. The latter approach requires more care if it is
+> expected that interesting items span input buffers.
+
+Great. That's essentially what I've been doing now.
+
+  key = '"' @key (any - '"' )* @key_append '"';
+  value = '"' @value (any - '"' )* @value_append '"';
+  assignment = whitespace* key whitespace* "=" whitespace* value
+whitespace* @assignment;
+
+One thing that still seems problematic are escaped quotes though.
+
+ "this here \"test\" is a"
+
+Wondering what the approach is to express this. I was thinking
+something along the lines of
+
+  key = '"' @key (any - ([^\\] '"') )* @key_append '"';
+
+...but that obviously doesn't work as hoped. Any pointers here?
+
+>> 2. I've had a look at the C grammar but did not really understand how
+>> the comment rules worked. I tried with that approach but I could not
+>> capture and access the comment text.
+>
+> See Chapter Four of the manual.
+
+Cool, I came up with something very similar. But now I have changed it to
+
+  comment_c = "/*" @comment ((any @comment_append)* - (any* "*/" any*)) "*/";
+  comment_cpp = "//" @comment (any - "\n")* @comment_append "\n";
+
+Thanks for the pointer.
+
+It just seems that my @comment_append method is not positioned correctly.
+I am still getting a trailing "*" for the "comment_c". Not sure I
+understand why.
+
+>> 4. What about unicode support? I've read that UTF8 should be possible.
+>> What about UTF16?
+>
+> Yes, parsing UTF16 is possible. Ragel is only concerned with processing
+> arrays of fixed size characters. These can be 1, 2, 4, etc bytes wide.
+> The rest is up to you.
+
+Sounds like converting UTF16 -> UTF8 and then use the proper byte
+sequences might be a little easier.
+I found the character sequence definitions here:
+
+ http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+
+action non_printable_ascii {
+    c = *p & 0x7f;
+}
+
+action two_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 1)) & 0x1f) << 6 |
+        (*p & 0x3f);
+}
+
+action three_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 2)) & 0x0f) << 12 |
+        ((uint32_t)(*(p - 1)) & 0x3f) << 6 |
+        (*p & 0x3f);
+}
+
+action four_byte_utf8_sequence {
+    c = ((uint32_t)(*(p - 3)) & 0x07) << 18 |
+        ((uint32_t)(*(p - 2)) & 0x3f) << 12 |
+        ((uint32_t)(*(p - 1)) & 0x3f) << 6 |
+        (*p & 0x3f);
+}
+
+(0x01..0x1f | 0x7f)                             @non_printable_ascii        |
+(0xc2..0xdf 0x80..0xbf)                         @two_byte_utf8_sequence     |
+(0xe0..0xef 0x80..0xbf 0x80..0xbf)              @three_byte_utf8_sequence   |
+(0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf)   @four_byte_utf8_sequence
+
+Still trying to figure out to use those though :)
+
+Is there any other example available somewhere?
+
+cheers
+--
+Torsten
+
+
+
+From thurston at complang.org  Thu Dec  3 02:06:14 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 02 Dec 2009 21:06:14 -0500
+Subject: [ragel-users] ragel 6.6 released
+Message-ID: <4B171D16.1030004@complang.org>
+
+Ragel 6.6 is now available. Thanks to all who contributed bug reports 
+and patches.
+
+-Adrian
+
+
+
+From aslak.hellesoy at gmail.com  Thu Dec  3 05:18:23 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Thu, 3 Dec 2009 06:18:23 +0100
+Subject: [ragel-users] ragel 6.6 released
+In-Reply-To: <4B171D16.1030004@complang.org>
+References: <4B171D16.1030004@complang.org>
+Message-ID: <8d961d900912022118n2f0e88dak198582c26a935c06@mail.gmail.com>
+
+> Ragel 6.6 is now available. Thanks to all who contributed bug reports
+> and patches.
+>
+
+I'm not sure how new C# support is, but it's missing from the homepage.
+
+Cheers,
+Aslak
+
+> -Adrian
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+From ibc at aliax.net  Fri Dec  4 00:39:06 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 01:39:06 +0100
+Subject: [ragel-users] How to get a C "int" value?
+Message-ID: <200912040139.06814.ibc@aliax.net>
+
+Hi, for sure I miss something very easy...
+  
+  alphtype unsigned char;
+  DIGIT    = "0".."9";
+  position = ( DIGIT )+ >start_position %end_position;
+
+I just want to get the 'position' numeric value into a 'position' int C 
+variable, so I try:
+
+  int *position_pointer = NULL;
+  int position;
+  [...]
+  action start_position  { position_pointer = p; }
+  action end_position    { position = *position_pointer; }
+
+However, even if the parser works perfectly I get these values when printing 
+the variable position with "printf("position = %i\n", position);".
+
+This is the mapping I get between the numbers I pass to the parser and the 
+value of obtained "position" C int variable:
+
+  1 => 1681204529
+  2 => 1681204530
+  3 => 1681204531
+
+So obviously I do somethign wrong when taking the bytes for the integer. Any 
+help please?
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 00:57:27 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 01:57:27 +0100
+Subject: [ragel-users] How to get a C "int" value?
+In-Reply-To: <200912040139.06814.ibc@aliax.net>
+References: <200912040139.06814.ibc@aliax.net>
+Message-ID: <200912040157.27931.ibc@aliax.net>
+
+El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, for sure I miss something very easy...
+> 
+>   alphtype unsigned char;
+>   DIGIT    = "0".."9";
+>   position = ( DIGIT )+ >start_position %end_position;
+> 
+> I just want to get the 'position' numeric value into a 'position' int C
+> variable, so I try:
+> 
+>   int *position_pointer = NULL;
+>   int position;
+>   [...]
+>   action start_position  { position_pointer = p; }
+>   action end_position    { position = *position_pointer; }
+> 
+> However, even if the parser works perfectly I get these values when
+>  printing the variable position with "printf("position = %i\n",
+>  position);".
+> 
+> This is the mapping I get between the numbers I pass to the parser and the
+> value of obtained "position" C int variable:
+> 
+>   1 => 1681204529
+>   2 => 1681204530
+>   3 => 1681204531
+
+Ok, I understand: what I'm getting from Ragel are chars, not int values.
+I must convert the string representing a integer to a real int variable, but 
+that's out of the Ragel's scope :)
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 01:13:55 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 4 Dec 2009 02:13:55 +0100
+Subject: [ragel-users] How to get a C "int" value? [SOLVED]
+In-Reply-To: <200912040157.27931.ibc@aliax.net>
+References: <200912040139.06814.ibc@aliax.net>
+	<200912040157.27931.ibc@aliax.net>
+Message-ID: <200912040213.55782.ibc@aliax.net>
+
+El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> El Viernes, 4 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> > Hi, for sure I miss something very easy...
+> >
+> >   alphtype unsigned char;
+> >   DIGIT    = "0".."9";
+> >   position = ( DIGIT )+ >start_position %end_position;
+> >
+> > I just want to get the 'position' numeric value into a 'position' int C
+> > variable, so I try:
+> >
+> >   int *position_pointer = NULL;
+> >   int position;
+> >   [...]
+> >   action start_position  { position_pointer = p; }
+> >   action end_position    { position = *position_pointer; }
+> >
+> > However, even if the parser works perfectly I get these values when
+> >  printing the variable position with "printf("position = %i\n",
+> >  position);".
+> >
+> > This is the mapping I get between the numbers I pass to the parser and
+> > the value of obtained "position" C int variable:
+> >
+> >   1 => 1681204529
+> >   2 => 1681204530
+> >   3 => 1681204531
+> 
+> Ok, I understand: what I'm getting from Ragel are chars, not int values.
+> I must convert the string representing a integer to a real int variable,
+>  but that's out of the Ragel's scope :)
+
+It was easy. I just need to store the pointer where "position" start so get a 
+char*, and use atoi(pointer).
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Dec  4 23:55:57 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 5 Dec 2009 00:55:57 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues?
+Message-ID: <200912050055.58034.ibc@aliax.net>
+
+Hi, I have a simple grammar:
+
+  pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+  L_BRACKET = "%5b";
+  node_name = ( pchar )+ -- L_BRACKET
+  step      = node_name %command L_BRACKET ..... 
+
+As you can see, when parsing "step" Ragel calls "command" action when 
+L_BRACKET is detected. However, if any other hex-escaped appears into 
+node_name then Ragel runs "command" action and then continues still into 
+"node_name".
+
+This is: when Ragel is parsing "node_name" and founds "%" (even if it's "%99" 
+rather than "%5b") then it runs "command" action. I expected that Ragel 
+wouldn't run the leaving action as it remains into node_name.
+
+Why doe Ragel run the % leaving action when finding "%"? perhaps because Ragel 
+must take the decision per byte without reading more than one byte?
+If so, is there any way to avoid "command" action being called several times 
+for the same node_name?
+
+To clarify: if "step" is:
+  qqq%00www%11eee%5bzzz
+
+then Ragel calls "command" action 3 times (each times it finds "%").
+
+Thanks for any help.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Dec  5 00:07:01 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 5 Dec 2009 01:07:01 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues? [SOLVED]
+In-Reply-To: <200912050055.58034.ibc@aliax.net>
+References: <200912050055.58034.ibc@aliax.net>
+Message-ID: <200912050107.01886.ibc@aliax.net>
+
+El Sábado, 5 de Diciembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, I have a simple grammar:
+> 
+>   pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+>   L_BRACKET = "%5b";
+>   node_name = ( pchar )+ -- L_BRACKET
+>   step      = node_name %command L_BRACKET .....
+> 
+> As you can see, when parsing "step" Ragel calls "command" action when
+> L_BRACKET is detected. However, if any other hex-escaped appears into
+> node_name then Ragel runs "command" action and then continues still into
+> "node_name".
+> 
+> This is: when Ragel is parsing "node_name" and founds "%" (even if it's
+>  "%99" rather than "%5b") then it runs "command" action. I expected that
+>  Ragel wouldn't run the leaving action as it remains into node_name.
+> 
+> Why doe Ragel run the % leaving action when finding "%"? perhaps because
+>  Ragel must take the decision per byte without reading more than one byte?
+>  If so, is there any way to avoid "command" action being called several
+>  times for the same node_name?
+> 
+> To clarify: if "step" is:
+>   qqq%00www%11eee%5bzzz
+> 
+> then Ragel calls "command" action 3 times (each times it finds "%").
+
+Ok, I've solved it by adding a "boolean" variable (well, a "int" as there is 
+no boolean into C) so when running "command" action I just perform the code if 
+the variable is 1 and then set it to 0.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From flameeyes at gmail.com  Sun Dec  6 18:43:18 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Sun, 06 Dec 2009 19:43:18 +0100
+Subject: [ragel-users] New ragel.m4 for checking for Ragel in autoconf
+Message-ID: <1260124998.13102.22.camel@yamato>
+
+Since in the side branch we're currently working on we need a newer
+version of Ragel (6.6, as 6.5 crashes on our code), I've implemented
+some basic version checking, so that a project can ask a minimum Ragel
+version it works with.
+
+This has one catch though: it assumes that the current scheme of x.y
+with y < 10 is kept indefinitely. For obvious reasons this might not be
+that absolute so I should probably look to solve this in a more sensible
+way.
+
+On the other hand it should work great on the short term, which is
+exactly what I was looking for right now.
+
+HTH,
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel.m4
+Type: application/x-m4
+Size: 1838 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091206/160f4ccf/attachment-0001.bin>
+
+From adrian.thurston at esentire.com  Mon Dec  7 13:31:54 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 07 Dec 2009 08:31:54 -0500
+Subject: [ragel-users] How to avoid % action being called when the match
+ continues?
+In-Reply-To: <200912050055.58034.ibc@aliax.net>
+References: <200912050055.58034.ibc@aliax.net>
+Message-ID: <4B1D03CA.20704@esentire.com>
+
+When the '%' is seen it is unknown whether ragel is trying to parse more 
+of node name, or the start of L_BRACKET. Since it can't know, it does 
+both. Refactor like this:
+
+step      = node_name L_BRACKET @command .....
+
+Now when command is called, it is no longer unclear what is being 
+parsed. The node_name is ended.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I have a simple grammar:
+> 
+>   pchar     = ALPHA | DIGIT | ("%" HEXDIG HEXDIG);
+>   L_BRACKET = "%5b";
+>   node_name = ( pchar )+ -- L_BRACKET
+>   step      = node_name %command L_BRACKET ..... 
+> 
+> As you can see, when parsing "step" Ragel calls "command" action when 
+> L_BRACKET is detected. However, if any other hex-escaped appears into 
+> node_name then Ragel runs "command" action and then continues still into 
+> "node_name".
+> 
+> This is: when Ragel is parsing "node_name" and founds "%" (even if it's "%99" 
+> rather than "%5b") then it runs "command" action. I expected that Ragel 
+> wouldn't run the leaving action as it remains into node_name.
+> 
+> Why doe Ragel run the % leaving action when finding "%"? perhaps because Ragel 
+> must take the decision per byte without reading more than one byte?
+> If so, is there any way to avoid "command" action being called several times 
+> for the same node_name?
+> 
+> To clarify: if "step" is:
+>   qqq%00www%11eee%5bzzz
+> 
+> then Ragel calls "command" action 3 times (each times it finds "%").
+> 
+> Thanks for any help.
+> 
+> 
+
+
+
+From adrian.thurston at esentire.com  Mon Dec  7 13:33:46 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 07 Dec 2009 08:33:46 -0500
+Subject: [ragel-users] New ragel.m4 for checking for Ragel in autoconf
+In-Reply-To: <1260124998.13102.22.camel@yamato>
+References: <1260124998.13102.22.camel@yamato>
+Message-ID: <4B1D043A.5060805@esentire.com>
+
+I'm expecting to go up to 6.10 and beyond, but that won't happen for at 
+least a year.
+
+Adrian
+
+Diego Elio “Flameeyes” Pettenò wrote:
+> Since in the side branch we're currently working on we need a newer
+> version of Ragel (6.6, as 6.5 crashes on our code), I've implemented
+> some basic version checking, so that a project can ask a minimum Ragel
+> version it works with.
+> 
+> This has one catch though: it assumes that the current scheme of x.y
+> with y < 10 is kept indefinitely. For obvious reasons this might not be
+> that absolute so I should probably look to solve this in a more sensible
+> way.
+> 
+> On the other hand it should work great on the short term, which is
+> exactly what I was looking for right now.
+> 
+> HTH,
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Mon Dec  7 14:49:17 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 7 Dec 2009 15:49:17 +0100
+Subject: [ragel-users] How to avoid % action being called when the match
+	continues?
+In-Reply-To: <4B1D03CA.20704@esentire.com>
+References: <200912050055.58034.ibc@aliax.net> <4B1D03CA.20704@esentire.com>
+Message-ID: <200912071549.17799.ibc@aliax.net>
+
+El Lunes, 7 de Diciembre de 2009, Adrian Thurston escribió:
+> When the '%' is seen it is unknown whether ragel is trying to parse more
+> of node name, or the start of L_BRACKET. Since it can't know, it does
+> both. Refactor like this:
+> 
+> step      = node_name L_BRACKET @command .....
+> 
+> Now when command is called, it is no longer unclear what is being
+> parsed. The node_name is ended.
+
+Thanks, that makes sense but it's not 100% valid for me as I've more kind of 
+valid "speps":
+
+step1     = node_name
+step2     = node_name L_BRACKET position R_BRACKET
+step3     = node_name L_BRACKET attr R_BRACKET L_BRACKET position R_BRACKET
+step      = step1 | step2 | step3
+
+The separator after any step could be "/" or eof, so it wouldn't be very 
+ellegant if I must inspect the remaining char (or chars as L_BRACKET) to 
+decide where "node_name" ends.
+
+However I already resolved it by adding a "sempaphore".
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From dalke at dalkescientific.com  Mon Dec  7 17:01:13 2009
+From: dalke at dalkescientific.com (Andrew Dalke)
+Date: Mon, 7 Dec 2009 18:01:13 +0100
+Subject: [ragel-users] short strings,
+	including some which are 1-letter prefixes of other
+Message-ID: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+
+Hi all,
+
+I'm updating a parser I wrote a couple of years ago, which parses a molecular format called SMILES. Molecules contain atoms and bonds. The atoms include the element name as an abbreviation.
+
+Consider C and Cl as two such abbreviations. One is a prefix of the other. I had
+
+  is_raw_atom = (
+      #
+      'B' % raw_atom_B_5_action |
+      'C' % raw_atom_C_6_action |
+      'Cl' % raw_atom_Cl_17_action |
+        ...
+
+and that worked for what I was doing before, but now I'm trying to get error handling to work. Suppose someone does "CQ". I want raw_atom_C_6_action to occur and then an error.
+
+Ragel doesn't do that. It reports the error at the 'C', because it never transitions out from the end state.
+
+What I did in my current update (in addition to changing the action names) is this:
+
+aliphatic_organic = (
+  'B'  %is_aliphatic_B  %err(is_aliphatic_B)  |
+  'C'  %is_aliphatic_C  %err(is_aliphatic_C)  |
+  'N'  >is_aliphatic_N |
+     ...
+  'Cl' %is_aliphatic_Cl %err(is_aliphatic_Cl) |
+  'Br' @is_aliphatic_Br |
+      ...
+);
+
+
+It works, but is it correct and proper? I did see there was the |* ... *| construct designed for things like this, but I didn't want the backtracking.
+
+Best regards,
+
+
+				Andrew
+				dalke at dalkescientific.com
+
+
+
+
+
+From richardosborn at mac.com  Tue Dec  8 07:50:19 2009
+From: richardosborn at mac.com (Richard Osborn)
+Date: Tue, 08 Dec 2009 01:50:19 -0600
+Subject: [ragel-users] Actions executing too often.
+Message-ID: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+
+Hi,
+	I've just recently started learning Ragel. I have read the guide pdf  
+and I can't seem to find a solution to this problem.
+Let's say I have this grammar:
+	%%{
+		op = '+'+;
+		word = alpha+;
+		spaces = ' '+;
+		base = 	  spaces
+				| word >start_word $in_word %end_word
+				| op >start_op $in_op %end_op
+				;
+		main := base+;
+	}%%
+
+What I would like to see is this:
+	http://imgur.com/POP8U.png
+
+What Ragel compiles is this:
+	http://imgur.com/x36VA.png
+
+Can anyone help me get the behavior I'm looking?
+
+Much thanks,
+Rich.
+
+
+
+From ibc at aliax.net  Tue Dec  8 11:47:33 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Tue, 8 Dec 2009 12:47:33 +0100
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+Message-ID: <200912081247.34037.ibc@aliax.net>
+
+El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+> Hi,
+> 	I've just recently started learning Ragel. I have read the guide pdf
+> and I can't seem to find a solution to this problem.
+> Let's say I have this grammar:
+> 	%%{
+> 		op = '+'+;
+> 		word = alpha+;
+> 		spaces = ' '+;
+> 		base = 	  spaces
+> 
+> 				| word >start_word $in_word %end_word
+> 				| op >start_op $in_op %end_op
+> 
+> 				;
+> 		main := base+;
+> 	}%%
+> 
+> What I would like to see is this:
+> 	http://imgur.com/POP8U.png
+> 
+> What Ragel compiles is this:
+> 	http://imgur.com/x36VA.png
+> 
+> Can anyone help me get the behavior I'm looking?
+
+Imagine you parse "abc".
+Note that "main := base+;".
+
+
+So when Ragel reads "a" it performs ">start_word".
+
+Then Ragel reads "b". How can Ragel know if "b" is part of the first 'base' or 
+the first char of a new 'base'? Both options are valid, so Ragel runs action 
+for both (in parallel), so it runs:
+
+- ">start_word" because "b" could be the start of a new 'base'.
+
+- "$in_word" because "b" could be part of the previous 'base' and it's a valid 
+existing point.
+
+- ">end_word" because when considering "b" as a new 'base' it means that first 
+'base' ("a") has totally ended.
+
+Of course, this will happen for each char. The main problem of your grammar is 
+that Ragel cannot determine (who can?) how to split "base+;" into different 
+"words" so it takes *all* the valid options *in parallel*.
+
+
+Hope this helps. Regards.
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From richardosborn at mac.com  Wed Dec  9 00:34:16 2009
+From: richardosborn at mac.com (Richard Osborn)
+Date: Tue, 08 Dec 2009 18:34:16 -0600
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <200912081247.34037.ibc@aliax.net>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+	<200912081247.34037.ibc@aliax.net>
+Message-ID: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+
+Is there any way to refactor the code to get the behavior I desire? I  
+understand why I am getting the current behavior, but I am unsure of  
+how I can use the given actions to my liking. It seems as though there  
+should be another set of action types for transitioning to different  
+states.
+On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+
+> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+>> Hi,
+>> 	I've just recently started learning Ragel. I have read the guide pdf
+>> and I can't seem to find a solution to this problem.
+>> Let's say I have this grammar:
+>> 	%%{
+>> 		op = '+'+;
+>> 		word = alpha+;
+>> 		spaces = ' '+;
+>> 		base = 	  spaces
+>>
+>> 				| word >start_word $in_word %end_word
+>> 				| op >start_op $in_op %end_op
+>>
+>> 				;
+>> 		main := base+;
+>> 	}%%
+>>
+>> What I would like to see is this:
+>> 	http://imgur.com/POP8U.png
+>>
+>> What Ragel compiles is this:
+>> 	http://imgur.com/x36VA.png
+>>
+>> Can anyone help me get the behavior I'm looking?
+>
+> Imagine you parse "abc".
+> Note that "main := base+;".
+>
+>
+> So when Ragel reads "a" it performs ">start_word".
+>
+> Then Ragel reads "b". How can Ragel know if "b" is part of the first  
+> 'base' or
+> the first char of a new 'base'? Both options are valid, so Ragel  
+> runs action
+> for both (in parallel), so it runs:
+>
+> - ">start_word" because "b" could be the start of a new 'base'.
+>
+> - "$in_word" because "b" could be part of the previous 'base' and  
+> it's a valid
+> existing point.
+>
+> - ">end_word" because when considering "b" as a new 'base' it means  
+> that first
+> 'base' ("a") has totally ended.
+>
+> Of course, this will happen for each char. The main problem of your  
+> grammar is
+> that Ragel cannot determine (who can?) how to split "base+;" into  
+> different
+> "words" so it takes *all* the valid options *in parallel*.
+>
+>
+> Hope this helps. Regards.
+>
+>
+>
+>
+> -- 
+> Iñaki Baz Castillo <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+From ibc at aliax.net  Wed Dec  9 13:48:50 2009
+From: ibc at aliax.net (=?iso-8859-1?q?I=F1aki_Baz_Castillo?=)
+Date: Wed, 9 Dec 2009 14:48:50 +0100
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>
+	<200912081247.34037.ibc@aliax.net>
+	<4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+Message-ID: <200912091448.51018.ibc@aliax.net>
+
+El Miércoles, 9 de Diciembre de 2009, Richard Osborn escribió:
+> Is there any way to refactor the code to get the behavior I desire? I
+> understand why I am getting the current behavior, but I am unsure of
+> how I can use the given actions to my liking. It seems as though there
+> should be another set of action types for transitioning to different
+> states.
+
+Let's iamgine this string to parse with your grammar:
+
+  helloworld
+
+Please tell me which actions (and where/when) do you want to be called.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From brianp at brianp.net  Wed Dec 23 02:51:56 2009
+From: brianp at brianp.net (Brian Pane)
+Date: Tue, 22 Dec 2009 18:51:56 -0800
+Subject: [ragel-users] Is it safe to modify the buffer on which a
+	Ragel-generated FSM is operating?
+Message-ID: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+
+In an action, can I safely modify the part of the input buffer prior
+to the the current position p?  I'm doing so currently, and it seems
+to work just fine, but I want to confirm that this is a behavior I can
+count on (due to the generated code inherently not requiring
+backtracking) rather than an implementation detail that might change
+in future Ragel releases.
+
+Thanks,
+-Brian
+
+
+
+From thurston at complang.org  Wed Dec 23 04:02:35 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:02:35 -0500
+Subject: [ragel-users] properties list
+In-Reply-To: <6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+References: <6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99@mail.gmail.com>	<4B155C31.9050707@esentire.com>
+	<6c59d89a0912021659p1ced9ba0sdb42585046b415bf@mail.gmail.com>
+Message-ID: <4B31965B.9030602@complang.org>
+
+
+Torsten Curdt wrote:
+> 
+> One thing that still seems problematic are escaped quotes though.
+> 
+>  "this here \"test\" is a"
+
+key = '" ( [^\\"] | '\\' any )* '"';
+
+> Cool, I came up with something very similar. But now I have changed it to
+> 
+>   comment_c = "/*" @comment ((any @comment_append)* - (any* "*/" any*)) "*/";
+>   comment_cpp = "//" @comment (any - "\n")* @comment_append "\n";
+> 
+> Thanks for the pointer.
+> 
+> It just seems that my @comment_append method is not positioned correctly.
+> I am still getting a trailing "*" for the "comment_c". Not sure I
+> understand why.
+
+Go further into the chapter. These can simplify to:
+
+comment_c = '/*' any* :>> '*/';
+comment_cpp = '//' any * :> '*/';
+
+> Sounds like converting UTF16 -> UTF8 and then use the proper byte
+> sequences might be a little easier.
+> I found the character sequence definitions here:
+> 
+>  http://git.wincent.com/wikitext.git?a=blob;f=ext/wikitext_ragel.rl
+> 
+> Is there any other example available somewhere?
+
+If you haven't seen it already, look at the ruby script in contrib. It 
+is relevant.
+
+
+Regards,
+  Adrian
+
+
+
+From thurston at complang.org  Wed Dec 23 04:11:57 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:11:57 -0500
+Subject: [ragel-users] short strings,
+ including some which are 1-letter prefixes of other
+In-Reply-To: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+References: <969165AA-D44F-41F4-85B0-165C757CA4E6@dalkescientific.com>
+Message-ID: <4B31988D.5010406@complang.org>
+
+Hi Andrew,
+
+Hmmm, that's an idea. Leaving actions executed on error ... I'm going to 
+have to mull over that. Might be the right thing to do.
+
+How is the aliphatic_organic used?
+
+You may be able to do the following:
+
+something = (
+	aliphatic_organic @1 |
+	any @0 @{raise error}
+)**
+
+Andrew Dalke wrote:
+> Hi all,
+> 
+> I'm updating a parser I wrote a couple of years ago, which parses a molecular format called SMILES. Molecules contain atoms and bonds. The atoms include the element name as an abbreviation.
+> 
+> Consider C and Cl as two such abbreviations. One is a prefix of the other. I had
+> 
+>   is_raw_atom = (
+>       #
+>       'B' % raw_atom_B_5_action |
+>       'C' % raw_atom_C_6_action |
+>       'Cl' % raw_atom_Cl_17_action |
+>         ...
+> 
+> and that worked for what I was doing before, but now I'm trying to get error handling to work. Suppose someone does "CQ". I want raw_atom_C_6_action to occur and then an error.
+> 
+> Ragel doesn't do that. It reports the error at the 'C', because it never transitions out from the end state.
+> 
+> What I did in my current update (in addition to changing the action names) is this:
+> 
+> aliphatic_organic = (
+>   'B'  %is_aliphatic_B  %err(is_aliphatic_B)  |
+>   'C'  %is_aliphatic_C  %err(is_aliphatic_C)  |
+>   'N'  >is_aliphatic_N |
+>      ...
+>   'Cl' %is_aliphatic_Cl %err(is_aliphatic_Cl) |
+>   'Br' @is_aliphatic_Br |
+>       ...
+> );
+> 
+> 
+> It works, but is it correct and proper? I did see there was the |* ... *| construct designed for things like this, but I didn't want the backtracking.
+> 
+> Best regards,
+> 
+> 
+> 				Andrew
+> 				dalke at dalkescientific.com
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec 23 04:19:27 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:19:27 -0500
+Subject: [ragel-users] Actions executing too often.
+In-Reply-To: <4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+References: <56D24197-B63E-4E9E-B436-38ED3EBCD918@mac.com>	<200912081247.34037.ibc@aliax.net>
+	<4E876BE9-8146-4965-8F35-1EE8EBC4581C@mac.com>
+Message-ID: <4B319A4F.9010704@complang.org>
+
+If you had base* you could just change it to base**. But you don't so 
+you have to use:
+
+main := base <: base**;
+
+-Adrian
+
+Richard Osborn wrote:
+> Is there any way to refactor the code to get the behavior I desire? I  
+> understand why I am getting the current behavior, but I am unsure of  
+> how I can use the given actions to my liking. It seems as though there  
+> should be another set of action types for transitioning to different  
+> states.
+> On Dec 8, 2009, at 5:47 AM, Iñaki Baz Castillo wrote:
+> 
+>> El Martes, 8 de Diciembre de 2009, Richard Osborn escribió:
+>>> Hi,
+>>> 	I've just recently started learning Ragel. I have read the guide pdf
+>>> and I can't seem to find a solution to this problem.
+>>> Let's say I have this grammar:
+>>> 	%%{
+>>> 		op = '+'+;
+>>> 		word = alpha+;
+>>> 		spaces = ' '+;
+>>> 		base = 	  spaces
+>>>
+>>> 				| word >start_word $in_word %end_word
+>>> 				| op >start_op $in_op %end_op
+>>>
+>>> 				;
+>>> 		main := base+;
+>>> 	}%%
+>>>
+>>> What I would like to see is this:
+>>> 	http://imgur.com/POP8U.png
+>>>
+>>> What Ragel compiles is this:
+>>> 	http://imgur.com/x36VA.png
+>>>
+>>> Can anyone help me get the behavior I'm looking?
+>> Imagine you parse "abc".
+>> Note that "main := base+;".
+>>
+>>
+>> So when Ragel reads "a" it performs ">start_word".
+>>
+>> Then Ragel reads "b". How can Ragel know if "b" is part of the first  
+>> 'base' or
+>> the first char of a new 'base'? Both options are valid, so Ragel  
+>> runs action
+>> for both (in parallel), so it runs:
+>>
+>> - ">start_word" because "b" could be the start of a new 'base'.
+>>
+>> - "$in_word" because "b" could be part of the previous 'base' and  
+>> it's a valid
+>> existing point.
+>>
+>> - ">end_word" because when considering "b" as a new 'base' it means  
+>> that first
+>> 'base' ("a") has totally ended.
+>>
+>> Of course, this will happen for each char. The main problem of your  
+>> grammar is
+>> that Ragel cannot determine (who can?) how to split "base+;" into  
+>> different
+>> "words" so it takes *all* the valid options *in parallel*.
+>>
+>>
+>> Hope this helps. Regards.
+>>
+>>
+>>
+>>
+>> -- 
+>> Iñaki Baz Castillo <ibc at aliax.net>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From thurston at complang.org  Wed Dec 23 04:20:49 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 22 Dec 2009 23:20:49 -0500
+Subject: [ragel-users] Is it safe to modify the buffer on which
+ a	Ragel-generated FSM is operating?
+In-Reply-To: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+References: <64dcd4df0912221851r2080af7ap554a1fbff9450242@mail.gmail.com>
+Message-ID: <4B319AA1.7050303@complang.org>
+
+For sure, this is a behaviour you can count on.
+
+-Adrian
+
+Brian Pane wrote:
+> In an action, can I safely modify the part of the input buffer prior
+> to the the current position p?  I'm doing so currently, and it seems
+> to work just fine, but I want to confirm that this is a behavior I can
+> count on (due to the generated code inherently not requiring
+> backtracking) rather than an implementation detail that might change
+> in future Ragel releases.
+> 
+> Thanks,
+> -Brian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From nesreenfawzy at gmail.com  Wed Dec 23 09:22:09 2009
+From: nesreenfawzy at gmail.com (Nesreen Fawzy)
+Date: Wed, 23 Dec 2009 11:22:09 +0200
+Subject: [ragel-users] First time to use ragel
+Message-ID: <000501ca83b1$6866d460$39347d20$@com>
+
+Hi Adrian,
+
+ 
+
+This is my first time to know about ragel and I was wondering how to run a
+sample code?? On Windows platform.
+
+ 
+
+Your response is highly appreciated,
+
+ 
+
+Best Regards,
+
+Nesreen Fawzy
+
++2 0125838968
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091223/0a7bcbe0/attachment-0001.html>
+

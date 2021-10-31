@@ -1,0 +1,3740 @@
+From thurston at complang.org  Tue Feb  1 06:16:50 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 31 Jan 2011 22:16:50 -0800
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>	<4D46F83E.5040800@esentire.com>	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+Message-ID: <4D47A552.3070701@complang.org>
+
+Hi, does this do what you want?
+
+main = (
+           ('HELLO ' $^parse_error) 'WORLD' |
+           any*
+        );
+
+I'm not sure how that fits into your overall plan. Try it out and we'll 
+discuss further.
+
+Regards,
+  Adrian
+
+On 11-01-31 03:50 PM, Murray Henderson wrote:
+> Hello,
+>
+> Both local and global error actions transition to the error state. I
+> am using Ragel 6.5. I can try with 6.6 when I get home.
+>
+> I made a quick example (based off S. Geist's example):
+>
+> http://pastebin.com/06ihRxQg
+>
+> Example output:
+>
+> HELLO WORLD
+> read: HELLO WORLD
+> len: 12, state: 12
+> HELWORLD
+> parse error
+> read: HEL
+> len: 3, state: 0
+>
+>
+> Cheers,
+> Murray
+>
+>
+> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Local error actions don't. Sorry I should have suggested just those.
+>>
+>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>
+>>> Hello,
+>>>
+>>> Local and global error actions transition to the error state.
+>>>
+>>> I want DEF to transition to the next machine (ie. behave like a final
+>>> state), not the error state.
+>>>
+>>> The parser I am writing is permissive, all input must be accepted (I
+>>> never want to goto the error state).
+>>>
+>>> I do not wish to use manual goto recovery, because the parser is large
+>>> and complex, such manual tracking is a lot of work and error prone.
+>>>
+>>> Cheers,
+>>> Murray
+>>>
+>>>
+>>>
+>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>> <adrian.thurston at esentire.com>    wrote:
+>>>>
+>>>> Hi, have you looked at ragel's local and global error actions yet? These
+>>>> may
+>>>> do what you want.
+>>>>
+>>>> -Adrian
+>>>>
+>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> I want to embed a default action into a machine that leaves the
+>>>>> machine (without using manual a jump inside the action).
+>>>>>
+>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>> similar to the Local Error operator).
+>>>>>
+>>>>>
+>>>>> Example:
+>>>>>
+>>>>> action parse_error {}
+>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>
+>>>>> Non-error inputs include:
+>>>>> HELLO WORLD
+>>>>> HELLOWORLD (parse_error action occurs on 'O' ->      'W' transition)
+>>>>> HELLWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>> HELWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>> HEWORLD (parse_error action occurs on 'E' ->      'W' transition)
+>>>>> HWORLD (parse_error action occurs on 'H' ->      'W' transition)
+>>>>> WORLD (parse_error action occurs on ->      'W' transition)
+>>>>>
+>>>>>
+>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>> be simulated.
+>>>>>
+>>>>>
+>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>> accepts all possible input. (Every state must have a default action)
+>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>> Yes, I am mad.
+>>>>>
+>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>> scanners mid-token.
+>>>>>
+>>>>>
+>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>> operator would be added.
+>>>>>
+>>>>> Before I continue...
+>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>> aware
+>>>>> of?
+>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>> Is there any knowledge that could be imparted that would help me make a
+>>>>> patch?
+>>>>>
+>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>
+>>>>> After a brief look through the source, it looks like I would need to
+>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>
+>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>
+>>>>> Cheers,
+>>>>> Murray
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From breroger at cisco.com  Wed Feb  2 19:33:56 2011
+From: breroger at cisco.com (breroger)
+Date: Wed, 02 Feb 2011 13:33:56 -0600
+Subject: [ragel-users] JOB: Senior Software Engineer with Parsing Expertise
+	needed at CISCO
+Message-ID: <C96F0DC4.25B83%breroger@cisco.com>
+
+Please contact Brent at breroger at cisco.com if you are interested in the job
+opening listed below.
+ 
+Regards,
+Brent
+ 
+Senior Software Engineer
+ 
+Location ­ San Jose, California
+ 
+Security Technology Business Unit (STBU) within WSRTG, is seeking a Software
+Engineer. STBU offers network and content security solutions that enable our
+customers to collaborate with confidence. These solutions include our
+firewall, intrusion prevention, remote access/VPN, unified client, web and
+email security.
+ 
+Responsibilities:
+Develop software for the Cisco Adaptive Security Appliance (ASA) and more
+specifically for the SSL VPN Remote Access component. Program in C, C++ and
+Javascript on a Linux-based platform with a slew of open source and
+proprietary libraries and infrastructure. Small team is central owner of
+WebVPN functionality; engage in all aspects of the product life-cycle from
+specification, design to development and post release maintenance. Great
+opportunity to employ a breadth of software engineering skills in a highly
+visible product.
+ 
+The successful candidate would have 3+ years of industry experience or more,
+would have experience working on large projects, analyzing and debugging
+Layer 7 protocols, writing parsers for high level languages and has written
+javascript to generate javascript.
+ 
+This candidate will show talent, passion and pride in software architecture,
+authorship and quality, excellent collaboration skills, teamwork and cross
+functional aptitude.
+ 
+Expertise in most of the following areas is required:
+ 
+* Flash decompilation
+* Unix/POSIX/Linux application level programming
+* Very strong Javascript development skills, with ability to use debuggers
+and profilers
+* Ability to diagnose issues with proprietary protocols
+* knowledge of parsers, regular expressions
+* Strong knowledge of the HTTP protocol and HTML
+* NTLM, SSL, character encoding
+* Differences between browsers, proxies
+* Experience with tools and frameworks like wireshark, Pcap, HTTPwatch,
+Spidermonkey, webkit
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110202/1427520b/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mail at murrayh.id.au  Wed Feb  2 22:17:46 2011
+From: mail at murrayh.id.au (Murray Henderson)
+Date: Thu, 3 Feb 2011 09:17:46 +1100
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <4D47A552.3070701@complang.org>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>
+	<4D46F83E.5040800@esentire.com>
+	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>
+	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+	<4D47A552.3070701@complang.org>
+Message-ID: <AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for taking an interest :-).
+
+
+As far as I can tell,
+
+ main = (
+          ('HELLO ' $^parse_error) 'WORLD' |
+          any*
+       );
+
+and
+
+ main = (
+          ('HELLO ' $!parse_error) 'WORLD' |
+          any*
+       );
+
+are equivalent to
+
+
+ main = any*;
+
+
+
+
+Anyway, the real machine I am trying to build currently looks like this:
+
+
+doctype_single_quoted_value = (
+    "'" ([^>]*)
+        >start_token_value
+        %end_token
+    :>> "'"
+);
+
+doctype_double_quoted_value = (
+    '"' ([^>]*)
+        >start_token_value
+        %end_token
+    :>> '"'
+);
+
+doctype_quoted_value = (doctype_single_quoted_value |
+doctype_double_quoted_value);
+
+doctype_name = (
+    space+ (any - ('>' | space))+
+        >start_token_doctype_name
+        %end_token
+);
+
+doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+doctype_quoted_value;
+
+doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+doctype_quoted_value;
+
+doctype = (
+    '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+doctype_system?)? space* '>'
+);
+
+
+
+This machine looks about right (in the FSM diagram) except that it
+doesn't handle malformed doctypes.
+
+With the $^^ operator I described, I imagine the machine would look
+like this (given a parse error action, pe):
+
+
+
+doctype = (
+    '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+doctype_system?) $^^pe)? space* <: ([^>]+ >pe)? '>'
+);
+
+
+Additionally, I think I might be able to use that imaginary operator
+to make whitespace optional (though with a parse error if the
+whitespace is omitted):
+
+eg:
+
+omittable_space = space+ >^^pe;
+doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+omittable_space doctype_quoted_value;
+
+
+
+
+I will be using this machine inside multiple scanners, so goto based
+error recovery would be a pain. Default actions that transition to the
+final state seem like a handy feature for any permissive parser
+(although I realize I am doing something extreme).
+
+I still thinking about attempting to patch ragel. Much more
+complicated than I thought it would be, but can't hurt for me to give
+it a crack.
+
+
+Still absolutely nowhere near finished, but my work is progressing slowly ;-).
+https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+
+
+Cheers,
+Murray
+
+
+On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi, does this do what you want?
+>
+> main = (
+>          ('HELLO ' $^parse_error) 'WORLD' |
+>          any*
+>       );
+>
+> I'm not sure how that fits into your overall plan. Try it out and we'll
+> discuss further.
+>
+> Regards,
+>  Adrian
+>
+> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>
+>> Hello,
+>>
+>> Both local and global error actions transition to the error state. I
+>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>
+>> I made a quick example (based off S. Geist's example):
+>>
+>> http://pastebin.com/06ihRxQg
+>>
+>> Example output:
+>>
+>> HELLO WORLD
+>> read: HELLO WORLD
+>> len: 12, state: 12
+>> HELWORLD
+>> parse error
+>> read: HEL
+>> len: 3, state: 0
+>>
+>>
+>> Cheers,
+>> Murray
+>>
+>>
+>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Local error actions don't. Sorry I should have suggested just those.
+>>>
+>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>
+>>>> Hello,
+>>>>
+>>>> Local and global error actions transition to the error state.
+>>>>
+>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>> state), not the error state.
+>>>>
+>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>> never want to goto the error state).
+>>>>
+>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>
+>>>> Cheers,
+>>>> Murray
+>>>>
+>>>>
+>>>>
+>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>> <adrian.thurston at esentire.com>    wrote:
+>>>>>
+>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>> These
+>>>>> may
+>>>>> do what you want.
+>>>>>
+>>>>> -Adrian
+>>>>>
+>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>
+>>>>>> Hello,
+>>>>>>
+>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>> machine (without using manual a jump inside the action).
+>>>>>>
+>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>> similar to the Local Error operator).
+>>>>>>
+>>>>>>
+>>>>>> Example:
+>>>>>>
+>>>>>> action parse_error {}
+>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>
+>>>>>> Non-error inputs include:
+>>>>>> HELLO WORLD
+>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->      'W' transition)
+>>>>>> HELLWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>>> HELWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>>> HEWORLD (parse_error action occurs on 'E' ->      'W' transition)
+>>>>>> HWORLD (parse_error action occurs on 'H' ->      'W' transition)
+>>>>>> WORLD (parse_error action occurs on ->      'W' transition)
+>>>>>>
+>>>>>>
+>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>>> be simulated.
+>>>>>>
+>>>>>>
+>>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>>> Yes, I am mad.
+>>>>>>
+>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>> scanners mid-token.
+>>>>>>
+>>>>>>
+>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>>> operator would be added.
+>>>>>>
+>>>>>> Before I continue...
+>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>> aware
+>>>>>> of?
+>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>> Is there any knowledge that could be imparted that would help me make
+>>>>>> a
+>>>>>> patch?
+>>>>>>
+>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>
+>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>
+>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>
+>>>>>> Cheers,
+>>>>>> Murray
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Feb  2 22:32:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 02 Feb 2011 14:32:17 -0800
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>	<4D46F83E.5040800@esentire.com>	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>	<4D473F97.1000509@complang.org>	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>	<4D47A552.3070701@complang.org>
+	<AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+Message-ID: <4D49DB71.7060806@complang.org>
+
+Apparently I don't know how to use my own tool! Let's try this again, 
+this time not so rushed on my part :)
+
+         action le {}
+         foo = 'hello' $^le;
+         main := (
+                 any* |
+                 foo
+         );
+
+Local error actions are local to the named machine they are in, not the 
+enclosing (), which is the rushed mistake I made.
+
+Thanks,
+  Adrian
+
+On 11-02-02 02:17 PM, Murray Henderson wrote:
+> Hi Adrian,
+>
+> Thanks for taking an interest :-).
+>
+>
+> As far as I can tell,
+>
+>   main = (
+>            ('HELLO ' $^parse_error) 'WORLD' |
+>            any*
+>         );
+>
+> and
+>
+>   main = (
+>            ('HELLO ' $!parse_error) 'WORLD' |
+>            any*
+>         );
+>
+> are equivalent to
+>
+>
+>   main = any*;
+>
+>
+>
+>
+> Anyway, the real machine I am trying to build currently looks like this:
+>
+>
+> doctype_single_quoted_value = (
+>      "'" ([^>]*)
+>          >start_token_value
+>          %end_token
+>      :>>  "'"
+> );
+>
+> doctype_double_quoted_value = (
+>      '"' ([^>]*)
+>          >start_token_value
+>          %end_token
+>      :>>  '"'
+> );
+>
+> doctype_quoted_value = (doctype_single_quoted_value |
+> doctype_double_quoted_value);
+>
+> doctype_name = (
+>      space+ (any - ('>' | space))+
+>          >start_token_doctype_name
+>          %end_token
+> );
+>
+> doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+> doctype_quoted_value;
+>
+> doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+> doctype_quoted_value;
+>
+> doctype = (
+>      '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+> doctype_system?)? space* '>'
+> );
+>
+>
+>
+> This machine looks about right (in the FSM diagram) except that it
+> doesn't handle malformed doctypes.
+>
+> With the $^^ operator I described, I imagine the machine would look
+> like this (given a parse error action, pe):
+>
+>
+>
+> doctype = (
+>      '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+> doctype_system?) $^^pe)? space*<: ([^>]+>pe)? '>'
+> );
+>
+>
+> Additionally, I think I might be able to use that imaginary operator
+> to make whitespace optional (though with a parse error if the
+> whitespace is omitted):
+>
+> eg:
+>
+> omittable_space = space+>^^pe;
+> doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+> omittable_space doctype_quoted_value;
+>
+>
+>
+>
+> I will be using this machine inside multiple scanners, so goto based
+> error recovery would be a pain. Default actions that transition to the
+> final state seem like a handy feature for any permissive parser
+> (although I realize I am doing something extreme).
+>
+> I still thinking about attempting to patch ragel. Much more
+> complicated than I thought it would be, but can't hurt for me to give
+> it a crack.
+>
+>
+> Still absolutely nowhere near finished, but my work is progressing slowly ;-).
+> https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+>
+>
+> Cheers,
+> Murray
+>
+>
+> On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Hi, does this do what you want?
+>>
+>> main = (
+>>           ('HELLO ' $^parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> I'm not sure how that fits into your overall plan. Try it out and we'll
+>> discuss further.
+>>
+>> Regards,
+>>   Adrian
+>>
+>> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>>
+>>> Hello,
+>>>
+>>> Both local and global error actions transition to the error state. I
+>>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>>
+>>> I made a quick example (based off S. Geist's example):
+>>>
+>>> http://pastebin.com/06ihRxQg
+>>>
+>>> Example output:
+>>>
+>>> HELLO WORLD
+>>> read: HELLO WORLD
+>>> len: 12, state: 12
+>>> HELWORLD
+>>> parse error
+>>> read: HEL
+>>> len: 3, state: 0
+>>>
+>>>
+>>> Cheers,
+>>> Murray
+>>>
+>>>
+>>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>>   wrote:
+>>>>
+>>>> Local error actions don't. Sorry I should have suggested just those.
+>>>>
+>>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> Local and global error actions transition to the error state.
+>>>>>
+>>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>>> state), not the error state.
+>>>>>
+>>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>>> never want to goto the error state).
+>>>>>
+>>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>>
+>>>>> Cheers,
+>>>>> Murray
+>>>>>
+>>>>>
+>>>>>
+>>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>>> <adrian.thurston at esentire.com>      wrote:
+>>>>>>
+>>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>>> These
+>>>>>> may
+>>>>>> do what you want.
+>>>>>>
+>>>>>> -Adrian
+>>>>>>
+>>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>>
+>>>>>>> Hello,
+>>>>>>>
+>>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>>> machine (without using manual a jump inside the action).
+>>>>>>>
+>>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>>> similar to the Local Error operator).
+>>>>>>>
+>>>>>>>
+>>>>>>> Example:
+>>>>>>>
+>>>>>>> action parse_error {}
+>>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>>
+>>>>>>> Non-error inputs include:
+>>>>>>> HELLO WORLD
+>>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->        'W' transition)
+>>>>>>> HELLWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>> HELWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>> HEWORLD (parse_error action occurs on 'E' ->        'W' transition)
+>>>>>>> HWORLD (parse_error action occurs on 'H' ->        'W' transition)
+>>>>>>> WORLD (parse_error action occurs on ->        'W' transition)
+>>>>>>>
+>>>>>>>
+>>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>>>> be simulated.
+>>>>>>>
+>>>>>>>
+>>>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>>>> Yes, I am mad.
+>>>>>>>
+>>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>>> scanners mid-token.
+>>>>>>>
+>>>>>>>
+>>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>>>> operator would be added.
+>>>>>>>
+>>>>>>> Before I continue...
+>>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>>> aware
+>>>>>>> of?
+>>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>>> Is there any knowledge that could be imparted that would help me make
+>>>>>>> a
+>>>>>>> patch?
+>>>>>>>
+>>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>>
+>>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>>
+>>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>>
+>>>>>>> Cheers,
+>>>>>>> Murray
+>>>>>>>
+>>>>>>> _______________________________________________
+>>>>>>> ragel-users mailing list
+>>>>>>> ragel-users at complang.org
+>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mail at murrayh.id.au  Wed Feb  2 23:39:18 2011
+From: mail at murrayh.id.au (Murray Henderson)
+Date: Thu, 3 Feb 2011 10:39:18 +1100
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <4D49DB71.7060806@complang.org>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>
+	<4D46F83E.5040800@esentire.com>
+	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>
+	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+	<4D47A552.3070701@complang.org>
+	<AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+	<4D49DB71.7060806@complang.org>
+Message-ID: <AANLkTi=Lgjhut_nDzR1ht4na5gkb_g1KJ7e+vN015wkg@mail.gmail.com>
+
+Thanks Adrian, I think that technique will make it possible to solve my problem.
+
+
+On Thu, Feb 3, 2011 at 9:32 AM, Adrian Thurston <thurston at complang.org> wrote:
+> Apparently I don't know how to use my own tool! Let's try this again, this
+> time not so rushed on my part :)
+>
+>        action le {}
+>        foo = 'hello' $^le;
+>        main := (
+>                any* |
+>                foo
+>        );
+>
+> Local error actions are local to the named machine they are in, not the
+> enclosing (), which is the rushed mistake I made.
+>
+> Thanks,
+>  Adrian
+>
+> On 11-02-02 02:17 PM, Murray Henderson wrote:
+>>
+>> Hi Adrian,
+>>
+>> Thanks for taking an interest :-).
+>>
+>>
+>> As far as I can tell,
+>>
+>>  main = (
+>>           ('HELLO ' $^parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> and
+>>
+>>  main = (
+>>           ('HELLO ' $!parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> are equivalent to
+>>
+>>
+>>  main = any*;
+>>
+>>
+>>
+>>
+>> Anyway, the real machine I am trying to build currently looks like this:
+>>
+>>
+>> doctype_single_quoted_value = (
+>>     "'" ([^>]*)
+>>         >start_token_value
+>>         %end_token
+>>     :>>  "'"
+>> );
+>>
+>> doctype_double_quoted_value = (
+>>     '"' ([^>]*)
+>>         >start_token_value
+>>         %end_token
+>>     :>>  '"'
+>> );
+>>
+>> doctype_quoted_value = (doctype_single_quoted_value |
+>> doctype_double_quoted_value);
+>>
+>> doctype_name = (
+>>     space+ (any - ('>' | space))+
+>>         >start_token_doctype_name
+>>         %end_token
+>> );
+>>
+>> doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+>> doctype_quoted_value;
+>>
+>> doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+>> doctype_quoted_value;
+>>
+>> doctype = (
+>>     '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+>> doctype_system?)? space* '>'
+>> );
+>>
+>>
+>>
+>> This machine looks about right (in the FSM diagram) except that it
+>> doesn't handle malformed doctypes.
+>>
+>> With the $^^ operator I described, I imagine the machine would look
+>> like this (given a parse error action, pe):
+>>
+>>
+>>
+>> doctype = (
+>>     '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+>> doctype_system?) $^^pe)? space*<: ([^>]+>pe)? '>'
+>> );
+>>
+>>
+>> Additionally, I think I might be able to use that imaginary operator
+>> to make whitespace optional (though with a parse error if the
+>> whitespace is omitted):
+>>
+>> eg:
+>>
+>> omittable_space = space+>^^pe;
+>> doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+>> omittable_space doctype_quoted_value;
+>>
+>>
+>>
+>>
+>> I will be using this machine inside multiple scanners, so goto based
+>> error recovery would be a pain. Default actions that transition to the
+>> final state seem like a handy feature for any permissive parser
+>> (although I realize I am doing something extreme).
+>>
+>> I still thinking about attempting to patch ragel. Much more
+>> complicated than I thought it would be, but can't hurt for me to give
+>> it a crack.
+>>
+>>
+>> Still absolutely nowhere near finished, but my work is progressing slowly
+>> ;-).
+>> https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+>>
+>>
+>> Cheers,
+>> Murray
+>>
+>>
+>> On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Hi, does this do what you want?
+>>>
+>>> main = (
+>>>          ('HELLO ' $^parse_error) 'WORLD' |
+>>>          any*
+>>>       );
+>>>
+>>> I'm not sure how that fits into your overall plan. Try it out and we'll
+>>> discuss further.
+>>>
+>>> Regards,
+>>>  Adrian
+>>>
+>>> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>>>
+>>>> Hello,
+>>>>
+>>>> Both local and global error actions transition to the error state. I
+>>>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>>>
+>>>> I made a quick example (based off S. Geist's example):
+>>>>
+>>>> http://pastebin.com/06ihRxQg
+>>>>
+>>>> Example output:
+>>>>
+>>>> HELLO WORLD
+>>>> read: HELLO WORLD
+>>>> len: 12, state: 12
+>>>> HELWORLD
+>>>> parse error
+>>>> read: HEL
+>>>> len: 3, state: 0
+>>>>
+>>>>
+>>>> Cheers,
+>>>> Murray
+>>>>
+>>>>
+>>>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>>>  wrote:
+>>>>>
+>>>>> Local error actions don't. Sorry I should have suggested just those.
+>>>>>
+>>>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>>>
+>>>>>> Hello,
+>>>>>>
+>>>>>> Local and global error actions transition to the error state.
+>>>>>>
+>>>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>>>> state), not the error state.
+>>>>>>
+>>>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>>>> never want to goto the error state).
+>>>>>>
+>>>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>>>
+>>>>>> Cheers,
+>>>>>> Murray
+>>>>>>
+>>>>>>
+>>>>>>
+>>>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>>>> <adrian.thurston at esentire.com>      wrote:
+>>>>>>>
+>>>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>>>> These
+>>>>>>> may
+>>>>>>> do what you want.
+>>>>>>>
+>>>>>>> -Adrian
+>>>>>>>
+>>>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>>>
+>>>>>>>> Hello,
+>>>>>>>>
+>>>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>>>> machine (without using manual a jump inside the action).
+>>>>>>>>
+>>>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>>>> similar to the Local Error operator).
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> Example:
+>>>>>>>>
+>>>>>>>> action parse_error {}
+>>>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>>>
+>>>>>>>> Non-error inputs include:
+>>>>>>>> HELLO WORLD
+>>>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->        'W'
+>>>>>>>> transition)
+>>>>>>>> HELLWORLD (parse_error action occurs on 'L' ->        'W'
+>>>>>>>> transition)
+>>>>>>>> HELWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>>> HEWORLD (parse_error action occurs on 'E' ->        'W' transition)
+>>>>>>>> HWORLD (parse_error action occurs on 'H' ->        'W' transition)
+>>>>>>>> WORLD (parse_error action occurs on ->        'W' transition)
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>>>> laborious, and there are other ways of using $^^ that I suspect
+>>>>>>>> cannot
+>>>>>>>> be simulated.
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I want this operator because I am trying to make a liberal parser
+>>>>>>>> that
+>>>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>>>> tokenizing, and scanners built from the regular machines for
+>>>>>>>> parsing.
+>>>>>>>> Yes, I am mad.
+>>>>>>>>
+>>>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>>>> scanners mid-token.
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the
+>>>>>>>> new
+>>>>>>>> operator would be added.
+>>>>>>>>
+>>>>>>>> Before I continue...
+>>>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>>>> aware
+>>>>>>>> of?
+>>>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>>>> Is there any knowledge that could be imparted that would help me
+>>>>>>>> make
+>>>>>>>> a
+>>>>>>>> patch?
+>>>>>>>>
+>>>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>>>
+>>>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object
+>>>>>>>> for
+>>>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>>>
+>>>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>>>
+>>>>>>>> Cheers,
+>>>>>>>> Murray
+>>>>>>>>
+>>>>>>>> _______________________________________________
+>>>>>>>> ragel-users mailing list
+>>>>>>>> ragel-users at complang.org
+>>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>>
+>>>>>>>
+>>>>>>> _______________________________________________
+>>>>>>> ragel-users mailing list
+>>>>>>> ragel-users at complang.org
+>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From yipdw at member.fsf.org  Thu Feb  3 21:41:39 2011
+From: yipdw at member.fsf.org (David Yip)
+Date: Thu, 3 Feb 2011 15:41:39 -0600
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code generation
+Message-ID: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+
+Hello all,
+
+Not sure if this is the right place to send patches, but I didn't see
+anything that looked more appropriate on
+http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+know.)
+
+The attached patch contains three changes:
+
+(1) Implementation of the -L option for Ruby code generation by
+suppressing all "# line ..." output.  This isn't the same thing as
+what the C/D code generator does, but IMO is the closest
+interpretation for Ruby code.  The patch is modelled after the
+existing behavior for C/D code generation.
+(2) A change to the option listing to signal Ruby as a target language
+for which -L is available.
+(3) A change that corrects a typo in the option listing ("direcives"
+-> "directives").
+
+The patch was generated using git diff, but should apply cleanly with
+e.g. GNU patch.
+
+Suggestions and comments welcome.
+
+Thanks,
+
+- David
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: suppress-line-output-for-ruby.patch
+Type: application/octet-stream
+Size: 1165 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110203/3a46dbf0/attachment.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Feb  4 01:43:06 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 03 Feb 2011 17:43:06 -0800
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code
+	generation
+In-Reply-To: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+Message-ID: <4D4B59AA.3010009@complang.org>
+
+Hi David,
+
+Yes this is the right place. Thank you for your submission. The mailing 
+list has always been low volume and special purpose lists aren't really 
+warranted.
+
+The issue is now tracked in the new redmine instance I've started using 
+for my open source projects.
+
+http://www.complang.org/redmine/issues/155
+
+Regards,
+  Adrian
+
+On 11-02-03 01:41 PM, David Yip wrote:
+> Hello all,
+>
+> Not sure if this is the right place to send patches, but I didn't see
+> anything that looked more appropriate on
+> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+> know.)
+>
+> The attached patch contains three changes:
+>
+> (1) Implementation of the -L option for Ruby code generation by
+> suppressing all "# line ..." output.  This isn't the same thing as
+> what the C/D code generator does, but IMO is the closest
+> interpretation for Ruby code.  The patch is modelled after the
+> existing behavior for C/D code generation.
+> (2) A change to the option listing to signal Ruby as a target language
+> for which -L is available.
+> (3) A change that corrects a typo in the option listing ("direcives"
+> ->  "directives").
+>
+> The patch was generated using git diff, but should apply cleanly with
+> e.g. GNU patch.
+>
+> Suggestions and comments welcome.
+>
+> Thanks,
+>
+> - David
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From yipdw at member.fsf.org  Fri Feb  4 06:51:29 2011
+From: yipdw at member.fsf.org (David Yip)
+Date: Fri, 4 Feb 2011 00:51:29 -0600
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code
+	generation
+In-Reply-To: <4D4B59AA.3010009@complang.org>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+	<4D4B59AA.3010009@complang.org>
+Message-ID: <AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for the link to your Redmine instance; I'll keep an eye on that.
+
+- David
+
+On Thu, Feb 3, 2011 at 7:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi David,
+>
+> Yes this is the right place. Thank you for your submission. The mailing list
+> has always been low volume and special purpose lists aren't really
+> warranted.
+>
+> The issue is now tracked in the new redmine instance I've started using for
+> my open source projects.
+>
+> http://www.complang.org/redmine/issues/155
+>
+> Regards,
+>  Adrian
+>
+> On 11-02-03 01:41 PM, David Yip wrote:
+>>
+>> Hello all,
+>>
+>> Not sure if this is the right place to send patches, but I didn't see
+>> anything that looked more appropriate on
+>> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+>> know.)
+>>
+>> The attached patch contains three changes:
+>>
+>> (1) Implementation of the -L option for Ruby code generation by
+>> suppressing all "# line ..." output.  This isn't the same thing as
+>> what the C/D code generator does, but IMO is the closest
+>> interpretation for Ruby code.  The patch is modelled after the
+>> existing behavior for C/D code generation.
+>> (2) A change to the option listing to signal Ruby as a target language
+>> for which -L is available.
+>> (3) A change that corrects a typo in the option listing ("direcives"
+>> ->  "directives").
+>>
+>> The patch was generated using git diff, but should apply cleanly with
+>> e.g. GNU patch.
+>>
+>> Suggestions and comments welcome.
+>>
+>> Thanks,
+>>
+>> - David
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From vitaly.v.ch at chernooky.com  Tue Feb  8 12:25:03 2011
+From: vitaly.v.ch at chernooky.com (Vitaly V. Ch)
+Date: Tue, 8 Feb 2011 14:25:03 +0200
+Subject: [ragel-users] Similar project for Haskell: Atom
+Message-ID: <AANLkTi=EpY_1Z4LjAmvHK77+8WM6Yk23WFsfrNk2CYvk@mail.gmail.com>
+
+Hi All!
+
+http://leepike.wordpress.com/2009/05/05/an-atomic-fibonacci-server-exploring-the-atom-haskell-dsl/
+
+\\wbr Vitaly Chernooky
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From matthieu.tourne at gmail.com  Fri Feb 11 01:58:38 2011
+From: matthieu.tourne at gmail.com (Matthieu Tourne)
+Date: Thu, 10 Feb 2011 17:58:38 -0800
+Subject: [ragel-users] longest matching kleene star & parse error
+Message-ID: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+
+Hi,
+
+I'm trying to write a simple html lexer with ragel.
+I have something looking like this, to match and take an action on the
+attribute 'src=' potentially found in several tag attributes :
+
+  tag_content = (
+        ('src='i  ((('\'' string_sgl_exp) | '"' string_dbl_exp)
+                      >src_attr_start
+                      @src_attr_end))
+
+        | any
+    )** <>lerr{  };
+
+    tag_exp = tag_content :>> '>';
+
+My problem is if I create an attribute <img srt="..."> (srt is not a proper
+attribute, but it does generate a parse error).
+What I'd like to do would be <>lerr{ fhold; fgoto tag_content; }, which
+would work if tag_content was an entry point.
+But I use tag_exp in several places where an entry point wouldn't work, for
+instance :
+
+img_tag := tag_exp [...] @end_img_action;
+script_tag := tag_exp [...] @end_script_tag_action;
+
+I've considered creating a ragel scanner, but I don't really care for
+backtracking, I'd just like to be able to hide the error. This would work
+exactly the way I want to, by doing a fgoto tag_content. It would basically
+restart the parse on t='...' and have it would fall under the "any"
+category.
+
+Is there an elegant way to do this, or to just hide the error ?
+
+Thank you,
+
+Matthieu.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110210/1a008490/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Feb 11 04:20:14 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 10 Feb 2011 20:20:14 -0800
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby
+	code	generation
+In-Reply-To: <AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>	<4D4B59AA.3010009@complang.org>
+	<AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+Message-ID: <4D54B8FE.5030209@complang.org>
+
+Applied to trunk.
+
+On 11-02-03 10:51 PM, David Yip wrote:
+> Hi Adrian,
+>
+> Thanks for the link to your Redmine instance; I'll keep an eye on that.
+>
+> - David
+>
+> On Thu, Feb 3, 2011 at 7:43 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Hi David,
+>>
+>> Yes this is the right place. Thank you for your submission. The mailing list
+>> has always been low volume and special purpose lists aren't really
+>> warranted.
+>>
+>> The issue is now tracked in the new redmine instance I've started using for
+>> my open source projects.
+>>
+>> http://www.complang.org/redmine/issues/155
+>>
+>> Regards,
+>>   Adrian
+>>
+>> On 11-02-03 01:41 PM, David Yip wrote:
+>>>
+>>> Hello all,
+>>>
+>>> Not sure if this is the right place to send patches, but I didn't see
+>>> anything that looked more appropriate on
+>>> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+>>> know.)
+>>>
+>>> The attached patch contains three changes:
+>>>
+>>> (1) Implementation of the -L option for Ruby code generation by
+>>> suppressing all "# line ..." output.  This isn't the same thing as
+>>> what the C/D code generator does, but IMO is the closest
+>>> interpretation for Ruby code.  The patch is modelled after the
+>>> existing behavior for C/D code generation.
+>>> (2) A change to the option listing to signal Ruby as a target language
+>>> for which -L is available.
+>>> (3) A change that corrects a typo in the option listing ("direcives"
+>>> ->    "directives").
+>>>
+>>> The patch was generated using git diff, but should apply cleanly with
+>>> e.g. GNU patch.
+>>>
+>>> Suggestions and comments welcome.
+>>>
+>>> Thanks,
+>>>
+>>> - David
+>>>
+>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Feb 11 04:26:18 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 10 Feb 2011 20:26:18 -0800
+Subject: [ragel-users] longest matching kleene star & parse error
+In-Reply-To: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+References: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+Message-ID: <4D54BA6A.3010004@complang.org>
+
+Sorry I don't have anything elegant for you. You'll have to factor out 
+and duplicate the error action.
+
+On 11-02-10 05:58 PM, Matthieu Tourne wrote:
+> Hi,
+>
+> I'm trying to write a simple html lexer with ragel.
+> I have something looking like this, to match and take an action on the
+> attribute 'src=' potentially found in several tag attributes :
+>
+>    tag_content = (
+>          ('src='i  ((('\'' string_sgl_exp) | '"' string_dbl_exp)
+>  >src_attr_start
+>                        @src_attr_end))
+>
+>          | any
+>      )** <>lerr{  };
+>
+>      tag_exp = tag_content :>> '>';
+>
+> My problem is if I create an attribute <img srt="..."> (srt is not a
+> proper attribute, but it does generate a parse error).
+> What I'd like to do would be <>lerr{ fhold; fgoto tag_content; }, which
+> would work if tag_content was an entry point.
+> But I use tag_exp in several places where an entry point wouldn't work,
+> for instance :
+>
+> img_tag := tag_exp [...] @end_img_action;
+> script_tag := tag_exp [...] @end_script_tag_action;
+>
+> I've considered creating a ragel scanner, but I don't really care for
+> backtracking, I'd just like to be able to hide the error. This would
+> work exactly the way I want to, by doing a fgoto tag_content. It would
+> basically restart the parse on t='...' and have it would fall under the
+> "any" category.
+>
+> Is there an elegant way to do this, or to just hide the error ?
+>
+> Thank you,
+>
+> Matthieu.
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From zabivator at gmail.com  Tue Feb 15 10:54:04 2011
+From: zabivator at gmail.com (Oleg Tsarev)
+Date: Tue, 15 Feb 2011 12:54:04 +0200
+Subject: [ragel-users] Split ragel source files to several and include one
+	to other
+Message-ID: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+
+Hello guys,
+
+I try to use ragel in the open-source project "Percona-Playback":
+https://code.launchpad.net/~tsarev/percona-playback/alpha
+Ragel is great compliant to my targets.
+
+But I have trouble what can't solve and documentation not answer to my
+question.
+So I read parts 2.1.4, but don't understand how its work
+
+Suppose I have one machine (thread_id.rl file):
+{{%
+    machine thread_id;
+    action thread_id_begin { thread_id= 0; }
+    action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+    action thread_id_end   { set_thread_id(thread_id); }
+    key   = 'Thread_id: ';
+    value = ([0-9] @thread_id_step;)+ %thread_id_end;
+    main := (key @thread_id_begin) . value;
+%}}
+
+Now i want two things:
+1) Write unit test to this machine
+2) Use this machine to another, more complex machine.
+
+I tried to include this machine in another file:
+%%{
+    machine thread_id_test;
+    error = [^\n]* '\n'
+      >{ std::cout << "start skip: '"; }
+      ${ std::cout << fc; }
+      @{ std::cout < "'\n" << std::flush; fgoto main; };
+    thread_id= include thread_id "../../src/parser/thread_id.rl";
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but receive error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:10: at token
+TK_ColonEquals: parse error
+
+I tried another way:
+%%{
+    machine thread_id_test;
+    include thread_id "../../src/parser/thread_id.rl";
+    error = [^\n]* '\n'
+      >{ std::cout << "start skip: '"; }
+      ${ std::cout << fc; }
+      @{ std::cout < "'\n" << std::flush; fgoto main; };
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but get another error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:14: graph
+lookup of "thread_id" failed
+
+Thank you very much for any help.
+
+Best regards, Oleg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110215/331fbecb/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From twisolar at gmail.com  Tue Feb 15 19:50:57 2011
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Tue, 15 Feb 2011 11:50:57 -0800
+Subject: [ragel-users] Split ragel source files to several and include
+ one to other
+In-Reply-To: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+References: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+Message-ID: <AANLkTi=bRP8zm2zrcvq5bt8q10BkpnS2p3_kYFtXzi+n@mail.gmail.com>
+
+Hi Oleg,
+
+When you 'include' one machine into another, the first machine's
+actions and states become available to the new one. But it can't find
+the 'thread_id' state (because there is none), so it fails. You've got
+the right idea with your second try, but you need there to be a
+thread_id -state- you can reference:
+
+----
+{{%
+    machine thread_id;
+    action thread_id_begin { thread_id= 0; }
+    action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+    action thread_id_end   { set_thread_id(thread_id); }
+
+    key   = 'Thread_id: ';
+    value = ([0-9] @thread_id_step;)+ %thread_id_end;
+
+    thread_id = (key @thread_id_begin) . value;
+
+    main := thread_id;
+%}}
+----
+
+Factoring out 'main' into its own named state lets you use it from
+another machine. Now, when you try to use the thread_id state from
+your second machine, the lookup is successful. If you don't use the
+thread_id machine directly and just include it into other machines,
+you don't need the 'main' definition there, either.
+
+The above code is untested, but I did more or less the same thing with
+my Telnet parser [1][2].
+
+Hope that helps,
+~Jonathan Castello
+
+[1] https://github.com/Twisol/anachronism/blob/master/ext/anachronism/parser_common.rl
+[2] https://github.com/Twisol/anachronism/blob/master/ext/anachronism/anachronism.rl
+
+On Tue, Feb 15, 2011 at 2:54 AM, Oleg Tsarev <zabivator at gmail.com> wrote:
+> Hello guys,
+>
+> I try to use ragel in the open-source project "Percona-Playback":
+> https://code.launchpad.net/~tsarev/percona-playback/alpha
+> Ragel is great compliant to my targets.
+>
+> But I have trouble what can't solve and documentation not answer to my
+> question.
+> So I read parts 2.1.4, but don't understand how its work
+>
+> Suppose I have one machine (thread_id.rl file):
+> {{%
+>     machine thread_id;
+>     action thread_id_begin { thread_id= 0; }
+>     action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+>     action thread_id_end   { set_thread_id(thread_id); }
+>     key   = 'Thread_id: ';
+>     value = ([0-9] @thread_id_step;)+ %thread_id_end;
+>     main := (key @thread_id_begin) . value;
+> %}}
+>
+> Now i want two things:
+> 1) Write unit test to this machine
+> 2) Use this machine to another, more complex machine.
+>
+> I tried to include this machine in another file:
+> %%{
+>     machine thread_id_test;
+>     error = [^\n]* '\n'
+>       >{ std::cout << "start skip: '"; }
+>       ${ std::cout << fc; }
+>       @{ std::cout < "'\n" << std::flush; fgoto main; };
+>     thread_id= include thread_id "../../src/parser/thread_id.rl";
+>     main := (thread_id | error)*;
+>     write data;
+> }%%
+>
+> but receive error:
+> [ 69%] Generating thread_id_test.cc
+> /storage/project/playback/head/test/parser/thread_id_test.rl:39:10: at token
+> TK_ColonEquals: parse error
+>
+> I tried another way:
+> %%{
+>     machine thread_id_test;
+>     include thread_id "../../src/parser/thread_id.rl";
+>     error = [^\n]* '\n'
+>       >{ std::cout << "start skip: '"; }
+>       ${ std::cout << fc; }
+>       @{ std::cout < "'\n" << std::flush; fgoto main; };
+>     main := (thread_id | error)*;
+>     write data;
+> }%%
+>
+> but get another error:
+> [ 69%] Generating thread_id_test.cc
+> /storage/project/playback/head/test/parser/thread_id_test.rl:39:14: graph
+> lookup of "thread_id" failed
+>
+> Thank you very much for any help.
+>
+> Best regards, Oleg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Thu Feb 24 03:03:09 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 23 Feb 2011 19:03:09 -0800
+Subject: [ragel-users] code review
+Message-ID: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+
+Hi,
+
+I am using Ragel to parse a DSL for grid-based GUI layouts. What I have is
+working, but I'm not sure it is done well. I would love feedback on how it
+can be improved. I generated a graph with Graphviz... it was 10mb and
+32767x5625 pixels, which makes me think maybe I'm not doing this right.
+
+My Ragel file:
+http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+
+My project, with a description of the language:
+http://code.google.com/p/table-layout/
+
+The language is hierarchical. I'm using fjump/fret to handle that. Also,
+FWIW, I chose Ragel over JavaCC and ANTLR because I like the small amount of
+code generated. I also don't like that ANTLR has a runtime dependency.
+
+Thanks!
+-Nate
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110223/627d1793/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Feb  1 06:16:50 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 31 Jan 2011 22:16:50 -0800
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>	<4D46F83E.5040800@esentire.com>	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+Message-ID: <4D47A552.3070701@complang.org>
+
+Hi, does this do what you want?
+
+main = (
+           ('HELLO ' $^parse_error) 'WORLD' |
+           any*
+        );
+
+I'm not sure how that fits into your overall plan. Try it out and we'll 
+discuss further.
+
+Regards,
+  Adrian
+
+On 11-01-31 03:50 PM, Murray Henderson wrote:
+> Hello,
+>
+> Both local and global error actions transition to the error state. I
+> am using Ragel 6.5. I can try with 6.6 when I get home.
+>
+> I made a quick example (based off S. Geist's example):
+>
+> http://pastebin.com/06ihRxQg
+>
+> Example output:
+>
+> HELLO WORLD
+> read: HELLO WORLD
+> len: 12, state: 12
+> HELWORLD
+> parse error
+> read: HEL
+> len: 3, state: 0
+>
+>
+> Cheers,
+> Murray
+>
+>
+> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Local error actions don't. Sorry I should have suggested just those.
+>>
+>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>
+>>> Hello,
+>>>
+>>> Local and global error actions transition to the error state.
+>>>
+>>> I want DEF to transition to the next machine (ie. behave like a final
+>>> state), not the error state.
+>>>
+>>> The parser I am writing is permissive, all input must be accepted (I
+>>> never want to goto the error state).
+>>>
+>>> I do not wish to use manual goto recovery, because the parser is large
+>>> and complex, such manual tracking is a lot of work and error prone.
+>>>
+>>> Cheers,
+>>> Murray
+>>>
+>>>
+>>>
+>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>> <adrian.thurston at esentire.com>    wrote:
+>>>>
+>>>> Hi, have you looked at ragel's local and global error actions yet? These
+>>>> may
+>>>> do what you want.
+>>>>
+>>>> -Adrian
+>>>>
+>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> I want to embed a default action into a machine that leaves the
+>>>>> machine (without using manual a jump inside the action).
+>>>>>
+>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>> similar to the Local Error operator).
+>>>>>
+>>>>>
+>>>>> Example:
+>>>>>
+>>>>> action parse_error {}
+>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>
+>>>>> Non-error inputs include:
+>>>>> HELLO WORLD
+>>>>> HELLOWORLD (parse_error action occurs on 'O' ->      'W' transition)
+>>>>> HELLWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>> HELWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>> HEWORLD (parse_error action occurs on 'E' ->      'W' transition)
+>>>>> HWORLD (parse_error action occurs on 'H' ->      'W' transition)
+>>>>> WORLD (parse_error action occurs on ->      'W' transition)
+>>>>>
+>>>>>
+>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>> be simulated.
+>>>>>
+>>>>>
+>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>> accepts all possible input. (Every state must have a default action)
+>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>> Yes, I am mad.
+>>>>>
+>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>> scanners mid-token.
+>>>>>
+>>>>>
+>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>> operator would be added.
+>>>>>
+>>>>> Before I continue...
+>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>> aware
+>>>>> of?
+>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>> Is there any knowledge that could be imparted that would help me make a
+>>>>> patch?
+>>>>>
+>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>
+>>>>> After a brief look through the source, it looks like I would need to
+>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>
+>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>
+>>>>> Cheers,
+>>>>> Murray
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From breroger at cisco.com  Wed Feb  2 19:33:56 2011
+From: breroger at cisco.com (breroger)
+Date: Wed, 02 Feb 2011 13:33:56 -0600
+Subject: [ragel-users] JOB: Senior Software Engineer with Parsing Expertise
+	needed at CISCO
+Message-ID: <C96F0DC4.25B83%breroger@cisco.com>
+
+Please contact Brent at breroger at cisco.com if you are interested in the job
+opening listed below.
+ 
+Regards,
+Brent
+ 
+Senior Software Engineer
+ 
+Location ­ San Jose, California
+ 
+Security Technology Business Unit (STBU) within WSRTG, is seeking a Software
+Engineer. STBU offers network and content security solutions that enable our
+customers to collaborate with confidence. These solutions include our
+firewall, intrusion prevention, remote access/VPN, unified client, web and
+email security.
+ 
+Responsibilities:
+Develop software for the Cisco Adaptive Security Appliance (ASA) and more
+specifically for the SSL VPN Remote Access component. Program in C, C++ and
+Javascript on a Linux-based platform with a slew of open source and
+proprietary libraries and infrastructure. Small team is central owner of
+WebVPN functionality; engage in all aspects of the product life-cycle from
+specification, design to development and post release maintenance. Great
+opportunity to employ a breadth of software engineering skills in a highly
+visible product.
+ 
+The successful candidate would have 3+ years of industry experience or more,
+would have experience working on large projects, analyzing and debugging
+Layer 7 protocols, writing parsers for high level languages and has written
+javascript to generate javascript.
+ 
+This candidate will show talent, passion and pride in software architecture,
+authorship and quality, excellent collaboration skills, teamwork and cross
+functional aptitude.
+ 
+Expertise in most of the following areas is required:
+ 
+* Flash decompilation
+* Unix/POSIX/Linux application level programming
+* Very strong Javascript development skills, with ability to use debuggers
+and profilers
+* Ability to diagnose issues with proprietary protocols
+* knowledge of parsers, regular expressions
+* Strong knowledge of the HTTP protocol and HTML
+* NTLM, SSL, character encoding
+* Differences between browsers, proxies
+* Experience with tools and frameworks like wireshark, Pcap, HTTPwatch,
+Spidermonkey, webkit
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110202/1427520b/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From mail at murrayh.id.au  Wed Feb  2 22:17:46 2011
+From: mail at murrayh.id.au (Murray Henderson)
+Date: Thu, 3 Feb 2011 09:17:46 +1100
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <4D47A552.3070701@complang.org>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>
+	<4D46F83E.5040800@esentire.com>
+	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>
+	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+	<4D47A552.3070701@complang.org>
+Message-ID: <AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for taking an interest :-).
+
+
+As far as I can tell,
+
+ main = (
+          ('HELLO ' $^parse_error) 'WORLD' |
+          any*
+       );
+
+and
+
+ main = (
+          ('HELLO ' $!parse_error) 'WORLD' |
+          any*
+       );
+
+are equivalent to
+
+
+ main = any*;
+
+
+
+
+Anyway, the real machine I am trying to build currently looks like this:
+
+
+doctype_single_quoted_value = (
+    "'" ([^>]*)
+        >start_token_value
+        %end_token
+    :>> "'"
+);
+
+doctype_double_quoted_value = (
+    '"' ([^>]*)
+        >start_token_value
+        %end_token
+    :>> '"'
+);
+
+doctype_quoted_value = (doctype_single_quoted_value |
+doctype_double_quoted_value);
+
+doctype_name = (
+    space+ (any - ('>' | space))+
+        >start_token_doctype_name
+        %end_token
+);
+
+doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+doctype_quoted_value;
+
+doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+doctype_quoted_value;
+
+doctype = (
+    '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+doctype_system?)? space* '>'
+);
+
+
+
+This machine looks about right (in the FSM diagram) except that it
+doesn't handle malformed doctypes.
+
+With the $^^ operator I described, I imagine the machine would look
+like this (given a parse error action, pe):
+
+
+
+doctype = (
+    '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+doctype_system?) $^^pe)? space* <: ([^>]+ >pe)? '>'
+);
+
+
+Additionally, I think I might be able to use that imaginary operator
+to make whitespace optional (though with a parse error if the
+whitespace is omitted):
+
+eg:
+
+omittable_space = space+ >^^pe;
+doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+omittable_space doctype_quoted_value;
+
+
+
+
+I will be using this machine inside multiple scanners, so goto based
+error recovery would be a pain. Default actions that transition to the
+final state seem like a handy feature for any permissive parser
+(although I realize I am doing something extreme).
+
+I still thinking about attempting to patch ragel. Much more
+complicated than I thought it would be, but can't hurt for me to give
+it a crack.
+
+
+Still absolutely nowhere near finished, but my work is progressing slowly ;-).
+https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+
+
+Cheers,
+Murray
+
+
+On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi, does this do what you want?
+>
+> main = (
+>          ('HELLO ' $^parse_error) 'WORLD' |
+>          any*
+>       );
+>
+> I'm not sure how that fits into your overall plan. Try it out and we'll
+> discuss further.
+>
+> Regards,
+>  Adrian
+>
+> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>
+>> Hello,
+>>
+>> Both local and global error actions transition to the error state. I
+>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>
+>> I made a quick example (based off S. Geist's example):
+>>
+>> http://pastebin.com/06ihRxQg
+>>
+>> Example output:
+>>
+>> HELLO WORLD
+>> read: HELLO WORLD
+>> len: 12, state: 12
+>> HELWORLD
+>> parse error
+>> read: HEL
+>> len: 3, state: 0
+>>
+>>
+>> Cheers,
+>> Murray
+>>
+>>
+>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Local error actions don't. Sorry I should have suggested just those.
+>>>
+>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>
+>>>> Hello,
+>>>>
+>>>> Local and global error actions transition to the error state.
+>>>>
+>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>> state), not the error state.
+>>>>
+>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>> never want to goto the error state).
+>>>>
+>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>
+>>>> Cheers,
+>>>> Murray
+>>>>
+>>>>
+>>>>
+>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>> <adrian.thurston at esentire.com>    wrote:
+>>>>>
+>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>> These
+>>>>> may
+>>>>> do what you want.
+>>>>>
+>>>>> -Adrian
+>>>>>
+>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>
+>>>>>> Hello,
+>>>>>>
+>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>> machine (without using manual a jump inside the action).
+>>>>>>
+>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>> similar to the Local Error operator).
+>>>>>>
+>>>>>>
+>>>>>> Example:
+>>>>>>
+>>>>>> action parse_error {}
+>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>
+>>>>>> Non-error inputs include:
+>>>>>> HELLO WORLD
+>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->      'W' transition)
+>>>>>> HELLWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>>> HELWORLD (parse_error action occurs on 'L' ->      'W' transition)
+>>>>>> HEWORLD (parse_error action occurs on 'E' ->      'W' transition)
+>>>>>> HWORLD (parse_error action occurs on 'H' ->      'W' transition)
+>>>>>> WORLD (parse_error action occurs on ->      'W' transition)
+>>>>>>
+>>>>>>
+>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>>> be simulated.
+>>>>>>
+>>>>>>
+>>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>>> Yes, I am mad.
+>>>>>>
+>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>> scanners mid-token.
+>>>>>>
+>>>>>>
+>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>>> operator would be added.
+>>>>>>
+>>>>>> Before I continue...
+>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>> aware
+>>>>>> of?
+>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>> Is there any knowledge that could be imparted that would help me make
+>>>>>> a
+>>>>>> patch?
+>>>>>>
+>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>
+>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>
+>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>
+>>>>>> Cheers,
+>>>>>> Murray
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Wed Feb  2 22:32:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Wed, 02 Feb 2011 14:32:17 -0800
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>	<4D46F83E.5040800@esentire.com>	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>	<4D473F97.1000509@complang.org>	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>	<4D47A552.3070701@complang.org>
+	<AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+Message-ID: <4D49DB71.7060806@complang.org>
+
+Apparently I don't know how to use my own tool! Let's try this again, 
+this time not so rushed on my part :)
+
+         action le {}
+         foo = 'hello' $^le;
+         main := (
+                 any* |
+                 foo
+         );
+
+Local error actions are local to the named machine they are in, not the 
+enclosing (), which is the rushed mistake I made.
+
+Thanks,
+  Adrian
+
+On 11-02-02 02:17 PM, Murray Henderson wrote:
+> Hi Adrian,
+>
+> Thanks for taking an interest :-).
+>
+>
+> As far as I can tell,
+>
+>   main = (
+>            ('HELLO ' $^parse_error) 'WORLD' |
+>            any*
+>         );
+>
+> and
+>
+>   main = (
+>            ('HELLO ' $!parse_error) 'WORLD' |
+>            any*
+>         );
+>
+> are equivalent to
+>
+>
+>   main = any*;
+>
+>
+>
+>
+> Anyway, the real machine I am trying to build currently looks like this:
+>
+>
+> doctype_single_quoted_value = (
+>      "'" ([^>]*)
+>          >start_token_value
+>          %end_token
+>      :>>  "'"
+> );
+>
+> doctype_double_quoted_value = (
+>      '"' ([^>]*)
+>          >start_token_value
+>          %end_token
+>      :>>  '"'
+> );
+>
+> doctype_quoted_value = (doctype_single_quoted_value |
+> doctype_double_quoted_value);
+>
+> doctype_name = (
+>      space+ (any - ('>' | space))+
+>          >start_token_doctype_name
+>          %end_token
+> );
+>
+> doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+> doctype_quoted_value;
+>
+> doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+> doctype_quoted_value;
+>
+> doctype = (
+>      '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+> doctype_system?)? space* '>'
+> );
+>
+>
+>
+> This machine looks about right (in the FSM diagram) except that it
+> doesn't handle malformed doctypes.
+>
+> With the $^^ operator I described, I imagine the machine would look
+> like this (given a parse error action, pe):
+>
+>
+>
+> doctype = (
+>      '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+> doctype_system?) $^^pe)? space*<: ([^>]+>pe)? '>'
+> );
+>
+>
+> Additionally, I think I might be able to use that imaginary operator
+> to make whitespace optional (though with a parse error if the
+> whitespace is omitted):
+>
+> eg:
+>
+> omittable_space = space+>^^pe;
+> doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+> omittable_space doctype_quoted_value;
+>
+>
+>
+>
+> I will be using this machine inside multiple scanners, so goto based
+> error recovery would be a pain. Default actions that transition to the
+> final state seem like a handy feature for any permissive parser
+> (although I realize I am doing something extreme).
+>
+> I still thinking about attempting to patch ragel. Much more
+> complicated than I thought it would be, but can't hurt for me to give
+> it a crack.
+>
+>
+> Still absolutely nowhere near finished, but my work is progressing slowly ;-).
+> https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+>
+>
+> Cheers,
+> Murray
+>
+>
+> On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Hi, does this do what you want?
+>>
+>> main = (
+>>           ('HELLO ' $^parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> I'm not sure how that fits into your overall plan. Try it out and we'll
+>> discuss further.
+>>
+>> Regards,
+>>   Adrian
+>>
+>> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>>
+>>> Hello,
+>>>
+>>> Both local and global error actions transition to the error state. I
+>>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>>
+>>> I made a quick example (based off S. Geist's example):
+>>>
+>>> http://pastebin.com/06ihRxQg
+>>>
+>>> Example output:
+>>>
+>>> HELLO WORLD
+>>> read: HELLO WORLD
+>>> len: 12, state: 12
+>>> HELWORLD
+>>> parse error
+>>> read: HEL
+>>> len: 3, state: 0
+>>>
+>>>
+>>> Cheers,
+>>> Murray
+>>>
+>>>
+>>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>>   wrote:
+>>>>
+>>>> Local error actions don't. Sorry I should have suggested just those.
+>>>>
+>>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>>
+>>>>> Hello,
+>>>>>
+>>>>> Local and global error actions transition to the error state.
+>>>>>
+>>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>>> state), not the error state.
+>>>>>
+>>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>>> never want to goto the error state).
+>>>>>
+>>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>>
+>>>>> Cheers,
+>>>>> Murray
+>>>>>
+>>>>>
+>>>>>
+>>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>>> <adrian.thurston at esentire.com>      wrote:
+>>>>>>
+>>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>>> These
+>>>>>> may
+>>>>>> do what you want.
+>>>>>>
+>>>>>> -Adrian
+>>>>>>
+>>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>>
+>>>>>>> Hello,
+>>>>>>>
+>>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>>> machine (without using manual a jump inside the action).
+>>>>>>>
+>>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>>> similar to the Local Error operator).
+>>>>>>>
+>>>>>>>
+>>>>>>> Example:
+>>>>>>>
+>>>>>>> action parse_error {}
+>>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>>
+>>>>>>> Non-error inputs include:
+>>>>>>> HELLO WORLD
+>>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->        'W' transition)
+>>>>>>> HELLWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>> HELWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>> HEWORLD (parse_error action occurs on 'E' ->        'W' transition)
+>>>>>>> HWORLD (parse_error action occurs on 'H' ->        'W' transition)
+>>>>>>> WORLD (parse_error action occurs on ->        'W' transition)
+>>>>>>>
+>>>>>>>
+>>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>>> laborious, and there are other ways of using $^^ that I suspect cannot
+>>>>>>> be simulated.
+>>>>>>>
+>>>>>>>
+>>>>>>> I want this operator because I am trying to make a liberal parser that
+>>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>>> tokenizing, and scanners built from the regular machines for parsing.
+>>>>>>> Yes, I am mad.
+>>>>>>>
+>>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>>> scanners mid-token.
+>>>>>>>
+>>>>>>>
+>>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the new
+>>>>>>> operator would be added.
+>>>>>>>
+>>>>>>> Before I continue...
+>>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>>> aware
+>>>>>>> of?
+>>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>>> Is there any knowledge that could be imparted that would help me make
+>>>>>>> a
+>>>>>>> patch?
+>>>>>>>
+>>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>>
+>>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object for
+>>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>>
+>>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>>
+>>>>>>> Cheers,
+>>>>>>> Murray
+>>>>>>>
+>>>>>>> _______________________________________________
+>>>>>>> ragel-users mailing list
+>>>>>>> ragel-users at complang.org
+>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From mail at murrayh.id.au  Wed Feb  2 23:39:18 2011
+From: mail at murrayh.id.au (Murray Henderson)
+Date: Thu, 3 Feb 2011 10:39:18 +1100
+Subject: [ragel-users] Default actions that leave the machine
+In-Reply-To: <4D49DB71.7060806@complang.org>
+References: <AANLkTim_c7XNGqdpN9j=vMs3gTZuA-zLKgEhpyLvMPUr@mail.gmail.com>
+	<4D46F83E.5040800@esentire.com>
+	<AANLkTim4Wn2tAnjSYnPOpbJ55PJ5Xt+GHx9=t7i5uuca@mail.gmail.com>
+	<4D473F97.1000509@complang.org>
+	<AANLkTimHVYZjY1ju_RzMRHkOK6_64kXA1ENc7nXY73G8@mail.gmail.com>
+	<4D47A552.3070701@complang.org>
+	<AANLkTik-Yp+GFgaKt2ToyBqxRNEwM52Vg_z6Pe5eMbSh@mail.gmail.com>
+	<4D49DB71.7060806@complang.org>
+Message-ID: <AANLkTi=Lgjhut_nDzR1ht4na5gkb_g1KJ7e+vN015wkg@mail.gmail.com>
+
+Thanks Adrian, I think that technique will make it possible to solve my problem.
+
+
+On Thu, Feb 3, 2011 at 9:32 AM, Adrian Thurston <thurston at complang.org> wrote:
+> Apparently I don't know how to use my own tool! Let's try this again, this
+> time not so rushed on my part :)
+>
+>        action le {}
+>        foo = 'hello' $^le;
+>        main := (
+>                any* |
+>                foo
+>        );
+>
+> Local error actions are local to the named machine they are in, not the
+> enclosing (), which is the rushed mistake I made.
+>
+> Thanks,
+>  Adrian
+>
+> On 11-02-02 02:17 PM, Murray Henderson wrote:
+>>
+>> Hi Adrian,
+>>
+>> Thanks for taking an interest :-).
+>>
+>>
+>> As far as I can tell,
+>>
+>>  main = (
+>>           ('HELLO ' $^parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> and
+>>
+>>  main = (
+>>           ('HELLO ' $!parse_error) 'WORLD' |
+>>           any*
+>>        );
+>>
+>> are equivalent to
+>>
+>>
+>>  main = any*;
+>>
+>>
+>>
+>>
+>> Anyway, the real machine I am trying to build currently looks like this:
+>>
+>>
+>> doctype_single_quoted_value = (
+>>     "'" ([^>]*)
+>>         >start_token_value
+>>         %end_token
+>>     :>>  "'"
+>> );
+>>
+>> doctype_double_quoted_value = (
+>>     '"' ([^>]*)
+>>         >start_token_value
+>>         %end_token
+>>     :>>  '"'
+>> );
+>>
+>> doctype_quoted_value = (doctype_single_quoted_value |
+>> doctype_double_quoted_value);
+>>
+>> doctype_name = (
+>>     space+ (any - ('>' | space))+
+>>         >start_token_doctype_name
+>>         %end_token
+>> );
+>>
+>> doctype_public = space+ 'PUBLIC' %token_doctype_public space+
+>> doctype_quoted_value;
+>>
+>> doctype_system = space+ 'SYSTEM' %token_doctype_system space+
+>> doctype_quoted_value;
+>>
+>> doctype = (
+>>     '<!DOCTYPE' %token_doctype space* (doctype_name doctype_public?
+>> doctype_system?)? space* '>'
+>> );
+>>
+>>
+>>
+>> This machine looks about right (in the FSM diagram) except that it
+>> doesn't handle malformed doctypes.
+>>
+>> With the $^^ operator I described, I imagine the machine would look
+>> like this (given a parse error action, pe):
+>>
+>>
+>>
+>> doctype = (
+>>     '<!DOCTYPE' %token_doctype space* ((doctype_name doctype_public?
+>> doctype_system?) $^^pe)? space*<: ([^>]+>pe)? '>'
+>> );
+>>
+>>
+>> Additionally, I think I might be able to use that imaginary operator
+>> to make whitespace optional (though with a parse error if the
+>> whitespace is omitted):
+>>
+>> eg:
+>>
+>> omittable_space = space+>^^pe;
+>> doctype_public = omittable_space 'PUBLIC' %token_doctype_public
+>> omittable_space doctype_quoted_value;
+>>
+>>
+>>
+>>
+>> I will be using this machine inside multiple scanners, so goto based
+>> error recovery would be a pain. Default actions that transition to the
+>> final state seem like a handy feature for any permissive parser
+>> (although I realize I am doing something extreme).
+>>
+>> I still thinking about attempting to patch ragel. Much more
+>> complicated than I thought it would be, but can't hurt for me to give
+>> it a crack.
+>>
+>>
+>> Still absolutely nowhere near finished, but my work is progressing slowly
+>> ;-).
+>> https://github.com/murrayh/html5rl/blob/master/html5_grammar.rl
+>>
+>>
+>> Cheers,
+>> Murray
+>>
+>>
+>> On Tue, Feb 1, 2011 at 5:16 PM, Adrian Thurston<thurston at complang.org>
+>>  wrote:
+>>>
+>>> Hi, does this do what you want?
+>>>
+>>> main = (
+>>>          ('HELLO ' $^parse_error) 'WORLD' |
+>>>          any*
+>>>       );
+>>>
+>>> I'm not sure how that fits into your overall plan. Try it out and we'll
+>>> discuss further.
+>>>
+>>> Regards,
+>>>  Adrian
+>>>
+>>> On 11-01-31 03:50 PM, Murray Henderson wrote:
+>>>>
+>>>> Hello,
+>>>>
+>>>> Both local and global error actions transition to the error state. I
+>>>> am using Ragel 6.5. I can try with 6.6 when I get home.
+>>>>
+>>>> I made a quick example (based off S. Geist's example):
+>>>>
+>>>> http://pastebin.com/06ihRxQg
+>>>>
+>>>> Example output:
+>>>>
+>>>> HELLO WORLD
+>>>> read: HELLO WORLD
+>>>> len: 12, state: 12
+>>>> HELWORLD
+>>>> parse error
+>>>> read: HEL
+>>>> len: 3, state: 0
+>>>>
+>>>>
+>>>> Cheers,
+>>>> Murray
+>>>>
+>>>>
+>>>> On Tue, Feb 1, 2011 at 10:02 AM, Adrian Thurston<thurston at complang.org>
+>>>>  wrote:
+>>>>>
+>>>>> Local error actions don't. Sorry I should have suggested just those.
+>>>>>
+>>>>> On 11-01-31 02:58 PM, Murray Henderson wrote:
+>>>>>>
+>>>>>> Hello,
+>>>>>>
+>>>>>> Local and global error actions transition to the error state.
+>>>>>>
+>>>>>> I want DEF to transition to the next machine (ie. behave like a final
+>>>>>> state), not the error state.
+>>>>>>
+>>>>>> The parser I am writing is permissive, all input must be accepted (I
+>>>>>> never want to goto the error state).
+>>>>>>
+>>>>>> I do not wish to use manual goto recovery, because the parser is large
+>>>>>> and complex, such manual tracking is a lot of work and error prone.
+>>>>>>
+>>>>>> Cheers,
+>>>>>> Murray
+>>>>>>
+>>>>>>
+>>>>>>
+>>>>>> On Tue, Feb 1, 2011 at 4:58 AM, Adrian Thurston
+>>>>>> <adrian.thurston at esentire.com>      wrote:
+>>>>>>>
+>>>>>>> Hi, have you looked at ragel's local and global error actions yet?
+>>>>>>> These
+>>>>>>> may
+>>>>>>> do what you want.
+>>>>>>>
+>>>>>>> -Adrian
+>>>>>>>
+>>>>>>> On 11-01-26 08:08 PM, Murray Henderson wrote:
+>>>>>>>>
+>>>>>>>> Hello,
+>>>>>>>>
+>>>>>>>> I want to embed a default action into a machine that leaves the
+>>>>>>>> machine (without using manual a jump inside the action).
+>>>>>>>>
+>>>>>>>> For simplicities sake, I will call this operator $^^ (since it is
+>>>>>>>> similar to the Local Error operator).
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> Example:
+>>>>>>>>
+>>>>>>>> action parse_error {}
+>>>>>>>> helloworld = ('HELLO ' %^^parse_error) 'WORLD';
+>>>>>>>>
+>>>>>>>> Non-error inputs include:
+>>>>>>>> HELLO WORLD
+>>>>>>>> HELLOWORLD (parse_error action occurs on 'O' ->        'W'
+>>>>>>>> transition)
+>>>>>>>> HELLWORLD (parse_error action occurs on 'L' ->        'W'
+>>>>>>>> transition)
+>>>>>>>> HELWORLD (parse_error action occurs on 'L' ->        'W' transition)
+>>>>>>>> HEWORLD (parse_error action occurs on 'E' ->        'W' transition)
+>>>>>>>> HWORLD (parse_error action occurs on 'H' ->        'W' transition)
+>>>>>>>> WORLD (parse_error action occurs on ->        'W' transition)
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I can simulate the above behavior with the '?' operator, but that is
+>>>>>>>> laborious, and there are other ways of using $^^ that I suspect
+>>>>>>>> cannot
+>>>>>>>> be simulated.
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I want this operator because I am trying to make a liberal parser
+>>>>>>>> that
+>>>>>>>> accepts all possible input. (Every state must have a default action)
+>>>>>>>> .I am creating a html5 parser that uses regular machines for
+>>>>>>>> tokenizing, and scanners built from the regular machines for
+>>>>>>>> parsing.
+>>>>>>>> Yes, I am mad.
+>>>>>>>>
+>>>>>>>> I cannot use manual jumps, because I don't want to jump out of the
+>>>>>>>> scanners mid-token.
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> I am willing to try and add this operator into Ragel myself. I have
+>>>>>>>> grabbed the source code and tracked my way to fsmap.cpp, where the
+>>>>>>>> new
+>>>>>>>> operator would be added.
+>>>>>>>>
+>>>>>>>> Before I continue...
+>>>>>>>> Is there already a way to achieve my desired behavior that I am not
+>>>>>>>> aware
+>>>>>>>> of?
+>>>>>>>> Would such an operator be worthwhile? Is it even possible?
+>>>>>>>> Is there any knowledge that could be imparted that would help me
+>>>>>>>> make
+>>>>>>>> a
+>>>>>>>> patch?
+>>>>>>>>
+>>>>>>>> If I do end up making a patch, for symmetry purposes I will make
+>>>>>>>> global/local and start/any/final etc versions of the operator.
+>>>>>>>>
+>>>>>>>> After a brief look through the source, it looks like I would need to
+>>>>>>>> mod the FsmAp::fillGaps() function, passing in a (separate object
+>>>>>>>> for
+>>>>>>>> each?) final state into the FsmAp::attachNewTrans() instead of NULL.
+>>>>>>>>
+>>>>>>>> Ragel is a wonderful program by the way, thank you for creating it.
+>>>>>>>>
+>>>>>>>> Cheers,
+>>>>>>>> Murray
+>>>>>>>>
+>>>>>>>> _______________________________________________
+>>>>>>>> ragel-users mailing list
+>>>>>>>> ragel-users at complang.org
+>>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>>
+>>>>>>>
+>>>>>>> _______________________________________________
+>>>>>>> ragel-users mailing list
+>>>>>>> ragel-users at complang.org
+>>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>>>
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> ragel-users mailing list
+>>>>>> ragel-users at complang.org
+>>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>> _______________________________________________
+>>>>> ragel-users mailing list
+>>>>> ragel-users at complang.org
+>>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>>>
+>>>>
+>>>> _______________________________________________
+>>>> ragel-users mailing list
+>>>> ragel-users at complang.org
+>>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From yipdw at member.fsf.org  Thu Feb  3 21:41:39 2011
+From: yipdw at member.fsf.org (David Yip)
+Date: Thu, 3 Feb 2011 15:41:39 -0600
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code generation
+Message-ID: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+
+Hello all,
+
+Not sure if this is the right place to send patches, but I didn't see
+anything that looked more appropriate on
+http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+know.)
+
+The attached patch contains three changes:
+
+(1) Implementation of the -L option for Ruby code generation by
+suppressing all "# line ..." output.  This isn't the same thing as
+what the C/D code generator does, but IMO is the closest
+interpretation for Ruby code.  The patch is modelled after the
+existing behavior for C/D code generation.
+(2) A change to the option listing to signal Ruby as a target language
+for which -L is available.
+(3) A change that corrects a typo in the option listing ("direcives"
+-> "directives").
+
+The patch was generated using git diff, but should apply cleanly with
+e.g. GNU patch.
+
+Suggestions and comments welcome.
+
+Thanks,
+
+- David
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: suppress-line-output-for-ruby.patch
+Type: application/octet-stream
+Size: 1165 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110203/3a46dbf0/attachment-0001.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Feb  4 01:43:06 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 03 Feb 2011 17:43:06 -0800
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code
+	generation
+In-Reply-To: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+Message-ID: <4D4B59AA.3010009@complang.org>
+
+Hi David,
+
+Yes this is the right place. Thank you for your submission. The mailing 
+list has always been low volume and special purpose lists aren't really 
+warranted.
+
+The issue is now tracked in the new redmine instance I've started using 
+for my open source projects.
+
+http://www.complang.org/redmine/issues/155
+
+Regards,
+  Adrian
+
+On 11-02-03 01:41 PM, David Yip wrote:
+> Hello all,
+>
+> Not sure if this is the right place to send patches, but I didn't see
+> anything that looked more appropriate on
+> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+> know.)
+>
+> The attached patch contains three changes:
+>
+> (1) Implementation of the -L option for Ruby code generation by
+> suppressing all "# line ..." output.  This isn't the same thing as
+> what the C/D code generator does, but IMO is the closest
+> interpretation for Ruby code.  The patch is modelled after the
+> existing behavior for C/D code generation.
+> (2) A change to the option listing to signal Ruby as a target language
+> for which -L is available.
+> (3) A change that corrects a typo in the option listing ("direcives"
+> ->  "directives").
+>
+> The patch was generated using git diff, but should apply cleanly with
+> e.g. GNU patch.
+>
+> Suggestions and comments welcome.
+>
+> Thanks,
+>
+> - David
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From yipdw at member.fsf.org  Fri Feb  4 06:51:29 2011
+From: yipdw at member.fsf.org (David Yip)
+Date: Fri, 4 Feb 2011 00:51:29 -0600
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby code
+	generation
+In-Reply-To: <4D4B59AA.3010009@complang.org>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>
+	<4D4B59AA.3010009@complang.org>
+Message-ID: <AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+
+Hi Adrian,
+
+Thanks for the link to your Redmine instance; I'll keep an eye on that.
+
+- David
+
+On Thu, Feb 3, 2011 at 7:43 PM, Adrian Thurston <thurston at complang.org> wrote:
+> Hi David,
+>
+> Yes this is the right place. Thank you for your submission. The mailing list
+> has always been low volume and special purpose lists aren't really
+> warranted.
+>
+> The issue is now tracked in the new redmine instance I've started using for
+> my open source projects.
+>
+> http://www.complang.org/redmine/issues/155
+>
+> Regards,
+>  Adrian
+>
+> On 11-02-03 01:41 PM, David Yip wrote:
+>>
+>> Hello all,
+>>
+>> Not sure if this is the right place to send patches, but I didn't see
+>> anything that looked more appropriate on
+>> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+>> know.)
+>>
+>> The attached patch contains three changes:
+>>
+>> (1) Implementation of the -L option for Ruby code generation by
+>> suppressing all "# line ..." output.  This isn't the same thing as
+>> what the C/D code generator does, but IMO is the closest
+>> interpretation for Ruby code.  The patch is modelled after the
+>> existing behavior for C/D code generation.
+>> (2) A change to the option listing to signal Ruby as a target language
+>> for which -L is available.
+>> (3) A change that corrects a typo in the option listing ("direcives"
+>> ->  "directives").
+>>
+>> The patch was generated using git diff, but should apply cleanly with
+>> e.g. GNU patch.
+>>
+>> Suggestions and comments welcome.
+>>
+>> Thanks,
+>>
+>> - David
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From vitaly.v.ch at chernooky.com  Tue Feb  8 12:25:03 2011
+From: vitaly.v.ch at chernooky.com (Vitaly V. Ch)
+Date: Tue, 8 Feb 2011 14:25:03 +0200
+Subject: [ragel-users] Similar project for Haskell: Atom
+Message-ID: <AANLkTi=EpY_1Z4LjAmvHK77+8WM6Yk23WFsfrNk2CYvk@mail.gmail.com>
+
+Hi All!
+
+http://leepike.wordpress.com/2009/05/05/an-atomic-fibonacci-server-exploring-the-atom-haskell-dsl/
+
+\\wbr Vitaly Chernooky
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From matthieu.tourne at gmail.com  Fri Feb 11 01:58:38 2011
+From: matthieu.tourne at gmail.com (Matthieu Tourne)
+Date: Thu, 10 Feb 2011 17:58:38 -0800
+Subject: [ragel-users] longest matching kleene star & parse error
+Message-ID: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+
+Hi,
+
+I'm trying to write a simple html lexer with ragel.
+I have something looking like this, to match and take an action on the
+attribute 'src=' potentially found in several tag attributes :
+
+  tag_content = (
+        ('src='i  ((('\'' string_sgl_exp) | '"' string_dbl_exp)
+                      >src_attr_start
+                      @src_attr_end))
+
+        | any
+    )** <>lerr{  };
+
+    tag_exp = tag_content :>> '>';
+
+My problem is if I create an attribute <img srt="..."> (srt is not a proper
+attribute, but it does generate a parse error).
+What I'd like to do would be <>lerr{ fhold; fgoto tag_content; }, which
+would work if tag_content was an entry point.
+But I use tag_exp in several places where an entry point wouldn't work, for
+instance :
+
+img_tag := tag_exp [...] @end_img_action;
+script_tag := tag_exp [...] @end_script_tag_action;
+
+I've considered creating a ragel scanner, but I don't really care for
+backtracking, I'd just like to be able to hide the error. This would work
+exactly the way I want to, by doing a fgoto tag_content. It would basically
+restart the parse on t='...' and have it would fall under the "any"
+category.
+
+Is there an elegant way to do this, or to just hide the error ?
+
+Thank you,
+
+Matthieu.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110210/1a008490/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Fri Feb 11 04:20:14 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 10 Feb 2011 20:20:14 -0800
+Subject: [ragel-users] [PATCH] Suppress #line output for Ruby
+	code	generation
+In-Reply-To: <AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+References: <AANLkTi=bb1W=CzFj-gX0KM4fSsz+P2Zik_WFtSd2ghXg@mail.gmail.com>	<4D4B59AA.3010009@complang.org>
+	<AANLkTikEsWvCHApxDnknY7NPC=V-JQ3xH=N3gNAvRgiZ@mail.gmail.com>
+Message-ID: <4D54B8FE.5030209@complang.org>
+
+Applied to trunk.
+
+On 11-02-03 10:51 PM, David Yip wrote:
+> Hi Adrian,
+>
+> Thanks for the link to your Redmine instance; I'll keep an eye on that.
+>
+> - David
+>
+> On Thu, Feb 3, 2011 at 7:43 PM, Adrian Thurston<thurston at complang.org>  wrote:
+>> Hi David,
+>>
+>> Yes this is the right place. Thank you for your submission. The mailing list
+>> has always been low volume and special purpose lists aren't really
+>> warranted.
+>>
+>> The issue is now tracked in the new redmine instance I've started using for
+>> my open source projects.
+>>
+>> http://www.complang.org/redmine/issues/155
+>>
+>> Regards,
+>>   Adrian
+>>
+>> On 11-02-03 01:41 PM, David Yip wrote:
+>>>
+>>> Hello all,
+>>>
+>>> Not sure if this is the right place to send patches, but I didn't see
+>>> anything that looked more appropriate on
+>>> http://www.complang.org/ragel/.  (Of course, if I missed it, let me
+>>> know.)
+>>>
+>>> The attached patch contains three changes:
+>>>
+>>> (1) Implementation of the -L option for Ruby code generation by
+>>> suppressing all "# line ..." output.  This isn't the same thing as
+>>> what the C/D code generator does, but IMO is the closest
+>>> interpretation for Ruby code.  The patch is modelled after the
+>>> existing behavior for C/D code generation.
+>>> (2) A change to the option listing to signal Ruby as a target language
+>>> for which -L is available.
+>>> (3) A change that corrects a typo in the option listing ("direcives"
+>>> ->    "directives").
+>>>
+>>> The patch was generated using git diff, but should apply cleanly with
+>>> e.g. GNU patch.
+>>>
+>>> Suggestions and comments welcome.
+>>>
+>>> Thanks,
+>>>
+>>> - David
+>>>
+>>>
+>>>
+>>> _______________________________________________
+>>> ragel-users mailing list
+>>> ragel-users at complang.org
+>>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Fri Feb 11 04:26:18 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Thu, 10 Feb 2011 20:26:18 -0800
+Subject: [ragel-users] longest matching kleene star & parse error
+In-Reply-To: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+References: <AANLkTikXJa+_5suCFbTrG_BBOoUmvZCrnPue7L8JHriL@mail.gmail.com>
+Message-ID: <4D54BA6A.3010004@complang.org>
+
+Sorry I don't have anything elegant for you. You'll have to factor out 
+and duplicate the error action.
+
+On 11-02-10 05:58 PM, Matthieu Tourne wrote:
+> Hi,
+>
+> I'm trying to write a simple html lexer with ragel.
+> I have something looking like this, to match and take an action on the
+> attribute 'src=' potentially found in several tag attributes :
+>
+>    tag_content = (
+>          ('src='i  ((('\'' string_sgl_exp) | '"' string_dbl_exp)
+>  >src_attr_start
+>                        @src_attr_end))
+>
+>          | any
+>      )** <>lerr{  };
+>
+>      tag_exp = tag_content :>> '>';
+>
+> My problem is if I create an attribute <img srt="..."> (srt is not a
+> proper attribute, but it does generate a parse error).
+> What I'd like to do would be <>lerr{ fhold; fgoto tag_content; }, which
+> would work if tag_content was an entry point.
+> But I use tag_exp in several places where an entry point wouldn't work,
+> for instance :
+>
+> img_tag := tag_exp [...] @end_img_action;
+> script_tag := tag_exp [...] @end_script_tag_action;
+>
+> I've considered creating a ragel scanner, but I don't really care for
+> backtracking, I'd just like to be able to hide the error. This would
+> work exactly the way I want to, by doing a fgoto tag_content. It would
+> basically restart the parse on t='...' and have it would fall under the
+> "any" category.
+>
+> Is there an elegant way to do this, or to just hide the error ?
+>
+> Thank you,
+>
+> Matthieu.
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From zabivator at gmail.com  Tue Feb 15 10:54:04 2011
+From: zabivator at gmail.com (Oleg Tsarev)
+Date: Tue, 15 Feb 2011 12:54:04 +0200
+Subject: [ragel-users] Split ragel source files to several and include one
+	to other
+Message-ID: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+
+Hello guys,
+
+I try to use ragel in the open-source project "Percona-Playback":
+https://code.launchpad.net/~tsarev/percona-playback/alpha
+Ragel is great compliant to my targets.
+
+But I have trouble what can't solve and documentation not answer to my
+question.
+So I read parts 2.1.4, but don't understand how its work
+
+Suppose I have one machine (thread_id.rl file):
+{{%
+    machine thread_id;
+    action thread_id_begin { thread_id= 0; }
+    action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+    action thread_id_end   { set_thread_id(thread_id); }
+    key   = 'Thread_id: ';
+    value = ([0-9] @thread_id_step;)+ %thread_id_end;
+    main := (key @thread_id_begin) . value;
+%}}
+
+Now i want two things:
+1) Write unit test to this machine
+2) Use this machine to another, more complex machine.
+
+I tried to include this machine in another file:
+%%{
+    machine thread_id_test;
+    error = [^\n]* '\n'
+      >{ std::cout << "start skip: '"; }
+      ${ std::cout << fc; }
+      @{ std::cout < "'\n" << std::flush; fgoto main; };
+    thread_id= include thread_id "../../src/parser/thread_id.rl";
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but receive error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:10: at token
+TK_ColonEquals: parse error
+
+I tried another way:
+%%{
+    machine thread_id_test;
+    include thread_id "../../src/parser/thread_id.rl";
+    error = [^\n]* '\n'
+      >{ std::cout << "start skip: '"; }
+      ${ std::cout << fc; }
+      @{ std::cout < "'\n" << std::flush; fgoto main; };
+    main := (thread_id | error)*;
+    write data;
+}%%
+
+but get another error:
+[ 69%] Generating thread_id_test.cc
+/storage/project/playback/head/test/parser/thread_id_test.rl:39:14: graph
+lookup of "thread_id" failed
+
+Thank you very much for any help.
+
+Best regards, Oleg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110215/331fbecb/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From twisolar at gmail.com  Tue Feb 15 19:50:57 2011
+From: twisolar at gmail.com (Jonathan Castello)
+Date: Tue, 15 Feb 2011 11:50:57 -0800
+Subject: [ragel-users] Split ragel source files to several and include
+ one to other
+In-Reply-To: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+References: <AANLkTik6u+Mx4CgrWwb2pOyvwuYfUDQ1JBTFHOZoF9cY@mail.gmail.com>
+Message-ID: <AANLkTi=bRP8zm2zrcvq5bt8q10BkpnS2p3_kYFtXzi+n@mail.gmail.com>
+
+Hi Oleg,
+
+When you 'include' one machine into another, the first machine's
+actions and states become available to the new one. But it can't find
+the 'thread_id' state (because there is none), so it fails. You've got
+the right idea with your second try, but you need there to be a
+thread_id -state- you can reference:
+
+----
+{{%
+    machine thread_id;
+    action thread_id_begin { thread_id= 0; }
+    action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+    action thread_id_end   { set_thread_id(thread_id); }
+
+    key   = 'Thread_id: ';
+    value = ([0-9] @thread_id_step;)+ %thread_id_end;
+
+    thread_id = (key @thread_id_begin) . value;
+
+    main := thread_id;
+%}}
+----
+
+Factoring out 'main' into its own named state lets you use it from
+another machine. Now, when you try to use the thread_id state from
+your second machine, the lookup is successful. If you don't use the
+thread_id machine directly and just include it into other machines,
+you don't need the 'main' definition there, either.
+
+The above code is untested, but I did more or less the same thing with
+my Telnet parser [1][2].
+
+Hope that helps,
+~Jonathan Castello
+
+[1] https://github.com/Twisol/anachronism/blob/master/ext/anachronism/parser_common.rl
+[2] https://github.com/Twisol/anachronism/blob/master/ext/anachronism/anachronism.rl
+
+On Tue, Feb 15, 2011 at 2:54 AM, Oleg Tsarev <zabivator at gmail.com> wrote:
+> Hello guys,
+>
+> I try to use ragel in the open-source project "Percona-Playback":
+> https://code.launchpad.net/~tsarev/percona-playback/alpha
+> Ragel is great compliant to my targets.
+>
+> But I have trouble what can't solve and documentation not answer to my
+> question.
+> So I read parts 2.1.4, but don't understand how its work
+>
+> Suppose I have one machine (thread_id.rl file):
+> {{%
+>     machine thread_id;
+>     action thread_id_begin { thread_id= 0; }
+>     action thread_id_step  { thread_id= thread_id * 10 + (fc - '0'); }
+>     action thread_id_end   { set_thread_id(thread_id); }
+>     key   = 'Thread_id: ';
+>     value = ([0-9] @thread_id_step;)+ %thread_id_end;
+>     main := (key @thread_id_begin) . value;
+> %}}
+>
+> Now i want two things:
+> 1) Write unit test to this machine
+> 2) Use this machine to another, more complex machine.
+>
+> I tried to include this machine in another file:
+> %%{
+>     machine thread_id_test;
+>     error = [^\n]* '\n'
+>       >{ std::cout << "start skip: '"; }
+>       ${ std::cout << fc; }
+>       @{ std::cout < "'\n" << std::flush; fgoto main; };
+>     thread_id= include thread_id "../../src/parser/thread_id.rl";
+>     main := (thread_id | error)*;
+>     write data;
+> }%%
+>
+> but receive error:
+> [ 69%] Generating thread_id_test.cc
+> /storage/project/playback/head/test/parser/thread_id_test.rl:39:10: at token
+> TK_ColonEquals: parse error
+>
+> I tried another way:
+> %%{
+>     machine thread_id_test;
+>     include thread_id "../../src/parser/thread_id.rl";
+>     error = [^\n]* '\n'
+>       >{ std::cout << "start skip: '"; }
+>       ${ std::cout << fc; }
+>       @{ std::cout < "'\n" << std::flush; fgoto main; };
+>     main := (thread_id | error)*;
+>     write data;
+> }%%
+>
+> but get another error:
+> [ 69%] Generating thread_id_test.cc
+> /storage/project/playback/head/test/parser/thread_id_test.rl:39:14: graph
+> lookup of "thread_id" failed
+>
+> Thank you very much for any help.
+>
+> Best regards, Oleg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From nathan.sweet at gmail.com  Thu Feb 24 03:03:09 2011
+From: nathan.sweet at gmail.com (Nate)
+Date: Wed, 23 Feb 2011 19:03:09 -0800
+Subject: [ragel-users] code review
+Message-ID: <AANLkTikR7zgXb_7oegVd9ypaJCGQX+eK6rRnt++_+qtW@mail.gmail.com>
+
+Hi,
+
+I am using Ragel to parse a DSL for grid-based GUI layouts. What I have is
+working, but I'm not sure it is done well. I would love feedback on how it
+can be improved. I generated a graph with Graphviz... it was 10mb and
+32767x5625 pixels, which makes me think maybe I'm not doing this right.
+
+My Ragel file:
+http://code.google.com/p/table-layout/source/browse/trunk/build/TableLayoutParser.rl
+
+My project, with a description of the language:
+http://code.google.com/p/table-layout/
+
+The language is hierarchical. I'm using fjump/fret to handle that. Also,
+FWIW, I chose Ragel over JavaCC and ANTLR because I like the small amount of
+code generated. I also don't like that ANTLR has a runtime dependency.
+
+Thanks!
+-Nate
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110223/627d1793/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

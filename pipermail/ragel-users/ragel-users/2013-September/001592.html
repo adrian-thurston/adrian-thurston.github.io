@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] C++11, new narrowing rules and unsigned char on ARM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20C%2B%2B11%2C%20new%20narrowing%20rules%20and%20unsigned%20char%20on%20ARM&In-Reply-To=%3C618b1fcd-3948-4881-a83a-88789dab2743%40flaska.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001591.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] C++11, new narrowing rules and unsigned char on ARM</H1>
+    <B>Jan Kundrát</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20C%2B%2B11%2C%20new%20narrowing%20rules%20and%20unsigned%20char%20on%20ARM&In-Reply-To=%3C618b1fcd-3948-4881-a83a-88789dab2743%40flaska.net%3E"
+       TITLE="[ragel-users] C++11, new narrowing rules and unsigned char on ARM">jkt at flaska.net
+       </A><BR>
+    <I>Wed Sep 18 14:05:39 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001591.html">[ragel-users] Some clarifications needed
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1592">[ date ]</a>
+              <a href="thread.html#1592">[ thread ]</a>
+              <a href="subject.html#1592">[ subject ]</a>
+              <a href="author.html#1592">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+I'm using Ragel for parsing of e-mail headers as per RFC5322. When porting 
+this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed that it fails 
+to build after I enable C++11 features using clang 3.3. Here is the error 
+message:
+
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+error: constant expression evaluates to -128 which cannot be narrowed to 
+type 'char' [-Wc++11-narrowing]
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+/home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26: 
+note: override this message by inserting an explicit cast
+        39, 42, 127, 10, 9, 32, -128, -1, 
+                                ^~~~
+                                static_cast&lt;char&gt;( )
+
+So the problem is that the signedness rules for the host (machine running 
+ragel producing the .cpp file with parser) and target (the target platform 
+of the C++ compiler which is producing Ragel's output) do not match. That's 
+a big problem, and it isn't limited just to chars, actually -- because 
+Ragel's code uses platform's native types instead of the portable ones, 
+there's no guarantee that ragel's int can fit the data of the target's 
+size, etc. I've solved this by patching ragel to use C's int&lt;num&gt;_t types, 
+please see the commit at [1]. That patch fixes my problem.
+
+In addition, before I realized that I'm actually looking for the ragel-6 
+branch, I spent some time playing with master before I finding out that 
+it's some kind of a rewrite. The same bug applies there as well. Before I 
+was able to get the master branch to build on my system, I had to make the 
+following changes:
+
+* Fixing a build failure due to a bug in colm's headers [2]. I see you're 
+upstream for that project, too, perhaps you can fix it in there as well.
+
+* Making sure that version.h is generated [3].
+
+After that, I simply added a rule to always treat chars as signed [4]. 
+That's arguably a wrong change; the code shall probably do the same thing 
+as [1]. I don't have time for this now.
+
+And finally, when I tried the patched master, I found out that my ragel 
+parser won't compile anymore -- please see the file at [5]. The error 
+message I get is that it cannot find the &quot;CRLF&quot; symbol which is defined in 
+the included .rl file [6]. That looks like a regression in the rewrite.
+
+Thanks for a cool software -- I hope these patches are OK and that you'll 
+merge them.
+
+Cheers,
+Jan
+
+[1]  
+<A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132">http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132</A>
+[2] 
+<A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c">http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c</A>
+[3] 
+<A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7">http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7</A>
+[4] 
+<A HREF="http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19">http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19</A>
+[5] 
+<A HREF="http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=efb0307c829d1c0c7939a556dd40427779221651&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/Rfc5322HeaderParser.cpp">http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=efb0307c829d1c0c7939a556dd40427779221651&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/Rfc5322HeaderParser.cpp</A>
+[6] 
+<A HREF="http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=65e67a87c727714783bd793b43824795d0e94ef6&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/rfc5322.rl">http://quickgit.kde.org/?p=trojita.git&amp;a=blob&amp;h=65e67a87c727714783bd793b43824795d0e94ef6&amp;hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&amp;f=src/Imap/Parser/rfc5322.rl</A>
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- <A HREF="http://trojita.flaska.net/">http://trojita.flaska.net/</A>
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001591.html">[ragel-users] Some clarifications needed
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1592">[ date ]</a>
+              <a href="thread.html#1592">[ thread ]</a>
+              <a href="subject.html#1592">[ subject ]</a>
+              <a href="author.html#1592">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

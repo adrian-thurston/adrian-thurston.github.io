@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: integrating ragel w/ bison
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20integrating%20ragel%20w/%20bison&In-Reply-To=%3C459C4E8F.4000600%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001860.html">
+   <LINK REL="Next"  HREF="001862.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: integrating ragel w/ bison</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20integrating%20ragel%20w/%20bison&In-Reply-To=%3C459C4E8F.4000600%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: integrating ragel w/ bison">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Jan  4 00:47:11 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001860.html">integrating ragel w/ bison
+</A></li>
+        <LI>Next message: <A HREF="001862.html">integrating ragel w/ bison
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1861">[ date ]</a>
+              <a href="thread.html#1861">[ thread ]</a>
+              <a href="subject.html#1861">[ subject ]</a>
+              <a href="author.html#1861">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Jason wrote:
+&gt;<i> Would you just make repeated calls to the scanner? i.e. would the state
+</I>&gt;<i> be such that it just picks up where you left off?
+</I>
+That's what I was thinking. I haven't tried this out, but you should be able
+to do something like the following. Note that you need to manually get local
+copies of p and pe because the access statement does not affect them.
+
+void scan( Scanner *s )
+{
+	char *p = s-&gt;p;
+	char *pe = s-&gt;pe;
+
+	while ( true ) {
+		if ( p == pe ) {
+			check_for_preserve_condition();
+			if ( ! fetch_more_data() )
+				return EOF;
+		}
+
+		token = no_token;
+
+		%%{
+			machine Scanner;
+			access s-&gt;;
+
+			main := |*
+
+			# Identifiers
+			( [a-zA-Z_] [a-zA-Z0-9_]* ) =&gt;
+				{ token = Identifier; fbreak; };
+
+			# Whitespace
+			[ \t\n];
+
+			# Anything else
+			any =&gt; { token = *p; fbreak; };
+
+			*|;
+
+			write exec;
+		}%%
+
+		if ( token != no_token ) {
+			s-&gt;p = p;
+			s-&gt;pe = pe;
+			return token;
+		}
+
+		if ( s-&gt;cs == Scanner_error )
+			return ERR;
+	}
+}
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001860.html">integrating ragel w/ bison
+</A></li>
+	<LI>Next message: <A HREF="001862.html">integrating ragel w/ bison
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1861">[ date ]</a>
+              <a href="thread.html#1861">[ thread ]</a>
+              <a href="subject.html#1861">[ subject ]</a>
+              <a href="author.html#1861">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

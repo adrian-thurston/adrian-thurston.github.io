@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Machine not running terminating actions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Machine%20not%20running%20terminating%20actions&In-Reply-To=%3Cd56373190701021716v3df6d8cdu6de1198597d95b8c%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001853.html">
+   <LINK REL="Next"  HREF="001855.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Machine not running terminating actions</H1>
+    <B>Matt Mower</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Machine%20not%20running%20terminating%20actions&In-Reply-To=%3Cd56373190701021716v3df6d8cdu6de1198597d95b8c%40mail.gmail.com%3E"
+       TITLE="Machine not running terminating actions">s... at mattmower.com
+       </A><BR>
+    <I>Wed Jan  3 01:16:32 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001853.html">[ragel-users] Re: Problematic machine specification
+</A></li>
+        <LI>Next message: <A HREF="001855.html">[ragel-users] Machine not running terminating actions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi again.
+
+With your help I've been able to iron out many of the wrinkles in my
+diff parser and have something approximating a good parse of arbitrary
+svn diff output. One thing has me stumped though. The actions for the
+last hunk of the last diff are not being fired.
+
+Here is my machine:
+
+### expressions
+
+	lineChar = ( print | space ) - '\n';
+	
+	nbsp = space - '\n';
+	
+	line = ( ' ' | '-' | '+' ) @{ fhold; } lineChar* '\n'+ ;
+	
+	ignore_line = lineChar* '\n';
+
+	ignoreCode = '\\' line;
+	separator = '='+ '\n';
+	hunkEndChar = print - ( space | '+' | '-' );
+	
+	oldFile = '---' ignore_line;
+	newFile = '+++' ignore_line;
+	
+	hunkHeader = '@@' print+ '@@' '\n'+;
+	
+	hunkBody = ( line )+ ( ignoreCode | hunkEndChar @{ fhold; } );
+	
+	hunk = hunkHeader &gt;enter_hunk hunkBody %exit_hunk;
+	
+	fileName = ( lineChar+ ) &gt;mark %copy_to_filespec;
+	
+	fileSpec = &quot;Index:&quot; nbsp+ fileName '\n'+;
+	
+	diffHeader = ( fileSpec separator oldFile newFile );
+	diffBody = hunk* %exit_diff;
+	
+	diff = diffHeader &gt;enter_diff diffBody;
+	
+#	main := diff* $!error $~track;
+#	main := diff* $!error;
+	main := diff*;
+
+It's the result of much tinkering to get the actions to fire in the
+right sequence (I have a lot of problems with exit_diff actions firing
+before corresponding exit_hunk's and so forth).
+
+It correctly parses into each diff and each hunk within in. Where it
+falls down, as I say, is that exit_hunk and exit_diff are not fired
+for the last parsed hunk of the last diff.
+
+I've attached a graph showing the diffBody machine as well as the full
+.dot and the parser itself.
+
+Any help would be much appreciated.
+
+Thanks,
+
+Matt
+
+-- 
+Matt Mower :: <A HREF="http://matt.blogs.it/">http://matt.blogs.it/</A>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: machine_26863.png
+Type: image/png
+Size: 116343 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment.png">http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: DiffParser.m.dot
+Type: application/octet-stream
+Size: 2531 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment.obj">http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment.obj</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: DiffParser.m.rl
+Type: application/octet-stream
+Size: 2884 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment-0001.obj">http://www.colm.net/pipermail/ragel/attachments/20070103/199b98d9/attachment-0001.obj</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001853.html">[ragel-users] Re: Problematic machine specification
+</A></li>
+	<LI>Next message: <A HREF="001855.html">[ragel-users] Machine not running terminating actions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

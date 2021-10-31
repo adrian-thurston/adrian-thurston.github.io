@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] [PATCH 0/3] Fix Cygwin build
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%200/3%5D%20Fix%20Cygwin%20build&In-Reply-To=%3Ca5e49590-af6c-6751-dae7-b01f845eab8d%40cornell.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003568.html">
+   <LINK REL="Next"  HREF="003570.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] [PATCH 0/3] Fix Cygwin build</H1>
+    <B>Ken Brown</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20%5BPATCH%200/3%5D%20Fix%20Cygwin%20build&In-Reply-To=%3Ca5e49590-af6c-6751-dae7-b01f845eab8d%40cornell.edu%3E"
+       TITLE="[ragel-users] [PATCH 0/3] Fix Cygwin build">kbrown at cornell.edu
+       </A><BR>
+    <I>Mon Nov 26 14:30:59 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003568.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+        <LI>Next message: <A HREF="003570.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3569">[ date ]</a>
+              <a href="thread.html#3569">[ thread ]</a>
+              <a href="subject.html#3569">[ subject ]</a>
+              <a href="author.html#3569">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks.  There are still two problems:
+
+First, the syntax for the libtool '-no-undefined' flag is wrong.  It should 
+simply be '-no-undefined' (one leading hyphen, no -Wl), as in the patch I 
+submitted.  Otherwise, I get the following error if I try to build shared libraries:
+
+libtool:   error: can't build x86_64-unknown-cygwin shared library unless 
+-no-undefined is specified
+
+Second, although your change takes care of the reference to rl_parse, which is 
+the only undefined reference in a build --without-ragel, there are two further 
+&quot;undefined reference&quot; errors if I build with ragel installed:
+
+.libs/libragel_la-inputdata.o: In function `InputData::checkLastRef(InputItem*)':
+/home/kbrown/src/ragel/src/inputdata.cc:313: undefined reference to 
+`Parser6::terminateParser()'
+[...]
+.libs/libragel_la-inputdata.o: In function `InputData::parseKelbt()':
+/home/kbrown/src/ragel/src/inputdata.cc:427: undefined reference to 
+`Scanner::do_scan()'
+
+These are defined in rlparse.cc and rlscan.cc, which aren't in the sources for 
+libragel.
+
+Ken
+
+On 11/26/2018 11:40 AM, Adrian Thurston wrote:
+&gt;<i> Ah, sorry, I forgot to push from my private repo to the public one. There now.
+</I>&gt;<i> 
+</I>&gt;<i> On 2018-11-25 12:11, Ken Brown wrote:
+</I>&gt;&gt;<i> Hi Adrian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks.  Have you pushed these changes to the upstream git repo?  I'm getting
+</I>&gt;&gt;<i> &quot;Already up to date&quot; when I do &quot;git pull&quot;.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Ken
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On 11/25/2018 8:22 AM, Adrian Thurston wrote:
+</I>&gt;&gt;&gt;<i> Hi Ken, thank you for the patches. I just enabled --no-undefined and removed the
+</I>&gt;&gt;&gt;<i> reference to the undefined symbol. The parse.c file cannot be included in
+</I>&gt;&gt;&gt;<i> libragel because it defines the frontnend language, which is different for each
+</I>&gt;&gt;&gt;<i> binary in the host-* directories. All that was needed was to pass the reference
+</I>&gt;&gt;&gt;<i> to rl_parse into libragel from main.cc. Was already doing that for the backend
+</I>&gt;&gt;&gt;<i> code generator (also a colm program).
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Adrian
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> On 2018-11-16 16:58, Ken Brown wrote:
+</I>&gt;&gt;&gt;&gt;<i> I've just built ragel-7.0.0.11 on Cygwin and added it to the Cygwin
+</I>&gt;&gt;&gt;&gt;<i> distribution.  I had to patch the sources in order to build shared
+</I>&gt;&gt;&gt;&gt;<i> libraries.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> libtool won't build shared libraries on Cygwin unless the
+</I>&gt;&gt;&gt;&gt;<i> -no-undefined flag is given.  The first patch of this series does that
+</I>&gt;&gt;&gt;&gt;<i> for libfsm and libragel.  But it turns out that there are in fact
+</I>&gt;&gt;&gt;&gt;<i> undefined symbols in libragel.  The next two patches fix that.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> I don't think these patches do any harm on other platforms.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Ken Brown (3):
+</I>&gt;&gt;&gt;&gt;<i>   add -no-undefined to LDFLAGS for libfsm and libragel
+</I>&gt;&gt;&gt;&gt;<i>   add dependency of libragel on libfsm and libcolm
+</I>&gt;&gt;&gt;&gt;<i>   avoid undefined symbols in libragel
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i>  src/Makefile.am | 20 ++++++++++++++------
+</I>&gt;&gt;&gt;&gt;<i>  1 file changed, 14 insertions(+), 6 deletions(-)
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users</A>
+</I></PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003568.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+	<LI>Next message: <A HREF="003570.html">[ragel-users] [PATCH 0/3] Fix Cygwin build
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3569">[ date ]</a>
+              <a href="thread.html#3569">[ thread ]</a>
+              <a href="subject.html#3569">[ subject ]</a>
+              <a href="author.html#3569">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

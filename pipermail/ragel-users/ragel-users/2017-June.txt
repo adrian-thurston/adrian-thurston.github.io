@@ -1,0 +1,390 @@
+From avi at scylladb.com  Thu Jun  1 16:57:59 2017
+From: avi at scylladb.com (Avi Kivity)
+Date: Thu, 1 Jun 2017 19:57:59 +0300
+Subject: [ragel] C++ and ragel 7
+Message-ID: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+
+Testing out ragel 7 (7.0.0.9, from Fedora 26), I get these in my 
+generated code:
+
+
+         static const char _nfa_targs[] = {
+             0, 0
+         };
+
+         static const char _nfa_offsets[] = {
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0
+         };
+
+         static const char _nfa_push_actions[] = {
+             0, 0
+         };
+
+         static const char _nfa_pop_trans[] = {
+             0, 0
+         };
+
+Now, these are never used by the rest of the code, and also don't 
+compile in some versions of the C++ compiler.
+
+
+This is my command line:
+
+
+     ragel -G2 -o $out $in
+
+
+Is this a regression? Or am I doing something incorrectly?  Since those 
+arrays are zeroed and unreferenced, I'm guessing they shouldn't have 
+been emitted in the first place.
+
+
+
+From thurston at colm.net  Thu Jun  1 18:07:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 01 Jun 2017 14:07:47 -0400
+Subject: [ragel] [colm] ragel 7.0.0.10 and colm 0.13.0.5 released
+In-Reply-To: <CAORPgtBTLK1UsA9+Gf81-M-TGj3gh2p+8xzSe_PJkGh1BMVeEw@mail.gmail.com>
+References: <8ffcb558d5393d71ee61ff17f363b90e@mail.colm.net>
+ <CAORPgtBTLK1UsA9+Gf81-M-TGj3gh2p+8xzSe_PJkGh1BMVeEw@mail.gmail.com>
+Message-ID: <0a5003a8105b0327a66385c28209621d@mail.colm.net>
+
+ 
+
+Hi, I don't have change summaries just yet since these are development
+releases. All that's avail is the git logs. 
+
+-Adrian 
+
+On 2017-05-14 05:36, Сергей Львов wrote: 
+
+> Hello! 
+> 
+> Where can I see the changelog? 
+> 
+> 2017-05-13 7:06 GMT+03:00 Adrian Thurston <thurston at colm.net>:
+> 
+>> Hello!
+>> 
+>> Just posted colm and ragel development releases.
+>> 
+>> Colm 0.13.0.5
+>> Ragel 7.0.0.10
+>> 
+>> Cheers,
+>> Adrian
+>> 
+>> -- 
+>> Dr. Adrian D. Thurston
+>> Chief Scientist
+>> Colm Networks
+>> http://colm.net/ [1]
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm [2]
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm [2]
+ 
+
+Links:
+------
+[1] http://colm.net/
+[2] http://www.colm.net/cgi-bin/mailman/listinfo/colm
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170601/4ac646d3/attachment.html>
+
+From thurston at colm.net  Thu Jun  1 18:11:00 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 01 Jun 2017 14:11:00 -0400
+Subject: [ragel] C++ and ragel 7
+In-Reply-To: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+References: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+Message-ID: <c8e2d73d77dce3422ced1420bd5b7fc3@mail.colm.net>
+
+Hi Avi,
+
+These are part of a new backtracking feature and should not be generated 
+when not used. Will need to fix that.
+
+Thanks,
+-Adrian
+
+On 2017-06-01 12:57, Avi Kivity wrote:
+> Testing out ragel 7 (7.0.0.9, from Fedora 26), I get these in my 
+> generated code:
+> 
+> 
+>         static const char _nfa_targs[] = {
+>             0, 0
+>         };
+> 
+>         static const char _nfa_offsets[] = {
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0
+>         };
+> 
+>         static const char _nfa_push_actions[] = {
+>             0, 0
+>         };
+> 
+>         static const char _nfa_pop_trans[] = {
+>             0, 0
+>         };
+> 
+> Now, these are never used by the rest of the code, and also don't
+> compile in some versions of the C++ compiler.
+> 
+> 
+> This is my command line:
+> 
+> 
+>     ragel -G2 -o $out $in
+> 
+> 
+> Is this a regression? Or am I doing something incorrectly?  Since
+> those arrays are zeroed and unreferenced, I'm guessing they shouldn't
+> have been emitted in the first place.
+> 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+From krish.mailers at gmail.com  Thu Jun 29 19:42:06 2017
+From: krish.mailers at gmail.com (Krish I)
+Date: Thu, 29 Jun 2017 21:42:06 +0200
+Subject: [ragel] Ragel for Golang
+Message-ID: <CAKvWhWeziyMijZ_omFkU7Q=gQiSsJggoD=TUhh8arfeJprEadw@mail.gmail.com>
+
+Hi!
+
+I am fascinated with state machines and I recently found out about Ragel.
+I would also like to revise my compiler knowledge from school.
+
+As I am currently learning Golang, can I add support for Golang in Ragel,
+if one does not exist already?
+
+Also, I would love to have a pure-go implementation rather than a C-binding
+and would like to know if that is possible.
+
+This will be a personal hobby projects and I can dedicate 2 hours 4 to 5
+days a week if that is possible. I am also alright with MIT license, if
+that makes any difference.
+
+Best,
+Krish
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20170629/faa2e685/attachment.html>
+
+From avi at scylladb.com  Thu Jun  1 16:57:59 2017
+From: avi at scylladb.com (Avi Kivity)
+Date: Thu, 1 Jun 2017 19:57:59 +0300
+Subject: [ragel] C++ and ragel 7
+Message-ID: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+
+Testing out ragel 7 (7.0.0.9, from Fedora 26), I get these in my 
+generated code:
+
+
+         static const char _nfa_targs[] = {
+             0, 0
+         };
+
+         static const char _nfa_offsets[] = {
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0
+         };
+
+         static const char _nfa_push_actions[] = {
+             0, 0
+         };
+
+         static const char _nfa_pop_trans[] = {
+             0, 0
+         };
+
+Now, these are never used by the rest of the code, and also don't 
+compile in some versions of the C++ compiler.
+
+
+This is my command line:
+
+
+     ragel -G2 -o $out $in
+
+
+Is this a regression? Or am I doing something incorrectly?  Since those 
+arrays are zeroed and unreferenced, I'm guessing they shouldn't have 
+been emitted in the first place.
+
+
+
+
+From thurston at colm.net  Thu Jun  1 18:07:47 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 01 Jun 2017 14:07:47 -0400
+Subject: [ragel] [colm] ragel 7.0.0.10 and colm 0.13.0.5 released
+In-Reply-To: <CAORPgtBTLK1UsA9+Gf81-M-TGj3gh2p+8xzSe_PJkGh1BMVeEw@mail.gmail.com>
+References: <8ffcb558d5393d71ee61ff17f363b90e@mail.colm.net>
+ <CAORPgtBTLK1UsA9+Gf81-M-TGj3gh2p+8xzSe_PJkGh1BMVeEw@mail.gmail.com>
+Message-ID: <0a5003a8105b0327a66385c28209621d@mail.colm.net>
+
+ 
+
+Hi, I don't have change summaries just yet since these are development
+releases. All that's avail is the git logs. 
+
+-Adrian 
+
+On 2017-05-14 05:36, Сергей Львов wrote: 
+
+> Hello! 
+> 
+> Where can I see the changelog? 
+> 
+> 2017-05-13 7:06 GMT+03:00 Adrian Thurston <thurston at colm.net>:
+> 
+>> Hello!
+>> 
+>> Just posted colm and ragel development releases.
+>> 
+>> Colm 0.13.0.5
+>> Ragel 7.0.0.10
+>> 
+>> Cheers,
+>> Adrian
+>> 
+>> -- 
+>> Dr. Adrian D. Thurston
+>> Chief Scientist
+>> Colm Networks
+>> http://colm.net/ [1]
+>> 
+>> _______________________________________________
+>> colm mailing list
+>> colm at colm.net
+>> http://www.colm.net/cgi-bin/mailman/listinfo/colm [2]
+> 
+> _______________________________________________
+> colm mailing list
+> colm at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm [2]
+ 
+
+Links:
+------
+[1] http://colm.net/
+[2] http://www.colm.net/cgi-bin/mailman/listinfo/colm
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170601/4ac646d3/attachment-0002.html>
+
+From thurston at colm.net  Thu Jun  1 18:11:00 2017
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 01 Jun 2017 14:11:00 -0400
+Subject: [ragel] C++ and ragel 7
+In-Reply-To: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+References: <19e5ec59-7d00-b029-ef26-b13968711e9f@scylladb.com>
+Message-ID: <c8e2d73d77dce3422ced1420bd5b7fc3@mail.colm.net>
+
+Hi Avi,
+
+These are part of a new backtracking feature and should not be generated 
+when not used. Will need to fix that.
+
+Thanks,
+-Adrian
+
+On 2017-06-01 12:57, Avi Kivity wrote:
+> Testing out ragel 7 (7.0.0.9, from Fedora 26), I get these in my 
+> generated code:
+> 
+> 
+>         static const char _nfa_targs[] = {
+>             0, 0
+>         };
+> 
+>         static const char _nfa_offsets[] = {
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0, 0, 0, 0, 0,
+>             0, 0, 0, 0
+>         };
+> 
+>         static const char _nfa_push_actions[] = {
+>             0, 0
+>         };
+> 
+>         static const char _nfa_pop_trans[] = {
+>             0, 0
+>         };
+> 
+> Now, these are never used by the rest of the code, and also don't
+> compile in some versions of the C++ compiler.
+> 
+> 
+> This is my command line:
+> 
+> 
+>     ragel -G2 -o $out $in
+> 
+> 
+> Is this a regression? Or am I doing something incorrectly?  Since
+> those arrays are zeroed and unreferenced, I'm guessing they shouldn't
+> have been emitted in the first place.
+> 
+> 
+> _______________________________________________
+> ragel mailing list
+> ragel at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel
+
+
+
+From krish.mailers at gmail.com  Thu Jun 29 19:42:06 2017
+From: krish.mailers at gmail.com (Krish I)
+Date: Thu, 29 Jun 2017 21:42:06 +0200
+Subject: [ragel] Ragel for Golang
+Message-ID: <CAKvWhWeziyMijZ_omFkU7Q=gQiSsJggoD=TUhh8arfeJprEadw@mail.gmail.com>
+
+Hi!
+
+I am fascinated with state machines and I recently found out about Ragel.
+I would also like to revise my compiler knowledge from school.
+
+As I am currently learning Golang, can I add support for Golang in Ragel,
+if one does not exist already?
+
+Also, I would love to have a pure-go implementation rather than a C-binding
+and would like to know if that is possible.
+
+This will be a personal hobby projects and I can dedicate 2 hours 4 to 5
+days a week if that is possible. I am also alright with MIT license, if
+that makes any difference.
+
+Best,
+Krish
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20170629/faa2e685/attachment-0002.html>
+

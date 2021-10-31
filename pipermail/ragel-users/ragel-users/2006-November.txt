@@ -1,0 +1,4178 @@
+From edward... at gmail.com  Fri Nov  3 04:38:42 2006
+From: edward... at gmail.com (edward... at gmail.com)
+Date: Fri, 03 Nov 2006 04:38:42 -0000
+Subject: Using Ragel for Hidden Markov Model generation
+Message-ID: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+
+Hi everyone,
+
+I'm interested in using Ragel as the core of a Hidden Markov Model
+(HMM) engine.
+
+As I understand it, a HMM is really just a non-deterministic finite
+state machine with probabilities that dictate the emissions and
+transition probabilities. So instead of there being a completely random
+choice between two epsilon transitions (for example), there's a
+probability for each path.
+
+Would it be a big deal to alter Ragel to support probabilities in state
+transitions?
+
+Thanks!
+
+Edward
+
+
+From thurs... at cs.queensu.ca  Fri Nov  3 06:12:12 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Nov 2006 01:12:12 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+Message-ID: <454ADDBC.7090805@cs.queensu.ca>
+
+Hi,
+
+It might be possible to use Ragel as is. There is an experimental (and 
+undocumented) semantic condition feature which obeys the rules of NFA to 
+DFA conversion. A semantic condition is a block of code which is 
+associated with a transition. It must evaluate to true for the 
+transition to be taken. Conditions were introduced for the purpose of 
+parsing variable length fields. You could use them to do a roll of the 
+dice. Look in test/cond?.rl for examples of conditions.
+
+If conditions don't cut it, then modifying Ragel might be an option. 
+Though I don't know enough about HMMs to say for sure if it could be 
+done. How are HMMs specified?
+
+I can tell you that Ragel was designed for producing deterministic 
+parsers. Internally it has no epsilon transitions. Machines are made 
+deterministic on the fly. So it doesn't have many of the features that 
+comprehensive state machine libraries like Grail+ have.
+
+Cheers,
+  Adrian
+
+edward... at gmail.com wrote:
+> Hi everyone,
+> 
+> I'm interested in using Ragel as the core of a Hidden Markov Model
+> (HMM) engine.
+> 
+> As I understand it, a HMM is really just a non-deterministic finite
+> state machine with probabilities that dictate the emissions and
+> transition probabilities. So instead of there being a completely random
+> choice between two epsilon transitions (for example), there's a
+> probability for each path.
+> 
+> Would it be a big deal to alter Ragel to support probabilities in state
+> transitions?
+> 
+> Thanks!
+> 
+> Edward
+> 
+> 
+> 
+
+
+From edward... at gmail.com  Fri Nov  3 15:19:18 2006
+From: edward... at gmail.com (Edward Ocampo-Gooding)
+Date: Fri, 03 Nov 2006 10:19:18 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454ADDBC.7090805@cs.queensu.ca>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca>
+Message-ID: <454B5DF6.6040503@gmail.com>
+
+Hi Adrian,
+
+> It might be possible to use Ragel as is. There is an experimental (and 
+> undocumented) semantic condition feature which obeys the rules of NFA to 
+> DFA conversion. A semantic condition is a block of code which is 
+> associated with a transition. It must evaluate to true for the 
+> transition to be taken. Conditions were introduced for the purpose of 
+> parsing variable length fields. You could use them to do a roll of the 
+> dice. Look in test/cond?.rl for examples of conditions.
+
+That sounds great, thanks! I'll take a look at it this weekend.
+
+> If conditions don't cut it, then modifying Ragel might be an option. 
+> Though I don't know enough about HMMs to say for sure if it could be 
+> done. How are HMMs specified?
+
+It's usually specified by a matrix of probabilities, but that can be 
+played around with. I'm actually writing a few pages on HMM usage in 
+general and will be done in a few days. Would you be interested in 
+reading a rough draft?
+
+> I can tell you that Ragel was designed for producing deterministic 
+> parsers. Internally it has no epsilon transitions. Machines are made 
+> deterministic on the fly. So it doesn't have many of the features that 
+> comprehensive state machine libraries like Grail+ have.
+
+I'm not sure what the breadth of those features is like, but I took a 
+look at the examples available at 
+http://www.csd.uwo.ca/Research/grail/.man/index.html and from the looks 
+of it, I don't really need those. All I'm after is a very efficient 
+finite state machine with probabilities in its transitions and possibly 
+emissions.
+
+Thanks,
+Edward
+
+
+From thurs... at cs.queensu.ca  Fri Nov  3 17:27:05 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Nov 2006 12:27:05 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454B5DF6.6040503@gmail.com>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca> <454B5DF6.6040503@gmail.com>
+Message-ID: <454B7BE9.5020004@cs.queensu.ca>
+
+
+Edward Ocampo-Gooding wrote:
+> It's usually specified by a matrix of probabilities, but that can be 
+> played around with. I'm actually writing a few pages on HMM usage in 
+> general and will be done in a few days. Would you be interested in 
+> reading a rough draft?
+
+Sure, let me know when you have something. Is this for a research project?
+
+-Adrian
+
+
+
+From edward... at gmail.com  Fri Nov  3 21:43:07 2006
+From: edward... at gmail.com (Edward Ocampo-Gooding)
+Date: Fri, 03 Nov 2006 16:43:07 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454B7BE9.5020004@cs.queensu.ca>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca> <454B5DF6.6040503@gmail.com> <454B7BE9.5020004@cs.queensu.ca>
+Message-ID: <454BB7EB.8060801@gmail.com>
+
+Yep, it's a preliminary chunk to my bachelor's thesis (Bishop's University).
+
+Edward
+
+Adrian Thurston wrote:
+> 
+> Edward Ocampo-Gooding wrote:
+>> It's usually specified by a matrix of probabilities, but that can be 
+>> played around with. I'm actually writing a few pages on HMM usage in 
+>> general and will be done in a few days. Would you be interested in 
+>> reading a rough draft?
+> 
+> Sure, let me know when you have something. Is this for a research project?
+> 
+> -Adrian
+
+
+From cmantu... at gmail.com  Wed Nov  1 20:32:02 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 1 Nov 2006 15:32:02 -0500
+Subject: Feature Request: Inline Scanner
+Message-ID: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+
+Hello!
+
+I've been playing with Ragel now for roughly three weeks and I find it
+a wonderful piece of software. There is one particular thing, however,
+that Ragel could do better, in my opinion, that of capturing matched
+input.
+
+Let's look at an example:
+
+# Whitespace including folding
+sp = ( ( '\r'? '\n' )? [ \t] )+;
+
+# From mail header (simplified for illustrative purposes)
+from_header = sp? ( display_name sp? )? '<' email_address '>';
+
+The state machine Ragel implements is wonderful for ensuring correct
+syntax. The scanner Ragel implements is wonderful for repeatedly match
+tokens. But how about just capuring input matched by the state
+machine? Well, in this case, things get a little bit more complicated.
+In my opinion, it would be wonderful to have what I'm calling an
+inline scanner as a complement to the two currently implemented
+choices.
+
+An example of an inline scanner in action would be something like:
+
+display_name = |> display_name_pattern; { capture_display_name(ts, te); }; <|;
+
+email_address = |> email_address_pattern; { capture_email_address(ts,
+te); }; <|;
+
+Both capture_display_name and capture_email_address are used defined
+functions accepting locally declared (automatically by Ragel)
+variables 'ts' and 'te' (for tokstart and tokend, respectively).
+
+With this kind of inline scanner, not only would the syntax be
+enforced but the input easily captured.
+
+Transitions from the state machine to the inline scanner would happen
+only if and only if the state machine would transition to the state
+machine defined by the inline scanner pattern. And, once the inline
+scanner finishes matching, it would transition the the following state
+machine as usual.
+
+Although the functionality described above can be achieve with clever
+use of the current state machine and scanner paradigms, in my opinion,
+things would be a lot easier with this inline scanner concept.
+
+So, Adrian and everybody else, what say you?
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  2 22:55:37 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 02 Nov 2006 17:55:37 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+Message-ID: <454A7769.40800@cs.queensu.ca>
+
+Hi Carlos,
+
+It seems to me that there are actually two separate features here. One being 
+inline scanners and the other being automatic capture/markup of text. I 
+think both of these raise their own set of questions so it's easiest to talk 
+about them as separate problems.
+
+Consider that automatic capture/markup could be implemented on arbitrary 
+machine definitions and need not be associated with scanners. Scanners 
+always do automatic capture by default because the scanner may require 
+backtracking up to at most the head of the current pattern. This is solved 
+by marking the head of the current pattern so the safety of the backtrack 
+can be guaranteed. The pattern markup is more like a bonus.
+
+But if you start doing automatic capture/markup of arbitrary machine 
+definitions, then for each machine that you want to capture, do you use new 
+variables or some common variables like tokstart/tokend?
+
+If you use new variables, this allows machines that you capture to overlap 
+or be contained in one another. But then the question arises, how do you 
+know where to preserve the input from when you're breaking the stream into 
+buffer blocks? You have to consult all possible machine capture starting 
+points. That's a cost to consider.
+
+If you use a common var like tokstart you only need to check one variable to 
+find out if you need to preserve some prefix of the input. But then captured 
+patterns cannot overlap.
+
+With inline scanners there are a few questions also: What constitutes "would 
+begin the machine?" Since there can be a number of patterns in a scanner, is 
+it any pattern at all? Or is it a specific pattern.
+
+On the other end what constitutes "finishing the scanner?" Again, any 
+pattern at all? I'm not sure about the answers to these questions.
+
+Cheers,
+  Adrian
+
+
+Carlos Antunes wrote:
+> Hello!
+> 
+> I've been playing with Ragel now for roughly three weeks and I find it
+> a wonderful piece of software. There is one particular thing, however,
+> that Ragel could do better, in my opinion, that of capturing matched
+> input.
+> 
+> Let's look at an example:
+> 
+> # Whitespace including folding
+> sp = ( ( '\r'? '\n' )? [ \t] )+;
+> 
+> # From mail header (simplified for illustrative purposes)
+> from_header = sp? ( display_name sp? )? '<' email_address '>';
+> 
+> The state machine Ragel implements is wonderful for ensuring correct
+> syntax. The scanner Ragel implements is wonderful for repeatedly match
+> tokens. But how about just capuring input matched by the state
+> machine? Well, in this case, things get a little bit more complicated.
+> In my opinion, it would be wonderful to have what I'm calling an
+> inline scanner as a complement to the two currently implemented
+> choices.
+> 
+> An example of an inline scanner in action would be something like:
+> 
+> display_name = |> display_name_pattern; { capture_display_name(ts, te); }; <|;
+> 
+> email_address = |> email_address_pattern; { capture_email_address(ts,
+> te); }; <|;
+> 
+> Both capture_display_name and capture_email_address are used defined
+> functions accepting locally declared (automatically by Ragel)
+> variables 'ts' and 'te' (for tokstart and tokend, respectively).
+> 
+> With this kind of inline scanner, not only would the syntax be
+> enforced but the input easily captured.
+> 
+> Transitions from the state machine to the inline scanner would happen
+> only if and only if the state machine would transition to the state
+> machine defined by the inline scanner pattern. And, once the inline
+> scanner finishes matching, it would transition the the following state
+> machine as usual.
+> 
+> Although the functionality described above can be achieve with clever
+> use of the current state machine and scanner paradigms, in my opinion,
+> things would be a lot easier with this inline scanner concept.
+> 
+> So, Adrian and everybody else, what say you?
+> 
+> Thanks!
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Fri Nov  3 21:00:58 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Fri, 3 Nov 2006 16:00:58 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <454A7769.40800@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+Message-ID: <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+
+On 11/2/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It seems to me that there are actually two separate features here. One being
+> inline scanners and the other being automatic capture/markup of text.
+>
+
+Agreed. The reason I combined the two is because I'm convinced that
+scanners end up being the ones "better" at capturing text, mostly
+given their longest-match paradigm and their natural backtracking
+abilities.
+
+>
+> Consider that automatic capture/markup could be implemented on arbitrary
+> machine definitions and need not be associated with scanners. Scanners
+> always do automatic capture by default because the scanner may require
+> backtracking up to at most the head of the current pattern. This is solved
+> by marking the head of the current pattern so the safety of the backtrack
+> can be guaranteed. The pattern markup is more like a bonus.
+>
+
+You are right. As I said above, it is because of this bonus that
+scanners end up being natural candidates for capture, IMO.
+
+>
+> If you use new variables, this allows machines that you capture to overlap
+> or be contained in one another.
+>
+
+Yes, but is it really useful to have this kind of overlapping or
+containment, in practical terms?
+
+>
+>But then the question arises, how do you  know where to preserve the
+input from when
+> you're breaking the stream into buffer blocks?
+>
+
+Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+
+>
+> With inline scanners there are a few questions also: What constitutes "would
+> begin the machine?" Since there can be a number of patterns in a scanner, is
+> it any pattern at all? Or is it a specific pattern.
+>
+
+>From the point of view of the FSM, the inline scanner would be a
+virtual state. Transitions to this virtual state would happen if and
+only if at least one of the inline scanner patterns matches. If there
+is no possible match then the FSM would error.
+
+>
+> On the other end what constitutes "finishing the scanner?" Again, any
+> pattern at all? I'm not sure about the answers to these questions.
+>
+
+Matching at least one of the patterns specified. The corresponding
+action would execute and a transition from the virtual state to the
+next state would follow regular FSM rules.
+
+I guess that one way of looking at these virtual states and their
+associated inline scanning machinery is to think of them as regular
+states with appropriatly embedded state actions, no?
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Sat Nov  4 19:08:47 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 04 Nov 2006 14:08:47 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+Message-ID: <454CE53F.1020101@cs.queensu.ca>
+
+Hi Carlos,
+
+> Yes, but is it really useful to have this kind of overlapping or
+> containment, in practical terms?
+
+Overlapping ... you're right, that's a little silly. But I still think 
+containment could be useful. Maybe you'd want to have one markup for the 
+whole email address and other markups which give you the user and host 
+names. Maybe not. Hmmmm.
+
+> Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+> var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+
+I wonder if maintaining this could be made fast even when the number of 
+variables grows.
+
+>>From the point of view of the FSM, the inline scanner would be a
+> virtual state. Transitions to this virtual state would happen if and
+> only if at least one of the inline scanner patterns matches. If there
+> is no possible match then the FSM would error.
+
+You'll have to bear with me here, I can be thick sometimes! From what you're 
+saying it seems like it's not really a scanner, but more like a union 
+because if it finishes when it matches a pattern then it won't ever match 
+more than one. Is that right? If that's the case then it seems like the 
+criteria for it starting is the same as for it finishing.
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Sat Nov  4 21:24:19 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 4 Nov 2006 16:24:19 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <454CE53F.1020101@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+Message-ID: <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+
+On 11/4/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> But I still think containment could be useful. Maybe you'd want to have one
+> markup for the whole email address and other markups which give you the user
+> and host names.
+>
+
+Sure, you could do that but, at the same time, you could also do it
+sequentially with pretty much the same end result given that string
+concatenation is a pretty simple thing to do. Personally, I don't feel
+the need for capture within capture although it could prove useful in
+certain contexts.
+
+>
+> > Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+> > var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+>
+> I wonder if maintaining this could be made fast even when the number of
+> variables grows.
+>
+
+Hmm,  'alltokstarts' could be updated at the beginning of each capture
+with something like min(alltokstarts, ts(n)), no? This would scale
+well.
+
+>
+> >>From the point of view of the FSM, the inline scanner would be a
+> > virtual state. Transitions to this virtual state would happen if and
+> > only if at least one of the inline scanner patterns matches. If there
+> > is no possible match then the FSM would error.
+>
+> You'll have to bear with me here, I can be thick sometimes!
+>
+
+>From my point of view you are the expert here. Therefore, if you don't
+understand what I'm saying, the blame is totally on me! :-)
+
+>
+>From what you're saying it seems like it's not really a scanner
+>
+
+No, it's not like a regular scanner that keeps repeatedly trying to
+match any of the expressions. I guess I should rename my proposed
+'inline scanner' to 'longest-match capture'.
+
+>
+>but more like a union because if it finishes when it matches a
+pattern then it won't
+>ever match more than one. Is that right?
+>
+
+Well, union with a twist. For example, with:
+
+|> patternA => actionA; patternB => actionB; <|
+
+Once patternA or patternB matches (the longest or the first wins as
+with a regular scanner), the capture machine is done.
+
+>
+>If that's the case then it seems like the criteria for it starting is
+the same as for it finishing.
+>
+
+Hmm, not sure I'm following you here. In any case, after I emailed the
+list yesterday, I thought a little bit more about the use of state
+embeddings as a way to emulate this functionality and end up
+concluding that it was probably rubbish. But I thought that the state
+chart paradigm could be used to illustrate the basic idea. For
+example, with an expression like:
+
+pattern= patA |> patB1 => actionB1; patB2 => actionB2; <| patC;
+
+one could have a state chart like so:
+
+pattern = (
+
+    start: ( patA -> matched_patA ),
+
+    matched_patA: ( |> patB1 => actionB1; patB2 => actionB2; <| ->
+matched_patB ),
+
+    matched_patB: ( patC -> final )
+
+);
+
+Another thing to consider is whether my initially proposal of strictly
+relying on longest-match for capture makes sense. Maybe the programmer
+should have a choice?
+
+So, do you think this is something you'd be willing to implement? :-)
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Mon Nov  6 06:41:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 06 Nov 2006 01:41:26 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com> <454CE53F.1020101@cs.queensu.ca> <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+Message-ID: <454ED916.5060507@cs.queensu.ca>
+
+
+Carlos Antunes wrote:
+> concatenation is a pretty simple thing to do. Personally, I don't feel
+> the need for capture within capture although it could prove useful in
+> certain contexts.
+
+I see, I'll consider that.
+
+> Hmm,  'alltokstarts' could be updated at the beginning of each capture
+> with something like min(alltokstarts, ts(n)), no? This would scale
+> well.
+
+That works. Another question which I just thought of is how does the 
+system know when a user is done with a marker and should update 
+alltokstarts? I know you didn't advocate this particular solution in the 
+first place, I just thought I'd pose the question. I helps me to figure 
+these things out :)
+
+> pattern = (
+> 
+>     start: ( patA -> matched_patA ),
+> 
+>     matched_patA: ( |> patB1 => actionB1; patB2 => actionB2; <| ->
+> matched_patB ),
+> 
+>     matched_patB: ( patC -> final )
+> 
+> );
+
+Ah, okay I get it now. I had thought you were suggesting something more 
+complex. This could work fairly well. I have to think about it some 
+more. When adding things to the language I like to make things as 
+general as possible and that usually takes some time to sort out. But 
+ya, I could see it being useful and simple enough to understand and 
+implement properly.
+
+> Another thing to consider is whether my initially proposal of strictly
+> relying on longest-match for capture makes sense. Maybe the programmer
+> should have a choice?
+My sudden feeling of enlightenment has not lasted from one paragraph to 
+the next ... maybe it's the hour. Do you mean it would be cool to have 
+the option to drop a scanner in there?
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Mon Nov  6 16:57:41 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 11:57:41 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <454ED916.5060507@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+	 <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+	 <454ED916.5060507@cs.queensu.ca>
+Message-ID: <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+
+On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Another question which I just thought of is how does the
+> system know when a user is done with a marker and should update
+> alltokstarts? I know you didn't advocate this particular solution in the
+> first place, I just thought I'd pose the question. I helps me to figure
+> these things out :)
+>
+
+If you want to support overlapping capture then the user needs to be
+able to individually tag each capture start and capture stop with a
+unique identifier. This identifier could be a variable and in C could
+be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+way you'd always know when a capture is starting and ending.
+
+>
+> > Another thing to consider is whether my initially proposal of strictly
+> > relying on longest-match for capture makes sense. Maybe the programmer
+> > should have a choice?
+>
+> My sudden feeling of enlightenment has not lasted from one paragraph to
+> the next ... maybe it's the hour. Do you mean it would be cool to have
+> the option to drop a scanner in there?
+>
+
+Actually, I wasn't thinking of a scanner although that could be an
+option if you think it's useful. I was thinking about just capturing
+straight FSM input, in addition to longest-match capture.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 18:17:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 13:17:26 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com> <454CE53F.1020101@cs.queensu.ca> <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com> <454ED916.5060507@cs.queensu.ca> <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+Message-ID: <45521F36.8030705@cs.queensu.ca>
+
+Carlos,
+
+Okay, I've got a number of ideas to play with now. I'm still not sure which 
+is the best way to approach it, but at some point I'll hack around and 
+hopefully one idea will shine.
+
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Another question which I just thought of is how does the
+>> system know when a user is done with a marker and should update
+>> alltokstarts? I know you didn't advocate this particular solution in the
+>> first place, I just thought I'd pose the question. I helps me to figure
+>> these things out :)
+>>
+> 
+> If you want to support overlapping capture then the user needs to be
+> able to individually tag each capture start and capture stop with a
+> unique identifier. This identifier could be a variable and in C could
+> be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+> way you'd always know when a capture is starting and ending.
+> 
+>>> Another thing to consider is whether my initially proposal of strictly
+>>> relying on longest-match for capture makes sense. Maybe the programmer
+>>> should have a choice?
+>> My sudden feeling of enlightenment has not lasted from one paragraph to
+>> the next ... maybe it's the hour. Do you mean it would be cool to have
+>> the option to drop a scanner in there?
+>>
+> 
+> Actually, I wasn't thinking of a scanner although that could be an
+> option if you think it's useful. I was thinking about just capturing
+> straight FSM input, in addition to longest-match capture.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Wed Nov  8 18:45:13 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 13:45:13 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <45521F36.8030705@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+	 <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+	 <454ED916.5060507@cs.queensu.ca>
+	 <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+	 <45521F36.8030705@cs.queensu.ca>
+Message-ID: <cb2ad8b50611081045w7246825blbeb93d57d5a6585f@mail.gmail.com>
+
+Thanks, Adrian! I'll be anxiously waiting for something. And I'll be
+happy to do some testing along the way if necessary.
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Carlos,
+>
+> Okay, I've got a number of ideas to play with now. I'm still not sure which
+> is the best way to approach it, but at some point I'll hack around and
+> hopefully one idea will shine.
+>
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> Another question which I just thought of is how does the
+> >> system know when a user is done with a marker and should update
+> >> alltokstarts? I know you didn't advocate this particular solution in the
+> >> first place, I just thought I'd pose the question. I helps me to figure
+> >> these things out :)
+> >>
+> >
+> > If you want to support overlapping capture then the user needs to be
+> > able to individually tag each capture start and capture stop with a
+> > unique identifier. This identifier could be a variable and in C could
+> > be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+> > way you'd always know when a capture is starting and ending.
+> >
+> >>> Another thing to consider is whether my initially proposal of strictly
+> >>> relying on longest-match for capture makes sense. Maybe the programmer
+> >>> should have a choice?
+> >> My sudden feeling of enlightenment has not lasted from one paragraph to
+> >> the next ... maybe it's the hour. Do you mean it would be cool to have
+> >> the option to drop a scanner in there?
+> >>
+> >
+> > Actually, I wasn't thinking of a scanner although that could be an
+> > option if you think it's useful. I was thinking about just capturing
+> > straight FSM input, in addition to longest-match capture.
+> >
+> > Carlos
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From cmantu... at gmail.com  Mon Nov  6 05:16:33 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 00:16:33 -0500
+Subject: fexec bug in v5.15?
+Message-ID: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+
+Adrian,
+
+I have the following defined:
+
+consume_sp_optional := |*
+
+            ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+(%s)\n", p); };
+
+            '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+tokstart; fret; };
+
+            any { printf("<---- sp_optional (%s)\n", p); fexec
+tokstart; fret; };
+
+        *|;
+
+This machine basically eats up optional spaces and tabs including
+folding and returns when CRLF is encountered. This worked fine with
+v5.14. With version 5.15, however, I think there might be a bug in the
+way fexec is working. Looking at the generated C code, I see
+(corresponding to the \r'? '\n' line ):
+
+tr6811:
+#line 26 "test.rl"
+        {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+        goto st6170;
+
+
+Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+p-- that is never reached). Shouldn't the first expression be just p =
+tokstart? The purpose of the fexec in my code is to backtrack and make
+the CRLF available for further matching.
+
+Thanks!
+
+Carlos
+
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From cmantu... at gmail.com  Mon Nov  6 05:35:18 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 06 Nov 2006 05:35:18 -0000
+Subject: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+Message-ID: <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+
+Adrain,
+
+Just wanted to clarify that v5.14 with that scanner patch you provided
+also exhibits the problem so I guess that patch is the culprit.
+
+Thanks!
+
+Carlos
+
+Carlos Antunes wrote:
+> Adrian,
+>
+> I have the following defined:
+>
+> consume_sp_optional := |*
+>
+>             ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+> (%s)\n", p); };
+>
+>             '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+> tokstart; fret; };
+>
+>             any { printf("<---- sp_optional (%s)\n", p); fexec
+> tokstart; fret; };
+>
+>         *|;
+>
+> This machine basically eats up optional spaces and tabs including
+> folding and returns when CRLF is encountered. This worked fine with
+> v5.14. With version 5.15, however, I think there might be a bug in the
+> way fexec is working. Looking at the generated C code, I see
+> (corresponding to the \r'? '\n' line ):
+>
+> tr6811:
+> #line 26 "test.rl"
+>         {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+> ((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+>         goto st6170;
+>
+>
+> Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+> p-- that is never reached). Shouldn't the first expression be just p =
+> tokstart? The purpose of the fexec in my code is to backtrack and make
+> the CRLF available for further matching.
+>
+> Thanks!
+>
+> Carlos
+>
+>
+>
+> --
+> "We hold [...] that all men are created equal; that they are
+> endowed [...] with certain inalienable rights; that among
+> these are life, liberty, and the pursuit of happiness"
+>         -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Mon Nov  6 06:50:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 06 Nov 2006 01:50:32 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+Message-ID: <454EDB38.8030800@cs.queensu.ca>
+
+Hi Carlos,
+
+As it turns out, it's not safe to manipulate the current pointer in 
+pattern actions. I had realized this recently and in 5.15 an error is 
+emitted if you use fhold in a pattern action. It didn't occur to me that 
+I have to do the same for fexec. I should also put a warning in the docs 
+about directly manipulating p in pattern actions.
+
+The reason is that as a part of restarting the scanner, it's sometimes 
+necessary to manipulate p. Sometimes you need to shift it back one. 
+Other times you need to set it to tokend. Other times you don't need to 
+do anything at all. This all depends on the contents of the patterns. So 
+if you change p first, you mess the scanner up in ways that are hard to 
+predict.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Adrain,
+> 
+> Just wanted to clarify that v5.14 with that scanner patch you provided
+> also exhibits the problem so I guess that patch is the culprit.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+> Carlos Antunes wrote:
+>> Adrian,
+>>
+>> I have the following defined:
+>>
+>> consume_sp_optional := |*
+>>
+>>             ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+>> (%s)\n", p); };
+>>
+>>             '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+>> tokstart; fret; };
+>>
+>>             any { printf("<---- sp_optional (%s)\n", p); fexec
+>> tokstart; fret; };
+>>
+>>         *|;
+>>
+>> This machine basically eats up optional spaces and tabs including
+>> folding and returns when CRLF is encountered. This worked fine with
+>> v5.14. With version 5.15, however, I think there might be a bug in the
+>> way fexec is working. Looking at the generated C code, I see
+>> (corresponding to the \r'? '\n' line ):
+>>
+>> tr6811:
+>> #line 26 "test.rl"
+>>         {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+>> ((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+>>         goto st6170;
+>>
+>>
+>> Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+>> p-- that is never reached). Shouldn't the first expression be just p =
+>> tokstart? The purpose of the fexec in my code is to backtrack and make
+>> the CRLF available for further matching.
+>>
+>> Thanks!
+>>
+>> Carlos
+>>
+>>
+>>
+>> --
+>> "We hold [...] that all men are created equal; that they are
+>> endowed [...] with certain inalienable rights; that among
+>> these are life, liberty, and the pursuit of happiness"
+>>         -- Thomas Jefferson
+> 
+> 
+> 
+
+
+From cmantu... at gmail.com  Mon Nov  6 07:42:43 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 02:42:43 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <454EDB38.8030800@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+Message-ID: <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+
+On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> As it turns out, it's not safe to manipulate the current pointer in
+> pattern actions. I had realized this recently and in 5.15 an error is
+> emitted if you use fhold in a pattern action. It didn't occur to me that
+> I have to do the same for fexec. I should also put a warning in the docs
+> about directly manipulating p in pattern actions.
+>
+> The reason is that as a part of restarting the scanner, it's sometimes
+> necessary to manipulate p. Sometimes you need to shift it back one.
+> Other times you need to set it to tokend. Other times you don't need to
+> do anything at all. This all depends on the contents of the patterns. So
+> if you change p first, you mess the scanner up in ways that are hard to
+> predict.
+>
+
+Ok, I see. Maybe fhold and fexec could be allowed in those cases where
+the scanner doesn't need to restart? For example { fret; fhold; } or {
+fnext whatever; fexec tokstart; }? Basically, fhold and fexec could be
+specified in all situations where the scanner knows it wouldn't be
+restarted. Is this doable? Obviously, it would also be nice to specify
+as an example { fhold; fret } and get the same behavior as { fret;
+fhold; }.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 18:55:59 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 13:55:59 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+Message-ID: <4552283F.60004@cs.queensu.ca>
+
+As separate statements it doable but it would require control flow analysis 
+of the host language in order to determine if one statement comes after the 
+other. Control flow analysis is a huge undertaking, one that I would have to 
+say is too much for Ragel.
+
+But combination statements that hold and return would work.
+
+-Adrian
+
+Carlos Antunes wrote:
+> On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> As it turns out, it's not safe to manipulate the current pointer in
+>> pattern actions. I had realized this recently and in 5.15 an error is
+>> emitted if you use fhold in a pattern action. It didn't occur to me that
+>> I have to do the same for fexec. I should also put a warning in the docs
+>> about directly manipulating p in pattern actions.
+>>
+>> The reason is that as a part of restarting the scanner, it's sometimes
+>> necessary to manipulate p. Sometimes you need to shift it back one.
+>> Other times you need to set it to tokend. Other times you don't need to
+>> do anything at all. This all depends on the contents of the patterns. So
+>> if you change p first, you mess the scanner up in ways that are hard to
+>> predict.
+>>
+> 
+> Ok, I see. Maybe fhold and fexec could be allowed in those cases where
+> the scanner doesn't need to restart? For example { fret; fhold; } or {
+> fnext whatever; fexec tokstart; }? Basically, fhold and fexec could be
+> specified in all situations where the scanner knows it wouldn't be
+> restarted. Is this doable? Obviously, it would also be nice to specify
+> as an example { fhold; fret } and get the same behavior as { fret;
+> fhold; }.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Wed Nov  8 19:07:01 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 14:07:01 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4552283F.60004@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+Message-ID: <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> As separate statements it doable but it would require control flow analysis
+> of the host language in order to determine if one statement comes after the
+> other. Control flow analysis is a huge undertaking, one that I would have to
+> say is too much for Ragel.
+>
+
+Understood.
+
+>
+> But combination statements that hold and return would work.
+>
+
+Great!
+
+On other hand, what is the cost of leaving the scanner and then
+setting up and reentering the scanner? Maybe this could be the
+behavior following an fexec or fhold? Not really knowing what I'm
+talking about, my gut feeling is that this would be easy to implement,
+no?
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 00:22:09 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 19:22:09 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+Message-ID: <455274B1.6040606@cs.queensu.ca>
+
+
+Carlos Antunes wrote:
+> On other hand, what is the cost of leaving the scanner and then
+> setting up and reentering the scanner? Maybe this could be the
+> behavior following an fexec or fhold? Not really knowing what I'm
+> talking about, my gut feeling is that this would be easy to implement,
+> no?
+
+I'm not sure what you mean. Could you elaborate?
+
+Just to let you know, sometime I'd like to implement trailing context, also 
+known as follow patterns, which could be used to solve this problem.
+
+-Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 04:28:51 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 23:28:51 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <455274B1.6040606@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+Message-ID: <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Carlos Antunes wrote:
+> > On other hand, what is the cost of leaving the scanner and then
+> > setting up and reentering the scanner? Maybe this could be the
+> > behavior following an fexec or fhold? Not really knowing what I'm
+> > talking about, my gut feeling is that this would be easy to implement,
+> > no?
+>
+> I'm not sure what you mean. Could you elaborate?
+>
+
+Well, based on previous messages, you suggested that an fhold or fexec
+immediately followed by an fret would be safe, correct? Now, let's say
+I specify an fhold but not an fret. This case wouldn't be safe.
+However, what if the scanner actually terminates and then reenters as
+if starting anew? Because if an fhold followed by an fret is safe then
+leaving the scanner altogether and then starting again should also be
+safe, no?
+
+>
+> Just to let you know, sometime I'd like to implement trailing context, also
+> known as follow patterns, which could be used to solve this problem.
+>
+
+Although I am too clueless to know exactly what you are talking about
+(I'm not a computer science guy, just a lowly electrical engineer),
+adding useful functionality for me sounds great! :-)
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 19:02:00 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 14:02:00 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+Message-ID: <45537B28.5010302@cs.queensu.ca>
+
+That could be done, the fhold/fexec would fix up p and immediately 
+restart. Though it would change the semantics of fhold and fexec based 
+on context, which in my opinions on language design is not good thing to 
+do. I'd feel better about adding another command.
+
+> Although I am too clueless to know exactly what you are talking about
+> (I'm not a computer science guy, just a lowly electrical engineer),
+> adding useful functionality for me sounds great! :-)
+No worries, all computer users are welcome :)
+
+Follow context allows you to specify what should come after the pattern, 
+but does not consume it as part of the pattern. You write:
+
+'match me' / 'match but do not consume me';
+
+Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 20:29:51 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 15:29:51 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <45537B28.5010302@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> That could be done, the fhold/fexec would fix up p and immediately
+> restart.
+>
+
+Exactly. Of course, the restart wouldn't happen if the an fhold or
+fexec were followed by an fret, fgoto and the like.
+
+>
+>Though it would change the semantics of fhold and fexec based
+> on context, which in my opinions on language design is not good thing to
+> do. I'd feel better about adding another command.
+>
+
+Hmm, from the point of view of the ragel end user, things would
+automagically work as "expected", no? I don't see where the change in
+semantics is in this case...
+
+>
+> > Although I am too clueless to know exactly what you are talking about
+> > (I'm not a computer science guy, just a lowly electrical engineer),
+> > adding useful functionality for me sounds great! :-)
+> No worries, all computer users are welcome :)
+>
+> Follow context allows you to specify what should come after the pattern,
+> but does not consume it as part of the pattern. You write:
+>
+> 'match me' / 'match but do not consume me';
+>
+
+Ah! I've used that in flex but had no clue it was called "follow
+context". This is something that I would consider *VERY* useful.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 21:07:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 16:07:26 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+Message-ID: <4553988E.4090305@cs.queensu.ca>
+
+
+> Hmm, from the point of view of the ragel end user, things would
+> automagically work as "expected", no? I don't see where the change in
+> semantics is in this case...
+
+fhold would become a control flow statement because of the jump 
+necessary to immediately restart. The remainder of the action would 
+become unreachable. It's a subtle difference, but I think it's the kind 
+of thing that causes people to become confused about the meaning the 
+statements.
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 21:20:19 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 16:20:19 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4553988E.4090305@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010302@cs.queensu.ca>
+	 <cb2ad8b50611091229l42f8caacrf2a0eb8596f1d...@mail.gmail.com>
+	 <4553988E.4090...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> > Hmm, from the point of view of the ragel end user, things would
+> > automagically work as "expected", no? I don't see where the change in
+> > semantics is in this case...
+>
+> fhold would become a control flow statement because of the jump
+> necessary to immediately restart. The remainder of the action would
+> become unreachable. It's a subtle difference, but I think it's the kind
+> of thing that causes people to become confused about the meaning the
+> statements.
+>
+
+Adrian,
+
+No, that's not the idea. For example, an fhold would set a flag called
+"need_to_restart". At the *END* of the action, the restart would
+happen if "need_to_restart" was set.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 21:45:43 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 16:45:43 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com> <4553988E.4090305@cs.queensu.ca> <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+Message-ID: <4553A187.6020904@cs.queensu.ca>
+
+Hi Carlos,
+
+If you were to take the flag-based approach, it would be better to use 
+it to make fhold safe in pattern actions by using a variable to indicate 
+that after the pattern has been consumed and p is consistent, then shift 
+it back one. Though I guess that has the same effect as what you're 
+saying. I've never been a fan of the flag-based approach to implementing 
+the fsm statements in action code, but maybe I should reconsider in this 
+case.
+
+Adrian
+
+Carlos Antunes wrote:
+> On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>
+>>> Hmm, from the point of view of the ragel end user, things would
+>>> automagically work as "expected", no? I don't see where the change in
+>>> semantics is in this case...
+>> fhold would become a control flow statement because of the jump
+>> necessary to immediately restart. The remainder of the action would
+>> become unreachable. It's a subtle difference, but I think it's the kind
+>> of thing that causes people to become confused about the meaning the
+>> statements.
+>>
+> 
+> Adrian,
+> 
+> No, that's not the idea. For example, an fhold would set a flag called
+> "need_to_restart". At the *END* of the action, the restart would
+> happen if "need_to_restart" was set.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Thu Nov  9 23:08:02 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 18:08:02 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4553A187.6020904@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010302@cs.queensu.ca>
+	 <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+	 <4553988E.4090305@cs.queensu.ca>
+	 <cb2ad8b50611091320j46e39a3u4b39dc9850789...@mail.gmail.com>
+	 <4553A187.6020...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> If you were to take the flag-based approach, it would be better to use
+> it to make fhold safe in pattern actions by using a variable to indicate
+> that after the pattern has been consumed and p is consistent, then shift
+> it back one. Though I guess that has the same effect as what you're
+> saying. I've never been a fan of the flag-based approach to implementing
+> the fsm statements in action code, but maybe I should reconsider in this
+> case.
+>
+
+Ah! Here's a difference between a computer scientist (you) and an
+engineer (me): the computer scientist wants the code to be "pure", and
+the engineer just want things to "work"! :-)
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Fri Nov 10 05:19:35 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 10 Nov 2006 00:19:35 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com> <4553988E.4090305@cs.queensu.ca> <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com> <4553A187.6020904@cs.queensu.ca> <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+Message-ID: <45540BE7.8040907@cs.queensu.ca>
+
+Haha, indeed, a "pure" language definition free of grotesque 
+expection-to-the-rule clauses would make me very happy :)
+
+-Adrian
+
+Carlos Antunes wrote:
+> On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> If you were to take the flag-based approach, it would be better to use
+>> it to make fhold safe in pattern actions by using a variable to indicate
+>> that after the pattern has been consumed and p is consistent, then shift
+>> it back one. Though I guess that has the same effect as what you're
+>> saying. I've never been a fan of the flag-based approach to implementing
+>> the fsm statements in action code, but maybe I should reconsider in this
+>> case.
+>>
+> 
+> Ah! Here's a difference between a computer scientist (you) and an
+> engineer (me): the computer scientist wants the code to be "pure", and
+> the engineer just want things to "work"! :-)
+> 
+> Carlos
+> 
+
+
+From thurs... at cs.queensu.ca  Sat Nov 11 00:07:28 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 10 Nov 2006 19:07:28 -0500
+Subject: fhold and fexec in scanner pattern actions
+Message-ID: <45551440.2030304@cs.queensu.ca>
+
+Hi,
+
+This patch (to go into 5.16) allows fhold and fexec to function 
+correctly in scanner pattern actions. In this context, fexec and fhold 
+now manipulate tokend, which is always used to update p when the action 
+terminates.
+
+Cheers,
+  Adrian
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-fhold-fexec-5.15.diff
+Type: text/x-patch
+Size: 12678 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20061110/65c3b56d/attachment.bin>
+
+From cmantu... at gmail.com  Sat Nov 11 20:30:47 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 11 Nov 2006 15:30:47 -0500
+Subject: [ragel-users] fhold and fexec in scanner pattern actions
+In-Reply-To: <45551440.2030304@cs.queensu.ca>
+References: <45551440.2030304@cs.queensu.ca>
+Message-ID: <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+
+On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> This patch (to go into 5.16) allows fhold and fexec to function
+> correctly in scanner pattern actions. In this context, fexec and fhold
+> now manipulate tokend, which is always used to update p when the action
+> terminates.
+>
+
+Adrian,
+
+Thanks for the patch. There's soemthing wrong with it, though. I've
+attached a test file that bombs with the error "<unknown>::56:152:
+syntax error" when I add an fhold or fexec in line 398.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test2.rl
+Type: application/octet-stream
+Size: 13025 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20061111/b9530d4f/attachment.obj>
+
+From thurs... at cs.queensu.ca  Sat Nov 11 20:44:13 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 11 Nov 2006 15:44:13 -0500
+Subject: [ragel-users] Re: fhold and fexec in scanner pattern actions
+In-Reply-To: <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+References: <45551440.2030304@cs.queensu.ca> <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+Message-ID: <4556361D.5020407@cs.queensu.ca>
+
+Oops, I neglected to mention that you'll need to rebuild the parsers 
+from the flex/bison sources. Take a look at the README file in the top 
+level directory which says how to turn that on.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> This patch (to go into 5.16) allows fhold and fexec to function
+>> correctly in scanner pattern actions. In this context, fexec and fhold
+>> now manipulate tokend, which is always used to update p when the action
+>> terminates.
+>>
+> 
+> Adrian,
+> 
+> Thanks for the patch. There's soemthing wrong with it, though. I've
+> attached a test file that bombs with the error "<unknown>::56:152:
+> syntax error" when I add an fhold or fexec in line 398.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Sat Nov 11 21:05:53 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 11 Nov 2006 16:05:53 -0500
+Subject: [ragel-users] Re: fhold and fexec in scanner pattern actions
+In-Reply-To: <4556361D.5020407@cs.queensu.ca>
+References: <45551440.2030304@cs.queensu.ca>
+	 <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+	 <4556361D.5020407@cs.queensu.ca>
+Message-ID: <cb2ad8b50611111305i73324f00pab87b6510b7f9ca0@mail.gmail.com>
+
+Wonderful, it's working now. Thanks!
+
+On 11/11/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Oops, I neglected to mention that you'll need to rebuild the parsers
+> from the flex/bison sources. Take a look at the README file in the top
+> level directory which says how to turn that on.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> This patch (to go into 5.16) allows fhold and fexec to function
+> >> correctly in scanner pattern actions. In this context, fexec and fhold
+> >> now manipulate tokend, which is always used to update p when the action
+> >> terminates.
+> >>
+> >
+> > Adrian,
+> >
+> > Thanks for the patch. There's soemthing wrong with it, though. I've
+> > attached a test file that bombs with the error "<unknown>::56:152:
+> > syntax error" when I add an fhold or fexec in line 398.
+> >
+> > Thanks!
+> >
+> > Carlos
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From bortzme... at gmail.com  Wed Nov  8 15:51:25 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Wed, 8 Nov 2006 16:51:25 +0100
+Subject: Ragel for network protocols?
+Message-ID: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+
+I'm trying to experiment with Ragel for specifying network protocols,
+which are often described as state machines.
+
+All the Ragel examples I can find are for parsers, not for protocol
+state machines. Reading the documentation, I still cannot write a
+state machine for a protocol as simple as:
+
+                        Open
+                       /        \
+                       /          \
+ +--------------+            \  +-------------+
+ |                     |            > |                   |
+ | Door-closed  |              |  Door-open |
+ +--------------+               +-------------+
+                       ^            /
+                         \          /
+                          \        /
+                         Close
+
+Any sample code somewhere?
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 19:20:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 14:20:32 -0500
+Subject: [ragel-users] Ragel for network protocols?
+In-Reply-To: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+Message-ID: <45522E00.2020900@cs.queensu.ca>
+
+Hi Stéphane,
+
+The mechanism for building machines with the state chart paradigm is hidden 
+away in the language. You use the following operators
+
+label:  make labels
+->      draw epsilon operations
+,       join machines together without transitions
+()      grouping comes in handy
+
+You always need a start label for a join to work and if you want any final 
+states you need to make them explicitly by drawing an epsilon transition to 
+the implicitly created "final" state.
+
+Note that if you're feeling adventurous, OPEN and CLOSE can be arbitrary 
+regular expressions.
+
+%%{
+	machine foo;
+
+	OPEN = 0;
+	CLOSE = 1;
+
+	main :=
+		start:
+		door_closed: (
+			OPEN -> door_open -> final
+		),
+		door_open: (
+			CLOSE -> door_closed
+		);
+}%%
+
+
+Stéphane Bortzmeyer wrote:
+> I'm trying to experiment with Ragel for specifying network protocols,
+> which are often described as state machines.
+> 
+> All the Ragel examples I can find are for parsers, not for protocol
+> state machines. Reading the documentation, I still cannot write a
+> state machine for a protocol as simple as:
+> 
+>                         Open
+>                        /        \
+>                        /          \
+>  +--------------+            \  +-------------+
+>  |                     |            > |                   |
+>  | Door-closed  |              |  Door-open |
+>  +--------------+               +-------------+
+>                        ^            /
+>                          \          /
+>                           \        /
+>                          Close
+> 
+> Any sample code somewhere?
+> 
+> 
+
+
+From bortzme... at gmail.com  Thu Nov  9 15:17:16 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Thu, 9 Nov 2006 16:17:16 +0100
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <45522E00.2020900@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+Message-ID: <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+
+2006/11/8, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+> The mechanism for building machines with the state chart paradigm is hidden
+> away in the language. You use the following operators
+>
+> label:  make labels
+> ->      draw epsilon operations
+> ,       join machines together without transitions
+> ()      grouping comes in handy
+
+OK, thanks, now, I have a state machine which is compiled. But, at
+execution time, I always end in an invalid state. I wrote:
+
+%%{
+machine test;
+
+      OPEN = 'O';
+       CLOSE = 'C';
+
+       main :=
+               start:
+               door_closed: (
+                       OPEN -> door_open -> final
+               ),
+               door_open: (
+                       CLOSE -> door_closed
+               );
+}%%
+
+and then the ancillary code:
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+        /* Mandatory Ragel variables, see the manual */
+        int cs;
+        char *p;
+        char *pe;
+
+        int res = 0;
+        int i;
+        %%write init;
+        if ( argc > 1 ) {
+           for (i=1; i<argc; i++)  {
+              p = argv[i];
+              pe = p + strlen(p) + 1;
+              printf("Step %i: input %s, current state %i... ", i, p, cs);
+              %%write exec;
+              if (cs == test_error) {
+                 printf("Error, invalid input\n");
+                 break;
+              }
+              else {
+                 printf("New state is %i\n", cs);
+              }
+           }
+        }
+        else {
+	   printf("Usage: %s O C O C ...", argv[0]);
+           return 1;
+        }
+        printf("result = %i\n", res );
+        %%write eof;
+        return 0;
+}
+
+But I always get:
+
+% ragel test.rl | rlcodegen && gcc -o test test.c && ./test O C O
+Step 1: input O, current state 0... Error, invalid input
+result = 0
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 18:31:07 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 13:31:07 -0500
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com> <45522E00.2020900@cs.queensu.ca> <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+Message-ID: <455373EB.8020409@cs.queensu.ca>
+
+Hi Stéphane,
+
+ >               pe = p + strlen(p) + 1;
+
+This is probably why. The +1 sends the machine the null character, which 
+isn't part of the language.
+
+Cheers,
+  Adrian
+
+
+From zeds... at zedshaw.com  Thu Nov  9 20:11:34 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Thu, 9 Nov 2006 15:11:34 -0500
+Subject: [ragel-users] Ragel for network protocols?
+In-Reply-To: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+Message-ID: <20061109151134.acb3ca23.zedshaw@zedshaw.com>
+
+On Wed, 8 Nov 2006 16:51:25 +0100
+"Stéphane Bortzmeyer" <bortzme... at gmail.com> wrote:
+
+> 
+> I'm trying to experiment with Ragel for specifying network protocols,
+> which are often described as state machines.
+
+I've used Ragel in several network protocols, but not the state machines that control the servers.  If you need examples, you can check out:
+
+http://rubyforge.org/cgi-bin/viewvc.cgi/trunk/ext/http11/http11_parser.rl?revision=331&root=mongrel
+
+For the Mongrel HTTP parser.
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From bortzme... at gmail.com  Sun Nov 12 20:49:26 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Sun, 12 Nov 2006 21:49:26 +0100
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <455373EB.8020409@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+	 <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+	 <455373EB.8020409@cs.queensu.ca>
+Message-ID: <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+
+2006/11/9, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+>  >               pe = p + strlen(p) + 1;
+>
+> This is probably why. The +1 sends the machine the null character
+
+Well, replacing the statement by:
+
+              pe = p + strlen(p);
+
+changes nothing. And my statement came from the manual, figure 2.1.
+
+
+From thurs... at cs.queensu.ca  Mon Nov 13 01:41:36 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 12 Nov 2006 20:41:36 -0500
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com> <45522E00.2020900@cs.queensu.ca> <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com> <455373EB.8020409@cs.queensu.ca> <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+Message-ID: <4557CD50.9080504@cs.queensu.ca>
+
+Hi Stéphane,
+
+If you look in example 2.1, the main machine has the null character on 
+the end of its pattern. That's why in that example the driver sends the 
+null character by adding one to pe. I'm not sure what else could be 
+wrong. When I remove the + 1 from the setting of pe it seems to work okay.
+
+[age at reaves] tmp: ./tmp O C O
+Step 1: input O, current state 0... New state is 2
+Step 2: input C, current state 2... New state is 0
+Step 3: input O, current state 0... New state is 2
+result = 0
+
+Cheers,
+  Adrian
+
+Stéphane Bortzmeyer wrote:
+> 2006/11/9, Adrian Thurston <thurs... at cs.queensu.ca>:
+> 
+>>  >               pe = p + strlen(p) + 1;
+>>
+>> This is probably why. The +1 sends the machine the null character
+> 
+> Well, replacing the statement by:
+> 
+>               pe = p + strlen(p);
+> 
+> changes nothing. And my statement came from the manual, figure 2.1.
+> 
+> 
+
+
+From bortzme... at gmail.com  Mon Nov 13 09:47:12 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Mon, 13 Nov 2006 10:47:12 +0100
+Subject: Ragel for network protocols?
+In-Reply-To: <4557CD50.9080504@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+	 <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+	 <455373EB.8020409@cs.queensu.ca>
+	 <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+	 <4557CD50.9080504@cs.queensu.ca>
+Message-ID: <9946dc540611130147w592991e0ub6723675cf8e0ce0@mail.gmail.com>
+
+2006/11/13, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+> When I remove the + 1 from the setting of pe it seems to work okay.
+
+You're right, it works for me now. Sorry, I do not know what happened,
+coffee was probably not taken in sufficient quantity.
+
+For the record, the attached file works fine.
+
+IETF/Cosmogol/Ragel % ./test O C O
+Step 1: input O, current state 0... Door will open... New state is 2
+Step 2: input C, current state 2... Door will close... New state is 0
+Step 3: input O, current state 0... Door will open... New state is 2
+result = 0
+IETF/Cosmogol/Ragel % ./test O C C
+Step 1: input O, current state 0... Door will open... New state is 2
+Step 2: input C, current state 2... Door will close... New state is 0
+Step 3: input C, current state 0... Error, invalid input
+result = 1
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.rl
+Type: application/octet-stream
+Size: 1442 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20061113/631a4f1c/attachment.obj>
+
+From steve.shre... at gmail.com  Tue Nov 21 08:17:11 2006
+From: steve.shre... at gmail.com (Steve Shreeve)
+Date: Tue, 21 Nov 2006 00:17:11 -0800
+Subject: Generating Java source code
+Message-ID: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+
+Ragel users (and devs),
+
+What is the current status of being able to generate java code? I
+apologize if this has already been discussed at length (I didn't see
+any previous comments).
+
+Does the current Java code generation work? Anyone looking at a Java
+version of mongrel's HTTP 1.1 parser?
+
+Thanks,
+
+Steve Shreeve
+
+
+From thurs... at cs.queensu.ca  Tue Nov 21 17:51:18 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 21 Nov 2006 12:51:18 -0500
+Subject: [ragel-users] Generating Java source code
+In-Reply-To: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+References: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+Message-ID: <45633C96.6000408@cs.queensu.ca>
+
+Steve,
+
+I would still consider Java code generation to be experimental. A number of 
+tests do pass, however there is a big change which need to be made. Colin 
+Fleming reported that Java has a 64K limit on array sizes which causes 
+compilation to fail for large machines. He even provided a patch, though it 
+hasn't been integrated yet because I've been slowly mulling over the problem 
+... more like sulking actually. I think part of me really wants to believe 
+that the limit will magically go away. Anyways, a fix should come soonish.
+
+In the meantime it may well be that Mongrel's parser is small enough that 
+this limit is not hit.
+
+-Adrian
+
+Steve Shreeve wrote:
+> Ragel users (and devs),
+> 
+> What is the current status of being able to generate java code? I
+> apologize if this has already been discussed at length (I didn't see
+> any previous comments).
+> 
+> Does the current Java code generation work? Anyone looking at a Java
+> version of mongrel's HTTP 1.1 parser?
+> 
+> Thanks,
+> 
+> Steve Shreeve
+> 
+> 
+> 
+
+
+From colin.mailingl... at gmail.com  Mon Nov 27 12:39:45 2006
+From: colin.mailingl... at gmail.com (Colin Fleming)
+Date: Mon, 27 Nov 2006 13:39:45 +0100
+Subject: [ragel-users] Re: Generating Java source code
+In-Reply-To: <45633C96.6000408@cs.queensu.ca>
+References: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+	 <45633C96.6000408@cs.queensu.ca>
+Message-ID: <7c6512110611270439w49c8f1bap960a6eb29843a68e@mail.gmail.com>
+
+Haha, I don't think that limit is going anywhere. But the patch I
+provided works pretty well, and I'm hopefully going to improve it some
+more soon. But even without the patch, the Mongrel parser should work
+fine, it's small.
+
+In my experience, the Java generation works ok if you don't use any of
+the more esoteric features of Ragel. I haven't used the last couple of
+versions though, I plan to get more involved now I'm back from
+vacation.
+
+Cheers,
+Colin
+
+On 21/11/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Steve,
+>
+> I would still consider Java code generation to be experimental. A number of
+> tests do pass, however there is a big change which need to be made. Colin
+> Fleming reported that Java has a 64K limit on array sizes which causes
+> compilation to fail for large machines. He even provided a patch, though it
+> hasn't been integrated yet because I've been slowly mulling over the problem
+> ... more like sulking actually. I think part of me really wants to believe
+> that the limit will magically go away. Anyways, a fix should come soonish.
+>
+> In the meantime it may well be that Mongrel's parser is small enough that
+> this limit is not hit.
+>
+> -Adrian
+>
+> Steve Shreeve wrote:
+> > Ragel users (and devs),
+> >
+> > What is the current status of being able to generate java code? I
+> > apologize if this has already been discussed at length (I didn't see
+> > any previous comments).
+> >
+> > Does the current Java code generation work? Anyone looking at a Java
+> > version of mongrel's HTTP 1.1 parser?
+> >
+> > Thanks,
+> >
+> > Steve Shreeve
+> >
+> >
+> >
+>
+> >
+>
+
+
+From edward... at gmail.com  Fri Nov  3 04:38:42 2006
+From: edward... at gmail.com (edward... at gmail.com)
+Date: Fri, 03 Nov 2006 04:38:42 -0000
+Subject: Using Ragel for Hidden Markov Model generation
+Message-ID: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+
+Hi everyone,
+
+I'm interested in using Ragel as the core of a Hidden Markov Model
+(HMM) engine.
+
+As I understand it, a HMM is really just a non-deterministic finite
+state machine with probabilities that dictate the emissions and
+transition probabilities. So instead of there being a completely random
+choice between two epsilon transitions (for example), there's a
+probability for each path.
+
+Would it be a big deal to alter Ragel to support probabilities in state
+transitions?
+
+Thanks!
+
+Edward
+
+
+From thurs... at cs.queensu.ca  Fri Nov  3 06:12:12 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Nov 2006 01:12:12 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com>
+Message-ID: <454ADDBC.7090805@cs.queensu.ca>
+
+Hi,
+
+It might be possible to use Ragel as is. There is an experimental (and 
+undocumented) semantic condition feature which obeys the rules of NFA to 
+DFA conversion. A semantic condition is a block of code which is 
+associated with a transition. It must evaluate to true for the 
+transition to be taken. Conditions were introduced for the purpose of 
+parsing variable length fields. You could use them to do a roll of the 
+dice. Look in test/cond?.rl for examples of conditions.
+
+If conditions don't cut it, then modifying Ragel might be an option. 
+Though I don't know enough about HMMs to say for sure if it could be 
+done. How are HMMs specified?
+
+I can tell you that Ragel was designed for producing deterministic 
+parsers. Internally it has no epsilon transitions. Machines are made 
+deterministic on the fly. So it doesn't have many of the features that 
+comprehensive state machine libraries like Grail+ have.
+
+Cheers,
+  Adrian
+
+edward... at gmail.com wrote:
+> Hi everyone,
+> 
+> I'm interested in using Ragel as the core of a Hidden Markov Model
+> (HMM) engine.
+> 
+> As I understand it, a HMM is really just a non-deterministic finite
+> state machine with probabilities that dictate the emissions and
+> transition probabilities. So instead of there being a completely random
+> choice between two epsilon transitions (for example), there's a
+> probability for each path.
+> 
+> Would it be a big deal to alter Ragel to support probabilities in state
+> transitions?
+> 
+> Thanks!
+> 
+> Edward
+> 
+> 
+> 
+
+
+From edward... at gmail.com  Fri Nov  3 15:19:18 2006
+From: edward... at gmail.com (Edward Ocampo-Gooding)
+Date: Fri, 03 Nov 2006 10:19:18 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454ADDBC.7090805@cs.queensu.ca>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca>
+Message-ID: <454B5DF6.6040503@gmail.com>
+
+Hi Adrian,
+
+> It might be possible to use Ragel as is. There is an experimental (and 
+> undocumented) semantic condition feature which obeys the rules of NFA to 
+> DFA conversion. A semantic condition is a block of code which is 
+> associated with a transition. It must evaluate to true for the 
+> transition to be taken. Conditions were introduced for the purpose of 
+> parsing variable length fields. You could use them to do a roll of the 
+> dice. Look in test/cond?.rl for examples of conditions.
+
+That sounds great, thanks! I'll take a look at it this weekend.
+
+> If conditions don't cut it, then modifying Ragel might be an option. 
+> Though I don't know enough about HMMs to say for sure if it could be 
+> done. How are HMMs specified?
+
+It's usually specified by a matrix of probabilities, but that can be 
+played around with. I'm actually writing a few pages on HMM usage in 
+general and will be done in a few days. Would you be interested in 
+reading a rough draft?
+
+> I can tell you that Ragel was designed for producing deterministic 
+> parsers. Internally it has no epsilon transitions. Machines are made 
+> deterministic on the fly. So it doesn't have many of the features that 
+> comprehensive state machine libraries like Grail+ have.
+
+I'm not sure what the breadth of those features is like, but I took a 
+look at the examples available at 
+http://www.csd.uwo.ca/Research/grail/.man/index.html and from the looks 
+of it, I don't really need those. All I'm after is a very efficient 
+finite state machine with probabilities in its transitions and possibly 
+emissions.
+
+Thanks,
+Edward
+
+
+From thurs... at cs.queensu.ca  Fri Nov  3 17:27:05 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 03 Nov 2006 12:27:05 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454B5DF6.6040503@gmail.com>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca> <454B5DF6.6040503@gmail.com>
+Message-ID: <454B7BE9.5020004@cs.queensu.ca>
+
+
+Edward Ocampo-Gooding wrote:
+> It's usually specified by a matrix of probabilities, but that can be 
+> played around with. I'm actually writing a few pages on HMM usage in 
+> general and will be done in a few days. Would you be interested in 
+> reading a rough draft?
+
+Sure, let me know when you have something. Is this for a research project?
+
+-Adrian
+
+
+
+From edward... at gmail.com  Fri Nov  3 21:43:07 2006
+From: edward... at gmail.com (Edward Ocampo-Gooding)
+Date: Fri, 03 Nov 2006 16:43:07 -0500
+Subject: Using Ragel for Hidden Markov Model generation
+In-Reply-To: <454B7BE9.5020004@cs.queensu.ca>
+References: <1162528722.333376.300680@b28g2000cwb.googlegroups.com> <454ADDBC.7090805@cs.queensu.ca> <454B5DF6.6040503@gmail.com> <454B7BE9.5020004@cs.queensu.ca>
+Message-ID: <454BB7EB.8060801@gmail.com>
+
+Yep, it's a preliminary chunk to my bachelor's thesis (Bishop's University).
+
+Edward
+
+Adrian Thurston wrote:
+> 
+> Edward Ocampo-Gooding wrote:
+>> It's usually specified by a matrix of probabilities, but that can be 
+>> played around with. I'm actually writing a few pages on HMM usage in 
+>> general and will be done in a few days. Would you be interested in 
+>> reading a rough draft?
+> 
+> Sure, let me know when you have something. Is this for a research project?
+> 
+> -Adrian
+
+
+From cmantu... at gmail.com  Wed Nov  1 20:32:02 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 1 Nov 2006 15:32:02 -0500
+Subject: Feature Request: Inline Scanner
+Message-ID: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+
+Hello!
+
+I've been playing with Ragel now for roughly three weeks and I find it
+a wonderful piece of software. There is one particular thing, however,
+that Ragel could do better, in my opinion, that of capturing matched
+input.
+
+Let's look at an example:
+
+# Whitespace including folding
+sp = ( ( '\r'? '\n' )? [ \t] )+;
+
+# From mail header (simplified for illustrative purposes)
+from_header = sp? ( display_name sp? )? '<' email_address '>';
+
+The state machine Ragel implements is wonderful for ensuring correct
+syntax. The scanner Ragel implements is wonderful for repeatedly match
+tokens. But how about just capuring input matched by the state
+machine? Well, in this case, things get a little bit more complicated.
+In my opinion, it would be wonderful to have what I'm calling an
+inline scanner as a complement to the two currently implemented
+choices.
+
+An example of an inline scanner in action would be something like:
+
+display_name = |> display_name_pattern; { capture_display_name(ts, te); }; <|;
+
+email_address = |> email_address_pattern; { capture_email_address(ts,
+te); }; <|;
+
+Both capture_display_name and capture_email_address are used defined
+functions accepting locally declared (automatically by Ragel)
+variables 'ts' and 'te' (for tokstart and tokend, respectively).
+
+With this kind of inline scanner, not only would the syntax be
+enforced but the input easily captured.
+
+Transitions from the state machine to the inline scanner would happen
+only if and only if the state machine would transition to the state
+machine defined by the inline scanner pattern. And, once the inline
+scanner finishes matching, it would transition the the following state
+machine as usual.
+
+Although the functionality described above can be achieve with clever
+use of the current state machine and scanner paradigms, in my opinion,
+things would be a lot easier with this inline scanner concept.
+
+So, Adrian and everybody else, what say you?
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  2 22:55:37 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 02 Nov 2006 17:55:37 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+Message-ID: <454A7769.40800@cs.queensu.ca>
+
+Hi Carlos,
+
+It seems to me that there are actually two separate features here. One being 
+inline scanners and the other being automatic capture/markup of text. I 
+think both of these raise their own set of questions so it's easiest to talk 
+about them as separate problems.
+
+Consider that automatic capture/markup could be implemented on arbitrary 
+machine definitions and need not be associated with scanners. Scanners 
+always do automatic capture by default because the scanner may require 
+backtracking up to at most the head of the current pattern. This is solved 
+by marking the head of the current pattern so the safety of the backtrack 
+can be guaranteed. The pattern markup is more like a bonus.
+
+But if you start doing automatic capture/markup of arbitrary machine 
+definitions, then for each machine that you want to capture, do you use new 
+variables or some common variables like tokstart/tokend?
+
+If you use new variables, this allows machines that you capture to overlap 
+or be contained in one another. But then the question arises, how do you 
+know where to preserve the input from when you're breaking the stream into 
+buffer blocks? You have to consult all possible machine capture starting 
+points. That's a cost to consider.
+
+If you use a common var like tokstart you only need to check one variable to 
+find out if you need to preserve some prefix of the input. But then captured 
+patterns cannot overlap.
+
+With inline scanners there are a few questions also: What constitutes "would 
+begin the machine?" Since there can be a number of patterns in a scanner, is 
+it any pattern at all? Or is it a specific pattern.
+
+On the other end what constitutes "finishing the scanner?" Again, any 
+pattern at all? I'm not sure about the answers to these questions.
+
+Cheers,
+  Adrian
+
+
+Carlos Antunes wrote:
+> Hello!
+> 
+> I've been playing with Ragel now for roughly three weeks and I find it
+> a wonderful piece of software. There is one particular thing, however,
+> that Ragel could do better, in my opinion, that of capturing matched
+> input.
+> 
+> Let's look at an example:
+> 
+> # Whitespace including folding
+> sp = ( ( '\r'? '\n' )? [ \t] )+;
+> 
+> # From mail header (simplified for illustrative purposes)
+> from_header = sp? ( display_name sp? )? '<' email_address '>';
+> 
+> The state machine Ragel implements is wonderful for ensuring correct
+> syntax. The scanner Ragel implements is wonderful for repeatedly match
+> tokens. But how about just capuring input matched by the state
+> machine? Well, in this case, things get a little bit more complicated.
+> In my opinion, it would be wonderful to have what I'm calling an
+> inline scanner as a complement to the two currently implemented
+> choices.
+> 
+> An example of an inline scanner in action would be something like:
+> 
+> display_name = |> display_name_pattern; { capture_display_name(ts, te); }; <|;
+> 
+> email_address = |> email_address_pattern; { capture_email_address(ts,
+> te); }; <|;
+> 
+> Both capture_display_name and capture_email_address are used defined
+> functions accepting locally declared (automatically by Ragel)
+> variables 'ts' and 'te' (for tokstart and tokend, respectively).
+> 
+> With this kind of inline scanner, not only would the syntax be
+> enforced but the input easily captured.
+> 
+> Transitions from the state machine to the inline scanner would happen
+> only if and only if the state machine would transition to the state
+> machine defined by the inline scanner pattern. And, once the inline
+> scanner finishes matching, it would transition the the following state
+> machine as usual.
+> 
+> Although the functionality described above can be achieve with clever
+> use of the current state machine and scanner paradigms, in my opinion,
+> things would be a lot easier with this inline scanner concept.
+> 
+> So, Adrian and everybody else, what say you?
+> 
+> Thanks!
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Fri Nov  3 21:00:58 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Fri, 3 Nov 2006 16:00:58 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <454A7769.40800@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+Message-ID: <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+
+On 11/2/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> It seems to me that there are actually two separate features here. One being
+> inline scanners and the other being automatic capture/markup of text.
+>
+
+Agreed. The reason I combined the two is because I'm convinced that
+scanners end up being the ones "better" at capturing text, mostly
+given their longest-match paradigm and their natural backtracking
+abilities.
+
+>
+> Consider that automatic capture/markup could be implemented on arbitrary
+> machine definitions and need not be associated with scanners. Scanners
+> always do automatic capture by default because the scanner may require
+> backtracking up to at most the head of the current pattern. This is solved
+> by marking the head of the current pattern so the safety of the backtrack
+> can be guaranteed. The pattern markup is more like a bonus.
+>
+
+You are right. As I said above, it is because of this bonus that
+scanners end up being natural candidates for capture, IMO.
+
+>
+> If you use new variables, this allows machines that you capture to overlap
+> or be contained in one another.
+>
+
+Yes, but is it really useful to have this kind of overlapping or
+containment, in practical terms?
+
+>
+>But then the question arises, how do you  know where to preserve the
+input from when
+> you're breaking the stream into buffer blocks?
+>
+
+Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+
+>
+> With inline scanners there are a few questions also: What constitutes "would
+> begin the machine?" Since there can be a number of patterns in a scanner, is
+> it any pattern at all? Or is it a specific pattern.
+>
+
+>From the point of view of the FSM, the inline scanner would be a
+virtual state. Transitions to this virtual state would happen if and
+only if at least one of the inline scanner patterns matches. If there
+is no possible match then the FSM would error.
+
+>
+> On the other end what constitutes "finishing the scanner?" Again, any
+> pattern at all? I'm not sure about the answers to these questions.
+>
+
+Matching at least one of the patterns specified. The corresponding
+action would execute and a transition from the virtual state to the
+next state would follow regular FSM rules.
+
+I guess that one way of looking at these virtual states and their
+associated inline scanning machinery is to think of them as regular
+states with appropriatly embedded state actions, no?
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Sat Nov  4 19:08:47 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 04 Nov 2006 14:08:47 -0500
+Subject: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+Message-ID: <454CE53F.1020101@cs.queensu.ca>
+
+Hi Carlos,
+
+> Yes, but is it really useful to have this kind of overlapping or
+> containment, in practical terms?
+
+Overlapping ... you're right, that's a little silly. But I still think 
+containment could be useful. Maybe you'd want to have one markup for the 
+whole email address and other markups which give you the user and host 
+names. Maybe not. Hmmmm.
+
+> Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+> var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+
+I wonder if maintaining this could be made fast even when the number of 
+variables grows.
+
+>>From the point of view of the FSM, the inline scanner would be a
+> virtual state. Transitions to this virtual state would happen if and
+> only if at least one of the inline scanner patterns matches. If there
+> is no possible match then the FSM would error.
+
+You'll have to bear with me here, I can be thick sometimes! From what you're 
+saying it seems like it's not really a scanner, but more like a union 
+because if it finishes when it matches a pattern then it won't ever match 
+more than one. Is that right? If that's the case then it seems like the 
+criteria for it starting is the same as for it finishing.
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Sat Nov  4 21:24:19 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 4 Nov 2006 16:24:19 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <454CE53F.1020101@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+Message-ID: <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+
+On 11/4/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> But I still think containment could be useful. Maybe you'd want to have one
+> markup for the whole email address and other markups which give you the user
+> and host names.
+>
+
+Sure, you could do that but, at the same time, you could also do it
+sequentially with pretty much the same end result given that string
+concatenation is a pretty simple thing to do. Personally, I don't feel
+the need for capture within capture although it could prove useful in
+certain contexts.
+
+>
+> > Hmm, keep a global variable (ex: alltokstarts)? Thss 'alltokstarts'
+> > var could be defined as min(tokstart, ts1, ts2, ts3, ...).
+>
+> I wonder if maintaining this could be made fast even when the number of
+> variables grows.
+>
+
+Hmm,  'alltokstarts' could be updated at the beginning of each capture
+with something like min(alltokstarts, ts(n)), no? This would scale
+well.
+
+>
+> >>From the point of view of the FSM, the inline scanner would be a
+> > virtual state. Transitions to this virtual state would happen if and
+> > only if at least one of the inline scanner patterns matches. If there
+> > is no possible match then the FSM would error.
+>
+> You'll have to bear with me here, I can be thick sometimes!
+>
+
+>From my point of view you are the expert here. Therefore, if you don't
+understand what I'm saying, the blame is totally on me! :-)
+
+>
+>From what you're saying it seems like it's not really a scanner
+>
+
+No, it's not like a regular scanner that keeps repeatedly trying to
+match any of the expressions. I guess I should rename my proposed
+'inline scanner' to 'longest-match capture'.
+
+>
+>but more like a union because if it finishes when it matches a
+pattern then it won't
+>ever match more than one. Is that right?
+>
+
+Well, union with a twist. For example, with:
+
+|> patternA => actionA; patternB => actionB; <|
+
+Once patternA or patternB matches (the longest or the first wins as
+with a regular scanner), the capture machine is done.
+
+>
+>If that's the case then it seems like the criteria for it starting is
+the same as for it finishing.
+>
+
+Hmm, not sure I'm following you here. In any case, after I emailed the
+list yesterday, I thought a little bit more about the use of state
+embeddings as a way to emulate this functionality and end up
+concluding that it was probably rubbish. But I thought that the state
+chart paradigm could be used to illustrate the basic idea. For
+example, with an expression like:
+
+pattern= patA |> patB1 => actionB1; patB2 => actionB2; <| patC;
+
+one could have a state chart like so:
+
+pattern = (
+
+    start: ( patA -> matched_patA ),
+
+    matched_patA: ( |> patB1 => actionB1; patB2 => actionB2; <| ->
+matched_patB ),
+
+    matched_patB: ( patC -> final )
+
+);
+
+Another thing to consider is whether my initially proposal of strictly
+relying on longest-match for capture makes sense. Maybe the programmer
+should have a choice?
+
+So, do you think this is something you'd be willing to implement? :-)
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Mon Nov  6 06:41:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 06 Nov 2006 01:41:26 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com> <454CE53F.1020101@cs.queensu.ca> <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+Message-ID: <454ED916.5060507@cs.queensu.ca>
+
+
+Carlos Antunes wrote:
+> concatenation is a pretty simple thing to do. Personally, I don't feel
+> the need for capture within capture although it could prove useful in
+> certain contexts.
+
+I see, I'll consider that.
+
+> Hmm,  'alltokstarts' could be updated at the beginning of each capture
+> with something like min(alltokstarts, ts(n)), no? This would scale
+> well.
+
+That works. Another question which I just thought of is how does the 
+system know when a user is done with a marker and should update 
+alltokstarts? I know you didn't advocate this particular solution in the 
+first place, I just thought I'd pose the question. I helps me to figure 
+these things out :)
+
+> pattern = (
+> 
+>     start: ( patA -> matched_patA ),
+> 
+>     matched_patA: ( |> patB1 => actionB1; patB2 => actionB2; <| ->
+> matched_patB ),
+> 
+>     matched_patB: ( patC -> final )
+> 
+> );
+
+Ah, okay I get it now. I had thought you were suggesting something more 
+complex. This could work fairly well. I have to think about it some 
+more. When adding things to the language I like to make things as 
+general as possible and that usually takes some time to sort out. But 
+ya, I could see it being useful and simple enough to understand and 
+implement properly.
+
+> Another thing to consider is whether my initially proposal of strictly
+> relying on longest-match for capture makes sense. Maybe the programmer
+> should have a choice?
+My sudden feeling of enlightenment has not lasted from one paragraph to 
+the next ... maybe it's the hour. Do you mean it would be cool to have 
+the option to drop a scanner in there?
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Mon Nov  6 16:57:41 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 11:57:41 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <454ED916.5060507@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+	 <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+	 <454ED916.5060507@cs.queensu.ca>
+Message-ID: <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+
+On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Another question which I just thought of is how does the
+> system know when a user is done with a marker and should update
+> alltokstarts? I know you didn't advocate this particular solution in the
+> first place, I just thought I'd pose the question. I helps me to figure
+> these things out :)
+>
+
+If you want to support overlapping capture then the user needs to be
+able to individually tag each capture start and capture stop with a
+unique identifier. This identifier could be a variable and in C could
+be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+way you'd always know when a capture is starting and ending.
+
+>
+> > Another thing to consider is whether my initially proposal of strictly
+> > relying on longest-match for capture makes sense. Maybe the programmer
+> > should have a choice?
+>
+> My sudden feeling of enlightenment has not lasted from one paragraph to
+> the next ... maybe it's the hour. Do you mean it would be cool to have
+> the option to drop a scanner in there?
+>
+
+Actually, I wasn't thinking of a scanner although that could be an
+option if you think it's useful. I was thinking about just capturing
+straight FSM input, in addition to longest-match capture.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 18:17:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 13:17:26 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com> <454A7769.40800@cs.queensu.ca> <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com> <454CE53F.1020101@cs.queensu.ca> <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com> <454ED916.5060507@cs.queensu.ca> <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+Message-ID: <45521F36.8030705@cs.queensu.ca>
+
+Carlos,
+
+Okay, I've got a number of ideas to play with now. I'm still not sure which 
+is the best way to approach it, but at some point I'll hack around and 
+hopefully one idea will shine.
+
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> Another question which I just thought of is how does the
+>> system know when a user is done with a marker and should update
+>> alltokstarts? I know you didn't advocate this particular solution in the
+>> first place, I just thought I'd pose the question. I helps me to figure
+>> these things out :)
+>>
+> 
+> If you want to support overlapping capture then the user needs to be
+> able to individually tag each capture start and capture stop with a
+> unique identifier. This identifier could be a variable and in C could
+> be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+> way you'd always know when a capture is starting and ending.
+> 
+>>> Another thing to consider is whether my initially proposal of strictly
+>>> relying on longest-match for capture makes sense. Maybe the programmer
+>>> should have a choice?
+>> My sudden feeling of enlightenment has not lasted from one paragraph to
+>> the next ... maybe it's the hour. Do you mean it would be cool to have
+>> the option to drop a scanner in there?
+>>
+> 
+> Actually, I wasn't thinking of a scanner although that could be an
+> option if you think it's useful. I was thinking about just capturing
+> straight FSM input, in addition to longest-match capture.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Wed Nov  8 18:45:13 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 13:45:13 -0500
+Subject: [ragel-users] Re: Feature Request: Inline Scanner
+In-Reply-To: <45521F36.8030705@cs.queensu.ca>
+References: <cb2ad8b50611011232l7a513ce9sdb2825b0de748724@mail.gmail.com>
+	 <454A7769.40800@cs.queensu.ca>
+	 <cb2ad8b50611031300jafa4f7es8dec9b6734d8fcff@mail.gmail.com>
+	 <454CE53F.1020101@cs.queensu.ca>
+	 <cb2ad8b50611041324l43d18f6u178be4cb2c81ed41@mail.gmail.com>
+	 <454ED916.5060507@cs.queensu.ca>
+	 <cb2ad8b50611060857j7cd174ax79dc54fc15cdd94d@mail.gmail.com>
+	 <45521F36.8030705@cs.queensu.ca>
+Message-ID: <cb2ad8b50611081045w7246825blbeb93d57d5a6585f@mail.gmail.com>
+
+Thanks, Adrian! I'll be anxiously waiting for something. And I'll be
+happy to do some testing along the way if necessary.
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Carlos,
+>
+> Okay, I've got a number of ideas to play with now. I'm still not sure which
+> is the best way to approach it, but at some point I'll hack around and
+> hopefully one idea will shine.
+>
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> Another question which I just thought of is how does the
+> >> system know when a user is done with a marker and should update
+> >> alltokstarts? I know you didn't advocate this particular solution in the
+> >> first place, I just thought I'd pose the question. I helps me to figure
+> >> these things out :)
+> >>
+> >
+> > If you want to support overlapping capture then the user needs to be
+> > able to individually tag each capture start and capture stop with a
+> > unique identifier. This identifier could be a variable and in C could
+> > be a struct with members tokstart and tokend (or 'ts' and 'te'). This
+> > way you'd always know when a capture is starting and ending.
+> >
+> >>> Another thing to consider is whether my initially proposal of strictly
+> >>> relying on longest-match for capture makes sense. Maybe the programmer
+> >>> should have a choice?
+> >> My sudden feeling of enlightenment has not lasted from one paragraph to
+> >> the next ... maybe it's the hour. Do you mean it would be cool to have
+> >> the option to drop a scanner in there?
+> >>
+> >
+> > Actually, I wasn't thinking of a scanner although that could be an
+> > option if you think it's useful. I was thinking about just capturing
+> > straight FSM input, in addition to longest-match capture.
+> >
+> > Carlos
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From cmantu... at gmail.com  Mon Nov  6 05:16:33 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 00:16:33 -0500
+Subject: fexec bug in v5.15?
+Message-ID: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+
+Adrian,
+
+I have the following defined:
+
+consume_sp_optional := |*
+
+            ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+(%s)\n", p); };
+
+            '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+tokstart; fret; };
+
+            any { printf("<---- sp_optional (%s)\n", p); fexec
+tokstart; fret; };
+
+        *|;
+
+This machine basically eats up optional spaces and tabs including
+folding and returns when CRLF is encountered. This worked fine with
+v5.14. With version 5.15, however, I think there might be a bug in the
+way fexec is working. Looking at the generated C code, I see
+(corresponding to the \r'? '\n' line ):
+
+tr6811:
+#line 26 "test.rl"
+        {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+        goto st6170;
+
+
+Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+p-- that is never reached). Shouldn't the first expression be just p =
+tokstart? The purpose of the fexec in my code is to backtrack and make
+the CRLF available for further matching.
+
+Thanks!
+
+Carlos
+
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From cmantu... at gmail.com  Mon Nov  6 05:35:18 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 06 Nov 2006 05:35:18 -0000
+Subject: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+Message-ID: <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+
+Adrain,
+
+Just wanted to clarify that v5.14 with that scanner patch you provided
+also exhibits the problem so I guess that patch is the culprit.
+
+Thanks!
+
+Carlos
+
+Carlos Antunes wrote:
+> Adrian,
+>
+> I have the following defined:
+>
+> consume_sp_optional := |*
+>
+>             ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+> (%s)\n", p); };
+>
+>             '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+> tokstart; fret; };
+>
+>             any { printf("<---- sp_optional (%s)\n", p); fexec
+> tokstart; fret; };
+>
+>         *|;
+>
+> This machine basically eats up optional spaces and tabs including
+> folding and returns when CRLF is encountered. This worked fine with
+> v5.14. With version 5.15, however, I think there might be a bug in the
+> way fexec is working. Looking at the generated C code, I see
+> (corresponding to the \r'? '\n' line ):
+>
+> tr6811:
+> #line 26 "test.rl"
+>         {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+> ((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+>         goto st6170;
+>
+>
+> Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+> p-- that is never reached). Shouldn't the first expression be just p =
+> tokstart? The purpose of the fexec in my code is to backtrack and make
+> the CRLF available for further matching.
+>
+> Thanks!
+>
+> Carlos
+>
+>
+>
+> --
+> "We hold [...] that all men are created equal; that they are
+> endowed [...] with certain inalienable rights; that among
+> these are life, liberty, and the pursuit of happiness"
+>         -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Mon Nov  6 06:50:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 06 Nov 2006 01:50:32 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+Message-ID: <454EDB38.8030800@cs.queensu.ca>
+
+Hi Carlos,
+
+As it turns out, it's not safe to manipulate the current pointer in 
+pattern actions. I had realized this recently and in 5.15 an error is 
+emitted if you use fhold in a pattern action. It didn't occur to me that 
+I have to do the same for fexec. I should also put a warning in the docs 
+about directly manipulating p in pattern actions.
+
+The reason is that as a part of restarting the scanner, it's sometimes 
+necessary to manipulate p. Sometimes you need to shift it back one. 
+Other times you need to set it to tokend. Other times you don't need to 
+do anything at all. This all depends on the contents of the patterns. So 
+if you change p first, you mess the scanner up in ways that are hard to 
+predict.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> Adrain,
+> 
+> Just wanted to clarify that v5.14 with that scanner patch you provided
+> also exhibits the problem so I guess that patch is the culprit.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+> Carlos Antunes wrote:
+>> Adrian,
+>>
+>> I have the following defined:
+>>
+>> consume_sp_optional := |*
+>>
+>>             ( ( '\r'? '\n' )? [ \t] )* { printf("===== sp_optional
+>> (%s)\n", p); };
+>>
+>>             '\r'? '\n' { printf("===== crlf (%s)\n", p); fexec
+>> tokstart; fret; };
+>>
+>>             any { printf("<---- sp_optional (%s)\n", p); fexec
+>> tokstart; fret; };
+>>
+>>         *|;
+>>
+>> This machine basically eats up optional spaces and tabs including
+>> folding and returns when CRLF is encountered. This worked fine with
+>> v5.14. With version 5.15, however, I think there might be a bug in the
+>> way fexec is working. Looking at the generated C code, I see
+>> (corresponding to the \r'? '\n' line ):
+>>
+>> tr6811:
+>> #line 26 "test.rl"
+>>         {tokend = p;{ printf("===== crlf (%s)\n", p); {p =
+>> ((tokstart))-1;} {p--;{cs = stack[--top]; goto _again;}} }p--;}
+>>         goto st6170;
+>>
+>>
+>> Now, there is this p = ((tokstart))-1 followed by a p-- (and another
+>> p-- that is never reached). Shouldn't the first expression be just p =
+>> tokstart? The purpose of the fexec in my code is to backtrack and make
+>> the CRLF available for further matching.
+>>
+>> Thanks!
+>>
+>> Carlos
+>>
+>>
+>>
+>> --
+>> "We hold [...] that all men are created equal; that they are
+>> endowed [...] with certain inalienable rights; that among
+>> these are life, liberty, and the pursuit of happiness"
+>>         -- Thomas Jefferson
+> 
+> 
+> 
+
+
+From cmantu... at gmail.com  Mon Nov  6 07:42:43 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Mon, 6 Nov 2006 02:42:43 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <454EDB38.8030800@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+Message-ID: <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+
+On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> As it turns out, it's not safe to manipulate the current pointer in
+> pattern actions. I had realized this recently and in 5.15 an error is
+> emitted if you use fhold in a pattern action. It didn't occur to me that
+> I have to do the same for fexec. I should also put a warning in the docs
+> about directly manipulating p in pattern actions.
+>
+> The reason is that as a part of restarting the scanner, it's sometimes
+> necessary to manipulate p. Sometimes you need to shift it back one.
+> Other times you need to set it to tokend. Other times you don't need to
+> do anything at all. This all depends on the contents of the patterns. So
+> if you change p first, you mess the scanner up in ways that are hard to
+> predict.
+>
+
+Ok, I see. Maybe fhold and fexec could be allowed in those cases where
+the scanner doesn't need to restart? For example { fret; fhold; } or {
+fnext whatever; fexec tokstart; }? Basically, fhold and fexec could be
+specified in all situations where the scanner knows it wouldn't be
+restarted. Is this doable? Obviously, it would also be nice to specify
+as an example { fhold; fret } and get the same behavior as { fret;
+fhold; }.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 18:55:59 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 13:55:59 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+Message-ID: <4552283F.60004@cs.queensu.ca>
+
+As separate statements it doable but it would require control flow analysis 
+of the host language in order to determine if one statement comes after the 
+other. Control flow analysis is a huge undertaking, one that I would have to 
+say is too much for Ragel.
+
+But combination statements that hold and return would work.
+
+-Adrian
+
+Carlos Antunes wrote:
+> On 11/6/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> As it turns out, it's not safe to manipulate the current pointer in
+>> pattern actions. I had realized this recently and in 5.15 an error is
+>> emitted if you use fhold in a pattern action. It didn't occur to me that
+>> I have to do the same for fexec. I should also put a warning in the docs
+>> about directly manipulating p in pattern actions.
+>>
+>> The reason is that as a part of restarting the scanner, it's sometimes
+>> necessary to manipulate p. Sometimes you need to shift it back one.
+>> Other times you need to set it to tokend. Other times you don't need to
+>> do anything at all. This all depends on the contents of the patterns. So
+>> if you change p first, you mess the scanner up in ways that are hard to
+>> predict.
+>>
+> 
+> Ok, I see. Maybe fhold and fexec could be allowed in those cases where
+> the scanner doesn't need to restart? For example { fret; fhold; } or {
+> fnext whatever; fexec tokstart; }? Basically, fhold and fexec could be
+> specified in all situations where the scanner knows it wouldn't be
+> restarted. Is this doable? Obviously, it would also be nice to specify
+> as an example { fhold; fret } and get the same behavior as { fret;
+> fhold; }.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Wed Nov  8 19:07:01 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 14:07:01 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4552283F.60004@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+Message-ID: <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> As separate statements it doable but it would require control flow analysis
+> of the host language in order to determine if one statement comes after the
+> other. Control flow analysis is a huge undertaking, one that I would have to
+> say is too much for Ragel.
+>
+
+Understood.
+
+>
+> But combination statements that hold and return would work.
+>
+
+Great!
+
+On other hand, what is the cost of leaving the scanner and then
+setting up and reentering the scanner? Maybe this could be the
+behavior following an fexec or fhold? Not really knowing what I'm
+talking about, my gut feeling is that this would be easy to implement,
+no?
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 00:22:09 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 19:22:09 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+Message-ID: <455274B1.6040606@cs.queensu.ca>
+
+
+Carlos Antunes wrote:
+> On other hand, what is the cost of leaving the scanner and then
+> setting up and reentering the scanner? Maybe this could be the
+> behavior following an fexec or fhold? Not really knowing what I'm
+> talking about, my gut feeling is that this would be easy to implement,
+> no?
+
+I'm not sure what you mean. Could you elaborate?
+
+Just to let you know, sometime I'd like to implement trailing context, also 
+known as follow patterns, which could be used to solve this problem.
+
+-Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 04:28:51 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Wed, 8 Nov 2006 23:28:51 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <455274B1.6040606@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+Message-ID: <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+
+On 11/8/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Carlos Antunes wrote:
+> > On other hand, what is the cost of leaving the scanner and then
+> > setting up and reentering the scanner? Maybe this could be the
+> > behavior following an fexec or fhold? Not really knowing what I'm
+> > talking about, my gut feeling is that this would be easy to implement,
+> > no?
+>
+> I'm not sure what you mean. Could you elaborate?
+>
+
+Well, based on previous messages, you suggested that an fhold or fexec
+immediately followed by an fret would be safe, correct? Now, let's say
+I specify an fhold but not an fret. This case wouldn't be safe.
+However, what if the scanner actually terminates and then reenters as
+if starting anew? Because if an fhold followed by an fret is safe then
+leaving the scanner altogether and then starting again should also be
+safe, no?
+
+>
+> Just to let you know, sometime I'd like to implement trailing context, also
+> known as follow patterns, which could be used to solve this problem.
+>
+
+Although I am too clueless to know exactly what you are talking about
+(I'm not a computer science guy, just a lowly electrical engineer),
+adding useful functionality for me sounds great! :-)
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 19:02:00 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 14:02:00 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+Message-ID: <45537B28.5010302@cs.queensu.ca>
+
+That could be done, the fhold/fexec would fix up p and immediately 
+restart. Though it would change the semantics of fhold and fexec based 
+on context, which in my opinions on language design is not good thing to 
+do. I'd feel better about adding another command.
+
+> Although I am too clueless to know exactly what you are talking about
+> (I'm not a computer science guy, just a lowly electrical engineer),
+> adding useful functionality for me sounds great! :-)
+No worries, all computer users are welcome :)
+
+Follow context allows you to specify what should come after the pattern, 
+but does not consume it as part of the pattern. You write:
+
+'match me' / 'match but do not consume me';
+
+Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 20:29:51 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 15:29:51 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <45537B28.5010302@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <1162791318.467148.271790@m73g2000cwd.googlegroups.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> That could be done, the fhold/fexec would fix up p and immediately
+> restart.
+>
+
+Exactly. Of course, the restart wouldn't happen if the an fhold or
+fexec were followed by an fret, fgoto and the like.
+
+>
+>Though it would change the semantics of fhold and fexec based
+> on context, which in my opinions on language design is not good thing to
+> do. I'd feel better about adding another command.
+>
+
+Hmm, from the point of view of the ragel end user, things would
+automagically work as "expected", no? I don't see where the change in
+semantics is in this case...
+
+>
+> > Although I am too clueless to know exactly what you are talking about
+> > (I'm not a computer science guy, just a lowly electrical engineer),
+> > adding useful functionality for me sounds great! :-)
+> No worries, all computer users are welcome :)
+>
+> Follow context allows you to specify what should come after the pattern,
+> but does not consume it as part of the pattern. You write:
+>
+> 'match me' / 'match but do not consume me';
+>
+
+Ah! I've used that in flex but had no clue it was called "follow
+context". This is something that I would consider *VERY* useful.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 21:07:26 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 16:07:26 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <1162791318.467148.271790@m73g2000cwd.googlegroups.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+Message-ID: <4553988E.4090305@cs.queensu.ca>
+
+
+> Hmm, from the point of view of the ragel end user, things would
+> automagically work as "expected", no? I don't see where the change in
+> semantics is in this case...
+
+fhold would become a control flow statement because of the jump 
+necessary to immediately restart. The remainder of the action would 
+become unreachable. It's a subtle difference, but I think it's the kind 
+of thing that causes people to become confused about the meaning the 
+statements.
+
+Cheers,
+  Adrian
+
+
+From cmantu... at gmail.com  Thu Nov  9 21:20:19 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 16:20:19 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4553988E.4090305@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <454EDB38.8030800@cs.queensu.ca>
+	 <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010302@cs.queensu.ca>
+	 <cb2ad8b50611091229l42f8caacrf2a0eb8596f1d...@mail.gmail.com>
+	 <4553988E.4090...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> > Hmm, from the point of view of the ragel end user, things would
+> > automagically work as "expected", no? I don't see where the change in
+> > semantics is in this case...
+>
+> fhold would become a control flow statement because of the jump
+> necessary to immediately restart. The remainder of the action would
+> become unreachable. It's a subtle difference, but I think it's the kind
+> of thing that causes people to become confused about the meaning the
+> statements.
+>
+
+Adrian,
+
+No, that's not the idea. For example, an fhold would set a flag called
+"need_to_restart". At the *END* of the action, the restart would
+happen if "need_to_restart" was set.
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 21:45:43 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 16:45:43 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <454EDB38.8030800@cs.queensu.ca> <cb2ad8b50611052342j11d3643fh44a568bb0d9cd1a3@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com> <4553988E.4090305@cs.queensu.ca> <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com>
+Message-ID: <4553A187.6020904@cs.queensu.ca>
+
+Hi Carlos,
+
+If you were to take the flag-based approach, it would be better to use 
+it to make fhold safe in pattern actions by using a variable to indicate 
+that after the pattern has been consumed and p is consistent, then shift 
+it back one. Though I guess that has the same effect as what you're 
+saying. I've never been a fan of the flag-based approach to implementing 
+the fsm statements in action code, but maybe I should reconsider in this 
+case.
+
+Adrian
+
+Carlos Antunes wrote:
+> On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>>
+>>> Hmm, from the point of view of the ragel end user, things would
+>>> automagically work as "expected", no? I don't see where the change in
+>>> semantics is in this case...
+>> fhold would become a control flow statement because of the jump
+>> necessary to immediately restart. The remainder of the action would
+>> become unreachable. It's a subtle difference, but I think it's the kind
+>> of thing that causes people to become confused about the meaning the
+>> statements.
+>>
+> 
+> Adrian,
+> 
+> No, that's not the idea. For example, an fhold would set a flag called
+> "need_to_restart". At the *END* of the action, the restart would
+> happen if "need_to_restart" was set.
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Thu Nov  9 23:08:02 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Thu, 9 Nov 2006 18:08:02 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <4553A187.6020904@cs.queensu.ca>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com>
+	 <4552283F.60004@cs.queensu.ca>
+	 <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com>
+	 <455274B1.6040606@cs.queensu.ca>
+	 <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com>
+	 <45537B28.5010302@cs.queensu.ca>
+	 <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com>
+	 <4553988E.4090305@cs.queensu.ca>
+	 <cb2ad8b50611091320j46e39a3u4b39dc9850789...@mail.gmail.com>
+	 <4553A187.6020...@cs.queensu.ca>
+Message-ID: <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+
+On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> If you were to take the flag-based approach, it would be better to use
+> it to make fhold safe in pattern actions by using a variable to indicate
+> that after the pattern has been consumed and p is consistent, then shift
+> it back one. Though I guess that has the same effect as what you're
+> saying. I've never been a fan of the flag-based approach to implementing
+> the fsm statements in action code, but maybe I should reconsider in this
+> case.
+>
+
+Ah! Here's a difference between a computer scientist (you) and an
+engineer (me): the computer scientist wants the code to be "pure", and
+the engineer just want things to "work"! :-)
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From thurs... at cs.queensu.ca  Fri Nov 10 05:19:35 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 10 Nov 2006 00:19:35 -0500
+Subject: [ragel-users] Re: fexec bug in v5.15?
+In-Reply-To: <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+References: <cb2ad8b50611052116i63d3dfc3yf0555e402ff56adf@mail.gmail.com> <4552283F.60004@cs.queensu.ca> <cb2ad8b50611081107n14c13c12naa179cf6fa04536d@mail.gmail.com> <455274B1.6040606@cs.queensu.ca> <cb2ad8b50611082028r6e92b120x929670cfa393c305@mail.gmail.com> <45537B28.5010302@cs.queensu.ca> <cb2ad8b50611091229l42f8caacrf2a0eb8596f1dd0b@mail.gmail.com> <4553988E.4090305@cs.queensu.ca> <cb2ad8b50611091320j46e39a3u4b39dc985078991e@mail.gmail.com> <4553A187.6020904@cs.queensu.ca> <cb2ad8b50611091508s36dd399t1f00944c356a19fd@mail.gmail.com>
+Message-ID: <45540BE7.8040907@cs.queensu.ca>
+
+Haha, indeed, a "pure" language definition free of grotesque 
+expection-to-the-rule clauses would make me very happy :)
+
+-Adrian
+
+Carlos Antunes wrote:
+> On 11/9/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> If you were to take the flag-based approach, it would be better to use
+>> it to make fhold safe in pattern actions by using a variable to indicate
+>> that after the pattern has been consumed and p is consistent, then shift
+>> it back one. Though I guess that has the same effect as what you're
+>> saying. I've never been a fan of the flag-based approach to implementing
+>> the fsm statements in action code, but maybe I should reconsider in this
+>> case.
+>>
+> 
+> Ah! Here's a difference between a computer scientist (you) and an
+> engineer (me): the computer scientist wants the code to be "pure", and
+> the engineer just want things to "work"! :-)
+> 
+> Carlos
+> 
+
+
+From thurs... at cs.queensu.ca  Sat Nov 11 00:07:28 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 10 Nov 2006 19:07:28 -0500
+Subject: fhold and fexec in scanner pattern actions
+Message-ID: <45551440.2030304@cs.queensu.ca>
+
+Hi,
+
+This patch (to go into 5.16) allows fhold and fexec to function 
+correctly in scanner pattern actions. In this context, fexec and fhold 
+now manipulate tokend, which is always used to update p when the action 
+terminates.
+
+Cheers,
+  Adrian
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ragel-fhold-fexec-5.15.diff
+Type: text/x-patch
+Size: 12678 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20061110/65c3b56d/attachment-0001.bin>
+
+From cmantu... at gmail.com  Sat Nov 11 20:30:47 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 11 Nov 2006 15:30:47 -0500
+Subject: [ragel-users] fhold and fexec in scanner pattern actions
+In-Reply-To: <45551440.2030304@cs.queensu.ca>
+References: <45551440.2030304@cs.queensu.ca>
+Message-ID: <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+
+On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> This patch (to go into 5.16) allows fhold and fexec to function
+> correctly in scanner pattern actions. In this context, fexec and fhold
+> now manipulate tokend, which is always used to update p when the action
+> terminates.
+>
+
+Adrian,
+
+Thanks for the patch. There's soemthing wrong with it, though. I've
+attached a test file that bombs with the error "<unknown>::56:152:
+syntax error" when I add an fhold or fexec in line 398.
+
+Thanks!
+
+Carlos
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test2.rl
+Type: application/octet-stream
+Size: 13025 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20061111/b9530d4f/attachment-0001.obj>
+
+From thurs... at cs.queensu.ca  Sat Nov 11 20:44:13 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 11 Nov 2006 15:44:13 -0500
+Subject: [ragel-users] Re: fhold and fexec in scanner pattern actions
+In-Reply-To: <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+References: <45551440.2030304@cs.queensu.ca> <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+Message-ID: <4556361D.5020407@cs.queensu.ca>
+
+Oops, I neglected to mention that you'll need to rebuild the parsers 
+from the flex/bison sources. Take a look at the README file in the top 
+level directory which says how to turn that on.
+
+Cheers,
+  Adrian
+
+Carlos Antunes wrote:
+> On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> This patch (to go into 5.16) allows fhold and fexec to function
+>> correctly in scanner pattern actions. In this context, fexec and fhold
+>> now manipulate tokend, which is always used to update p when the action
+>> terminates.
+>>
+> 
+> Adrian,
+> 
+> Thanks for the patch. There's soemthing wrong with it, though. I've
+> attached a test file that bombs with the error "<unknown>::56:152:
+> syntax error" when I add an fhold or fexec in line 398.
+> 
+> Thanks!
+> 
+> Carlos
+> 
+
+
+From cmantu... at gmail.com  Sat Nov 11 21:05:53 2006
+From: cmantu... at gmail.com (Carlos Antunes)
+Date: Sat, 11 Nov 2006 16:05:53 -0500
+Subject: [ragel-users] Re: fhold and fexec in scanner pattern actions
+In-Reply-To: <4556361D.5020407@cs.queensu.ca>
+References: <45551440.2030304@cs.queensu.ca>
+	 <cb2ad8b50611111230y79c687b3g79aae66ddbade482@mail.gmail.com>
+	 <4556361D.5020407@cs.queensu.ca>
+Message-ID: <cb2ad8b50611111305i73324f00pab87b6510b7f9ca0@mail.gmail.com>
+
+Wonderful, it's working now. Thanks!
+
+On 11/11/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Oops, I neglected to mention that you'll need to rebuild the parsers
+> from the flex/bison sources. Take a look at the README file in the top
+> level directory which says how to turn that on.
+>
+> Cheers,
+>   Adrian
+>
+> Carlos Antunes wrote:
+> > On 11/10/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> >> This patch (to go into 5.16) allows fhold and fexec to function
+> >> correctly in scanner pattern actions. In this context, fexec and fhold
+> >> now manipulate tokend, which is always used to update p when the action
+> >> terminates.
+> >>
+> >
+> > Adrian,
+> >
+> > Thanks for the patch. There's soemthing wrong with it, though. I've
+> > attached a test file that bombs with the error "<unknown>::56:152:
+> > syntax error" when I add an fhold or fexec in line 398.
+> >
+> > Thanks!
+> >
+> > Carlos
+> >
+>
+> >
+>
+
+
+-- 
+"We hold [...] that all men are created equal; that they are
+endowed [...] with certain inalienable rights; that among
+these are life, liberty, and the pursuit of happiness"
+        -- Thomas Jefferson
+
+
+From bortzme... at gmail.com  Wed Nov  8 15:51:25 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Wed, 8 Nov 2006 16:51:25 +0100
+Subject: Ragel for network protocols?
+Message-ID: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+
+I'm trying to experiment with Ragel for specifying network protocols,
+which are often described as state machines.
+
+All the Ragel examples I can find are for parsers, not for protocol
+state machines. Reading the documentation, I still cannot write a
+state machine for a protocol as simple as:
+
+                        Open
+                       /        \
+                       /          \
+ +--------------+            \  +-------------+
+ |                     |            > |                   |
+ | Door-closed  |              |  Door-open |
+ +--------------+               +-------------+
+                       ^            /
+                         \          /
+                          \        /
+                         Close
+
+Any sample code somewhere?
+
+
+From thurs... at cs.queensu.ca  Wed Nov  8 19:20:32 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 08 Nov 2006 14:20:32 -0500
+Subject: [ragel-users] Ragel for network protocols?
+In-Reply-To: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+Message-ID: <45522E00.2020900@cs.queensu.ca>
+
+Hi Stéphane,
+
+The mechanism for building machines with the state chart paradigm is hidden 
+away in the language. You use the following operators
+
+label:  make labels
+->      draw epsilon operations
+,       join machines together without transitions
+()      grouping comes in handy
+
+You always need a start label for a join to work and if you want any final 
+states you need to make them explicitly by drawing an epsilon transition to 
+the implicitly created "final" state.
+
+Note that if you're feeling adventurous, OPEN and CLOSE can be arbitrary 
+regular expressions.
+
+%%{
+	machine foo;
+
+	OPEN = 0;
+	CLOSE = 1;
+
+	main :=
+		start:
+		door_closed: (
+			OPEN -> door_open -> final
+		),
+		door_open: (
+			CLOSE -> door_closed
+		);
+}%%
+
+
+Stéphane Bortzmeyer wrote:
+> I'm trying to experiment with Ragel for specifying network protocols,
+> which are often described as state machines.
+> 
+> All the Ragel examples I can find are for parsers, not for protocol
+> state machines. Reading the documentation, I still cannot write a
+> state machine for a protocol as simple as:
+> 
+>                         Open
+>                        /        \
+>                        /          \
+>  +--------------+            \  +-------------+
+>  |                     |            > |                   |
+>  | Door-closed  |              |  Door-open |
+>  +--------------+               +-------------+
+>                        ^            /
+>                          \          /
+>                           \        /
+>                          Close
+> 
+> Any sample code somewhere?
+> 
+> 
+
+
+From bortzme... at gmail.com  Thu Nov  9 15:17:16 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Thu, 9 Nov 2006 16:17:16 +0100
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <45522E00.2020900@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+Message-ID: <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+
+2006/11/8, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+> The mechanism for building machines with the state chart paradigm is hidden
+> away in the language. You use the following operators
+>
+> label:  make labels
+> ->      draw epsilon operations
+> ,       join machines together without transitions
+> ()      grouping comes in handy
+
+OK, thanks, now, I have a state machine which is compiled. But, at
+execution time, I always end in an invalid state. I wrote:
+
+%%{
+machine test;
+
+      OPEN = 'O';
+       CLOSE = 'C';
+
+       main :=
+               start:
+               door_closed: (
+                       OPEN -> door_open -> final
+               ),
+               door_open: (
+                       CLOSE -> door_closed
+               );
+}%%
+
+and then the ancillary code:
+
+%% write data;
+
+int main( int argc, char **argv )
+{
+        /* Mandatory Ragel variables, see the manual */
+        int cs;
+        char *p;
+        char *pe;
+
+        int res = 0;
+        int i;
+        %%write init;
+        if ( argc > 1 ) {
+           for (i=1; i<argc; i++)  {
+              p = argv[i];
+              pe = p + strlen(p) + 1;
+              printf("Step %i: input %s, current state %i... ", i, p, cs);
+              %%write exec;
+              if (cs == test_error) {
+                 printf("Error, invalid input\n");
+                 break;
+              }
+              else {
+                 printf("New state is %i\n", cs);
+              }
+           }
+        }
+        else {
+	   printf("Usage: %s O C O C ...", argv[0]);
+           return 1;
+        }
+        printf("result = %i\n", res );
+        %%write eof;
+        return 0;
+}
+
+But I always get:
+
+% ragel test.rl | rlcodegen && gcc -o test test.c && ./test O C O
+Step 1: input O, current state 0... Error, invalid input
+result = 0
+
+
+From thurs... at cs.queensu.ca  Thu Nov  9 18:31:07 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 09 Nov 2006 13:31:07 -0500
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com> <45522E00.2020900@cs.queensu.ca> <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+Message-ID: <455373EB.8020409@cs.queensu.ca>
+
+Hi Stéphane,
+
+ >               pe = p + strlen(p) + 1;
+
+This is probably why. The +1 sends the machine the null character, which 
+isn't part of the language.
+
+Cheers,
+  Adrian
+
+
+From zeds... at zedshaw.com  Thu Nov  9 20:11:34 2006
+From: zeds... at zedshaw.com (Zed A. Shaw)
+Date: Thu, 9 Nov 2006 15:11:34 -0500
+Subject: [ragel-users] Ragel for network protocols?
+In-Reply-To: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+Message-ID: <20061109151134.acb3ca23.zedshaw@zedshaw.com>
+
+On Wed, 8 Nov 2006 16:51:25 +0100
+"Stéphane Bortzmeyer" <bortzme... at gmail.com> wrote:
+
+> 
+> I'm trying to experiment with Ragel for specifying network protocols,
+> which are often described as state machines.
+
+I've used Ragel in several network protocols, but not the state machines that control the servers.  If you need examples, you can check out:
+
+http://rubyforge.org/cgi-bin/viewvc.cgi/trunk/ext/http11/http11_parser.rl?revision=331&root=mongrel
+
+For the Mongrel HTTP parser.
+
+-- 
+Zed A. Shaw, MUDCRAP-CE Master Black Belt Sifu
+http://www.zedshaw.com/
+http://www.awprofessional.com/title/0321483502 -- The Mongrel Book
+http://mongrel.rubyforge.org/
+http://www.lingr.com/room/3yXhqKbfPy8 -- Come get help.
+
+
+From bortzme... at gmail.com  Sun Nov 12 20:49:26 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Sun, 12 Nov 2006 21:49:26 +0100
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <455373EB.8020409@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+	 <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+	 <455373EB.8020409@cs.queensu.ca>
+Message-ID: <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+
+2006/11/9, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+>  >               pe = p + strlen(p) + 1;
+>
+> This is probably why. The +1 sends the machine the null character
+
+Well, replacing the statement by:
+
+              pe = p + strlen(p);
+
+changes nothing. And my statement came from the manual, figure 2.1.
+
+
+From thurs... at cs.queensu.ca  Mon Nov 13 01:41:36 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 12 Nov 2006 20:41:36 -0500
+Subject: [ragel-users] Re: Ragel for network protocols?
+In-Reply-To: <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com> <45522E00.2020900@cs.queensu.ca> <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com> <455373EB.8020409@cs.queensu.ca> <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+Message-ID: <4557CD50.9080504@cs.queensu.ca>
+
+Hi Stéphane,
+
+If you look in example 2.1, the main machine has the null character on 
+the end of its pattern. That's why in that example the driver sends the 
+null character by adding one to pe. I'm not sure what else could be 
+wrong. When I remove the + 1 from the setting of pe it seems to work okay.
+
+[age at reaves] tmp: ./tmp O C O
+Step 1: input O, current state 0... New state is 2
+Step 2: input C, current state 2... New state is 0
+Step 3: input O, current state 0... New state is 2
+result = 0
+
+Cheers,
+  Adrian
+
+Stéphane Bortzmeyer wrote:
+> 2006/11/9, Adrian Thurston <thurs... at cs.queensu.ca>:
+> 
+>>  >               pe = p + strlen(p) + 1;
+>>
+>> This is probably why. The +1 sends the machine the null character
+> 
+> Well, replacing the statement by:
+> 
+>               pe = p + strlen(p);
+> 
+> changes nothing. And my statement came from the manual, figure 2.1.
+> 
+> 
+
+
+From bortzme... at gmail.com  Mon Nov 13 09:47:12 2006
+From: bortzme... at gmail.com (=?UTF-8?Q?St=C3=A9phane_Bortzmeyer?=)
+Date: Mon, 13 Nov 2006 10:47:12 +0100
+Subject: Ragel for network protocols?
+In-Reply-To: <4557CD50.9080504@cs.queensu.ca>
+References: <9946dc540611080751x7ba89e98h1d3c494884285ec5@mail.gmail.com>
+	 <45522E00.2020900@cs.queensu.ca>
+	 <9946dc540611090717q19a5cfbbqebb776d90ff81fdb@mail.gmail.com>
+	 <455373EB.8020409@cs.queensu.ca>
+	 <9946dc540611121249i397ccad8vff7fdb213c14e815@mail.gmail.com>
+	 <4557CD50.9080504@cs.queensu.ca>
+Message-ID: <9946dc540611130147w592991e0ub6723675cf8e0ce0@mail.gmail.com>
+
+2006/11/13, Adrian Thurston <thurs... at cs.queensu.ca>:
+
+> When I remove the + 1 from the setting of pe it seems to work okay.
+
+You're right, it works for me now. Sorry, I do not know what happened,
+coffee was probably not taken in sufficient quantity.
+
+For the record, the attached file works fine.
+
+IETF/Cosmogol/Ragel % ./test O C O
+Step 1: input O, current state 0... Door will open... New state is 2
+Step 2: input C, current state 2... Door will close... New state is 0
+Step 3: input O, current state 0... Door will open... New state is 2
+result = 0
+IETF/Cosmogol/Ragel % ./test O C C
+Step 1: input O, current state 0... Door will open... New state is 2
+Step 2: input C, current state 2... Door will close... New state is 0
+Step 3: input C, current state 0... Error, invalid input
+result = 1
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.rl
+Type: application/octet-stream
+Size: 1442 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20061113/631a4f1c/attachment-0001.obj>
+
+From steve.shre... at gmail.com  Tue Nov 21 08:17:11 2006
+From: steve.shre... at gmail.com (Steve Shreeve)
+Date: Tue, 21 Nov 2006 00:17:11 -0800
+Subject: Generating Java source code
+Message-ID: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+
+Ragel users (and devs),
+
+What is the current status of being able to generate java code? I
+apologize if this has already been discussed at length (I didn't see
+any previous comments).
+
+Does the current Java code generation work? Anyone looking at a Java
+version of mongrel's HTTP 1.1 parser?
+
+Thanks,
+
+Steve Shreeve
+
+
+From thurs... at cs.queensu.ca  Tue Nov 21 17:51:18 2006
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 21 Nov 2006 12:51:18 -0500
+Subject: [ragel-users] Generating Java source code
+In-Reply-To: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+References: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+Message-ID: <45633C96.6000408@cs.queensu.ca>
+
+Steve,
+
+I would still consider Java code generation to be experimental. A number of 
+tests do pass, however there is a big change which need to be made. Colin 
+Fleming reported that Java has a 64K limit on array sizes which causes 
+compilation to fail for large machines. He even provided a patch, though it 
+hasn't been integrated yet because I've been slowly mulling over the problem 
+... more like sulking actually. I think part of me really wants to believe 
+that the limit will magically go away. Anyways, a fix should come soonish.
+
+In the meantime it may well be that Mongrel's parser is small enough that 
+this limit is not hit.
+
+-Adrian
+
+Steve Shreeve wrote:
+> Ragel users (and devs),
+> 
+> What is the current status of being able to generate java code? I
+> apologize if this has already been discussed at length (I didn't see
+> any previous comments).
+> 
+> Does the current Java code generation work? Anyone looking at a Java
+> version of mongrel's HTTP 1.1 parser?
+> 
+> Thanks,
+> 
+> Steve Shreeve
+> 
+> 
+> 
+
+
+From colin.mailingl... at gmail.com  Mon Nov 27 12:39:45 2006
+From: colin.mailingl... at gmail.com (Colin Fleming)
+Date: Mon, 27 Nov 2006 13:39:45 +0100
+Subject: [ragel-users] Re: Generating Java source code
+In-Reply-To: <45633C96.6000408@cs.queensu.ca>
+References: <1164097031.868802.15100@k70g2000cwa.googlegroups.com>
+	 <45633C96.6000408@cs.queensu.ca>
+Message-ID: <7c6512110611270439w49c8f1bap960a6eb29843a68e@mail.gmail.com>
+
+Haha, I don't think that limit is going anywhere. But the patch I
+provided works pretty well, and I'm hopefully going to improve it some
+more soon. But even without the patch, the Mongrel parser should work
+fine, it's small.
+
+In my experience, the Java generation works ok if you don't use any of
+the more esoteric features of Ragel. I haven't used the last couple of
+versions though, I plan to get more involved now I'm back from
+vacation.
+
+Cheers,
+Colin
+
+On 21/11/06, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+> Steve,
+>
+> I would still consider Java code generation to be experimental. A number of
+> tests do pass, however there is a big change which need to be made. Colin
+> Fleming reported that Java has a 64K limit on array sizes which causes
+> compilation to fail for large machines. He even provided a patch, though it
+> hasn't been integrated yet because I've been slowly mulling over the problem
+> ... more like sulking actually. I think part of me really wants to believe
+> that the limit will magically go away. Anyways, a fix should come soonish.
+>
+> In the meantime it may well be that Mongrel's parser is small enough that
+> this limit is not hit.
+>
+> -Adrian
+>
+> Steve Shreeve wrote:
+> > Ragel users (and devs),
+> >
+> > What is the current status of being able to generate java code? I
+> > apologize if this has already been discussed at length (I didn't see
+> > any previous comments).
+> >
+> > Does the current Java code generation work? Anyone looking at a Java
+> > version of mongrel's HTTP 1.1 parser?
+> >
+> > Thanks,
+> >
+> > Steve Shreeve
+> >
+> >
+> >
+>
+> >
+>
+
+

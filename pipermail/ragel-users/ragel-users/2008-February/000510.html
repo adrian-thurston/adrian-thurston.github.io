@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> % Leaving Action Questions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3Cbbb366e1-32b6-420c-9f4e-2f139cd27362%40u69g2000hse.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000509.html">
+   <LINK REL="Next"  HREF="000490.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>% Leaving Action Questions</H1>
+    <B>francois.beausoleil</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%25%20Leaving%20Action%20Questions&In-Reply-To=%3Cbbb366e1-32b6-420c-9f4e-2f139cd27362%40u69g2000hse.googlegroups.com%3E"
+       TITLE="% Leaving Action Questions">francois.beausol... at gmail.com
+       </A><BR>
+    <I>Wed Feb 27 03:59:27 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000509.html">[ragel-users] % Leaving Action Questions
+</A></li>
+        <LI>Next message: <A HREF="000490.html">optimization idea
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#510">[ date ]</a>
+              <a href="thread.html#510">[ thread ]</a>
+              <a href="subject.html#510">[ subject ]</a>
+              <a href="author.html#510">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Adrian,
+
+On 25 fév, 17:01, &quot;Adrian Thurston&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> The problem is the any* at the beginning of bla. It creates an ambiguity for the bla*. Changing that to bla** will fix that.
+</I>
+Thanks for that.  I did finally manage to implement something that
+works for the vast majority of cases.  I can identify &quot;closes #123,
+fixes #321&quot; and other patterns.  My problem is now &quot;assigned to
+francois&quot;.  Here's my latest machine:
+
+    %%{
+      machine commit_message_parser;
+
+      action mark { mark = p }
+      action bugid { bugid = data[mark .. p] }
+      action name { name = data[mark .. p] }
+
+      action close { action = :close }
+      action fix { action = :fix }
+      action reference { action = :reference }
+      action reopen { action = :reopen }
+      action reactivate { action = :reactivate }
+      action implement { action = :implement }
+      action assign { action = :assign }
+      action notify { listener.send(action, bugid.pack(&quot;C*&quot;)) }
+      action notify_assign { listener.send(action, name.pack(&quot;C*&quot;)) }
+
+      bugid = (&quot;#&quot; ('1'..'9')&gt;mark ('0'..'9')**)@bugid %notify;
+      bugid_separator = (space* (punct | /and/i) space*);
+      bugids = (bugid (bugid_separator bugid)*);
+
+      close = (/close/i /s/i? /:/?) %close;
+      fix = (/fix/i /es/i? /:/?) %fix;
+      reference = (/reference/i /s/i? /:/?) %reference;
+      reopen = (/re/i? /open/i /s/i? /:/?) %reopen;
+      reactivate = (/re/i? /activate/i /s/i? /:/?) %reactivate;
+      implement = (/implement/i? /s/i? /:/?) %implement;
+      assign = (/re/i? /assign/i /ed/i? (space+ /to/i)?) %assign;
+      name = (alpha)+ &gt;mark %name;
+      assignto = (assign space+ name) %notify_assign;
+
+      keywords = (close | fix | reference | reopen | reactivate |
+assignto);
+      text = (any - (keywords | bugids));
+      main := (text* (keywords space* bugids)*);
+    }%%
+
+With this machine, Ragel doesn't recognize &quot;The parser assign
+francois.&quot; (meaning my notify_action isn't called).  But it does
+recognize &quot;The parser assign to francois.&quot;, but says the name is &quot;to
+&quot;.
+
+&gt;<i> You might want to consider using a scanner to find the interesting things. In the event of only a partial match it can default to another pattern.
+</I>
+Regarding scanners, I looked at chapter 6 of the guide, but couldn't
+find an immediate application.  I don't really know where/how to start
+to write my scanner.
+
+Thanks for any other help !
+François
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000509.html">[ragel-users] % Leaving Action Questions
+</A></li>
+	<LI>Next message: <A HREF="000490.html">optimization idea
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#510">[ date ]</a>
+              <a href="thread.html#510">[ thread ]</a>
+              <a href="subject.html#510">[ subject ]</a>
+              <a href="author.html#510">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

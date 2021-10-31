@@ -1,0 +1,3090 @@
+From ibc at aliax.net  Tue Nov 17 15:30:13 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 17 Nov 2009 16:30:13 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in Linux 32
+	and 64 bits
+Message-ID: <200911171630.13791.ibc@aliax.net>
+
+Hi, the following code produces a segmentfault:
+
+------identity.rl-------------
+class Identity
+
+	%%{
+		machine identity;
+		
+		CR = "\r";
+		LF = "\n";
+		CRLF = CR LF;
+		SP = " ";
+		HTAB = "\t";
+		WSP = SP | HTAB;
+		LWS = ( WSP* CRLF )? WSP+;
+		SWS = LWS?;
+		LAQUOT = SWS "<";
+		RAQUOT = ">" SWS;
+		DQUOTE = "\"";
+		ALPHA = 0x41..0x5a | 0x61..0x7a;
+		DIGIT = 0x30..0x39;
+		alphanum = ALPHA | DIGIT;
+		quoted_pair = "\\" ( 0x00..0x09 | 0x0b..0x0c | 0x0e..0x7f );
+		UTF8_CONT = 0x80..0xbf;
+		UTF8_NONASCII = ( 0xc0..0xdf UTF8_CONT ) | ( 0xe0..0xef UTF8_CONT{2} ) | ( 
+0xf0..0xf7 UTF8_CONT{3} ) | ( 0xf8..0xfb UTF8_CONT{4} ) | ( 0xfc..0xfd 
+UTF8_CONT{5} );
+		token = ( alphanum | "-" | "." | "!" | "%" | "*" | "_" | "+" | "`" | "'" | 
+"~" )+;
+		
+		qdtext = LWS | "!" | 0x23..0x5b | 0x5d..0x7e | UTF8_NONASCII;
+		quoted_string = DQUOTE ( qdtext | quoted_pair )* DQUOTE;
+		
+		display_name = quoted_string | ( token ( LWS token )* );
+		
+		write data;
+	}%%
+
+end
+-------------------
+
+~$ ragel -F1 -R identity.rl
+Segmentfault
+
+
+
+If doesn't occur if I remove the line "write data".
+It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5, 
+using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+
+Is it a bug?
+
+Regards.
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Tue Nov 17 15:42:47 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 17 Nov 2009 16:42:47 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+	Linux 32 and 64 bits
+In-Reply-To: <200911171630.13791.ibc@aliax.net>
+References: <200911171630.13791.ibc@aliax.net>
+Message-ID: <200911171642.47573.ibc@aliax.net>
+
+El Martes, 17 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> 
+> If doesn't occur if I remove the line "write data".
+> It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5,
+> using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+> 
+> Is it a bug?
+
+I forgot to add "main := display_name;" before "write data". Now it doesn't 
+crash. Is it the expected behavior?
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Tue Nov 17 16:33:24 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 17 Nov 2009 11:33:24 -0500
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+ Linux 32 and 64 bits
+In-Reply-To: <200911171642.47573.ibc@aliax.net>
+References: <200911171630.13791.ibc@aliax.net>
+	<200911171642.47573.ibc@aliax.net>
+Message-ID: <4B02D054.6060109@esentire.com>
+
+It should be printing an error instead of crashing.
+
+identity.rl:27:3: no machine instantiations to write
+
+It's been fixed in trunk. A new release is needed soon.
+
+Thanks,
+  Adrian
+
+Iñaki Baz Castillo wrote:
+> El Martes, 17 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+>> If doesn't occur if I remove the line "write data".
+>> It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5,
+>> using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+>>
+>> Is it a bug?
+> 
+> I forgot to add "main := display_name;" before "write data". Now it doesn't 
+> crash. Is it the expected behavior?
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Tue Nov 17 16:48:31 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Tue, 17 Nov 2009 17:48:31 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+ Linux 32 and 64 bits
+In-Reply-To: <4B02D054.6060109@esentire.com>
+References: <200911171630.13791.ibc@aliax.net>
+	<200911171642.47573.ibc@aliax.net>  <4B02D054.6060109@esentire.com>
+Message-ID: <1258476511.22831.143.camel@yamato>
+
+Il giorno Tue, 17/11/2009 alle 11.33 -0500, Adrian Thurston ha scritto:
+> 
+> It's been fixed in trunk. A new release is needed soon. 
+
+Definitely ;)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From rashid.karimov at gmail.com  Wed Nov 18 16:14:38 2009
+From: rashid.karimov at gmail.com (Rashid Karimov)
+Date: Wed, 18 Nov 2009 11:14:38 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+	outside of action{} blox
+Message-ID: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+
+Folx,
+
+Say I have a machine defined with a number of states in it:
+
+S1 (
+
+Event1 -> S2 ),
+
+S2 (
+
+Event2 -> S3),
+
+..... and so on .
+
+I access cs as  blah->cs .
+
+
+If I want to figure out and/or modify , outside of FMS action{} code blocks,
+if the current state is S2 or S3,
+how do I find out what S2 and S3 translate to, in terms of context->cs value
+?
+
+Outside of exporting FSM as an XML and then going over it, is there a way to
+ask Ragel to "export" the state
+mappings ? Similar to the  way one can import event definitions like so:
+
+#define Event1 'a'
+#define Event2 'b'
+
+can Ragel export state cs values like so:
+
+#define S1 1
+#define S2 2
+
+Again, one could use Ragel's dot or XML output to figure out what different
+states translate to in terms of cs values
+and then map them manually, but I was hoping there's a different, more
+automated way to go about it.
+
+When/if the FSM definition is modified - new states included, existing
+states deleted,  etc, such manual definitions
+would clearly get out of sync  and this is what I am trying to avoid.
+
+
+TY
+Rashid
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091118/d4b2be30/attachment.html>
+
+From adrian.thurston at esentire.com  Wed Nov 18 16:38:01 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 18 Nov 2009 11:38:01 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+ outside of action{} blox
+In-Reply-To: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+References: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+Message-ID: <4B0422E9.1080107@esentire.com>
+
+The problem with doing this in Ragel is that any particular named 
+machine definition may correspond to more than one state in the compiled 
+output. Therefore, a variable to be used outside of the machine would 
+actually have to be a set of states.
+
+For this reason, Ragel does not automate the process. Instead, what you 
+should do is use actions to maintain a state variable that has meaning 
+outside the FSM.
+
+-Adrian
+
+Rashid Karimov wrote:
+> Folx,
+> 
+> Say I have a machine defined with a number of states in it:
+> 
+> S1 (
+> 
+> Event1 -> S2 ),
+> 
+> S2 (
+> 
+> Event2 -> S3),
+> 
+> ..... and so on .
+> 
+> I access cs as  blah->cs .
+> 
+> 
+> If I want to figure out and/or modify , outside of FMS action{} code 
+> blocks, if the current state is S2 or S3,
+> how do I find out what S2 and S3 translate to, in terms of context->cs 
+> value ?
+> 
+> Outside of exporting FSM as an XML and then going over it, is there a 
+> way to ask Ragel to "export" the state
+> mappings ? Similar to the  way one can import event definitions like so:
+> 
+> #define Event1 'a'
+> #define Event2 'b'
+> 
+> can Ragel export state cs values like so:
+> 
+> #define S1 1
+> #define S2 2
+> 
+> Again, one could use Ragel's dot or XML output to figure out what 
+> different states translate to in terms of cs values
+> and then map them manually, but I was hoping there's a different, more 
+> automated way to go about it.
+> 
+> When/if the FSM definition is modified - new states included, existing 
+> states deleted,  etc, such manual definitions
+> would clearly get out of sync  and this is what I am trying to avoid.
+> 
+> 
+> TY
+> Rashid
+> 
+> 
+> 
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From rashid.karimov at gmail.com  Wed Nov 18 19:26:06 2009
+From: rashid.karimov at gmail.com (Rashid Karimov)
+Date: Wed, 18 Nov 2009 14:26:06 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+	outside of action{} blox
+In-Reply-To: <4B0422E9.1080107@esentire.com>
+References: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+	<4B0422E9.1080107@esentire.com>
+Message-ID: <a13c6bc90911181126pab9c0ffq376c2233cbd2fb3b@mail.gmail.com>
+
+Adrian,
+
+thank you for prompt response, I understand it now :)
+
+In my case, there's a subset of states that I want to act on, outside of
+action code, without driving through the FSM code proper. Will follow
+your advice and expose that subset via non-ragel state variable and act
+on that !
+
+TY
+
+Rashid
+
+On Wed, Nov 18, 2009 at 11:38 AM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> The problem with doing this in Ragel is that any particular named
+> machine definition may correspond to more than one state in the compiled
+> output. Therefore, a variable to be used outside of the machine would
+> actually have to be a set of states.
+>
+> For this reason, Ragel does not automate the process. Instead, what you
+> should do is use actions to maintain a state variable that has meaning
+> outside the FSM.
+>
+> -Adrian
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091118/ae2d6ea6/attachment.html>
+
+From grygoriy.fuchedzhy at gmail.com  Thu Nov 19 20:45:03 2009
+From: grygoriy.fuchedzhy at gmail.com (=?KOI8-R?B?59LJx8/Sycog5tXexcTWyQ==?=)
+Date: Thu, 19 Nov 2009 22:45:03 +0200
+Subject: [ragel-users] some questions regarding ragel
+Message-ID: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+
+Hi. I'm new to ragel and currently exploring its features. I'm working on
+some applications using microcontrollers which have very limited resources.
+Microcontrollers communicate with each other with radio. I'm using ragel to
+parse radio protocol. So here is my questions:
+
+1. Main part of my application is infinite loop, which is waiting for input,
+parses it with ragel-generated code and do some work. So I don't have
+EOF-thing at all. I don't use any EOF actions(at least explicitly). But
+generated code still contains some EOF-stuff which uses eof variable(thus I
+have to declare it). Documentation states: "If EOF actions are used then the
+eof variable is required."(so if I don't use EOF actions it shouldn't be
+required) I think I'm missing something. Maybe I have to state explicitly
+somewhere in .rl file that EOF is senseless in my case. Here is my
+dummy-playground-example for PC http://gist.github.com/239028
+
+2. Ragel assumes that data which have to be processed is between p and pe
+pointers. Can this be customized? Here is what I want. I have ring-buffer
+which fills in interrupt routines. I have interface function for this
+ring-buffer, which returns data from this buffer byte by byte ( int
+cyw_tryread(uint8_t* ptr) ). If there is some valid data in buffer it writes
+it to (*ptr) and returns 1, otherwise 0. I want ragel to use this function
+as source of data instead of walking through p pointer. It seems that all I
+need to do for this is replace
+>    if ( ++p != pe )
+>        goto _resume;
+with
+>    if ( cyw_tryread(p))
+>        goto _resume;
+pe pointer is useless here. So can I customize this in ragel without
+patching generated code(patching generated code is not very good thing to
+do...)
+
+3. Can I embed C checks within machine definition statement? e.g. if I want
+machine that matches any character, that have nonzero bit number 2
+(xxxxx1xx). So for this characters (ch & 4) is true. Is there a way to
+define such machine?
+
+Any tips and explanations would be very much appreciated.
+__
+Grygoriy Fuchedzhy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091119/0d2db19b/attachment.html>
+
+From ibc at aliax.net  Fri Nov 20 18:39:36 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 19:39:36 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+Message-ID: <200911201939.36703.ibc@aliax.net>
+
+Hi, I'm creating a parsing for XML Xpath but in the grammar specs I find:
+
+
+http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+
+NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+                    [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | 
+                    [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+                    [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+                    [#x10000-#xEFFFF]
+
+
+http://www.w3.org/TR/REC-xml/#NT-NameChar
+
+NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+                    [#x0300-#x036F] | [#x203F-#x2040]
+	
+
+
+I've no idea of how to convert them to Ragel grammar. Of course the following 
+conversion is wrong:
+
+  [#x2070-#x218F]  =>  0x2070..0x218F
+
+as Ragel complains "literal 0x2C00 overflows the alphabet type".
+
+
+Any help please? Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From grygoriy.fuchedzhy at gmail.com  Fri Nov 20 18:49:35 2009
+From: grygoriy.fuchedzhy at gmail.com (=?KOI8-R?B?59LJx8/Sycog5tXexcTWyQ==?=)
+Date: Fri, 20 Nov 2009 20:49:35 +0200
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911201939.36703.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>
+Message-ID: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+
+I think this would work
+(0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+But I think there should be better solution
+__
+Grygoriy Fuchedzhy
+
+On Fri, Nov 20, 2009 at 8:39 PM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+
+> Hi, I'm creating a parsing for XML Xpath but in the grammar specs I find:
+>
+>
+> http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+>
+> NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+>                    [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] |
+>                    [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+>                    [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+>                    [#x10000-#xEFFFF]
+>
+>
+> http://www.w3.org/TR/REC-xml/#NT-NameChar
+>
+> NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+>                    [#x0300-#x036F] | [#x203F-#x2040]
+>
+>
+>
+> I've no idea of how to convert them to Ragel grammar. Of course the
+> following
+> conversion is wrong:
+>
+>  [#x2070-#x218F]  =>  0x2070..0x218F
+>
+> as Ragel complains "literal 0x2C00 overflows the alphabet type".
+>
+>
+> Any help please? Thanks a lot.
+>
+> --
+> Iñaki Baz Castillo <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20091120/912bff3e/attachment.html>
+
+From ibc at aliax.net  Fri Nov 20 19:11:38 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:11:38 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <200911202011.38500.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+
+ok, I'll try it.
+Thanks.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+From ibc at aliax.net  Fri Nov 20 19:20:10 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:20:10 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202011.38500.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+	<200911202011.38500.ibc@aliax.net>
+Message-ID: <200911202020.10524.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> > I think this would work
+> > (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> > But I think there should be better solution
+> 
+> ok, I'll try it.
+> Thanks.
+
+Unfortunatelly I don't understand how to convert the following range:
+
+   [#xF8-#x2FF]
+
+Could I convert it to?:
+
+   [#x00F8-#x2FF]
+
+so then to Ragel grammar as?:
+
+   (0x00 0xF8..0xFF) | (0x01 0x00..0xFF ) | (0x02 0x00..0xFF )
+
+
+It seems too complex however... what about converting to binary?
+
+
+PS: But what is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"?
+
+Thanks.
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:21:19 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:21:19 -0500
+Subject: [ragel-users] some questions regarding ragel
+In-Reply-To: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+References: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+Message-ID: <4B06EC2F.4030202@esentire.com>
+
+The EOF actions are likely coming from leaving actions that are embedded 
+into the final state. The semantics of leaving actions is such that they 
+are executed when EOF arrives and we are in a state that has leaving 
+actions and the state is final.
+
+I have long been interested in adding a write option that causes ragel 
+to process only one character. Since I haven't gotten to that yet, the 
+way to do it is to do something like this:
+
+char c = something();
+char *p = &c;
+char *pe = p + 1;
+
+I admit that this does not produce optimal code, as the pe testing code 
+is pointless, but it's all there is right now.
+
+In regards to checks, yes, you can use conditions. This makes the 
+running code more complex, so it might not be for you. Best to try it 
+out. See the manual in "Beyond the Basic Model."
+
+Adrian
+
+Григорий Фучеджи wrote:
+> Hi. I'm new to ragel and currently exploring its features. I'm working 
+> on some applications using microcontrollers which have very limited 
+> resources. Microcontrollers communicate with each other with radio. I'm 
+> using ragel to parse radio protocol. So here is my questions:
+> 
+> 1. Main part of my application is infinite loop, which is waiting for 
+> input, parses it with ragel-generated code and do some work. So I don't 
+> have EOF-thing at all. I don't use any EOF actions(at least explicitly). 
+> But generated code still contains some EOF-stuff which uses eof 
+> variable(thus I have to declare it). Documentation states: "If EOF 
+> actions are used then the eof variable is required."(so if I don't use 
+> EOF actions it shouldn't be required) I think I'm missing something. 
+> Maybe I have to state explicitly somewhere in .rl file that EOF is 
+> senseless in my case. Here is my dummy-playground-example for PC 
+> http://gist.github.com/239028
+> 
+> 2. Ragel assumes that data which have to be processed is between p and 
+> pe pointers. Can this be customized? Here is what I want. I have 
+> ring-buffer which fills in interrupt routines. I have interface function 
+> for this ring-buffer, which returns data from this buffer byte by byte ( 
+> int cyw_tryread(uint8_t* ptr) ). If there is some valid data in buffer 
+> it writes it to (*ptr) and returns 1, otherwise 0. I want ragel to use 
+> this function as source of data instead of walking through p pointer. It 
+> seems that all I need to do for this is replace
+>  >    if ( ++p != pe )
+>  >        goto _resume;
+> with
+>  >    if ( cyw_tryread(p))
+>  >        goto _resume;
+> pe pointer is useless here. So can I customize this in ragel without 
+> patching generated code(patching generated code is not very good thing 
+> to do...)
+> 
+> 3. Can I embed C checks within machine definition statement? e.g. if I 
+> want machine that matches any character, that have nonzero bit number 2 
+> (xxxxx1xx). So for this characters (ch & 4) is true. Is there a way to 
+> define such machine?
+> 
+> Any tips and explanations would be very much appreciated.
+> __
+> Grygoriy Fuchedzhy
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:22:33 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:22:33 -0500
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <4B06EC79.3090703@esentire.com>
+
+If you wish to process a a byte at a time, this is what I would suggest.
+
+You may also want to do a first pass to convert to some multibyte 
+encoding and then process that. In that case you set alphtype to 
+something bigger than char.
+
+-Adrian
+
+Григорий Фучеджи wrote:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+> __
+> Grygoriy Fuchedzhy
+> 
+> On Fri, Nov 20, 2009 at 8:39 PM, Iñaki Baz Castillo <ibc at aliax.net 
+> <mailto:ibc at aliax.net>> wrote:
+> 
+>     Hi, I'm creating a parsing for XML Xpath but in the grammar specs I
+>     find:
+> 
+> 
+>     http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+> 
+>     NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] |
+>     [#xD8-#xF6] |
+>                        [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] |
+>                        [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+>                        [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+>                        [#x10000-#xEFFFF]
+> 
+> 
+>     http://www.w3.org/TR/REC-xml/#NT-NameChar
+> 
+>     NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+>                        [#x0300-#x036F] | [#x203F-#x2040]
+> 
+> 
+> 
+>     I've no idea of how to convert them to Ragel grammar. Of course the
+>     following
+>     conversion is wrong:
+> 
+>      [#x2070-#x218F]  =>  0x2070..0x218F
+> 
+>     as Ragel complains "literal 0x2C00 overflows the alphabet type".
+> 
+> 
+>     Any help please? Thanks a lot.
+> 
+>     --
+>     Iñaki Baz Castillo <ibc at aliax.net <mailto:ibc at aliax.net>>
+> 
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Fri Nov 20 19:26:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:26:00 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <4B06EC79.3090703@esentire.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+	<4B06EC79.3090703@esentire.com>
+Message-ID: <200911202026.00656.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+> If you wish to process a a byte at a time, this is what I would suggest.
+> 
+> You may also want to do a first pass to convert to some multibyte
+> encoding and then process that. In that case you set alphtype to
+> something bigger than char.
+
+If I understand correctly that option is not suitable for me as the 99% of the 
+grammar si "normal":
+
+	DIGIT                   = 0x30..0x39;
+	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+	att_name               = QName;
+	att_value              = AttValue;
+	attr_test              = "@" att_name "=" att_value;
+	NameorAny              = QName | "*";
+	position               = ( DIGIT )+;
+	by_pos_attr            = NameorAny "[" position "]" "[" attr_test "]";
+	by_attr                = NameorAny "[" attr_test "]";
+	by_pos                 = NameorAny "[" position "]";
+	by_name                = NameorAny;
+	attribute_selector     = "@" att_name;
+	namespace_selector     = "namespace::*";
+
+and so on...
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:35:32 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:35:32 -0500
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202026.00656.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>	<4B06EC79.3090703@esentire.com>
+	<200911202026.00656.ibc@aliax.net>
+Message-ID: <4B06EF84.6040206@esentire.com>
+
+Okay, in that case then have a look at the unicode2ragel.rb script in 
+the contrib directory. It can help with generating ragel defintions for you.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+>> If you wish to process a a byte at a time, this is what I would suggest.
+>>
+>> You may also want to do a first pass to convert to some multibyte
+>> encoding and then process that. In that case you set alphtype to
+>> something bigger than char.
+> 
+> If I understand correctly that option is not suitable for me as the 99% of the 
+> grammar si "normal":
+> 
+> 	DIGIT                   = 0x30..0x39;
+> 	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+> 	att_name               = QName;
+> 	att_value              = AttValue;
+> 	attr_test              = "@" att_name "=" att_value;
+> 	NameorAny              = QName | "*";
+> 	position               = ( DIGIT )+;
+> 	by_pos_attr            = NameorAny "[" position "]" "[" attr_test "]";
+> 	by_attr                = NameorAny "[" attr_test "]";
+> 	by_pos                 = NameorAny "[" position "]";
+> 	by_name                = NameorAny;
+> 	attribute_selector     = "@" att_name;
+> 	namespace_selector     = "namespace::*";
+> 
+> and so on...
+> 
+> 
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Fri Nov 20 19:52:11 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:52:11 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <4B06EF84.6040206@esentire.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<200911202026.00656.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+Message-ID: <200911202052.11515.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+> Okay, in that case then have a look at the unicode2ragel.rb script in
+> the contrib directory.
+
+Hummm, two points:
+
+1) I'm not generating Ruby code, but C code (perhaps it doesn't matter and you 
+suggested that script for other reason).
+
+2) I don't see that script in 6.4 sources:
+
+/usr/src/ragel-6.4$ ls -l contrib/
+total 36
+-rw-r--r-- 1 root root 8320 2009-07-08 02:03 Makefile
+-rw-r--r-- 1 ibc  ibc    34 2009-04-05 00:06 Makefile.am
+-rw-r--r-- 1 ibc  ibc  8280 2009-05-18 15:56 Makefile.in
+-rw-r--r-- 1 ibc  ibc  1386 2009-04-04 23:56 ragel.m4
+-rw-r--r-- 1 ibc  ibc    85 2009-04-04 23:56 ragel.make
+
+
+> It can help with generating ragel defintions for
+> you.
+
+The fact is that I just wnat to create ragel grammar (using single byte) from 
+this original grammar:
+
+  NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+                      [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | 
+                      [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+                      [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+                      [#x10000-#xEFFFF]
+
+Must I do some "exotic" to achieve it? I've already played with UTF-8 code in 
+Ragel by using this grammar (from SIP protocol ABNF):
+
+	UTF8_CONT        = 0x80..0xbf;
+	UTF8_NONASCII    = ( 0xc0..0xdf UTF8_CONT ) | ( 0xe0..0xef UTF8_CONT{2} ) |
+             ( 0xf0..0xf7 UTF8_CONT{3} ) | ( 0xf8..0xfb UTF8_CONT{4} ) |
+             ( 0xfc..0xfd UTF8_CONT{5} );
+
+Unfortunatelly I have no idea about if the former grammar ("NameStartChar") 
+is, or not, related to UTF-8 or not.
+The fact is that I could simplify this grammar (after understanding what it 
+means) even if it allows some invalid bytes.
+
+
+However, please let me ask again:
+What is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"? I need to know it in order 
+to do a workaround.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Nov 20 20:00:59 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 21:00:59 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202052.11515.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+	<200911202052.11515.ibc@aliax.net>
+Message-ID: <200911202101.00116.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> However, please let me ask again:
+> What is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"? I need to know it in
+>  order  to do a workaround.
+
+I've been said by other means that #x2FF = #x02FF. 
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Nov 20 22:41:32 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 23:41:32 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202052.11515.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+	<200911202052.11515.ibc@aliax.net>
+Message-ID: <200911202341.32406.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> 2) I don't see that script in 6.4 sources:
+> 
+> /usr/src/ragel-6.4$ ls -l contrib/
+> total 36
+> -rw-r--r-- 1 root root 8320 2009-07-08 02:03 Makefile
+> -rw-r--r-- 1 ibc  ibc    34 2009-04-05 00:06 Makefile.am
+> -rw-r--r-- 1 ibc  ibc  8280 2009-05-18 15:56 Makefile.in
+> -rw-r--r-- 1 ibc  ibc  1386 2009-04-04 23:56 ragel.m4
+> -rw-r--r-- 1 ibc  ibc    85 2009-04-04 23:56 ragel.make
+> 
+
+Ok, it exists in the trunk version:
+
+  http://svn.complang.org/ragel/trunk/contrib/unicode2ragel.rb
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 02:13:20 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 03:13:20 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <200911210313.20536.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+
+Finally I've understood that this conversion is not valid:
+  #x2070-#x218F  !=   (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+
+The former grammar are Unicode character representation in hexadecimal code 
+point. It represents the symbol ⁰ and in hex UTF-8 bytes it would be "0xE2 
+0x81 0xB0".
+
+A conversor utility:
+
+  http://www.ltg.ed.ac.uk/~richard/utf-8.cgi?input=C0&mode=hex
+
+
+Of course it would be great if Ragel wouud provide Unicode hex code point 
+grammar in the .rl files so I could do:
+
+  0x2070..0x218F
+
+instead of having to convert it to lots of hexadecimal bytes ranges.
+
+Regards.
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:23:07 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:23:07 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper end"
+Message-ID: <200911211823.07481.ibc@aliax.net>
+
+Hi, I get this strange error:
+
+  "67:41: lower end of range is greater then upper end"
+
+Line 67 is this one:
+
+	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+
+where column 41 is "0x30".
+
+
+I cannot understand what's wrong, any help please?
+I use Ragel 6.4.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:23:31 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:23:31 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <200911211823.31951.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+
+> I use Ragel 6.4.
+
+Sorry. I use Ragel 6.5.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:25:47 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:25:47 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <200911211825.47369.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, I get this strange error:
+> 
+>   "67:41: lower end of range is greater then upper end"
+> 
+> Line 67 is this one:
+> 
+> 	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+> 
+> where column 41 is "0x30".
+> 
+> 
+> I cannot understand what's wrong, any help please?
+
+A workaround is:
+
+  extension_selector     = any -- "/";
+
+but I'd like to understand the above error.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 17:26:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 12:26:39 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <4B0822CF.4010408@complang.org>
+
+That's because you're working with a signed char alphabet. The literal 
+value 0xff is interpreted as -1.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I get this strange error:
+> 
+>   "67:41: lower end of range is greater then upper end"
+> 
+> Line 67 is this one:
+> 
+> 	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+> 
+> where column 41 is "0x30".
+> 
+> 
+> I cannot understand what's wrong, any help please?
+> I use Ragel 6.4.
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:41:06 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:41:06 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B0822CF.4010408@complang.org>
+References: <200911211823.07481.ibc@aliax.net> <4B0822CF.4010408@complang.org>
+Message-ID: <200911211841.06404.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> That's because you're working with a signed char alphabet. The literal 
+> value 0xff is interpreted as -1.
+
+Ok, thanks! 
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:47:48 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:47:48 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211841.06404.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net> <4B0822CF.4010408@complang.org>
+	<200911211841.06404.ibc@aliax.net>
+Message-ID: <200911211847.48143.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> > That's because you're working with a signed char alphabet. The literal
+> > value 0xff is interpreted as -1.
+> 
+> Ok, thanks!
+
+According to the doc alphtype can be (for C):
+
+  char   unsigned char
+  short  unsigned short
+  int    unsigned int
+  long   unsigned long
+
+However I set:
+
+  %%{
+    machine my_grammar;
+    alphtype unsigned char;
+
+and get:
+
+  "unsigned char" is not a valid alphabet type
+
+¿?
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 17:52:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 12:52:26 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211847.48143.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+	<4B0822CF.4010408@complang.org>	<200911211841.06404.ibc@aliax.net>
+	<200911211847.48143.ibc@aliax.net>
+Message-ID: <4B0828DA.8000702@complang.org>
+
+That doesn't sound right. Can you send a ragel file that causes this? 
+Reduce it if contains code you don't want to share.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+>> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+>>> That's because you're working with a signed char alphabet. The literal
+>>> value 0xff is interpreted as -1.
+>> Ok, thanks!
+> 
+> According to the doc alphtype can be (for C):
+> 
+>   char   unsigned char
+>   short  unsigned short
+>   int    unsigned int
+>   long   unsigned long
+> 
+> However I set:
+> 
+>   %%{
+>     machine my_grammar;
+>     alphtype unsigned char;
+> 
+> and get:
+> 
+>   "unsigned char" is not a valid alphabet type
+> 
+> ¿?
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 18:01:07 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 19:01:07 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B0828DA.8000702@complang.org>
+References: <200911211823.07481.ibc@aliax.net>
+	<200911211847.48143.ibc@aliax.net> <4B0828DA.8000702@complang.org>
+Message-ID: <200911211901.07591.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> That doesn't sound right. Can you send a ragel file that causes this?
+> Reduce it if contains code you don't want to share.
+
+Any grammar causes it:
+
+---------test.rl-------------
+%%{
+	
+	machine my_grammar;
+	alphtype unsigned char;
+		
+	DIGIT                   = 0x30..0x39;
+	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+	mychar                  = DIGIT | ALPHA;
+
+	main                  := mychar;
+	write data;
+	
+}%%
+-----------------------------
+
+~# ragel -F0 -R test.rl
+test.rl:4:11: "unsigned char" is not a valid alphabet type
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 18:03:10 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 13:03:10 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211901.07591.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>	<200911211847.48143.ibc@aliax.net>
+	<4B0828DA.8000702@complang.org> <200911211901.07591.ibc@aliax.net>
+Message-ID: <4B082B5E.3030004@complang.org>
+
+Oh, you're using the ruby code generator. Unsigned char is not supported 
+in the ruby code generator. Sorry, I assumed C.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+>> That doesn't sound right. Can you send a ragel file that causes this?
+>> Reduce it if contains code you don't want to share.
+> 
+> Any grammar causes it:
+> 
+> ---------test.rl-------------
+> %%{
+> 	
+> 	machine my_grammar;
+> 	alphtype unsigned char;
+> 		
+> 	DIGIT                   = 0x30..0x39;
+> 	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+> 	mychar                  = DIGIT | ALPHA;
+> 
+> 	main                  := mychar;
+> 	write data;
+> 	
+> }%%
+> -----------------------------
+> 
+> ~# ragel -F0 -R test.rl
+> test.rl:4:11: "unsigned char" is not a valid alphabet type
+> 
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 18:17:11 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 19:17:11 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B082B5E.3030004@complang.org>
+References: <200911211823.07481.ibc@aliax.net>
+	<200911211901.07591.ibc@aliax.net> <4B082B5E.3030004@complang.org>
+Message-ID: <200911211917.11251.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> Oh, you're using the ruby code generator. Unsigned char is not supported
+> in the ruby code generator. Sorry, I assumed C.
+
+Really sorry, you are right. I'll generate C code but in the meanwhile I 
+compile to Ruby code just for testing.
+Sorry.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Mon Nov 23 18:45:43 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 23 Nov 2009 19:45:43 +0100
+Subject: [ragel-users] Help with grammar of XML
+Message-ID: <200911231945.43179.ibc@aliax.net>
+
+Hi, I've terminating a Ragel parser and to finish it I just must understand 
+the following XML grammar as appears in:
+  http://www.w3.org/TR/REC-xml/#NT-AttValue
+
+
+ AttValue ::= '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
+
+Could I know which would be the equivalent to [^<&"] in Ragel grammar?
+The problem is that I¡m not 100% sure of what [^<&"] means in the XML grammar 
+as it's not BNF which I'm used to.
+
+Does [^<&"] means "any symbol but '<', '&' and '"'?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Mon Nov 23 18:56:01 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 23 Nov 2009 13:56:01 -0500
+Subject: [ragel-users] Help with grammar of XML
+In-Reply-To: <200911231945.43179.ibc@aliax.net>
+References: <200911231945.43179.ibc@aliax.net>
+Message-ID: <4B0ADAC1.4000803@esentire.com>
+
+Indeed it does. It means that in the XML grammar, and in Ragel.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I've terminating a Ragel parser and to finish it I just must understand 
+> the following XML grammar as appears in:
+>   http://www.w3.org/TR/REC-xml/#NT-AttValue
+> 
+> 
+>  AttValue ::= '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
+> 
+> Could I know which would be the equivalent to [^<&"] in Ragel grammar?
+> The problem is that I¡m not 100% sure of what [^<&"] means in the XML grammar 
+> as it's not BNF which I'm used to.
+> 
+> Does [^<&"] means "any symbol but '<', '&' and '"'?
+> 
+> Thanks a lot.
+> 
+
+
+
+From aslak.hellesoy at gmail.com  Tue Nov 24 20:39:24 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Tue, 24 Nov 2009 21:39:24 +0100
+Subject: [ragel-users] UTF-8 problems with Java
+Message-ID: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+
+Hi there,
+
+First of all - thanks a lot for Ragel - it's awesome. We're using it
+to implement a fast parser for http://cukes.info/.
+
+I'm having problems scanning text when the keywords in the .rl file
+uses UTF-8 characters.
+This is easy to reproduce with the java1.rl example:
+http://svn.complang.org/ragel/trunk/test/java1.rl
+
+$ ragel -J java1.rl && javac java1.java && java java1
+ACCEPT
+FAIL
+FAIL
+
+Now, replace hello with hællø in both the machine declaration (line
+15) and the main method (line 38):
+
+$ ragel -J java1.rl && javac java1.java && java java1
+FAIL
+FAIL
+FAIL
+
+Is this a Ragel bug, or am I doing something wrong?
+I'm using Ragel 6.5, OS X Leopard and Java 1.5.
+
+Cheers,
+Aslak
+
+
+
+From aslak.hellesoy at gmail.com  Tue Nov 24 21:03:24 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Tue, 24 Nov 2009 22:03:24 +0100
+Subject: [ragel-users] UTF-8 problems with Java
+In-Reply-To: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+References: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+Message-ID: <8d961d900911241303j3faf1520o7122c64065697d6f@mail.gmail.com>
+
+I just came across contrib/unicode2ragel.rb
+I'll give that a spin :-)
+
+Aslak
+
+On Tue, Nov 24, 2009 at 9:39 PM, aslak hellesoy
+<aslak.hellesoy at gmail.com> wrote:
+> Hi there,
+>
+> First of all - thanks a lot for Ragel - it's awesome. We're using it
+> to implement a fast parser for http://cukes.info/.
+>
+> I'm having problems scanning text when the keywords in the .rl file
+> uses UTF-8 characters.
+> This is easy to reproduce with the java1.rl example:
+> http://svn.complang.org/ragel/trunk/test/java1.rl
+>
+> $ ragel -J java1.rl && javac java1.java && java java1
+> ACCEPT
+> FAIL
+> FAIL
+>
+> Now, replace hello with hællø in both the machine declaration (line
+> 15) and the main method (line 38):
+>
+> $ ragel -J java1.rl && javac java1.java && java java1
+> FAIL
+> FAIL
+> FAIL
+>
+> Is this a Ragel bug, or am I doing something wrong?
+> I'm using Ragel 6.5, OS X Leopard and Java 1.5.
+>
+> Cheers,
+> Aslak
+>
+
+
+
+From ibc at aliax.net  Wed Nov 25 16:57:10 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 25 Nov 2009 17:57:10 +0100
+Subject: [ragel-users] <EOF>:0: at token _eof: parse error
+Message-ID: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+
+Hi, sure it's a stupid issue but I don't find the, for sure, obvious error.
+
+I'm trying to compile a rl file (ragel -G2 -C file.rl) and get this
+simple error, nothing else:
+
+  <EOF>:0: at token _eof: parse error
+
+What could be the obvious cause? I've a similar ragel file which
+compiles properly...
+
+Thanks.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Wed Nov 25 17:05:54 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 25 Nov 2009 18:05:54 +0100
+Subject: [ragel-users] <EOF>:0: at token _eof: parse error
+In-Reply-To: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+References: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+Message-ID: <cc1f582e0911250905x25514bd1y8aa796216d504f4a@mail.gmail.com>
+
+2009/11/25 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, sure it's a stupid issue but I don't find the, for sure, obvious error.
+>
+> I'm trying to compile a rl file (ragel -G2 -C file.rl) and get this
+> simple error, nothing else:
+>
+>  <EOF>:0: at token _eof: parse error
+>
+> What could be the obvious cause? I've a similar ragel file which
+> compiles properly...
+
+Ok, I was using "//" for comment into %%{ ... }%%.
+XD
+
+
+
+From lu_zero at gentoo.org  Sun Nov 29 21:47:10 2009
+From: lu_zero at gentoo.org (Luca Barbato)
+Date: Sun, 29 Nov 2009 22:47:10 +0100
+Subject: [ragel-users] new release scheduled?
+Message-ID: <4B12EBDE.7090709@gentoo.org>
+
+Hi, since there are lots of fixes and improvements piling up in trunk
+and overall I'm afraid that I'm not the only one who has ragel as
+blocker for his own release plan (in this case feng and possibly a newer
+nemesi), what can I do in order to have a ragel release between soon and
+ pretty soon? =)
+
+lu
+
+-- 
+
+Luca Barbato
+Gentoo Council Member
+Gentoo/linux Gentoo/PPC
+http://dev.gentoo.org/~lu_zero
+
+
+
+
+From thurston at complang.org  Sun Nov 29 21:50:06 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Nov 2009 16:50:06 -0500
+Subject: [ragel-users] new release scheduled?
+In-Reply-To: <4B12EBDE.7090709@gentoo.org>
+References: <4B12EBDE.7090709@gentoo.org>
+Message-ID: <4B12EC8E.5000306@complang.org>
+
+I'll stop dragging my heels and do it this week. I was hoping to include 
+some newly developed features but that can wait.
+
+Adrian
+
+Luca Barbato wrote:
+> Hi, since there are lots of fixes and improvements piling up in trunk
+> and overall I'm afraid that I'm not the only one who has ragel as
+> blocker for his own release plan (in this case feng and possibly a newer
+> nemesi), what can I do in order to have a ragel release between soon and
+>  pretty soon? =)
+> 
+> lu
+> 
+
+
+
+From ibc at aliax.net  Tue Nov 17 15:30:13 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 17 Nov 2009 16:30:13 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in Linux 32
+	and 64 bits
+Message-ID: <200911171630.13791.ibc@aliax.net>
+
+Hi, the following code produces a segmentfault:
+
+------identity.rl-------------
+class Identity
+
+	%%{
+		machine identity;
+		
+		CR = "\r";
+		LF = "\n";
+		CRLF = CR LF;
+		SP = " ";
+		HTAB = "\t";
+		WSP = SP | HTAB;
+		LWS = ( WSP* CRLF )? WSP+;
+		SWS = LWS?;
+		LAQUOT = SWS "<";
+		RAQUOT = ">" SWS;
+		DQUOTE = "\"";
+		ALPHA = 0x41..0x5a | 0x61..0x7a;
+		DIGIT = 0x30..0x39;
+		alphanum = ALPHA | DIGIT;
+		quoted_pair = "\\" ( 0x00..0x09 | 0x0b..0x0c | 0x0e..0x7f );
+		UTF8_CONT = 0x80..0xbf;
+		UTF8_NONASCII = ( 0xc0..0xdf UTF8_CONT ) | ( 0xe0..0xef UTF8_CONT{2} ) | ( 
+0xf0..0xf7 UTF8_CONT{3} ) | ( 0xf8..0xfb UTF8_CONT{4} ) | ( 0xfc..0xfd 
+UTF8_CONT{5} );
+		token = ( alphanum | "-" | "." | "!" | "%" | "*" | "_" | "+" | "`" | "'" | 
+"~" )+;
+		
+		qdtext = LWS | "!" | 0x23..0x5b | 0x5d..0x7e | UTF8_NONASCII;
+		quoted_string = DQUOTE ( qdtext | quoted_pair )* DQUOTE;
+		
+		display_name = quoted_string | ( token ( LWS token )* );
+		
+		write data;
+	}%%
+
+end
+-------------------
+
+~$ ragel -F1 -R identity.rl
+Segmentfault
+
+
+
+If doesn't occur if I remove the line "write data".
+It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5, 
+using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+
+Is it a bug?
+
+Regards.
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Tue Nov 17 15:42:47 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 17 Nov 2009 16:42:47 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+	Linux 32 and 64 bits
+In-Reply-To: <200911171630.13791.ibc@aliax.net>
+References: <200911171630.13791.ibc@aliax.net>
+Message-ID: <200911171642.47573.ibc@aliax.net>
+
+El Martes, 17 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> 
+> If doesn't occur if I remove the line "write data".
+> It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5,
+> using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+> 
+> Is it a bug?
+
+I forgot to add "main := display_name;" before "write data". Now it doesn't 
+crash. Is it the expected behavior?
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Tue Nov 17 16:33:24 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 17 Nov 2009 11:33:24 -0500
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+ Linux 32 and 64 bits
+In-Reply-To: <200911171642.47573.ibc@aliax.net>
+References: <200911171630.13791.ibc@aliax.net>
+	<200911171642.47573.ibc@aliax.net>
+Message-ID: <4B02D054.6060109@esentire.com>
+
+It should be printing an error instead of crashing.
+
+identity.rl:27:3: no machine instantiations to write
+
+It's been fixed in trunk. A new release is needed soon.
+
+Thanks,
+  Adrian
+
+Iñaki Baz Castillo wrote:
+> El Martes, 17 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+>> If doesn't occur if I remove the line "write data".
+>> It occurs in Debian and Ubuntu of 32 and 64 bits, with Ragel 6.4 and 6.5,
+>> using Ruby 1.8 or 1.9 (for sure Ruby version doesn't affect here).
+>>
+>> Is it a bug?
+> 
+> I forgot to add "main := display_name;" before "write data". Now it doesn't 
+> crash. Is it the expected behavior?
+> 
+> 
+
+
+
+From flameeyes at gmail.com  Tue Nov 17 16:48:31 2009
+From: flameeyes at gmail.com (Diego Elio =?UTF-8?Q?=E2=80=9CFlameeyes=E2=80=9D_?= =?ISO-8859-1?Q?Petten=F2?=)
+Date: Tue, 17 Nov 2009 17:48:31 +0100
+Subject: [ragel-users] Segment fault using Ruby Ragel 6.4 or 6.5 in
+ Linux 32 and 64 bits
+In-Reply-To: <4B02D054.6060109@esentire.com>
+References: <200911171630.13791.ibc@aliax.net>
+	<200911171642.47573.ibc@aliax.net>  <4B02D054.6060109@esentire.com>
+Message-ID: <1258476511.22831.143.camel@yamato>
+
+Il giorno Tue, 17/11/2009 alle 11.33 -0500, Adrian Thurston ha scritto:
+> 
+> It's been fixed in trunk. A new release is needed soon. 
+
+Definitely ;)
+
+
+-- 
+Diego Elio Pettenò — “Flameeyes”
+http://blog.flameeyes.eu/
+
+If you found a .asc file in this mail and know not what it is,
+it's a GnuPG digital signature: http://www.gnupg.org/
+
+
+
+
+
+From rashid.karimov at gmail.com  Wed Nov 18 16:14:38 2009
+From: rashid.karimov at gmail.com (Rashid Karimov)
+Date: Wed, 18 Nov 2009 11:14:38 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+	outside of action{} blox
+Message-ID: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+
+Folx,
+
+Say I have a machine defined with a number of states in it:
+
+S1 (
+
+Event1 -> S2 ),
+
+S2 (
+
+Event2 -> S3),
+
+..... and so on .
+
+I access cs as  blah->cs .
+
+
+If I want to figure out and/or modify , outside of FMS action{} code blocks,
+if the current state is S2 or S3,
+how do I find out what S2 and S3 translate to, in terms of context->cs value
+?
+
+Outside of exporting FSM as an XML and then going over it, is there a way to
+ask Ragel to "export" the state
+mappings ? Similar to the  way one can import event definitions like so:
+
+#define Event1 'a'
+#define Event2 'b'
+
+can Ragel export state cs values like so:
+
+#define S1 1
+#define S2 2
+
+Again, one could use Ragel's dot or XML output to figure out what different
+states translate to in terms of cs values
+and then map them manually, but I was hoping there's a different, more
+automated way to go about it.
+
+When/if the FSM definition is modified - new states included, existing
+states deleted,  etc, such manual definitions
+would clearly get out of sync  and this is what I am trying to avoid.
+
+
+TY
+Rashid
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091118/d4b2be30/attachment-0001.html>
+
+From adrian.thurston at esentire.com  Wed Nov 18 16:38:01 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Wed, 18 Nov 2009 11:38:01 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+ outside of action{} blox
+In-Reply-To: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+References: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+Message-ID: <4B0422E9.1080107@esentire.com>
+
+The problem with doing this in Ragel is that any particular named 
+machine definition may correspond to more than one state in the compiled 
+output. Therefore, a variable to be used outside of the machine would 
+actually have to be a set of states.
+
+For this reason, Ragel does not automate the process. Instead, what you 
+should do is use actions to maintain a state variable that has meaning 
+outside the FSM.
+
+-Adrian
+
+Rashid Karimov wrote:
+> Folx,
+> 
+> Say I have a machine defined with a number of states in it:
+> 
+> S1 (
+> 
+> Event1 -> S2 ),
+> 
+> S2 (
+> 
+> Event2 -> S3),
+> 
+> ..... and so on .
+> 
+> I access cs as  blah->cs .
+> 
+> 
+> If I want to figure out and/or modify , outside of FMS action{} code 
+> blocks, if the current state is S2 or S3,
+> how do I find out what S2 and S3 translate to, in terms of context->cs 
+> value ?
+> 
+> Outside of exporting FSM as an XML and then going over it, is there a 
+> way to ask Ragel to "export" the state
+> mappings ? Similar to the  way one can import event definitions like so:
+> 
+> #define Event1 'a'
+> #define Event2 'b'
+> 
+> can Ragel export state cs values like so:
+> 
+> #define S1 1
+> #define S2 2
+> 
+> Again, one could use Ragel's dot or XML output to figure out what 
+> different states translate to in terms of cs values
+> and then map them manually, but I was hoping there's a different, more 
+> automated way to go about it.
+> 
+> When/if the FSM definition is modified - new states included, existing 
+> states deleted,  etc, such manual definitions
+> would clearly get out of sync  and this is what I am trying to avoid.
+> 
+> 
+> TY
+> Rashid
+> 
+> 
+> 
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From rashid.karimov at gmail.com  Wed Nov 18 19:26:06 2009
+From: rashid.karimov at gmail.com (Rashid Karimov)
+Date: Wed, 18 Nov 2009 14:26:06 -0500
+Subject: [ragel-users] Figuring out/referring to FSM states (cs values)
+	outside of action{} blox
+In-Reply-To: <4B0422E9.1080107@esentire.com>
+References: <a13c6bc90911180814p1551f08ap3d0ac465c7cd2a40@mail.gmail.com>
+	<4B0422E9.1080107@esentire.com>
+Message-ID: <a13c6bc90911181126pab9c0ffq376c2233cbd2fb3b@mail.gmail.com>
+
+Adrian,
+
+thank you for prompt response, I understand it now :)
+
+In my case, there's a subset of states that I want to act on, outside of
+action code, without driving through the FSM code proper. Will follow
+your advice and expose that subset via non-ragel state variable and act
+on that !
+
+TY
+
+Rashid
+
+On Wed, Nov 18, 2009 at 11:38 AM, Adrian Thurston <
+adrian.thurston at esentire.com> wrote:
+
+> The problem with doing this in Ragel is that any particular named
+> machine definition may correspond to more than one state in the compiled
+> output. Therefore, a variable to be used outside of the machine would
+> actually have to be a set of states.
+>
+> For this reason, Ragel does not automate the process. Instead, what you
+> should do is use actions to maintain a state variable that has meaning
+> outside the FSM.
+>
+> -Adrian
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091118/ae2d6ea6/attachment-0001.html>
+
+From grygoriy.fuchedzhy at gmail.com  Thu Nov 19 20:45:03 2009
+From: grygoriy.fuchedzhy at gmail.com (=?KOI8-R?B?59LJx8/Sycog5tXexcTWyQ==?=)
+Date: Thu, 19 Nov 2009 22:45:03 +0200
+Subject: [ragel-users] some questions regarding ragel
+Message-ID: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+
+Hi. I'm new to ragel and currently exploring its features. I'm working on
+some applications using microcontrollers which have very limited resources.
+Microcontrollers communicate with each other with radio. I'm using ragel to
+parse radio protocol. So here is my questions:
+
+1. Main part of my application is infinite loop, which is waiting for input,
+parses it with ragel-generated code and do some work. So I don't have
+EOF-thing at all. I don't use any EOF actions(at least explicitly). But
+generated code still contains some EOF-stuff which uses eof variable(thus I
+have to declare it). Documentation states: "If EOF actions are used then the
+eof variable is required."(so if I don't use EOF actions it shouldn't be
+required) I think I'm missing something. Maybe I have to state explicitly
+somewhere in .rl file that EOF is senseless in my case. Here is my
+dummy-playground-example for PC http://gist.github.com/239028
+
+2. Ragel assumes that data which have to be processed is between p and pe
+pointers. Can this be customized? Here is what I want. I have ring-buffer
+which fills in interrupt routines. I have interface function for this
+ring-buffer, which returns data from this buffer byte by byte ( int
+cyw_tryread(uint8_t* ptr) ). If there is some valid data in buffer it writes
+it to (*ptr) and returns 1, otherwise 0. I want ragel to use this function
+as source of data instead of walking through p pointer. It seems that all I
+need to do for this is replace
+>    if ( ++p != pe )
+>        goto _resume;
+with
+>    if ( cyw_tryread(p))
+>        goto _resume;
+pe pointer is useless here. So can I customize this in ragel without
+patching generated code(patching generated code is not very good thing to
+do...)
+
+3. Can I embed C checks within machine definition statement? e.g. if I want
+machine that matches any character, that have nonzero bit number 2
+(xxxxx1xx). So for this characters (ch & 4) is true. Is there a way to
+define such machine?
+
+Any tips and explanations would be very much appreciated.
+__
+Grygoriy Fuchedzhy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091119/0d2db19b/attachment-0001.html>
+
+From ibc at aliax.net  Fri Nov 20 18:39:36 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 19:39:36 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+Message-ID: <200911201939.36703.ibc@aliax.net>
+
+Hi, I'm creating a parsing for XML Xpath but in the grammar specs I find:
+
+
+http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+
+NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+                    [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | 
+                    [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+                    [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+                    [#x10000-#xEFFFF]
+
+
+http://www.w3.org/TR/REC-xml/#NT-NameChar
+
+NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+                    [#x0300-#x036F] | [#x203F-#x2040]
+	
+
+
+I've no idea of how to convert them to Ragel grammar. Of course the following 
+conversion is wrong:
+
+  [#x2070-#x218F]  =>  0x2070..0x218F
+
+as Ragel complains "literal 0x2C00 overflows the alphabet type".
+
+
+Any help please? Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From grygoriy.fuchedzhy at gmail.com  Fri Nov 20 18:49:35 2009
+From: grygoriy.fuchedzhy at gmail.com (=?KOI8-R?B?59LJx8/Sycog5tXexcTWyQ==?=)
+Date: Fri, 20 Nov 2009 20:49:35 +0200
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911201939.36703.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>
+Message-ID: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+
+I think this would work
+(0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+But I think there should be better solution
+__
+Grygoriy Fuchedzhy
+
+On Fri, Nov 20, 2009 at 8:39 PM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+
+> Hi, I'm creating a parsing for XML Xpath but in the grammar specs I find:
+>
+>
+> http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+>
+> NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+>                    [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] |
+>                    [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+>                    [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+>                    [#x10000-#xEFFFF]
+>
+>
+> http://www.w3.org/TR/REC-xml/#NT-NameChar
+>
+> NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+>                    [#x0300-#x036F] | [#x203F-#x2040]
+>
+>
+>
+> I've no idea of how to convert them to Ragel grammar. Of course the
+> following
+> conversion is wrong:
+>
+>  [#x2070-#x218F]  =>  0x2070..0x218F
+>
+> as Ragel complains "literal 0x2C00 overflows the alphabet type".
+>
+>
+> Any help please? Thanks a lot.
+>
+> --
+> Iñaki Baz Castillo <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20091120/912bff3e/attachment-0001.html>
+
+From ibc at aliax.net  Fri Nov 20 19:11:38 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:11:38 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <200911202011.38500.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+
+ok, I'll try it.
+Thanks.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+From ibc at aliax.net  Fri Nov 20 19:20:10 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:20:10 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202011.38500.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+	<200911202011.38500.ibc@aliax.net>
+Message-ID: <200911202020.10524.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> > I think this would work
+> > (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> > But I think there should be better solution
+> 
+> ok, I'll try it.
+> Thanks.
+
+Unfortunatelly I don't understand how to convert the following range:
+
+   [#xF8-#x2FF]
+
+Could I convert it to?:
+
+   [#x00F8-#x2FF]
+
+so then to Ragel grammar as?:
+
+   (0x00 0xF8..0xFF) | (0x01 0x00..0xFF ) | (0x02 0x00..0xFF )
+
+
+It seems too complex however... what about converting to binary?
+
+
+PS: But what is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"?
+
+Thanks.
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:21:19 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:21:19 -0500
+Subject: [ragel-users] some questions regarding ragel
+In-Reply-To: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+References: <b7f967270911191245n7a65a4e1ua217101d76c3412d@mail.gmail.com>
+Message-ID: <4B06EC2F.4030202@esentire.com>
+
+The EOF actions are likely coming from leaving actions that are embedded 
+into the final state. The semantics of leaving actions is such that they 
+are executed when EOF arrives and we are in a state that has leaving 
+actions and the state is final.
+
+I have long been interested in adding a write option that causes ragel 
+to process only one character. Since I haven't gotten to that yet, the 
+way to do it is to do something like this:
+
+char c = something();
+char *p = &c;
+char *pe = p + 1;
+
+I admit that this does not produce optimal code, as the pe testing code 
+is pointless, but it's all there is right now.
+
+In regards to checks, yes, you can use conditions. This makes the 
+running code more complex, so it might not be for you. Best to try it 
+out. See the manual in "Beyond the Basic Model."
+
+Adrian
+
+Григорий Фучеджи wrote:
+> Hi. I'm new to ragel and currently exploring its features. I'm working 
+> on some applications using microcontrollers which have very limited 
+> resources. Microcontrollers communicate with each other with radio. I'm 
+> using ragel to parse radio protocol. So here is my questions:
+> 
+> 1. Main part of my application is infinite loop, which is waiting for 
+> input, parses it with ragel-generated code and do some work. So I don't 
+> have EOF-thing at all. I don't use any EOF actions(at least explicitly). 
+> But generated code still contains some EOF-stuff which uses eof 
+> variable(thus I have to declare it). Documentation states: "If EOF 
+> actions are used then the eof variable is required."(so if I don't use 
+> EOF actions it shouldn't be required) I think I'm missing something. 
+> Maybe I have to state explicitly somewhere in .rl file that EOF is 
+> senseless in my case. Here is my dummy-playground-example for PC 
+> http://gist.github.com/239028
+> 
+> 2. Ragel assumes that data which have to be processed is between p and 
+> pe pointers. Can this be customized? Here is what I want. I have 
+> ring-buffer which fills in interrupt routines. I have interface function 
+> for this ring-buffer, which returns data from this buffer byte by byte ( 
+> int cyw_tryread(uint8_t* ptr) ). If there is some valid data in buffer 
+> it writes it to (*ptr) and returns 1, otherwise 0. I want ragel to use 
+> this function as source of data instead of walking through p pointer. It 
+> seems that all I need to do for this is replace
+>  >    if ( ++p != pe )
+>  >        goto _resume;
+> with
+>  >    if ( cyw_tryread(p))
+>  >        goto _resume;
+> pe pointer is useless here. So can I customize this in ragel without 
+> patching generated code(patching generated code is not very good thing 
+> to do...)
+> 
+> 3. Can I embed C checks within machine definition statement? e.g. if I 
+> want machine that matches any character, that have nonzero bit number 2 
+> (xxxxx1xx). So for this characters (ch & 4) is true. Is there a way to 
+> define such machine?
+> 
+> Any tips and explanations would be very much appreciated.
+> __
+> Grygoriy Fuchedzhy
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:22:33 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:22:33 -0500
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <4B06EC79.3090703@esentire.com>
+
+If you wish to process a a byte at a time, this is what I would suggest.
+
+You may also want to do a first pass to convert to some multibyte 
+encoding and then process that. In that case you set alphtype to 
+something bigger than char.
+
+-Adrian
+
+Григорий Фучеджи wrote:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+> __
+> Grygoriy Fuchedzhy
+> 
+> On Fri, Nov 20, 2009 at 8:39 PM, Iñaki Baz Castillo <ibc at aliax.net 
+> <mailto:ibc at aliax.net>> wrote:
+> 
+>     Hi, I'm creating a parsing for XML Xpath but in the grammar specs I
+>     find:
+> 
+> 
+>     http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+> 
+>     NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] |
+>     [#xD8-#xF6] |
+>                        [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] |
+>                        [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+>                        [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+>                        [#x10000-#xEFFFF]
+> 
+> 
+>     http://www.w3.org/TR/REC-xml/#NT-NameChar
+> 
+>     NameChar       ::=  NameStartChar | "-" | "." | [0-9] | #xB7 |
+>                        [#x0300-#x036F] | [#x203F-#x2040]
+> 
+> 
+> 
+>     I've no idea of how to convert them to Ragel grammar. Of course the
+>     following
+>     conversion is wrong:
+> 
+>      [#x2070-#x218F]  =>  0x2070..0x218F
+> 
+>     as Ragel complains "literal 0x2C00 overflows the alphabet type".
+> 
+> 
+>     Any help please? Thanks a lot.
+> 
+>     --
+>     Iñaki Baz Castillo <ibc at aliax.net <mailto:ibc at aliax.net>>
+> 
+>     _______________________________________________
+>     ragel-users mailing list
+>     ragel-users at complang.org <mailto:ragel-users at complang.org>
+>     http://www.complang.org/mailman/listinfo/ragel-users
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+From ibc at aliax.net  Fri Nov 20 19:26:00 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:26:00 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <4B06EC79.3090703@esentire.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+	<4B06EC79.3090703@esentire.com>
+Message-ID: <200911202026.00656.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+> If you wish to process a a byte at a time, this is what I would suggest.
+> 
+> You may also want to do a first pass to convert to some multibyte
+> encoding and then process that. In that case you set alphtype to
+> something bigger than char.
+
+If I understand correctly that option is not suitable for me as the 99% of the 
+grammar si "normal":
+
+	DIGIT                   = 0x30..0x39;
+	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+	att_name               = QName;
+	att_value              = AttValue;
+	attr_test              = "@" att_name "=" att_value;
+	NameorAny              = QName | "*";
+	position               = ( DIGIT )+;
+	by_pos_attr            = NameorAny "[" position "]" "[" attr_test "]";
+	by_attr                = NameorAny "[" attr_test "]";
+	by_pos                 = NameorAny "[" position "]";
+	by_name                = NameorAny;
+	attribute_selector     = "@" att_name;
+	namespace_selector     = "namespace::*";
+
+and so on...
+
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Fri Nov 20 19:35:32 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Fri, 20 Nov 2009 14:35:32 -0500
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202026.00656.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net>	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>	<4B06EC79.3090703@esentire.com>
+	<200911202026.00656.ibc@aliax.net>
+Message-ID: <4B06EF84.6040206@esentire.com>
+
+Okay, in that case then have a look at the unicode2ragel.rb script in 
+the contrib directory. It can help with generating ragel defintions for you.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+>> If you wish to process a a byte at a time, this is what I would suggest.
+>>
+>> You may also want to do a first pass to convert to some multibyte
+>> encoding and then process that. In that case you set alphtype to
+>> something bigger than char.
+> 
+> If I understand correctly that option is not suitable for me as the 99% of the 
+> grammar si "normal":
+> 
+> 	DIGIT                   = 0x30..0x39;
+> 	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+> 	att_name               = QName;
+> 	att_value              = AttValue;
+> 	attr_test              = "@" att_name "=" att_value;
+> 	NameorAny              = QName | "*";
+> 	position               = ( DIGIT )+;
+> 	by_pos_attr            = NameorAny "[" position "]" "[" attr_test "]";
+> 	by_attr                = NameorAny "[" attr_test "]";
+> 	by_pos                 = NameorAny "[" position "]";
+> 	by_name                = NameorAny;
+> 	attribute_selector     = "@" att_name;
+> 	namespace_selector     = "namespace::*";
+> 
+> and so on...
+> 
+> 
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Fri Nov 20 19:52:11 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 20:52:11 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <4B06EF84.6040206@esentire.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<200911202026.00656.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+Message-ID: <200911202052.11515.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Adrian Thurston escribió:
+> Okay, in that case then have a look at the unicode2ragel.rb script in
+> the contrib directory.
+
+Hummm, two points:
+
+1) I'm not generating Ruby code, but C code (perhaps it doesn't matter and you 
+suggested that script for other reason).
+
+2) I don't see that script in 6.4 sources:
+
+/usr/src/ragel-6.4$ ls -l contrib/
+total 36
+-rw-r--r-- 1 root root 8320 2009-07-08 02:03 Makefile
+-rw-r--r-- 1 ibc  ibc    34 2009-04-05 00:06 Makefile.am
+-rw-r--r-- 1 ibc  ibc  8280 2009-05-18 15:56 Makefile.in
+-rw-r--r-- 1 ibc  ibc  1386 2009-04-04 23:56 ragel.m4
+-rw-r--r-- 1 ibc  ibc    85 2009-04-04 23:56 ragel.make
+
+
+> It can help with generating ragel defintions for
+> you.
+
+The fact is that I just wnat to create ragel grammar (using single byte) from 
+this original grammar:
+
+  NameStartChar  ::=  ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] |
+                      [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | 
+                      [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] |
+                      [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+                      [#x10000-#xEFFFF]
+
+Must I do some "exotic" to achieve it? I've already played with UTF-8 code in 
+Ragel by using this grammar (from SIP protocol ABNF):
+
+	UTF8_CONT        = 0x80..0xbf;
+	UTF8_NONASCII    = ( 0xc0..0xdf UTF8_CONT ) | ( 0xe0..0xef UTF8_CONT{2} ) |
+             ( 0xf0..0xf7 UTF8_CONT{3} ) | ( 0xf8..0xfb UTF8_CONT{4} ) |
+             ( 0xfc..0xfd UTF8_CONT{5} );
+
+Unfortunatelly I have no idea about if the former grammar ("NameStartChar") 
+is, or not, related to UTF-8 or not.
+The fact is that I could simplify this grammar (after understanding what it 
+means) even if it allows some invalid bytes.
+
+
+However, please let me ask again:
+What is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"? I need to know it in order 
+to do a workaround.
+
+Really thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Nov 20 20:00:59 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 21:00:59 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202052.11515.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+	<200911202052.11515.ibc@aliax.net>
+Message-ID: <200911202101.00116.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> However, please let me ask again:
+> What is #x2FF? is it "0x2F 0xF0"? or "0x02 0xFF"? I need to know it in
+>  order  to do a workaround.
+
+I've been said by other means that #x2FF = #x02FF. 
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Fri Nov 20 22:41:32 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Fri, 20 Nov 2009 23:41:32 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <200911202052.11515.ibc@aliax.net>
+References: <200911201939.36703.ibc@aliax.net> <4B06EF84.6040206@esentire.com>
+	<200911202052.11515.ibc@aliax.net>
+Message-ID: <200911202341.32406.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> 2) I don't see that script in 6.4 sources:
+> 
+> /usr/src/ragel-6.4$ ls -l contrib/
+> total 36
+> -rw-r--r-- 1 root root 8320 2009-07-08 02:03 Makefile
+> -rw-r--r-- 1 ibc  ibc    34 2009-04-05 00:06 Makefile.am
+> -rw-r--r-- 1 ibc  ibc  8280 2009-05-18 15:56 Makefile.in
+> -rw-r--r-- 1 ibc  ibc  1386 2009-04-04 23:56 ragel.m4
+> -rw-r--r-- 1 ibc  ibc    85 2009-04-04 23:56 ragel.make
+> 
+
+Ok, it exists in the trunk version:
+
+  http://svn.complang.org/ragel/trunk/contrib/unicode2ragel.rb
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 02:13:20 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 03:13:20 +0100
+Subject: [ragel-users] How to convert [#x2070-#x218F] to Ragel grammar?
+In-Reply-To: <b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+References: <200911201939.36703.ibc@aliax.net>
+	<b7f967270911201049j1895f8f8j79793ee9e71cd3b4@mail.gmail.com>
+Message-ID: <200911210313.20536.ibc@aliax.net>
+
+El Viernes, 20 de Noviembre de 2009, Григорий Фучеджи escribió:
+> I think this would work
+> (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+> But I think there should be better solution
+
+Finally I've understood that this conversion is not valid:
+  #x2070-#x218F  !=   (0x20 0x70..0xFF) | (0x21 0x00..0x8F)
+
+The former grammar are Unicode character representation in hexadecimal code 
+point. It represents the symbol ⁰ and in hex UTF-8 bytes it would be "0xE2 
+0x81 0xB0".
+
+A conversor utility:
+
+  http://www.ltg.ed.ac.uk/~richard/utf-8.cgi?input=C0&mode=hex
+
+
+Of course it would be great if Ragel wouud provide Unicode hex code point 
+grammar in the .rl files so I could do:
+
+  0x2070..0x218F
+
+instead of having to convert it to lots of hexadecimal bytes ranges.
+
+Regards.
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:23:07 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:23:07 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper end"
+Message-ID: <200911211823.07481.ibc@aliax.net>
+
+Hi, I get this strange error:
+
+  "67:41: lower end of range is greater then upper end"
+
+Line 67 is this one:
+
+	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+
+where column 41 is "0x30".
+
+
+I cannot understand what's wrong, any help please?
+I use Ragel 6.4.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:23:31 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:23:31 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <200911211823.31951.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+
+> I use Ragel 6.4.
+
+Sorry. I use Ragel 6.5.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:25:47 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:25:47 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <200911211825.47369.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> Hi, I get this strange error:
+> 
+>   "67:41: lower end of range is greater then upper end"
+> 
+> Line 67 is this one:
+> 
+> 	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+> 
+> where column 41 is "0x30".
+> 
+> 
+> I cannot understand what's wrong, any help please?
+
+A workaround is:
+
+  extension_selector     = any -- "/";
+
+but I'd like to understand the above error.
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 17:26:39 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 12:26:39 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211823.07481.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+Message-ID: <4B0822CF.4010408@complang.org>
+
+That's because you're working with a signed char alphabet. The literal 
+value 0xff is interpreted as -1.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I get this strange error:
+> 
+>   "67:41: lower end of range is greater then upper end"
+> 
+> Line 67 is this one:
+> 
+> 	extension_selector     = ( 0x00..0x2e | 0x30..0xff )+;
+> 
+> where column 41 is "0x30".
+> 
+> 
+> I cannot understand what's wrong, any help please?
+> I use Ragel 6.4.
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:41:06 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:41:06 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B0822CF.4010408@complang.org>
+References: <200911211823.07481.ibc@aliax.net> <4B0822CF.4010408@complang.org>
+Message-ID: <200911211841.06404.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> That's because you're working with a signed char alphabet. The literal 
+> value 0xff is interpreted as -1.
+
+Ok, thanks! 
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Sat Nov 21 17:47:48 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 18:47:48 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <200911211841.06404.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net> <4B0822CF.4010408@complang.org>
+	<200911211841.06404.ibc@aliax.net>
+Message-ID: <200911211847.48143.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> > That's because you're working with a signed char alphabet. The literal
+> > value 0xff is interpreted as -1.
+> 
+> Ok, thanks!
+
+According to the doc alphtype can be (for C):
+
+  char   unsigned char
+  short  unsigned short
+  int    unsigned int
+  long   unsigned long
+
+However I set:
+
+  %%{
+    machine my_grammar;
+    alphtype unsigned char;
+
+and get:
+
+  "unsigned char" is not a valid alphabet type
+
+¿?
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 17:52:26 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 12:52:26 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211847.48143.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>
+	<4B0822CF.4010408@complang.org>	<200911211841.06404.ibc@aliax.net>
+	<200911211847.48143.ibc@aliax.net>
+Message-ID: <4B0828DA.8000702@complang.org>
+
+That doesn't sound right. Can you send a ragel file that causes this? 
+Reduce it if contains code you don't want to share.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Sábado, 21 de Noviembre de 2009, Iñaki Baz Castillo escribió:
+>> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+>>> That's because you're working with a signed char alphabet. The literal
+>>> value 0xff is interpreted as -1.
+>> Ok, thanks!
+> 
+> According to the doc alphtype can be (for C):
+> 
+>   char   unsigned char
+>   short  unsigned short
+>   int    unsigned int
+>   long   unsigned long
+> 
+> However I set:
+> 
+>   %%{
+>     machine my_grammar;
+>     alphtype unsigned char;
+> 
+> and get:
+> 
+>   "unsigned char" is not a valid alphabet type
+> 
+> ¿?
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 18:01:07 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 19:01:07 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B0828DA.8000702@complang.org>
+References: <200911211823.07481.ibc@aliax.net>
+	<200911211847.48143.ibc@aliax.net> <4B0828DA.8000702@complang.org>
+Message-ID: <200911211901.07591.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> That doesn't sound right. Can you send a ragel file that causes this?
+> Reduce it if contains code you don't want to share.
+
+Any grammar causes it:
+
+---------test.rl-------------
+%%{
+	
+	machine my_grammar;
+	alphtype unsigned char;
+		
+	DIGIT                   = 0x30..0x39;
+	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+	mychar                  = DIGIT | ALPHA;
+
+	main                  := mychar;
+	write data;
+	
+}%%
+-----------------------------
+
+~# ragel -F0 -R test.rl
+test.rl:4:11: "unsigned char" is not a valid alphabet type
+
+
+
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From thurston at complang.org  Sat Nov 21 18:03:10 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 21 Nov 2009 13:03:10 -0500
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+ end"
+In-Reply-To: <200911211901.07591.ibc@aliax.net>
+References: <200911211823.07481.ibc@aliax.net>	<200911211847.48143.ibc@aliax.net>
+	<4B0828DA.8000702@complang.org> <200911211901.07591.ibc@aliax.net>
+Message-ID: <4B082B5E.3030004@complang.org>
+
+Oh, you're using the ruby code generator. Unsigned char is not supported 
+in the ruby code generator. Sorry, I assumed C.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+>> That doesn't sound right. Can you send a ragel file that causes this?
+>> Reduce it if contains code you don't want to share.
+> 
+> Any grammar causes it:
+> 
+> ---------test.rl-------------
+> %%{
+> 	
+> 	machine my_grammar;
+> 	alphtype unsigned char;
+> 		
+> 	DIGIT                   = 0x30..0x39;
+> 	ALPHA                   = 0x41..0x5a | 0x61..0x7a;
+> 	mychar                  = DIGIT | ALPHA;
+> 
+> 	main                  := mychar;
+> 	write data;
+> 	
+> }%%
+> -----------------------------
+> 
+> ~# ragel -F0 -R test.rl
+> test.rl:4:11: "unsigned char" is not a valid alphabet type
+> 
+> 
+> 
+> 
+
+
+
+From ibc at aliax.net  Sat Nov 21 18:17:11 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sat, 21 Nov 2009 19:17:11 +0100
+Subject: [ragel-users] Error: "lower end of range is greater then upper
+	end"
+In-Reply-To: <4B082B5E.3030004@complang.org>
+References: <200911211823.07481.ibc@aliax.net>
+	<200911211901.07591.ibc@aliax.net> <4B082B5E.3030004@complang.org>
+Message-ID: <200911211917.11251.ibc@aliax.net>
+
+El Sábado, 21 de Noviembre de 2009, Adrian Thurston escribió:
+> Oh, you're using the ruby code generator. Unsigned char is not supported
+> in the ruby code generator. Sorry, I assumed C.
+
+Really sorry, you are right. I'll generate C code but in the meanwhile I 
+compile to Ruby code just for testing.
+Sorry.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Mon Nov 23 18:45:43 2009
+From: ibc at aliax.net (=?utf-8?q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 23 Nov 2009 19:45:43 +0100
+Subject: [ragel-users] Help with grammar of XML
+Message-ID: <200911231945.43179.ibc@aliax.net>
+
+Hi, I've terminating a Ragel parser and to finish it I just must understand 
+the following XML grammar as appears in:
+  http://www.w3.org/TR/REC-xml/#NT-AttValue
+
+
+ AttValue ::= '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
+
+Could I know which would be the equivalent to [^<&"] in Ragel grammar?
+The problem is that I¡m not 100% sure of what [^<&"] means in the XML grammar 
+as it's not BNF which I'm used to.
+
+Does [^<&"] means "any symbol but '<', '&' and '"'?
+
+Thanks a lot.
+
+-- 
+Iñaki Baz Castillo <ibc at aliax.net>
+
+
+
+From adrian.thurston at esentire.com  Mon Nov 23 18:56:01 2009
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Mon, 23 Nov 2009 13:56:01 -0500
+Subject: [ragel-users] Help with grammar of XML
+In-Reply-To: <200911231945.43179.ibc@aliax.net>
+References: <200911231945.43179.ibc@aliax.net>
+Message-ID: <4B0ADAC1.4000803@esentire.com>
+
+Indeed it does. It means that in the XML grammar, and in Ragel.
+
+-Adrian
+
+Iñaki Baz Castillo wrote:
+> Hi, I've terminating a Ragel parser and to finish it I just must understand 
+> the following XML grammar as appears in:
+>   http://www.w3.org/TR/REC-xml/#NT-AttValue
+> 
+> 
+>  AttValue ::= '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
+> 
+> Could I know which would be the equivalent to [^<&"] in Ragel grammar?
+> The problem is that I¡m not 100% sure of what [^<&"] means in the XML grammar 
+> as it's not BNF which I'm used to.
+> 
+> Does [^<&"] means "any symbol but '<', '&' and '"'?
+> 
+> Thanks a lot.
+> 
+
+
+
+From aslak.hellesoy at gmail.com  Tue Nov 24 20:39:24 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Tue, 24 Nov 2009 21:39:24 +0100
+Subject: [ragel-users] UTF-8 problems with Java
+Message-ID: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+
+Hi there,
+
+First of all - thanks a lot for Ragel - it's awesome. We're using it
+to implement a fast parser for http://cukes.info/.
+
+I'm having problems scanning text when the keywords in the .rl file
+uses UTF-8 characters.
+This is easy to reproduce with the java1.rl example:
+http://svn.complang.org/ragel/trunk/test/java1.rl
+
+$ ragel -J java1.rl && javac java1.java && java java1
+ACCEPT
+FAIL
+FAIL
+
+Now, replace hello with hællø in both the machine declaration (line
+15) and the main method (line 38):
+
+$ ragel -J java1.rl && javac java1.java && java java1
+FAIL
+FAIL
+FAIL
+
+Is this a Ragel bug, or am I doing something wrong?
+I'm using Ragel 6.5, OS X Leopard and Java 1.5.
+
+Cheers,
+Aslak
+
+
+
+From aslak.hellesoy at gmail.com  Tue Nov 24 21:03:24 2009
+From: aslak.hellesoy at gmail.com (aslak hellesoy)
+Date: Tue, 24 Nov 2009 22:03:24 +0100
+Subject: [ragel-users] UTF-8 problems with Java
+In-Reply-To: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+References: <8d961d900911241239i2e7a52e1v2e2a41be31d4b637@mail.gmail.com>
+Message-ID: <8d961d900911241303j3faf1520o7122c64065697d6f@mail.gmail.com>
+
+I just came across contrib/unicode2ragel.rb
+I'll give that a spin :-)
+
+Aslak
+
+On Tue, Nov 24, 2009 at 9:39 PM, aslak hellesoy
+<aslak.hellesoy at gmail.com> wrote:
+> Hi there,
+>
+> First of all - thanks a lot for Ragel - it's awesome. We're using it
+> to implement a fast parser for http://cukes.info/.
+>
+> I'm having problems scanning text when the keywords in the .rl file
+> uses UTF-8 characters.
+> This is easy to reproduce with the java1.rl example:
+> http://svn.complang.org/ragel/trunk/test/java1.rl
+>
+> $ ragel -J java1.rl && javac java1.java && java java1
+> ACCEPT
+> FAIL
+> FAIL
+>
+> Now, replace hello with hællø in both the machine declaration (line
+> 15) and the main method (line 38):
+>
+> $ ragel -J java1.rl && javac java1.java && java java1
+> FAIL
+> FAIL
+> FAIL
+>
+> Is this a Ragel bug, or am I doing something wrong?
+> I'm using Ragel 6.5, OS X Leopard and Java 1.5.
+>
+> Cheers,
+> Aslak
+>
+
+
+
+From ibc at aliax.net  Wed Nov 25 16:57:10 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 25 Nov 2009 17:57:10 +0100
+Subject: [ragel-users] <EOF>:0: at token _eof: parse error
+Message-ID: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+
+Hi, sure it's a stupid issue but I don't find the, for sure, obvious error.
+
+I'm trying to compile a rl file (ragel -G2 -C file.rl) and get this
+simple error, nothing else:
+
+  <EOF>:0: at token _eof: parse error
+
+What could be the obvious cause? I've a similar ragel file which
+compiles properly...
+
+Thanks.
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+
+
+From ibc at aliax.net  Wed Nov 25 17:05:54 2009
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Wed, 25 Nov 2009 18:05:54 +0100
+Subject: [ragel-users] <EOF>:0: at token _eof: parse error
+In-Reply-To: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+References: <cc1f582e0911250857m170e8d34kbbe4ae5ff0c838d1@mail.gmail.com>
+Message-ID: <cc1f582e0911250905x25514bd1y8aa796216d504f4a@mail.gmail.com>
+
+2009/11/25 Iñaki Baz Castillo <ibc at aliax.net>:
+> Hi, sure it's a stupid issue but I don't find the, for sure, obvious error.
+>
+> I'm trying to compile a rl file (ragel -G2 -C file.rl) and get this
+> simple error, nothing else:
+>
+>  <EOF>:0: at token _eof: parse error
+>
+> What could be the obvious cause? I've a similar ragel file which
+> compiles properly...
+
+Ok, I was using "//" for comment into %%{ ... }%%.
+XD
+
+
+
+From lu_zero at gentoo.org  Sun Nov 29 21:47:10 2009
+From: lu_zero at gentoo.org (Luca Barbato)
+Date: Sun, 29 Nov 2009 22:47:10 +0100
+Subject: [ragel-users] new release scheduled?
+Message-ID: <4B12EBDE.7090709@gentoo.org>
+
+Hi, since there are lots of fixes and improvements piling up in trunk
+and overall I'm afraid that I'm not the only one who has ragel as
+blocker for his own release plan (in this case feng and possibly a newer
+nemesi), what can I do in order to have a ragel release between soon and
+ pretty soon? =)
+
+lu
+
+-- 
+
+Luca Barbato
+Gentoo Council Member
+Gentoo/linux Gentoo/PPC
+http://dev.gentoo.org/~lu_zero
+
+
+
+
+From thurston at complang.org  Sun Nov 29 21:50:06 2009
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 29 Nov 2009 16:50:06 -0500
+Subject: [ragel-users] new release scheduled?
+In-Reply-To: <4B12EBDE.7090709@gentoo.org>
+References: <4B12EBDE.7090709@gentoo.org>
+Message-ID: <4B12EC8E.5000306@complang.org>
+
+I'll stop dragging my heels and do it this week. I was hoping to include 
+some newly developed features but that can wait.
+
+Adrian
+
+Luca Barbato wrote:
+> Hi, since there are lots of fixes and improvements piling up in trunk
+> and overall I'm afraid that I'm not the only one who has ragel as
+> blocker for his own release plan (in this case feng and possibly a newer
+> nemesi), what can I do in order to have a ragel release between soon and
+>  pretty soon? =)
+> 
+> lu
+> 
+
+
+

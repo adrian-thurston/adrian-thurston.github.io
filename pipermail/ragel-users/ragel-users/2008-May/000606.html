@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Any%20suggestions%20on%20implementing%20SMTP%20protocol%20inRagel%3F&In-Reply-To=%3Cce0f6e0c0805122146j3e336d78j91a974e3c20cf806%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000605.html">
+   <LINK REL="Next"  HREF="000607.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?</H1>
+    <B>Ross Thomas</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Any%20suggestions%20on%20implementing%20SMTP%20protocol%20inRagel%3F&In-Reply-To=%3Cce0f6e0c0805122146j3e336d78j91a974e3c20cf806%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?">halfacan... at gmail.com
+       </A><BR>
+    <I>Tue May 13 04:46:48 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000605.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+        <LI>Next message: <A HREF="000607.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It seems to me that the approach I describe cannot work as I wanted it
+to, because the regexps matching the commands are duplicated for each
+state, only with a different target state. For example:
+
+main := (
+    start: (
+        1 -&gt; a
+    ),
+    a: (
+        1 -&gt; b
+    ),
+    ...
+);
+
+Given the input [1, 1] the machine will end up in state &quot;a&quot;, not state
+&quot;final&quot; as I thought. Which makes sense now I think about it.
+
+Back to the drawing board... :)
+
+-Ross
+
+
+On Mon, May 12, 2008 at 6:15 PM, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Hi Ross,
+</I>&gt;<i>
+</I>&gt;<i> To be honest I don't have much experience with this approach. Statecharts were originally made for small low-level machines that are awkward to do with regular expressions. But they turned out to be more useful. The only issue I can think of is dealing with whitespace ... but I don't know SMTP well enough to say for sure. Let us know if if you pursue it and it works out :)
+</I>&gt;<i>
+</I>&gt;<i> Adrian
+</I>&gt;<i> -----Original Message-----
+</I>&gt;<i> From: &quot;Ross Thomas&quot; &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">halfacan... at gmail.com</A>&gt;
+</I>&gt;<i>
+</I>&gt;<i> Date: Mon, 12 May 2008 15:17:27
+</I>&gt;<i> To:ragel-users &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>&gt;
+</I>&gt;<i> Subject: [ragel-users] Re: Any suggestions on implementing SMTP protocol in
+</I>&gt;<i>  Ragel?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> To reduce the scope of my question a little, here is the general
+</I>&gt;<i> structure I have so far:
+</I>&gt;<i>
+</I>&gt;<i>    main := (
+</I>&gt;<i>        start: (
+</I>&gt;<i>            helo @copy_helo @resp_250 -&gt; wait_mail |
+</I>&gt;<i>            mail @resp_503 -&gt; start |
+</I>&gt;<i>            vrfy @resp_503 -&gt; start |
+</I>&gt;<i>            ...
+</I>&gt;<i>        wait_mail: (
+</I>&gt;<i>            helo @resp_250 -&gt; wait_mail |
+</I>&gt;<i>            mail @copy_mail @resp_250 -&gt; wait_rcpt |
+</I>&gt;<i>            vrfy @resp_252 -&gt; wait_mail |
+</I>&gt;<i>            ...
+</I>&gt;<i>    );
+</I>&gt;<i>
+</I>&gt;<i> Each &quot;helo&quot;, &quot;mail&quot;, &quot;vrfy&quot; etc. machine corresponds to the SMTP
+</I>&gt;<i> command of the same name. They are defined as:
+</I>&gt;<i>
+</I>&gt;<i>    helo = ((&quot;HELO&quot;i | &quot;EHLO&quot;i) &quot; &quot;       %sarg graph+ %earg     eol);
+</I>&gt;<i>    mail = ( &quot;MAIL&quot;i            &quot; FROM:&lt;&quot; %sarg path*  %earg &quot;&gt;&quot; eol);
+</I>&gt;<i>    vrfy = ( &quot;VRFY&quot;i            &quot; &quot;       %sarg graph+ %earg     eol);
+</I>&gt;<i>    ...
+</I>&gt;<i>
+</I>&gt;<i> So the idea is that the top-level state chart handles logical flow and
+</I>&gt;<i> knows which commands are valid in which states, and calls the
+</I>&gt;<i> appropriate actions. The tokenizing is done &quot;inline&quot;, as it were.
+</I>&gt;<i>
+</I>&gt;<i> Does this strike anyone as a particularly foolish approach? Is there a
+</I>&gt;<i> better way?
+</I>&gt;<i>
+</I>&gt;<i> -Ross
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Sun, May 11, 2008 at 11:57 AM, Ross Thomas &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">halfacan... at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> While hacking up a parser for SMTP (in an unprecedentedly small amount
+</I>&gt;&gt;<i> of time, naturally :)) it occurred to me that given Ragel's ability to
+</I>&gt;&gt;<i> mix regular expressions with state charts I could make the same
+</I>&gt;&gt;<i> machine double-up as an SMTP protocol handler too. At least, I think I
+</I>&gt;&gt;<i> could. Because a significant portion of my work involves the client/
+</I>&gt;&gt;<i> server model this is an aspect of Ragel I'd very much like to explore
+</I>&gt;&gt;<i> in more detail...
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I've browsed around on the list and read Zed's post on state charts
+</I>&gt;&gt;<i> but still don't have a totally clear idea on how this might be
+</I>&gt;&gt;<i> implemented. Can anyone out there with more Ragel experience point me
+</I>&gt;&gt;<i> in the right direction?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> -Ross
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000605.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+	<LI>Next message: <A HREF="000607.html">[ragel-users] Re: Any suggestions on implementing SMTP protocol inRagel?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

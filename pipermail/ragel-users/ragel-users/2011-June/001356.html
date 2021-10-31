@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Action code for simple tokenizer?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20code%20for%20simple%20tokenizer%3F&In-Reply-To=%3CBANLkTinGWg%2BfbNYjP9Tvx0DLjHAXN_Xqkw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001355.html">
+   <LINK REL="Next"  HREF="001357.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Action code for simple tokenizer?</H1>
+    <B>Kevin T. Ryan</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Action%20code%20for%20simple%20tokenizer%3F&In-Reply-To=%3CBANLkTinGWg%2BfbNYjP9Tvx0DLjHAXN_Xqkw%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Action code for simple tokenizer?">kevin.t.ryan at gmail.com
+       </A><BR>
+    <I>Mon Jun 13 17:42:40 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001355.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+        <LI>Next message: <A HREF="001357.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1356">[ date ]</a>
+              <a href="thread.html#1356">[ thread ]</a>
+              <a href="subject.html#1356">[ subject ]</a>
+              <a href="author.html#1356">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hey -
+
+Just started using the library myself.  Easiest way to think about it
+(at least, it was for me) is that you are defining the machine in the
+section you noted below from the guide.  Until you initialize and
+execute it, it doesn't &quot;do anything&quot;.  Thus, in some part of your
+script you need:
+
+%% write data; # sets up all the static data needed by the tokenizer
+
+Then (somewhere else in all likelihood), you need to initialize and
+execute the machine.  So, for example:
+
+int main(int argc, char* argv[]) {
+    int cs; // you can use this to check the status of the machine
+    char* p = &quot;Your text to tokenize&quot;;
+    char* pe = p + strlen(p);
+
+    %% write init;
+    %% write exec; # this will execute the machine given the input
+provided by 'p'
+
+    if (cs == &lt;machine_name&gt;_error)
+        fprintf(stderr, &quot;Error\n&quot;);
+    return 0;
+}
+
+&gt;<i> What might action A look like? How does it use p, pe, etc.? Ditto for B.
+</I>
+Maybe action 'A' is used to print a match when it  ends (the '%' in
+front of the A indicates that it will occur when leaving action).  For
+example:
+
+action A { print(&quot;Found alpha\n&quot;); }
+action B { print(&quot;Found int\n&quot;); }
+
+If you need to print out the total string, you might combine it with a
+'mark' action.  Eg:
+
+action mark { mark = p; /* mark needs to be set up in 'main' function
+now as a char* */ }
+&lt; as before&gt;
+lower ( lower | digit )* &gt;mark %A |
+
+And do the same for the integer portion of the machine.  You could
+then change your print function to do something like:
+
+printf(&quot;Found alpha: %.*s\n&quot;, p-mark, mark); // print out the alpha found
+
+&gt;<i> PS. I think this would address a big question for
+</I>&gt;<i> ragel/parsing/lexing/tokenizing newbies, namely, how would an **expert**
+</I>&gt;<i> implement a **simple** tokenizer?
+</I>
+You may also want to look at machines that are 'special' for lexing
+(viz., machine := |* *|;).  BTW, I'm very new to this myself - so
+hopefully I didn't screw anything up too much!
+
+PS - I'm actually trying to write up a tutorial which I'll share with
+the list for feedback once it's done.  I think I have a much better
+grasp of what's going on now, but I think writing it out would
+actually help my understanding too.
+
+Good luck,
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001355.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+	<LI>Next message: <A HREF="001357.html">[ragel-users] Action code for simple tokenizer?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1356">[ date ]</a>
+              <a href="thread.html#1356">[ thread ]</a>
+              <a href="subject.html#1356">[ subject ]</a>
+              <a href="author.html#1356">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

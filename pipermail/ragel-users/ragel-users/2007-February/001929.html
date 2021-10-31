@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> action ordering.  is this a bug?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20action%20ordering.%20%20is%20this%20a%20bug%3F&In-Reply-To=%3C1171798725.471254.284590%40k78g2000cwa.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>action ordering.  is this a bug?</H1>
+    <B>Chris Pirazzi</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20action%20ordering.%20%20is%20this%20a%20bug%3F&In-Reply-To=%3C1171798725.471254.284590%40k78g2000cwa.googlegroups.com%3E"
+       TITLE="action ordering.  is this a bug?">cpira... at gmail.com
+       </A><BR>
+    <I>Sun Feb 18 11:38:45 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1929">[ date ]</a>
+              <a href="thread.html#1929">[ thread ]</a>
+              <a href="subject.html#1929">[ subject ]</a>
+              <a href="author.html#1929">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Hi,
+
+Ragel seems completely amazing and I am hoping I can use
+it for my application.  I am just getting to understand Ragel
+and in particular its rules about the order in which
+actions are called, because this will be important for
+my application.  I have ragel-5.18.
+
+The PDF says:
+
+&quot;When it visits a parse tree node it assigns
+timestamps to all starting action embeddings, recurses
+on the parse tree, then assigns timestamps
+to the remaining all, finishing, and leaving embeddings
+in the order in which they appear.&quot;
+
+However if I feed in this small (admittedly ambiguous) grammar:
+
+%%{
+
+machine small;
+write data noerror;
+
+bar = 'a' &gt;{ printf(&quot;&gt;bar\n&quot;); } @{ printf(&quot;@bar\n&quot;); }  $
+{ printf(&quot;$bar\n&quot;); }  %{ printf(&quot;%%bar\n&quot;); };
+
+barz = ( bar* ) &gt;{ printf(&quot;&gt;barz\n&quot;); } @{ printf(&quot;@barz\n&quot;); }  $
+{ printf(&quot;$barz\n&quot;); }  %{ printf(&quot;%%barz\n&quot;); };
+
+tbarz = barz . barz &gt;{ printf(&quot;&gt;tbarz\n&quot;); } @{ printf(&quot;@tbarz\n&quot;); }
+${ printf(&quot;$tbarz\n&quot;); }  %{ printf(&quot;%%tbarz\n&quot;); };
+
+main := ( tbarz 0 ) @{ fbreak; };
+
+write init;
+write exec noend;
+
+}%%
+}%%
+
+and I execute this machine on the input &quot;aaa&lt;nul&gt;&quot;, then I would
+expect to see &quot;&gt;tbarz&quot; first, but I don't.  The total output is:
+
+&gt;<i>barz
+</I>&gt;<i>bar
+</I>@bar
+$bar
+@barz
+$barz
+%barz
+&gt;<i>tbarz
+</I>@tbarz
+$tbarz
+%bar
+&gt;<i>bar
+</I>@bar
+$bar
+@barz
+$barz
+%barz
+&gt;<i>tbarz
+</I>&gt;<i>barz
+</I>@tbarz
+$tbarz
+%bar
+&gt;<i>bar
+</I>@bar
+$bar
+@barz
+$barz
+%barz
+&gt;<i>tbarz
+</I>&gt;<i>barz
+</I>@tbarz
+$tbarz
+%bar
+%barz
+%tbarz
+
+The &quot;problem&quot; can also be seen from the compiled output of ragel
+without producing any C code, in that the action table id=1
+does not list action 8 first.
+
+&lt;ragel filename=&quot;small.rl&quot; lang=&quot;C&quot;&gt;
+&lt;ragel_def name=&quot;small&quot;&gt;
+  &lt;alphtype&gt;0&lt;/alphtype&gt;
+  &lt;machine&gt;
+    &lt;action_list length=&quot;13&quot;&gt;
+      &lt;action id=&quot;0&quot; line=&quot;7&quot; col=&quot;12&quot;&gt;&lt;text&gt; printf(&quot;&gt;bar\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;1&quot; line=&quot;7&quot; col=&quot;35&quot;&gt;&lt;text&gt; printf(&quot;@bar\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;2&quot; line=&quot;7&quot; col=&quot;59&quot;&gt;&lt;text&gt; printf(&quot;$bar\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;3&quot; line=&quot;7&quot; col=&quot;83&quot;&gt;&lt;text&gt; printf(&quot;%%bar\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;4&quot; line=&quot;9&quot; col=&quot;18&quot;&gt;&lt;text&gt; printf(&quot;&gt;barz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;5&quot; line=&quot;9&quot; col=&quot;42&quot;&gt;&lt;text&gt; printf(&quot;@barz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;6&quot; line=&quot;9&quot; col=&quot;67&quot;&gt;&lt;text&gt; printf(&quot;$barz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;7&quot; line=&quot;9&quot; col=&quot;92&quot;&gt;&lt;text&gt; printf(&quot;%%barz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;8&quot; line=&quot;11&quot; col=&quot;22&quot;&gt;&lt;text&gt; printf(&quot;&gt;tbarz\n&quot;);
+&lt;/text&gt;&lt;/action&gt;
+      &lt;action id=&quot;9&quot; line=&quot;11&quot; col=&quot;47&quot;&gt;&lt;text&gt; printf(&quot;@tbarz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;10&quot; line=&quot;11&quot; col=&quot;73&quot;&gt;&lt;text&gt; printf(&quot;$tbarz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;11&quot; line=&quot;11&quot; col=&quot;99&quot;&gt;&lt;text&gt; printf(&quot;%%tbarz\n&quot;); &lt;/
+text&gt;&lt;/action&gt;
+      &lt;action id=&quot;12&quot; line=&quot;13&quot; col=&quot;22&quot;&gt;&lt;text&gt; &lt;/text&gt;&lt;break&gt;&lt;/
+break&gt;&lt;text&gt; &lt;/text&gt;&lt;/action&gt;
+    &lt;/action_list&gt;
+    &lt;action_table_list length=&quot;4&quot;&gt;
+      &lt;action_table id=&quot;0&quot; length=&quot;3&quot;&gt;7 11 12&lt;/action_table&gt;
+      &lt;action_table id=&quot;1&quot; length=&quot;10&quot;&gt;4 0 1 2 5 6 7 8 9 10&lt;/
+action_table&gt;
+      &lt;action_table id=&quot;2&quot; length=&quot;4&quot;&gt;3 7 11 12&lt;/action_table&gt;
+      &lt;action_table id=&quot;3&quot; length=&quot;11&quot;&gt;3 0 1 2 5 6 7 8 4 9 10&lt;/
+action_table&gt;
+    &lt;/action_table_list&gt;
+    &lt;start_state&gt;1&lt;/start_state&gt;
+    &lt;error_state&gt;0&lt;/error_state&gt;
+    &lt;state_list length=&quot;4&quot;&gt;
+      &lt;state id=&quot;0&quot;&gt;
+      &lt;trans_list length=&quot;0&quot;&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;1&quot;&gt;
+      &lt;trans_list length=&quot;2&quot;&gt;
+        &lt;t&gt;0 0 3 0&lt;/t&gt;
+        &lt;t&gt;97 97 2 1&lt;/t&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;2&quot;&gt;
+      &lt;trans_list length=&quot;2&quot;&gt;
+        &lt;t&gt;0 0 3 2&lt;/t&gt;
+        &lt;t&gt;97 97 2 3&lt;/t&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+
+      &lt;state id=&quot;3&quot; final=&quot;t&quot;&gt;
+      &lt;trans_list length=&quot;0&quot;&gt;
+      &lt;/trans_list&gt;
+      &lt;/state&gt;
+    &lt;/state_list&gt;
+  &lt;/machine&gt;
+&lt;/ragel_def&gt;
+&lt;host line=&quot;1&quot; col=&quot;1&quot;&gt;
+
+&lt;/host&gt;
+&lt;write def_name=&quot;small&quot; line=&quot;5&quot; col=&quot;1&quot;&gt;&lt;arg&gt;data&lt;/arg&gt;&lt;arg&gt;noerror&lt;/
+arg&gt;&lt;/write&gt;
+&lt;write def_name=&quot;small&quot; line=&quot;15&quot; col=&quot;1&quot;&gt;&lt;arg&gt;init&lt;/arg&gt;&lt;/write&gt;
+&lt;write def_name=&quot;small&quot; line=&quot;16&quot; col=&quot;1&quot;&gt;&lt;arg&gt;exec&lt;/arg&gt;&lt;arg&gt;noend&lt;/
+arg&gt;&lt;/write&gt;
+&lt;host line=&quot;18&quot;&gt;
+
+}&lt;/host&gt;
+&lt;host line=&quot;20&quot;&gt;&lt;/host&gt;
+&lt;/ragel&gt;
+
+Have I misunderstood the rules?
+
+Is the behavior caused by the ambiguity of the grammar?
+
+I will make a separate post on exactly what I'm hoping to do
+with ragel, and why I am even showing an ambiguous grammar.
+
+Thanks,
+
+     - Chris Pirazzi
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1929">[ date ]</a>
+              <a href="thread.html#1929">[ thread ]</a>
+              <a href="subject.html#1929">[ subject ]</a>
+              <a href="author.html#1929">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

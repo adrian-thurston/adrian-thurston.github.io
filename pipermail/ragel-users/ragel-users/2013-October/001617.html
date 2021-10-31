@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] signed/unsigned portability issue
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20signed/unsigned%20portability%20issue&In-Reply-To=%3C1BA5ECC7-B0AC-4958-BE80-95977BD817C2%40netherlabs.nl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001616.html">
+   <LINK REL="Next"  HREF="001618.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] signed/unsigned portability issue</H1>
+    <B>Peter van Dijk</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20signed/unsigned%20portability%20issue&In-Reply-To=%3C1BA5ECC7-B0AC-4958-BE80-95977BD817C2%40netherlabs.nl%3E"
+       TITLE="[ragel-users] signed/unsigned portability issue">peter.van.dijk at netherlabs.nl
+       </A><BR>
+    <I>Thu Oct 24 18:52:17 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001616.html">[ragel-users] Ragel 6.8 broken in Go
+</A></li>
+        <LI>Next message: <A HREF="001618.html">[ragel-users] signed/unsigned portability issue
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1617">[ date ]</a>
+              <a href="thread.html#1617">[ thread ]</a>
+              <a href="subject.html#1617">[ subject ]</a>
+              <a href="author.html#1617">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello folks,
+
+
+
+we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS TXT record data. Some time ago, we expanded the allowed inputs for this parser to the full 8 bit 'extended ASCII' range (which Ragel calls 'extend').
+
+This works well on most platforms - but it failed for us on Debian/s390x.
+
+After a lot of digging I found that char is unsigned on s390x, while it is signed on amd64, i386 and many other platforms.
+
+I have added 'alphtype unsigned char' to our Ragel file. This makes the parser work reliably on both amd64 and s390x (and,  hopefully, many other platforms).
+
+However, I feel something is wrong. It seems that on s390x, Ragel is mostly confused about the type of char. It generates a parser that treats extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This discrepancy feels like a Ragel issue to me.
+
+A much longer version of this story is at <A HREF="https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d">https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d</A>
+
+My question: is this a Ragel bug? Regardless of yes/no, is what I did (alphtype unsigned char) the best workaround?
+
+I did most of the debugging with ragel 6.7-1 (Debian version number), but verified that the problem is identical in 6.8-1.
+
+Kind regards,
+-- 
+Peter van Dijk
+Netherlabs Computer Consulting BV - <A HREF="http://www.netherlabs.nl/">http://www.netherlabs.nl/</A>
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 841 bytes
+Desc: Message signed with OpenPGP using GPGMail
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20131024/a3b83a44/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20131024/a3b83a44/attachment.sig</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001616.html">[ragel-users] Ragel 6.8 broken in Go
+</A></li>
+	<LI>Next message: <A HREF="001618.html">[ragel-users] signed/unsigned portability issue
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1617">[ date ]</a>
+              <a href="thread.html#1617">[ thread ]</a>
+              <a href="subject.html#1617">[ subject ]</a>
+              <a href="author.html#1617">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

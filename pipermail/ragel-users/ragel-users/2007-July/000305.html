@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Stack handling for fcall and fret
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Stack%20handling%20for%20fcall%20and%20fret&In-Reply-To=%3C403679371-1185204259-cardhu_decombobulator_blackberry.rim.net-912206922-%40bxe121.bisx.prod.on.blackberry%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000304.html">
+   <LINK REL="Next"  HREF="000306.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Stack handling for fcall and fret</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Stack%20handling%20for%20fcall%20and%20fret&In-Reply-To=%3C403679371-1185204259-cardhu_decombobulator_blackberry.rim.net-912206922-%40bxe121.bisx.prod.on.blackberry%3E"
+       TITLE="[ragel-users] Stack handling for fcall and fret">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Jul 23 15:24:38 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000304.html">Stack handling for fcall and fret
+</A></li>
+        <LI>Next message: <A HREF="000306.html">Stack handling for fcall and fret
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#305">[ date ]</a>
+              <a href="thread.html#305">[ thread ]</a>
+              <a href="subject.html#305">[ subject ]</a>
+              <a href="author.html#305">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>When I first made fcall/fret I only imagined a fixed size stack as being useful, but now I recognise this as an issue. People want to handle simple recursion of arbitrary depth. Someting to this effect is in the TODO but as usual I haven't gotten around to it.  Public requests always speed things up though. :)
+
+In regards to the new section that's already done. It will be there in the next release. 
+
+Adrian
+
+-----Original Message-----
+From: Steve Horne &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">stephenhorne100 at aol.com</A>&gt;
+
+Date: Sun, 22 Jul 2007 16:07:24 
+To:ragel-users &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>&gt;
+Subject: [ragel-users] Stack handling for fcall and fret
+
+
+
+I was recently toying with the idea of using Ragel to create a
+recursive descent parser. I figured that for simple DSLs, this would
+be convenient - allowing the scanner and parser to be developed using
+the same language and tools. While thinking about this, I noticed a
+wider issue with Ragels stack handling.
+
+The stack consists of the user-defined variables 'stack' and 'top',
+with presumably 'top' being a stack pointer subscript into 'stack'.
+Fine - but Ragel doesn't appear to know how big the stack is, and
+therefore cannot detect when it is full.
+
+This is a problem for recursive descent parsing as there is no way to
+resize the stack when needed, but then I'm not sure Ragel can handle
+recursive descent parsing of expressions etc anyway. But potential
+stack overflow is also a wider problem.
+
+I understand that Ragel is being used to generate protocol handlers,
+where security is potentially a major concern. A stack overflow is
+basically a buffer overflow, which is of course the classic security
+flaw.
+
+Most likely this is a phantom issue - such code probably doesn't use
+fcall/fret and doesn't have a stack at all. Even if it does, in many
+cases the stack will have a fixed maximum possible size (though you
+are still dependent on the user working this out accurately).
+
+Even so, having a mechanism to allow the push and pop code to be
+modified seems like a good idea. Maybe something like...
+
+  %%stack push { stk.push ( $ );  }
+  %%stack pop { $ = stk.pop ();  }
+
+In the above, the content of the braces is like action code, except
+that the '$' is replaced by the source/target expression by Ragel.
+
+Also, could you add a small section to the &quot;Interface to Host&quot; section
+of the manual, that lists all the variables that the user may need to
+declare (cs, p, pe etc) with short descriptions and links to
+appropriate sections of the manual.
+
+I find that I tend to work out all the regular expression stuff first,
+and then come back to add actions and code later. It's so easy to
+forget that, for instance, since I used a |* ... *| construct I need
+the 'act' variable - tokstart and tokend I always remember, but act
+loves to drive me mad!
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000304.html">Stack handling for fcall and fret
+</A></li>
+	<LI>Next message: <A HREF="000306.html">Stack handling for fcall and fret
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#305">[ date ]</a>
+              <a href="thread.html#305">[ thread ]</a>
+              <a href="subject.html#305">[ subject ]</a>
+              <a href="author.html#305">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

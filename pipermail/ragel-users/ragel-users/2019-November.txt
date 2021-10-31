@@ -1,0 +1,428 @@
+From kstenerud at gmail.com  Fri Nov  8 00:04:03 2019
+From: kstenerud at gmail.com (Karl Stenerud)
+Date: Fri, 8 Nov 2019 06:04:03 +0100
+Subject: [ragel-users] -G2 -Z generating an incorrect FSM
+Message-ID: <CAKDanEBqS04TiSFOmRAQdj799o3k4+4sTsuxWWUL=tUzbGAqYg@mail.gmail.com>
+
+I have a ragel machine that generates passing Go code when built with -G1,
+but failing code when built with -G2 (using ragel 6.10 on ubuntu).
+
+Given the following machine definition:
+
+-------------------------------------------------------------------------
+package safe16l
+
+import (
+    "fmt"
+)
+
+%%{
+    machine safe16;
+    access this.;
+
+    numeric_hi = [0-9] @{
+        accumulator = (fc - '0') << 4
+    };
+    af_hi = [a-f] @{
+        accumulator = (fc - 'a' + 10) << 4
+    };
+    AF_hi = [A-F] @{
+        accumulator = (fc - 'A' + 10) << 4
+    };
+    numeric_lo = [0-9] @{
+        accumulator |= fc - '0'
+    };
+    af_lo = [a-f] @{
+        accumulator |= fc - 'a' + 10
+    };
+    AF_lo = [A-F] @{
+        accumulator |= fc - 'A' + 10
+    };
+
+    sequence = space* (numeric_hi | af_hi | AF_hi) space* (numeric_lo |
+af_lo | AF_lo) %{
+        dst[dstIndex] = accumulator
+        dstIndex++
+    };
+
+
+    length_nocontinue = [0-7] @{
+        this.length = this.length << 3 + int(fc - '0')
+    };
+    length_numeric = [8-9] @{
+        this.length = this.length << 3 + int(fc - '0')
+    };
+    length_af = [a-f] @{
+        this.length = this.length << 3 + int(fc - 'a' + 10 - 8)
+    };
+    length_AF = [A-F] @{
+        this.length = this.length << 3 + int(fc - 'A' + 10 - 8)
+    };
+
+    length = (length_numeric | length_af | length_AF)* length_nocontinue;
+
+    sequence_counted = sequence %{
+        fmt.Printf("### End of sequence\n")
+        this.length--
+        if this.length == 0 {
+            this.isComplete = true
+            fbreak;
+        }
+    };
+
+    main := length sequence_counted* @/{
+        err = fmt.Errorf("Incomplete document")
+    };
+}%%
+
+
+%% write data;
+
+type Parser struct {
+    cs int // Current Ragel state
+    data []byte
+    length int
+    isComplete bool
+}
+
+func (this *Parser) Init() {
+}
+
+func NewParser() *Parser {
+    this := new(Parser)
+    return this
+}
+
+func (this *Parser) Parse(src []byte, dst []byte) (bytesWritten int,
+isComplete bool, err error) {
+    this.data = src
+    p := 0 // Position: current
+    pe := len(this.data) // Position: end of buffer
+    // TODO: Change to -1 and check for end of file
+    eof := pe // Position: end of file
+    accumulator := byte(0)
+    dstIndex := 0
+
+    _ = eof
+
+    %%{
+        write init;
+        write exec;
+    }%%
+
+    if this.cs == safe16_error {
+        err = fmt.Errorf("Parse error at %v", p)
+    }
+
+    return dstIndex, this.isComplete, err
+}
+-------------------------------------------------------------------------
+
+And the following test code:
+
+-------------------------------------------------------------------------
+package safe16l
+
+import (
+    "bytes"
+    "testing"
+)
+
+func testSafe16L(t *testing.T, src string, expected []byte) {
+    dst := make([]byte, len(src))
+    parser := NewParser()
+
+    bytesWritten, isComplete, err := parser.Parse([]byte(src), dst)
+    if err != nil {
+        t.Error(err)
+    }
+    if !isComplete {
+        t.Errorf("Sequence [%v]: Incomplete parse", src)
+    }
+
+    actual := dst[:bytesWritten]
+    if !bytes.Equal(actual, expected) {
+        t.Errorf("Sequence [%v]: Expected %v but got %v", src, expected,
+actual)
+    }
+}
+
+func TestSafe16L(t *testing.T) {
+    testSafe16L(t, "100", []byte{0x00})
+}
+-------------------------------------------------------------------------
+
+With G1:
+
+$ ragel -Z -G1 safe16l.rl && go test
+### End of sequence
+PASS
+ok   github.com/kstenerud/go-safe16 0.001s
+
+With G2:
+
+$ ragel -Z -G2 safe16l.rl && go test
+### End of sequence
+--- FAIL: TestSafe16L (0.00s)
+    parser_test.go:14: Parse error at 4
+FAIL
+exit status 1
+FAIL github.com/kstenerud/go-safe16 0.001s
+
+-------------------------------------------------------------------------
+
+Looking at the generated code, I see this in the -G2 version:
+
+//line safe16l.rl:51
+
+        fmt.Printf("### End of sequence\n")
+        this.length--
+        if this.length == 0 {
+            this.isComplete = true
+            {p++;  this.cs = 0; goto _out }
+        }
+
+I'm not sure why cs would be set to 0 here. This isn't an error state as
+far as I can tell...
+
+
+Cheers,
+Karl
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20191108/53e2c0c6/attachment.html>
+
+From thurston at colm.net  Fri Nov  8 07:59:58 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Fri, 08 Nov 2019 09:59:58 -0300
+Subject: [ragel-users] -G2 -Z generating an incorrect FSM
+In-Reply-To: <CAKDanEBqS04TiSFOmRAQdj799o3k4+4sTsuxWWUL=tUzbGAqYg@mail.gmail.com>
+References: <CAKDanEBqS04TiSFOmRAQdj799o3k4+4sTsuxWWUL=tUzbGAqYg@mail.gmail.com>
+Message-ID: <0cc74d1240ded62985164789da8ab706@colm.net>
+
+Hi Karl,
+
+Thank you for the report. It seems fbreak in an EOF action is not well 
+defined. This is an unusual thing to do (from my point of view), but 
+this should be corrected regardless.
+
+Will add a github issue.
+
+See attached patch for a quick fix. I haven't fully tested this patch on 
+other ragel programs, but in your case it corrects the issue and does 
+nothing else.
+
+Thank you,
+  Adrian
+
+On 2019-11-08 02:04, Karl Stenerud wrote:
+> I have a ragel machine that generates passing Go code when built with
+> -G1, but failing code when built with -G2 (using ragel 6.10 on
+> ubuntu).
+> 
+> Given the following machine definition:
+> 
+> -------------------------------------------------------------------------
+> package safe16l
+> 
+> import (
+>     "fmt"
+> )
+> 
+> %%{
+>     machine safe16;
+>     access this.;
+> 
+>     numeric_hi = [0-9] @{
+>         accumulator = (fc - '0') << 4
+>     };
+>     af_hi = [a-f] @{
+>         accumulator = (fc - 'a' + 10) << 4
+>     };
+>     AF_hi = [A-F] @{
+>         accumulator = (fc - 'A' + 10) << 4
+>     };
+>     numeric_lo = [0-9] @{
+>         accumulator |= fc - '0'
+>     };
+>     af_lo = [a-f] @{
+>         accumulator |= fc - 'a' + 10
+>     };
+>     AF_lo = [A-F] @{
+>         accumulator |= fc - 'A' + 10
+>     };
+> 
+>     sequence = space* (numeric_hi | af_hi | AF_hi) space* (numeric_lo
+> | af_lo | AF_lo) %{
+>         dst[dstIndex] = accumulator
+>         dstIndex++
+>     };
+> 
+>     length_nocontinue = [0-7] @{
+>         this.length = this.length << 3 + int(fc - '0')
+>     };
+>     length_numeric = [8-9] @{
+>         this.length = this.length << 3 + int(fc - '0')
+>     };
+>     length_af = [a-f] @{
+>         this.length = this.length << 3 + int(fc - 'a' + 10 - 8)
+>     };
+>     length_AF = [A-F] @{
+>         this.length = this.length << 3 + int(fc - 'A' + 10 - 8)
+>     };
+> 
+>     length = (length_numeric | length_af | length_AF)*
+> length_nocontinue;
+> 
+>     sequence_counted = sequence %{
+>         fmt.Printf("### End of sequence\n")
+>         this.length--
+>         if this.length == 0 {
+>             this.isComplete = true
+>             fbreak;
+>         }
+>     };
+> 
+>     main := length sequence_counted* @/{
+>         err = fmt.Errorf("Incomplete document")
+>     };
+> }%%
+> 
+> %% write data;
+> 
+> type Parser struct {
+>     cs int // Current Ragel state
+>     data []byte
+>     length int
+>     isComplete bool
+> }
+> 
+> func (this *Parser) Init() {
+> }
+> 
+> func NewParser() *Parser {
+>     this := new(Parser)
+>     return this
+> }
+> 
+> func (this *Parser) Parse(src []byte, dst []byte) (bytesWritten int,
+> isComplete bool, err error) {
+>     this.data = src
+>     p := 0 // Position: current
+>     pe := len(this.data) // Position: end of buffer
+>     // TODO: Change to -1 and check for end of file
+>     eof := pe // Position: end of file
+>     accumulator := byte(0)
+>     dstIndex := 0
+> 
+>     _ = eof
+> 
+>     %%{
+>         write init;
+>         write exec;
+>     }%%
+> 
+>     if this.cs == safe16_error {
+>         err = fmt.Errorf("Parse error at %v", p)
+>     }
+> 
+>     return dstIndex, this.isComplete, err
+> }
+> 
+> -------------------------------------------------------------------------
+> 
+> And the following test code:
+> 
+> -------------------------------------------------------------------------
+> 
+> package safe16l
+> 
+> import (
+>     "bytes"
+>     "testing"
+> )
+> 
+> func testSafe16L(t *testing.T, src string, expected []byte) {
+>     dst := make([]byte, len(src))
+>     parser := NewParser()
+> 
+>     bytesWritten, isComplete, err := parser.Parse([]byte(src), dst)
+>     if err != nil {
+>         t.Error(err)
+>     }
+>     if !isComplete {
+>         t.Errorf("Sequence [%v]: Incomplete parse", src)
+>     }
+> 
+>     actual := dst[:bytesWritten]
+>     if !bytes.Equal(actual, expected) {
+>         t.Errorf("Sequence [%v]: Expected %v but got %v", src,
+> expected, actual)
+>     }
+> }
+> 
+> func TestSafe16L(t *testing.T) {
+>     testSafe16L(t, "100", []byte{0x00})
+> }
+> 
+> -------------------------------------------------------------------------
+> 
+> With G1:
+> 
+> $ ragel -Z -G1 safe16l.rl && go test
+> ### End of sequence
+> PASS
+> ok   github.com/kstenerud/go-safe16 [1] 0.001s
+> 
+> With G2:
+> 
+> $ ragel -Z -G2 safe16l.rl && go test
+> ### End of sequence
+> --- FAIL: TestSafe16L (0.00s)
+>     parser_test.go:14: Parse error at 4
+> FAIL
+> exit status 1
+> FAIL github.com/kstenerud/go-safe16 [1] 0.001s
+> 
+> -------------------------------------------------------------------------
+> 
+> Looking at the generated code, I see this in the -G2 version:
+> 
+> //line safe16l.rl:51
+> 
+>         fmt.Printf("### End of sequence\n")
+>         this.length--
+>         if this.length == 0 {
+>             this.isComplete = true
+>             {p++;  this.cs = 0; goto _out }
+>         }
+> 
+> I'm not sure why cs would be set to 0 here. This isn't an error state
+> as far as I can tell...
+> 
+> Cheers,
+> Karl
+> 
+> 
+> 
+> Links:
+> ------
+> [1] http://github.com/kstenerud/go-safe16
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+Chief Scientist
+Colm Networks
+http://colm.net/
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: git.diff
+Type: text/x-diff
+Size: 469 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20191108/cc5b8752/attachment.diff>
+

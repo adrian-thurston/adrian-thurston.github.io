@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Minimisation question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C2d4d6bd0609131648gd98700erd85868bcd51d60a2%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001766.html">
+   <LINK REL="Next"  HREF="001768.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Minimisation question</H1>
+    <B>Colin Fleming</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C2d4d6bd0609131648gd98700erd85868bcd51d60a2%40mail.gmail.com%3E"
+       TITLE="Minimisation question">colin.flem... at coreproc.com
+       </A><BR>
+    <I>Wed Sep 13 23:48:49 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001766.html">Minimisation question
+</A></li>
+        <LI>Next message: <A HREF="001768.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1767">[ date ]</a>
+              <a href="thread.html#1767">[ thread ]</a>
+              <a href="subject.html#1767">[ subject ]</a>
+              <a href="author.html#1767">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Adrian,
+
+Ok, great that there's no downside to it. Here's some stats (I've
+attached the grammar in case you're interested, it's not finished but
+it's close):
+
+The part that gives the problem is the doctype. The smallest part I
+could get to compile was doctypedecl:
+
+No minimisation:
+
+time ragel asciixml.rl -s -n -M doctypedecl | rlcodegen -V &gt; test.dot
+fsm name  : AsciiXml
+num states: 1361
+
+real    1m58.401s
+user    1m56.850s
+sys     0m1.481s
+
+Memory use peaks at about 765MB. If I try and use the next largest
+production it allocates up to 1.8GB and then malloc fails.
+
+With minimisation:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V &gt; test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    1m58.358s
+user    1m56.792s
+sys     0m1.453s
+
+More or less the same time and memory usage.
+
+However with incremental minimisation:
+
+time ragel asciixml.rl -s -e -M doctypedecl | rlcodegen -V &gt; test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.076s
+user    0m0.069s
+sys     0m0.010s
+
+It's practically instantaneous and works a charm. It also easily
+allows me to compile the whole grammar, which is significantly more
+complex:
+
+time ragel asciixml.rl -s -e | rlcodegen -V &gt; test.dot
+fsm name  : AsciiXml
+num states: 445
+
+real    0m0.124s
+user    0m0.119s
+sys     0m0.010s
+
+This is a cut-down grammar that only uses ASCII characters, the full
+XML spec requires Unicode, this makes the machine much more complex
+because all the character ranges are treated properly (i.e. the same
+number of states but a lot more transitions). Using incremental
+minimisation allows that machine to be generated in 2.199s.
+
+Assuming it's reliable, I can't see a reason not to use it, or to have
+it turned on by default.
+
+Cheers,
+Colin
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: asciixml.rl
+Type: application/octet-stream
+Size: 6017 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20060913/e9e98fee/attachment-0001.obj">http://www.colm.net/pipermail/ragel-users/attachments/20060913/e9e98fee/attachment-0001.obj</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001766.html">Minimisation question
+</A></li>
+	<LI>Next message: <A HREF="001768.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1767">[ date ]</a>
+              <a href="thread.html#1767">[ thread ]</a>
+              <a href="subject.html#1767">[ subject ]</a>
+              <a href="author.html#1767">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

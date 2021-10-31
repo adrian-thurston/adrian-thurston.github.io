@@ -1,0 +1,3902 @@
+From alexander.me at gmail.com  Mon Jul 11 09:29:51 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 13:29:51 +0400
+Subject: [ragel-users] BUG while processing import directive
+Message-ID: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+
+Hi, Adrian.
+
+I found that if we use "import" directive, and import file was not
+found - ragel crashes with exception.
+
+from sources i found function
+void Scanner::handleImport() in rlscan.rl.
+
+code ===============================
+		ifstream *inFile = tryOpenInclude( importChecks, found );
+		if ( inFile == 0 )
+                                    {
+			scan_error() << "import: could not open import file " <<
+					"for reading" << endl;
+			char **tried = importChecks;
+			while ( *tried != 0 )
+				scan_error() << "import: attempted: \"" << *tried++ << '\"' << endl;
+		}
+
+		Scanner scanner( id, importChecks[found], *inFile, parser, 0,
+includeDepth+1, true );
+		scanner.do_scan( );
+		scanner.importToken( 0, 0, 0 );
+		scanner.flushImport();
+		delete inFile;
+
+==========================
+
+this mean that Scanner will work always -
+if (inFile != 0) - file was found - scanner will work ( OK )
+and
+if (inFile == 0) - file not found - scanner will work ( BUG )
+
+Solution can be like in Scanner::handleInclude()
+== patch 1 ============================
+if ( inFile == 0 )
+{
+    error output ....
+}
+else
+{
+     Scanner ....
+}
+== patch 1 end ========================
+
+or
+
+== patch 2 ============================
+like in Scanner::handleInclude()
+
+if ( inFile == 0 )
+{
+    error output ....
+
+    RETURN;
+}
+
+  Scanner ....
+
+== patch 2 end ========================
+
+
+Best regards.
+Denis.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 11:50:06 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 13:50:06 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+Message-ID: <FEAC022E8958464CB0E38582F82F4411@localdomain>
+
+Hi Denis,
+
+what is your platform? 
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 12:09:09 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 16:09:09 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <FEAC022E8958464CB0E38582F82F4411@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+Message-ID: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+
+Windows 7 ( x64 )
+
+Denis.
+
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Hi Denis,
+>
+> what is your platform?
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 13:13:44 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 15:13:44 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+Message-ID: <D7117177B63D42DCB5124E884FC23383@localdomain>
+
+Which Windows version are you using? If you are using the VisualStudio 
+version, make sure you are using the latest version as there were some 
+patches/hacks related to file handling lately. Would you be so kind and 
+publish a small project that demonstrates the problem?
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 13:45:44 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 15:45:44 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+Message-ID: <FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+
+Denis,
+
+it looks as if a file name patch that worked in 6.6 no longer works. I just 
+ran into a problem with an "include" statement.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 14:06:18 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 18:06:18 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+Message-ID: <CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+
+Josef,
+i use latest version.
+
+6.7.
+
+you can look at source code.
+
+or can do it.
+
+1. get http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z
+from your site.
+2. create separate folder (example xxx)
+3. copy \ragel-6.7\bin\ragel.exe to xxx
+4. copy \ragel-6.7\ragel-6.7\ragel\rlscan.rl to xxx
+5. run command line "ragel.exe rlscan.rl"
+6. you win exception :)))
+
+or you can run it from Visual Stidio under debug.
+
+i use VS2010/VS2008.
+
+this work with you windows build, and with my windows build.
+
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Denis,
+>
+> it looks as if a file name patch that worked in 6.6 no longer works. I just
+> ran into a problem with an "include" statement.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 14:15:55 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 16:15:55 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+Message-ID: <103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+
+I am currently running the debug version unter VS. The original source code 
+does not contain all the _MSVC related patches, so I have to add them by 
+hand for every new release && this time I have forgotten to add a patch in 
+(at least) 2 places. I have not used the "import" statement myself so far, 
+but unfortunately the "include" statement is affected as well. After I'll 
+have finished my basic tests I'll publish a fresh version in about 30 
+minutes, or so.
+
+It looks as if there is more than the Windows path handling since invalid 
+names of imported files do not seem to get caught as is the case for the 
+include statement, but let me first fix the Windows related part.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 14:25:42 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 18:25:42 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+Message-ID: <CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+
+Josef,
+
+it's ok :)
+
+this bug is not critical. But it is in original source code.
+Just look at void Scanner::handleImport() function in rlscan.rl
+
+and this bug will cause in all versions for all platforms (i think).
+as yout can see in souce code in handleImport() function.
+
+== souce code == handleImport() =========================
+                ifstream *inFile = tryOpenInclude( importChecks, found );
+                if ( inFile == 0 )
+                                    {
+                        scan_error() << "import: could not open import file " <<
+                                        "for reading" << endl;
+                        char **tried = importChecks;
+                        while ( *tried != 0 )
+                                scan_error() << "import: attempted:
+\"" << *tried++ << '\"' << endl;
+                }
+
+                Scanner scanner( id, importChecks[found], *inFile, parser, 0,
+includeDepth+1, true );
+                scanner.do_scan( );
+                scanner.importToken( 0, 0, 0 );
+                scanner.flushImport();
+                delete inFile;
+
+========================
+
+Scanner will run always. even if " if ( inFile == 0 ) "
+
+I think Adrian can fix this in original source code.
+
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> I am currently running the debug version unter VS. The original source code
+> does not contain all the _MSVC related patches, so I have to add them by
+> hand for every new release && this time I have forgotten to add a patch in
+> (at least) 2 places. I have not used the "import" statement myself so far,
+> but unfortunately the "include" statement is affected as well. After I'll
+> have finished my basic tests I'll publish a fresh version in about 30
+> minutes, or so.
+>
+> It looks as if there is more than the Windows path handling since invalid
+> names of imported files do not seem to get caught as is the case for the
+> include statement, but let me first fix the Windows related part.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 15:07:47 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 17:07:47 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain><CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com><103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+Message-ID: <F403C1DA13584AF7B0CF3FC250311425@localdomain>
+
+Denis,
+
+The VS version has been updated to properly take of '\' in file names, even 
+for the import statement. Unfortunately this does not solve you problem. I 
+found that bogus imports cause an exception inside the function do_scan() 
+triggered by line "int len = input.gcount()".
+
+I have also added the early return statement as you suggested. At least with 
+the simple test project inside Ragel\tests Ragel no longer crashes.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 15:35:36 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 19:35:36 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <F403C1DA13584AF7B0CF3FC250311425@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+	<F403C1DA13584AF7B0CF3FC250311425@localdomain>
+Message-ID: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+
+Thanks, Josef.
+
+I know about patching whit '\' processing.
+
+but, it seems to me that the best way is to convince Adrian to make
+these changes to the original source code.
+
+You have you own ragel build.
+I have my own ragel build.
+Somebody have his own build.
+
+At this time you forgot to do patch.
+Next time i fogot to do this.
+Or someone does not know that this was a problem in general and not do
+the patch at all.
+
+If Adrian makes a change to the original source code - problem will
+cease to exist in all future versions.
+
+It is important to find just the easiest way that would require a
+minimum of changes in the source code and will not affect the build
+for other operating systems.
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Denis,
+>
+> The VS version has been updated to properly take of '\' in file names, even
+> for the import statement. Unfortunately this does not solve you problem. I
+> found that bogus imports cause an exception inside the function do_scan()
+> triggered by line "int len = input.gcount()".
+>
+> I have also added the early return statement as you suggested. At least with
+> the simple test project inside Ragel\tests Ragel no longer crashes.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 15:40:44 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 19:40:44 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+	<F403C1DA13584AF7B0CF3FC250311425@localdomain>
+	<CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+Message-ID: <CAD5e4C=akO5+gerAXR12cafmoEDLiPnmAeFpGea8Wqi5Qt9o7A@mail.gmail.com>
+
+Sorry - sorry - sorry
+my english so poor :))))
+
+this text without typos.
+
+=========================================
+
+Thanks, Josef.
+
+I know about patching with '\' processing.
+
+but, it seems to me that the best way is to convince Adrian to make
+these changes to the original source code.
+
+You have you own ragel build.
+I have my own ragel build.
+Somebody have his own build.
+
+At this time you forgot to do patch.
+Next time i forgot to do this.
+Or someone does not know that this was a such problem and not do
+the patch at all.
+
+If Adrian makes a change to the original source code - problem will
+cease to exist in all future versions.
+
+It is important to find just the easiest way that would require a
+minimum of changes in the source code and will not affect the build
+for other operating systems.
+
+Best regards.
+Denis.
+
+
+
+
+
+2011/7/11 Denis Naumov <alexander.me at gmail.com>:
+> Thanks, Josef.
+>
+> I know about patching whit '\' processing.
+>
+> but, it seems to me that the best way is to convince Adrian to make
+> these changes to the original source code.
+>
+> You have you own ragel build.
+> I have my own ragel build.
+> Somebody have his own build.
+>
+> At this time you forgot to do patch.
+> Next time i fogot to do this.
+> Or someone does not know that this was a problem in general and not do
+> the patch at all.
+>
+> If Adrian makes a change to the original source code - problem will
+> cease to exist in all future versions.
+>
+> It is important to find just the easiest way that would require a
+> minimum of changes in the source code and will not affect the build
+> for other operating systems.
+>
+> Best regards.
+> Denis.
+>
+>
+> 2011/7/11  <ragel-user at jgoettgens.de>:
+>> Denis,
+>>
+>> The VS version has been updated to properly take of '\' in file names, even
+>> for the import statement. Unfortunately this does not solve you problem. I
+>> found that bogus imports cause an exception inside the function do_scan()
+>> triggered by line "int len = input.gcount()".
+>>
+>> I have also added the early return statement as you suggested. At least with
+>> the simple test project inside Ragel\tests Ragel no longer crashes.
+>>
+>> jg
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Mon Jul 11 16:27:33 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 18:27:33 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain><CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com><103E7DEFB8A04BF895202C5B562AB09B@localdomain><CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com><F403C1DA13584AF7B0CF3FC250311425@localdomain>
+	<CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+Message-ID: <B1B5B323F3F249C9A67727FF5EFB07A1@localdomain>
+
+Well, Adrian knows about the path handling and at some point he probably 
+wants to make path handling OS agnostic, which requires some design 
+decisions. When you look at my hacks/patches you'll see that I am 
+essentially massaging argv, which is s.th. I wouldn't like to see in my own 
+code (but I have no difficulties doing it to sombody elses code) :), so he 
+probably does not want to see this in his distribution.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexandru.tica at gmail.com  Thu Jul 14 21:20:42 2011
+From: alexandru.tica at gmail.com (Alec Tica)
+Date: Fri, 15 Jul 2011 00:20:42 +0300
+Subject: [ragel-users] Detect keywords with a ragel scanner
+Message-ID: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+
+Hi,
+
+I'm new to Ragel and I'm trying to figure out how to solve,
+apparently, a very simple problem. Let's say I have the following
+text:
+
+"select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+
+I want to detect all "select" keywords using a scanner but taking into
+consideration the word boundaries. "select" is a keyword only if:
+
+1. starts at: the very beginning of the text or it has a whitespace
+before or a comment or a statement separator (;)
+2. ends at: the very end of the text or it has a whitespace after or a
+comment or a statement separator (;)
+3. is not within quotes
+4. is not part of a comment
+
+Till now I have:
+
+<code>
+%%{
+  machine example;
+
+  action is_eof {
+    true if p == eof - 1
+  }
+
+  # eof
+  EOF = zlen when is_eof;
+
+  # strings
+  squoted_string = ['] ( (any - [''])** ) ['];
+  dquoted_string = '"' ( any )* :>> '"';
+
+  # comments
+  ml_comment = '/*' ( any )* :>> '*/';
+  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+  comment = ml_comment | sl_comment;
+
+  tail = space | comment | ';' | EOF;
+
+  # keyword
+  select = 'select' . tail;
+
+  main := |*
+    squoted_string;
+    dquoted_string;
+    comment;
+    select => { puts "found at #{ts}-#{te}" };
+    any;
+  *|;
+
+}%%
+
+%% write data;
+
+data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+from dual;select'
+# convert the provided string in a stream of chars
+stream_data = data.unpack("c*") if(data.is_a?(String))
+eof = stream_data.length
+
+%% write init;
+%% write exec;
+</code>
+
+Of course, the above scanner incorrectly matches the "unselect" word
+from the data. Anyway, I feel that I'm not on the right track
+therefore I'd like to ask for your advice.
+
+Many thanks in advance!
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Fri Jul 15 08:29:30 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Fri, 15 Jul 2011 10:29:30 +0200
+Subject: [ragel-users] Go code generations
+Message-ID: <20110715082930.GA30915@miek.nl>
+
+Hello,
+
+I've just started to use Ragel and I'm really liking it. I use it 
+to generate Go code. But with new Go versions Ragel breaks, as the
+newest weekly release(s) restricts the use of 'goto'. 
+
+See this message from Andrew Gerrand:
+http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+
+This will soon show up in a 'stable' release thereby breaking
+Ragel's ability to generate Go code.
+
+ grtz,
+
+--
+    Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110715/db3e1a20/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon Jul 18 01:42:00 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Mon, 18 Jul 2011 01:42:00 +0000
+Subject: [ragel-users] BUG while processing import directive
+Message-ID: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+
+Hi Josef, if you can send me the patches I'll get this solved once and for all.  Famous last words, I know ;)
+
+Either I'll merge it in, or develop something functionally equivalent that doesn't modify the args. 
+
+Adrian
+------Original Message------
+From: ragel-user at jgoettgens.de
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: Re: [ragel-users] BUG while processing import directive
+Sent: Jul 11, 2011 9:27 AM
+
+Well, Adrian knows about the path handling and at some point he probably 
+wants to make path handling OS agnostic, which requires some design 
+decisions. When you look at my hacks/patches you'll see that I am 
+essentially massaging argv, which is s.th. I wouldn't like to see in my own 
+code (but I have no difficulties doing it to sombody elses code) :), so he 
+probably does not want to see this in his distribution.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Jul 18 01:49:24 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Mon, 18 Jul 2011 01:49:24 +0000
+Subject: [ragel-users] Detect keywords with a ragel scanner
+In-Reply-To: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+References: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+Message-ID: <1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+
+Hi Talek, what you should do is include the tail items in the scanner and add a pattern that covers any word that is not 'select'. If you specify  'select' ahead of the generic pattern it will be matched in favour of the generic pattern on only that word. 
+
+Adrian
+-----Original Message-----
+From: Alec Tica <alexandru.tica at gmail.com>
+Sender: ragel-users-bounces at complang.org
+Date: Fri, 15 Jul 2011 00:20:42 
+To: <ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] Detect keywords with a ragel scanner
+
+Hi,
+
+I'm new to Ragel and I'm trying to figure out how to solve,
+apparently, a very simple problem. Let's say I have the following
+text:
+
+"select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+
+I want to detect all "select" keywords using a scanner but taking into
+consideration the word boundaries. "select" is a keyword only if:
+
+1. starts at: the very beginning of the text or it has a whitespace
+before or a comment or a statement separator (;)
+2. ends at: the very end of the text or it has a whitespace after or a
+comment or a statement separator (;)
+3. is not within quotes
+4. is not part of a comment
+
+Till now I have:
+
+<code>
+%%{
+  machine example;
+
+  action is_eof {
+    true if p == eof - 1
+  }
+
+  # eof
+  EOF = zlen when is_eof;
+
+  # strings
+  squoted_string = ['] ( (any - [''])** ) ['];
+  dquoted_string = '"' ( any )* :>> '"';
+
+  # comments
+  ml_comment = '/*' ( any )* :>> '*/';
+  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+  comment = ml_comment | sl_comment;
+
+  tail = space | comment | ';' | EOF;
+
+  # keyword
+  select = 'select' . tail;
+
+  main := |*
+    squoted_string;
+    dquoted_string;
+    comment;
+    select => { puts "found at #{ts}-#{te}" };
+    any;
+  *|;
+
+}%%
+
+%% write data;
+
+data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+from dual;select'
+# convert the provided string in a stream of chars
+stream_data = data.unpack("c*") if(data.is_a?(String))
+eof = stream_data.length
+
+%% write init;
+%% write exec;
+</code>
+
+Of course, the above scanner incorrectly matches the "unselect" word
+from the data. Anyway, I feel that I'm not on the right track
+therefore I'd like to ask for your advice.
+
+Many thanks in advance!
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Jul 18 02:41:49 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 17 Jul 2011 19:41:49 -0700
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <4E239D6D.3070807@complang.org>
+
+Thanks for the heads up.
+
+http://www.complang.org/redmine/issues/307
+
+On 11-07-15 01:29 AM, Miek Gieben wrote:
+> Hello,
+>
+> I've just started to use Ragel and I'm really liking it. I use it
+> to generate Go code. But with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> See this message from Andrew Gerrand:
+> http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+>
+> This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>   grtz,
+>
+> --
+>      Miek
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Mon Jul 18 11:25:18 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Mon, 18 Jul 2011 13:25:18 +0200
+Subject: [ragel-users] Go code generations
+In-Reply-To: <4E239D6D.3070807@complang.org>
+References: <20110715082930.GA30915@miek.nl>
+ <4E239D6D.3070807@complang.org>
+Message-ID: <20110718112518.GA20783@miek.nl>
+
+[ Quoting Adrian Thurston at 19:41 on July 17 in "Re: [ragel-users] Go code generatio"... ]
+> http://www.complang.org/redmine/issues/307
+
+thanks.
+
+I'm asking for the impossible here, but do you dare to give an ETA?  :-)
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110718/b1964fd1/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graham.miller at gmail.com  Mon Jul 18 13:49:14 2011
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 18 Jul 2011 09:49:14 -0400
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <CAAd2J_S-Kyx3_uh8tyTVD1tCVfYfO8tba2G8Pzr2MjTTgUJ9gQ@mail.gmail.com>
+
+Miek, thanks for pointing this out.  I hadn't thought about it, but it will
+prevent me from upgrading until this can be worked out.
+
+graham
+
+
+On Fri, Jul 15, 2011 at 4:29 AM, Miek Gieben <miek at miek.nl> wrote:
+
+> Hello,
+>
+> I've just started to use Ragel and I'm really liking it. I use it
+> to generate Go code. But with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> See this message from Andrew Gerrand:
+>
+> http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+>
+> This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>  grtz,
+>
+> --
+>     Miek
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110718/71959919/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexandru.tica at gmail.com  Mon Jul 18 18:16:37 2011
+From: alexandru.tica at gmail.com (Alec Tica)
+Date: Mon, 18 Jul 2011 21:16:37 +0300
+Subject: [ragel-users] Detect keywords with a ragel scanner
+In-Reply-To: <1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+References: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+	<1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+Message-ID: <CA+5xd7DZcpUHHXVvC_RvWBXzdiHmAxxQd1cixFF3OLrc5bT6NQ@mail.gmail.com>
+
+Thanks a lot Adrian! It's working beautifully!
+
+On Mon, Jul 18, 2011 at 4:49 AM,  <thurston at complang.org> wrote:
+> Hi Talek, what you should do is include the tail items in the scanner and add a pattern that covers any word that is not 'select'. If you specify  'select' ahead of the generic pattern it will be matched in favour of the generic pattern on only that word.
+>
+> Adrian
+> -----Original Message-----
+> From: Alec Tica <alexandru.tica at gmail.com>
+> Sender: ragel-users-bounces at complang.org
+> Date: Fri, 15 Jul 2011 00:20:42
+> To: <ragel-users at complang.org>
+> Reply-To: ragel-users at complang.org
+> Subject: [ragel-users] Detect keywords with a ragel scanner
+>
+> Hi,
+>
+> I'm new to Ragel and I'm trying to figure out how to solve,
+> apparently, a very simple problem. Let's say I have the following
+> text:
+>
+> "select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+>
+> I want to detect all "select" keywords using a scanner but taking into
+> consideration the word boundaries. "select" is a keyword only if:
+>
+> 1. starts at: the very beginning of the text or it has a whitespace
+> before or a comment or a statement separator (;)
+> 2. ends at: the very end of the text or it has a whitespace after or a
+> comment or a statement separator (;)
+> 3. is not within quotes
+> 4. is not part of a comment
+>
+> Till now I have:
+>
+> <code>
+> %%{
+>  machine example;
+>
+>  action is_eof {
+>    true if p == eof - 1
+>  }
+>
+>  # eof
+>  EOF = zlen when is_eof;
+>
+>  # strings
+>  squoted_string = ['] ( (any - [''])** ) ['];
+>  dquoted_string = '"' ( any )* :>> '"';
+>
+>  # comments
+>  ml_comment = '/*' ( any )* :>> '*/';
+>  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+>  comment = ml_comment | sl_comment;
+>
+>  tail = space | comment | ';' | EOF;
+>
+>  # keyword
+>  select = 'select' . tail;
+>
+>  main := |*
+>    squoted_string;
+>    dquoted_string;
+>    comment;
+>    select => { puts "found at #{ts}-#{te}" };
+>    any;
+>  *|;
+>
+> }%%
+>
+> %% write data;
+>
+> data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+> from dual;select'
+> # convert the provided string in a stream of chars
+> stream_data = data.unpack("c*") if(data.is_a?(String))
+> eof = stream_data.length
+>
+> %% write init;
+> %% write exec;
+> </code>
+>
+> Of course, the above scanner incorrectly matches the "unselect" word
+> from the data. Anyway, I feel that I'm not on the right track
+> therefore I'd like to ask for your advice.
+>
+> Many thanks in advance!
+>
+> --
+> talek
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 18 20:08:39 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 18 Jul 2011 22:08:39 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+Message-ID: <37579C5A984147A9B632F9DDA88DE781@localdomain>
+
+Hi Adrian,
+
+even if you'd assimilate all of my _MSC_VER related patches, the project 
+would still not compile under Visual Studio, as some files would be missing. 
+Besides manipulating argv for the -I cmd line option, there's still the 
+problem of the '\' char, that is generally interpreted as an escape for 
+sources, but inside path specs on a Windows box it is not at all an escape 
+char. Either you allow for a mechanism to not interpret the '\' char, e.g. 
+as is done by Perl using single quote chars, or use a "subgrammar" when a 
+path name is expected, thereby omitting any quoting rules. The choice is 
+yours.
+
+Iff^0 you want to unify the sources for the Linux and Windows build, you'd 
+probably need to take the following steps:
+
+(1) replace the automake/configure crap with cmake to have a real cross 
+platform build system
+
+(2)  make a design decision on how to handle any path separation character 
+as described above
+
+For the time being (the next 1000 years^1), the current patches and 
+additions are bad but not that that bad. First, the additional Visual Studio 
+related files are static with the restriction that only a single Visual 
+Studio version is supported (more or less). Secondly, there are only minimal 
+code changes (even less if I forget to patch some source files).
+
+Once a decision has been made, (2) should be straightforward. Unfortunately, 
+(1) is really involved. I have done some beginner's projects with cmake, but 
+lately I am running only third party cmake based projects. Currently I am 
+using some cmake based open source software from Oracle which nicely builds 
+on headless Linux servers as well as on my Windows 7 machine and even IDEs 
+for easy debugging and exploring are supported. If there is sufficient 
+common interest I'd would be willing to invest some time into it. As far as 
+running Ragel for a specific platform is concerned, I have doubts that the 
+effort ist justified. If basic cross platform support is a higher goal, then 
+it could make sense.
+
+jg
+
+^0: See http://en.wikipedia.org/wiki/If_and_only_if
+^1: This refers to "once and for all". Homework: elaborate on the historic 
+background of both remarks and explain the irony :(
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Jul 19 03:46:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 18 Jul 2011 20:46:17 -0700
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110718112518.GA20783@miek.nl>
+References: <20110715082930.GA30915@miek.nl> <4E239D6D.3070807@complang.org>
+	<20110718112518.GA20783@miek.nl>
+Message-ID: <4E24FE09.4000006@complang.org>
+
+Strict policy of no ETAs for open source, I'm sure you understand. 
+Unless you want to pay me of course ... :)
+
+But that said, it will probably get done soonish because I'm currently 
+working on ragel 7.0, including the code generators. It will be a good 
+time to get it done.
+
+-Adrian
+
+On 11-07-18 04:25 AM, Miek Gieben wrote:
+> [ Quoting Adrian Thurston at 19:41 on July 17 in "Re: [ragel-users] Go code generatio"... ]
+>> http://www.complang.org/redmine/issues/307
+>
+> thanks.
+>
+> I'm asking for the impossible here, but do you dare to give an ETA?  :-)
+>
+> grtz Miek
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Jul 19 03:49:10 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 18 Jul 2011 20:49:10 -0700
+Subject: [ragel-users] trunk very broken
+Message-ID: <4E24FEB6.5060400@complang.org>
+
+I'm breaking the trunk pretty bad and putting it back together with a 
+rad new conditions implementation. When that's done I'm going to call it 
+7.0.
+
+In the meantime use 6.7. There is nothing of use in the trunk that's not 
+in 6.7. If need be, I'll do a 6.8 for anything that should go out quickly.
+
+Regards,
+  Adrian
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Tue Jul 19 10:42:25 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Tue, 19 Jul 2011 14:42:25 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <37579C5A984147A9B632F9DDA88DE781@localdomain>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+	<37579C5A984147A9B632F9DDA88DE781@localdomain>
+Message-ID: <CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+
+Hi Adrian, Joseph.
+
+I want to express some ideas about cross-platform ragel.
+Joseph may add something, or offer the best solutions require minimal changes.
+
+1. =========================================
+
+ragel Windows specific code somewhere uses _WIN32 define, but
+somewhere _MSC_VER.
+IMHO it is better do not use _MSC_VER because _MSC_VER define is set
+only for Microsoft VC compiler and contain it's version code.
+_WIN32 define is used by all (as far as I know), compilers for Windows.
+
+I myself often use this design:
+somewhere in the general Include file that is included in all *. cpp files using
+
+# Ifndef __WIN32__
+# If defined (_WIN32) | | defined (WIN32)
+# Define __WIN32__
+# Endif
+# Endif
+
+and further where necessary
+
+# Ifdef __WIN32__
+   ...
+# Else
+   ...
+# Endif
+
+2. ==========================================
+
+ I found that in the main.cpp include unistd.h twice.
+ Also, there is no unistd.h header file in Windows, and I and Joseph
+have to create empty file to compile the project.
+ Could you move include unistd.h to use it only for unix-like systems.
+ Something like
+
+# Ifdef __WIN32__
+   ...
+# Else
+   # Include <unistd.h>
+# Endif
+
+  Fix it - 3 seconds.
+
+3. ==========================================
+
+  About the problem with '\' and '/' in paths.
+  I totally agree with Joseph. The first thing you may do - it does
+not handle escape sequences in strings that can are the paths of
+files.
+  This is a strings in "include" and "import" directives.
+
+  The situation on the one hand is simple - if _WIN32 use '\' in a way
+or another, '/', but the other is
+  some exotics. As I understand it when running under Windows in
+Minwig-cigwin-... and other shells, we sometimes get
+  that even so we should strictly be used '/'-unix separator.
+
+  Possible ways how to solve the problem:
+     - Solution 1.
+       all strings that are paths - copy in a separate buffer, and
+always use '\' to '/' replacement for them.
+       when concatenating paths with '/' always.
+       because '/' path work on all systems (windows, * nix, mac). We
+simply adjust the path if the user uses the '\'.
+
+     - Solution 2
+       you can create a global variable that will contain the correct
+path separator character.
+       correct path separator character will detect at startup.
+       For example you can try using argv [0] (first argument - the
+name of the program)
+       to create path like ".\ragel" - and try opening the file read-only.
+       if this is possible - then the system in which we started using
+'\' as path separator.
+       save it in a global variable and use later .
+       Or you can get an environment variable using the getenv (eg
+PATH), which will always contain the path to search.
+       scan the resulting string and find it '/' or '\' - this is the
+path separator.
+
+     - Maybe even some ideas:)))
+
+Best regards.
+Denis.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Tue Jul 19 17:15:51 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Tue, 19 Jul 2011 19:15:51 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry><37579C5A984147A9B632F9DDA88DE781@localdomain>
+	<CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+Message-ID: <730F834E515F4AD195A7A1CAAA827656@localdomain>
+
+Denis,
+
+some patches apply to the Windows OS in general, which is handled by _WIN32. 
+Even if you compile Ragel using mingw, _WIN32 might be defined. _MSC_VER 
+applies only to the Microsoft C/C++ compiler and its specific runtime 
+library. The runtime libraries of the other C/C++ compilers might or might 
+not show subtle differences. In order to really clean up the code and one 
+should first get all the other compilers (Microsoft, Intel, Digital Mars, 
+GNU in mingw and cygwin flavor, Borland, ...), study their runtime libs and 
+then make a decision about the preprocessor symbols. Also, runtime libs 
+might be different for different compiler versions. Is it worth the effort?
+
+The current MSC runtime libs more or less treat '/' and '\' equivalently, as 
+do the GNU compilers, but assuming that '/' is generally supported is a bit 
+naive. If the goal is to compile Ragel specs on a Windows machine, one can 
+rely on the behavior of a specific runtime lib to reduce the amount of 
+written code. If the goal is to make Ragel 100% cross platform, one should 
+consider treating any path issues inside Ragel. Also, how do you want to 
+handle code that comes from a Windows machine that gets ported to a POSIX 
+environment? You probably have to allow '\' on Linux systems, too. That's a 
+No-go. None of these considerations affect the generated code of the FSMs. 
+So, is it worth the effort?
+
+Once the basic source code is cross platform the next step is to make the 
+build system cross platform, possibly using cmake. I would be willing to 
+invest some time, but not because Ragel needs it, but because it is on my 
+list of things to study. Again, the output of Ragel is not affected by this.
+
+My suggestion for treating paths is to not allow native path seps if they 
+differ from '/'. In rare cases names would need some patching in order to 
+get a valid path for a specific platform. Currently, my patches for Windows 
+could then be removed.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Wed Jul 20 18:39:48 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Wed, 20 Jul 2011 20:39:48 +0200
+Subject: [ragel-users] size of generated files
+Message-ID: <20110720183948.GA29397@miek.nl>
+
+Hello,
+
+I'm using Ragel (svn) to generate Go code. Currently I'm encountering
+a bug whereby the linker (6l) hangs when linking the code. 
+
+This caused me to check the generated .go file, and its size
+approaches 10M. Is this normal for Ragel generated files or
+could there be something (very) wrong with my state machine
+definition?
+
+ grtz,
+
+--
+    Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110720/f2c906e7/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From miek at miek.nl  Wed Jul 20 19:54:46 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Wed, 20 Jul 2011 21:54:46 +0200
+Subject: [ragel-users] size of generated files
+In-Reply-To: <20110720183948.GA29397@miek.nl>
+References: <20110720183948.GA29397@miek.nl>
+Message-ID: <20110720195446.GA25159@miek.nl>
+
+[ Quoting Miek Gieben at 20:39 on July 20 in "[ragel-users] size of generated fil"... ]
+> Hello,
+> 
+> This caused me to check the generated .go file, and its size
+> approaches 10M. Is this normal for Ragel generated files or
+> could there be something (very) wrong with my state machine
+> definition?
+
+Rewritting it to use a scanner makes quite the difference...
+It is now down to 44K.
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110720/95bb5a9d/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Jul 20 22:07:16 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Wed, 20 Jul 2011 22:07:16 +0000
+Subject: [ragel-users] size of generated files
+In-Reply-To: <20110720183948.GA29397@miek.nl>
+References: <20110720183948.GA29397@miek.nl>
+Message-ID: <338577054-1311199640-cardhu_decombobulator_blackberry.rim.net-1692735067-@b26.c9.bise6.blackberry>
+
+That's definitely not normal. Sounds like you've got a state explosion. It also sounds like you've got it sorted out from your other message, but I just want to caution you against using the trunk in SVN. It is where I am developing 7.0 and it is temporarily broken. 
+-----Original Message-----
+From: Miek Gieben <miek at miek.nl>
+Sender: ragel-users-bounces at complang.org
+Date: Wed, 20 Jul 2011 20:39:48 
+To: ragel-users<ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] size of generated files
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jensesaat at googlemail.com  Fri Jul 22 10:40:11 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Fri, 22 Jul 2011 12:40:11 +0200
+Subject: [ragel-users] Problems with eof
+Message-ID: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+
+Hi!
+
+I'm very new to this list and ragel itself. I played around a bit and got an
+error which i can't fix.
+
+The error message from my compiler is:
+examples\checker.cpp(135): error C2065: 'eof' : undeclared identifier
+
+I see that eof is used, but never declared...but why? It's the generated
+code from ragel.exe.
+
+I'm using visual studio 2010.
+
+I appended the files for you!
+
+Thank you very much for your help.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/436a1701/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: checker.cpp
+Type: text/x-c++src
+Size: 3386 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/436a1701/attachment.cpp>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: checker.rl
+Type: application/octet-stream
+Size: 959 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/436a1701/attachment.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From miek at miek.nl  Fri Jul 22 10:45:06 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Fri, 22 Jul 2011 12:45:06 +0200
+Subject: [ragel-users] Problems with eof
+In-Reply-To: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+References: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+Message-ID: <20110722104506.GA13359@miek.nl>
+
+[ Quoting Jens Saathoff at 12:40 on July 22 in "[ragel-users] Problems with eof"... ]
+> Hi!
+> 
+> I'm very new to this list and ragel itself. I played around a bit and got an
+> error which i can't fix.
+> 
+> The error message from my compiler is:
+> examples\checker.cpp(135): error C2065: 'eof' : undeclared identifier
+
+You must declare it yourself. See the Ragel manual paragraph 5.1...
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/0d3a4267/attachment.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Fri Jul 22 11:46:11 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Fri, 22 Jul 2011 13:46:11 +0200
+Subject: [ragel-users] Problems with eof
+In-Reply-To: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+References: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+Message-ID: <EE12F3582BAB4C54A981B51745AB924C@localdomain>
+
+You need to declare “const char *eof”, or drop the “const” like you declared p, pe, and cs. Have a look @ chap 5.1 of the docs.
+
+You might also want to fiddle with your specification of your FSM. The “eof” was implicitly generated by Ragel because you did not really have a terminal way out of the machine. If you add s.th. like a trailing ‘;’ (main := number+ ';'; ), or whatever, Ragel no longer tests against “eof” and you no longer have to declare it. 
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/271b9100/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Fri Jul 22 14:30:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Fri, 22 Jul 2011 16:30:14 +0200
+Subject: [ragel-users] Problems with eof
+Message-ID: <CAFAt_Nj+g2=qTz-6SOrHjNrzEw_GM0SY8YWJ3-u2zVT419Go1g@mail.gmail.com>
+
+Hi! Thanks for your answers. Reading the doc made it clear.
+
+Is there are problem in the mailinglist? I did not not receive your answer
+via mail, found it via gmane.org
+
+In the next days i wil ask more questions ;-)
+
+Thanks a lot!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110722/7bdf7a01/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Sat Jul 23 12:54:04 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Sat, 23 Jul 2011 14:54:04 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file with
+	actions)
+Message-ID: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+
+Hi!
+
+As i'm very new to ragel i just played around a bit and tried some examples,
+modified them a bit and so on.
+
+Before  started with Ragel i used boost::spirit to parse text. boost::spirit
+is fine, speed is ok, much faster than using simple regexes, but one
+problem: The compilation time of a boost::spirit-grammar is a hell. I
+created a grammar for pokerhandhistory-parsing, the debug-compilation time
+is about 20 minutes. A bit to long!
+
+Here is pokerhandhistory-file: http://pastebin.com/WjDP1xmj
+
+I'm extracting almost all information like Datetime, Limit and all player
+actions and fill some structs. After parsing it's inserted to a database.
+
+My questions:
+1.Would it be easy to create such a parser with Ragel?
+
+2.How to parse things like this: "player1 raises 1 to 2" all characters
+before ' raises ' digit ' to ' digit? (a playername can contain an action
+like player 1 raises raises 1 to 2)
+
+3.How to create actions for such a line? In boost:spirit i can call a
+function in this way: rule = (char_+ >> double_)[class::myfunction(_1,_2)].
+_1 would be the char-array and _2 a double? Is it possible with Ragel?
+
+4.Can i use a symbol-table in Ragel? example of a symboltable with actions:
+(L"calls", 1)
+(L"bets", 2)
+(L"folds", 3)
+(L"posts the small blind of", 4)
+(L"posts a dead small blind of", 5)
+(L"posts the big blind of", 6)
+(L"posts", 7)
+(L"antes", 8)
+a rule for this is: rule = name SYMBOL::ACTION[function(_1, _2)]
+
+
+So...please don't laugh ;-)
+
+Thank you very much!!!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110723/676a7545/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Sat Jul 23 12:57:51 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Sat, 23 Jul 2011 14:57:51 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	with actions)
+Message-ID: <CAFAt_NiDjge-v26dei26RDiS9o8114W5YqD-fGY+fcQ79j4dMQ@mail.gmail.com>
+
+Sorry. I forgot to attach my little test:
+
+#include <string.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cmath>
+
+
+
+void parse(char * str)
+{
+char *eof = NULL;
+char *p = str; // data pointer
+char *pe = str + strlen(str); // past end
+int cs;        // machine state
+int len = 0;
+char token[1024];
+static char *text_start;
+
+eof = pe;
+%%{
+machine parser;
+write data;
+ action MarkStartOfName{
+text_start = fpc;
+}
+ action PrintPlayerName{
+int text_len = fpc - text_start;
+if (text_len > 0) {
+printf("PLAYER(%.*s)\n", text_len, text_start);
+}
+}
+
+playername = lower+ >MarkStartOfName ^(space 'raises' space '$' digit+ space
+'to' space '$' digit+) @PrintPlayerName ;
+#playername = any+ >MarkStartOfName ^ ' raises $1 to $2' /*(space 'raises'
+space '$' digit+ space 'to' space '$' digit+)*/ @PrintPlayerName ;
+ main := playername;
+
+write init;
+write exec;
+}%%
+
+printf("\n");
+}
+
+int main()
+{
+  parse("player raises $1 to $2");
+  getchar();
+}
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110723/404657f9/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Jul 23 16:00:19 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 23 Jul 2011 18:00:19 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+In-Reply-To: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+References: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+Message-ID: <4464B64CDC68405D81A5CF4F9350775B@localdomain>
+
+Jens!
+
+It looks as if the “poker” language mainly consists of a simple list of key 
+value pairs, so a plain tokenizer might suffice. Compared to tools like 
+flex, or the scanner part of ANTLR, the focus is more on states and 
+transitions compared to entire. When matching arbitrary text you probably 
+also need to have a look at the longest-match Kleen star operator. With 
+Ragel you can do many things “on the fly”, but if you are just transforming 
+a list into a different format, you may not need this power. Likewise you 
+wouldn't need the power of an LR or LL(*) parser (though LL(*) grammars are 
+very easy to code and the speed penalty might be acceptable). You could use 
+the tokenizer of the C runtime library and subsequently match keywords using 
+the output from gperf. Simple and not slow.
+
+I am using both techniques to remotely control an Asterisk PBX server 
+(telphony system) using the AMI protocol 
+(http://www.voip-info.org/wiki/view/Asterisk+manager+API). The AMI protocol 
+shares a lot with your "poker" language. The main difference is that I am 
+dealing with a real-time system (asynchronous communication, timing issues, 
+net problems, etc.) and I know that a valid input stream always has 
+terminating characters (or I insert a "timeout" token at the socket level, 
+so no need for expr**). Unfortunately not all Asterisk modules follow the 
+AMI protocol exactly (instead of violating the protocol view this as 
+extending the protocol) and there are a couple of exceptions that makes the 
+handwritten code now very ugly. This is where Ragel starts to shine.
+
+There are also various text transformation tools out there. I think it could 
+be possible to transform your key value lists into SQL code without any 
+written line of source code (if you don't count the code the transformation 
+specification).
+
+If you have a well behaved source, the system supplied tokenizer (+ gperf) 
+is probably preferrable, otherwise Ragel. Ragel is more fun, though. There's 
+a graphviz installer for your windows machine and starting from your simple 
+example you could add some output for all available actions to see what's 
+going on during execution time. It won't take long before you get a feeling 
+how things work and where you must be careful.
+
+Of course, if Adrian had a lot of spare time left over, he could add an 
+"instrumentation" option to Ragel by adding diagnostic code to all states 
+and transitions (essentially adding any allowable action with some code). In 
+the simplest form there would be just some console output. A better solution 
+would be to fire events though a socket and with a little extra work to 
+control the input, one could write a nice graphics tool to visualize the FSM 
+and its transitions. This would be helpful for beginners, but generally 
+would be useful as a teaching tool for a college level CS class.
+
+Happy tokenizing,
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Jul 23 16:07:27 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 23 Jul 2011 18:07:27 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log
+	filewithactions)
+In-Reply-To: <4464B64CDC68405D81A5CF4F9350775B@localdomain>
+References: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+	<4464B64CDC68405D81A5CF4F9350775B@localdomain>
+Message-ID: <DACDE9FE92974AA3AE726325676D9D5A@localdomain>
+
+Damn!
+
+Replace "compared to entire" by "compared to the entire matched input".
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jensesaat at googlemail.com  Mon Jul 25 08:30:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 10:30:14 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+
+Hi! Thank you very much for your answer.
+Very nice. But there's a point that's against simple tokenizing...to much
+or's.
+What does it mean? A file can begin with Game or Spiel (Game in German) and
+more like currencies ($,€). I think tokenizing will be a bit ugly for that.
+
+Can you tell me how to solve the line with raise with ragel?
+
+raiseaction = any+ space 'raises $' digit+ space 'to' space '$' digit+ (but
+any does consume the raises, too)
+
+How would you set up such a rule in ragel?
+
+Thank you very much!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110725/2c32443d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Mon Jul 25 15:49:00 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 25 Jul 2011 17:49:00 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log
+	filewithactions)
+In-Reply-To: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+References: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+Message-ID: <1EC25BD11599461A999DC05EF71264A8@localdomain>
+
+If this is so, http://pastebin.com/WjDP1xmj is not representative for your computer language. Since there is only a table, the tokenizer takes apart the lexical elements and since most of the lexical elements are fixed, gperf is perfect for that job. I don’t see at what point you need to deal with many alternatives. 
+
+Fill up the various possible actions with some code && you’ll see where your FSM got stuck , and/or generate graphviz output and follow the states by hand for a given input string. In case line 23 of your sample input data should be (possibly partially) matched by your “raiseaction” I’d start debugging by looking at what the “any” machine really matches 
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110725/8f0768c5/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: wlEmoticon-smile[1].png
+Type: image/png
+Size: 1041 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110725/8f0768c5/attachment.png>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Mon Jul 25 16:47:37 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 18:47:37 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_Nh3upecnk+Vd7RnauXuLR9uLMb0u8VFAokKm9w8E_mktQ@mail.gmail.com>
+
+Hi!
+
+The "any" matches the whole line.
+
+I only need help with the subject "playername raises $1 to $2"
+
+Thank you
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110725/a785f392/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Mon Jul 25 16:56:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 18:56:14 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_NhS=_NcQEDkOhXSR_SHzn5NrOXXSYSoNo-G7FiDaKCgrw@mail.gmail.com>
+
+Hi!
+
+The "any" matches the whole line.
+
+I only need help with the subject "playername raises $1 to $2"
+
+Thank you
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110725/38ef606d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Wed Jul 27 15:00:05 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Wed, 27 Jul 2011 11:00:05 -0400
+Subject: [ragel-users] State chart style and entering actions
+Message-ID: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+
+Hello,
+
+I'm using the state chart style for processing application logic. So far
+I've gotten by with finishing actions attached to specific events, but now
+I'd like to use an entering action for an entire labeled expression. Here's
+an example:
+
+machine := (
+start: START -> A,
+A: (IDLE -> A |
+   POLL @poll OPEN -> A |
+   POLL @poll CLOSED -> B), >~a_entry,
+B: (IDLE -> B |
+   EXIT -> final)
+);
+
+I would like to execute a_entry once and only once when the A "loop" is
+entered. It does execute on entrance, but then it also executes every time I
+get IDLE or POLL OPEN.
+
+Is there a way to make a_entry execute only once while still using state
+charts and the union operator in the same structure? I suppose the following
+would work:
+
+A: (IDLE | POLL @poll OPEN)* POLL @poll CLOSED -> B >~a_entry;
+
+But I'd like to retain the original structure if there's a better way to
+attach the action.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20110727/204b538d/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexander.me at gmail.com  Mon Jul 11 09:29:51 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 13:29:51 +0400
+Subject: [ragel-users] BUG while processing import directive
+Message-ID: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+
+Hi, Adrian.
+
+I found that if we use "import" directive, and import file was not
+found - ragel crashes with exception.
+
+from sources i found function
+void Scanner::handleImport() in rlscan.rl.
+
+code ===============================
+		ifstream *inFile = tryOpenInclude( importChecks, found );
+		if ( inFile == 0 )
+                                    {
+			scan_error() << "import: could not open import file " <<
+					"for reading" << endl;
+			char **tried = importChecks;
+			while ( *tried != 0 )
+				scan_error() << "import: attempted: \"" << *tried++ << '\"' << endl;
+		}
+
+		Scanner scanner( id, importChecks[found], *inFile, parser, 0,
+includeDepth+1, true );
+		scanner.do_scan( );
+		scanner.importToken( 0, 0, 0 );
+		scanner.flushImport();
+		delete inFile;
+
+==========================
+
+this mean that Scanner will work always -
+if (inFile != 0) - file was found - scanner will work ( OK )
+and
+if (inFile == 0) - file not found - scanner will work ( BUG )
+
+Solution can be like in Scanner::handleInclude()
+== patch 1 ============================
+if ( inFile == 0 )
+{
+    error output ....
+}
+else
+{
+     Scanner ....
+}
+== patch 1 end ========================
+
+or
+
+== patch 2 ============================
+like in Scanner::handleInclude()
+
+if ( inFile == 0 )
+{
+    error output ....
+
+    RETURN;
+}
+
+  Scanner ....
+
+== patch 2 end ========================
+
+
+Best regards.
+Denis.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 11:50:06 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 13:50:06 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+Message-ID: <FEAC022E8958464CB0E38582F82F4411@localdomain>
+
+Hi Denis,
+
+what is your platform? 
+
+jg
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 12:09:09 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 16:09:09 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <FEAC022E8958464CB0E38582F82F4411@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+Message-ID: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+
+Windows 7 ( x64 )
+
+Denis.
+
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Hi Denis,
+>
+> what is your platform?
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 13:13:44 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 15:13:44 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+Message-ID: <D7117177B63D42DCB5124E884FC23383@localdomain>
+
+Which Windows version are you using? If you are using the VisualStudio 
+version, make sure you are using the latest version as there were some 
+patches/hacks related to file handling lately. Would you be so kind and 
+publish a small project that demonstrates the problem?
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 13:45:44 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 15:45:44 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+Message-ID: <FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+
+Denis,
+
+it looks as if a file name patch that worked in 6.6 no longer works. I just 
+ran into a problem with an "include" statement.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 14:06:18 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 18:06:18 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+Message-ID: <CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+
+Josef,
+i use latest version.
+
+6.7.
+
+you can look at source code.
+
+or can do it.
+
+1. get http://www.jgoettgens.de/Meine_Bilder_und_Dateien/ragel-vs2008.7z
+from your site.
+2. create separate folder (example xxx)
+3. copy \ragel-6.7\bin\ragel.exe to xxx
+4. copy \ragel-6.7\ragel-6.7\ragel\rlscan.rl to xxx
+5. run command line "ragel.exe rlscan.rl"
+6. you win exception :)))
+
+or you can run it from Visual Stidio under debug.
+
+i use VS2010/VS2008.
+
+this work with you windows build, and with my windows build.
+
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Denis,
+>
+> it looks as if a file name patch that worked in 6.6 no longer works. I just
+> ran into a problem with an "include" statement.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 14:15:55 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 16:15:55 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+Message-ID: <103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+
+I am currently running the debug version unter VS. The original source code 
+does not contain all the _MSVC related patches, so I have to add them by 
+hand for every new release && this time I have forgotten to add a patch in 
+(at least) 2 places. I have not used the "import" statement myself so far, 
+but unfortunately the "include" statement is affected as well. After I'll 
+have finished my basic tests I'll publish a fresh version in about 30 
+minutes, or so.
+
+It looks as if there is more than the Windows path handling since invalid 
+names of imported files do not seem to get caught as is the case for the 
+include statement, but let me first fix the Windows related part.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 14:25:42 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 18:25:42 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+Message-ID: <CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+
+Josef,
+
+it's ok :)
+
+this bug is not critical. But it is in original source code.
+Just look at void Scanner::handleImport() function in rlscan.rl
+
+and this bug will cause in all versions for all platforms (i think).
+as yout can see in souce code in handleImport() function.
+
+== souce code == handleImport() =========================
+                ifstream *inFile = tryOpenInclude( importChecks, found );
+                if ( inFile == 0 )
+                                    {
+                        scan_error() << "import: could not open import file " <<
+                                        "for reading" << endl;
+                        char **tried = importChecks;
+                        while ( *tried != 0 )
+                                scan_error() << "import: attempted:
+\"" << *tried++ << '\"' << endl;
+                }
+
+                Scanner scanner( id, importChecks[found], *inFile, parser, 0,
+includeDepth+1, true );
+                scanner.do_scan( );
+                scanner.importToken( 0, 0, 0 );
+                scanner.flushImport();
+                delete inFile;
+
+========================
+
+Scanner will run always. even if " if ( inFile == 0 ) "
+
+I think Adrian can fix this in original source code.
+
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> I am currently running the debug version unter VS. The original source code
+> does not contain all the _MSVC related patches, so I have to add them by
+> hand for every new release && this time I have forgotten to add a patch in
+> (at least) 2 places. I have not used the "import" statement myself so far,
+> but unfortunately the "include" statement is affected as well. After I'll
+> have finished my basic tests I'll publish a fresh version in about 30
+> minutes, or so.
+>
+> It looks as if there is more than the Windows path handling since invalid
+> names of imported files do not seem to get caught as is the case for the
+> include statement, but let me first fix the Windows related part.
+>
+> jg
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 11 15:07:47 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 17:07:47 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain><CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com><103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+Message-ID: <F403C1DA13584AF7B0CF3FC250311425@localdomain>
+
+Denis,
+
+The VS version has been updated to properly take of '\' in file names, even 
+for the import statement. Unfortunately this does not solve you problem. I 
+found that bogus imports cause an exception inside the function do_scan() 
+triggered by line "int len = input.gcount()".
+
+I have also added the early return statement as you suggested. At least with 
+the simple test project inside Ragel\tests Ragel no longer crashes.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 15:35:36 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 19:35:36 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <F403C1DA13584AF7B0CF3FC250311425@localdomain>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+	<F403C1DA13584AF7B0CF3FC250311425@localdomain>
+Message-ID: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+
+Thanks, Josef.
+
+I know about patching whit '\' processing.
+
+but, it seems to me that the best way is to convince Adrian to make
+these changes to the original source code.
+
+You have you own ragel build.
+I have my own ragel build.
+Somebody have his own build.
+
+At this time you forgot to do patch.
+Next time i fogot to do this.
+Or someone does not know that this was a problem in general and not do
+the patch at all.
+
+If Adrian makes a change to the original source code - problem will
+cease to exist in all future versions.
+
+It is important to find just the easiest way that would require a
+minimum of changes in the source code and will not affect the build
+for other operating systems.
+
+Best regards.
+Denis.
+
+
+2011/7/11  <ragel-user at jgoettgens.de>:
+> Denis,
+>
+> The VS version has been updated to properly take of '\' in file names, even
+> for the import statement. Unfortunately this does not solve you problem. I
+> found that bogus imports cause an exception inside the function do_scan()
+> triggered by line "int len = input.gcount()".
+>
+> I have also added the early return statement as you suggested. At least with
+> the simple test project inside Ragel\tests Ragel no longer crashes.
+>
+> jg
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Mon Jul 11 15:40:44 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Mon, 11 Jul 2011 19:40:44 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com>
+	<FEAC022E8958464CB0E38582F82F4411@localdomain>
+	<CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com>
+	<FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain>
+	<CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com>
+	<103E7DEFB8A04BF895202C5B562AB09B@localdomain>
+	<CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com>
+	<F403C1DA13584AF7B0CF3FC250311425@localdomain>
+	<CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+Message-ID: <CAD5e4C=akO5+gerAXR12cafmoEDLiPnmAeFpGea8Wqi5Qt9o7A@mail.gmail.com>
+
+Sorry - sorry - sorry
+my english so poor :))))
+
+this text without typos.
+
+=========================================
+
+Thanks, Josef.
+
+I know about patching with '\' processing.
+
+but, it seems to me that the best way is to convince Adrian to make
+these changes to the original source code.
+
+You have you own ragel build.
+I have my own ragel build.
+Somebody have his own build.
+
+At this time you forgot to do patch.
+Next time i forgot to do this.
+Or someone does not know that this was a such problem and not do
+the patch at all.
+
+If Adrian makes a change to the original source code - problem will
+cease to exist in all future versions.
+
+It is important to find just the easiest way that would require a
+minimum of changes in the source code and will not affect the build
+for other operating systems.
+
+Best regards.
+Denis.
+
+
+
+
+
+2011/7/11 Denis Naumov <alexander.me at gmail.com>:
+> Thanks, Josef.
+>
+> I know about patching whit '\' processing.
+>
+> but, it seems to me that the best way is to convince Adrian to make
+> these changes to the original source code.
+>
+> You have you own ragel build.
+> I have my own ragel build.
+> Somebody have his own build.
+>
+> At this time you forgot to do patch.
+> Next time i fogot to do this.
+> Or someone does not know that this was a problem in general and not do
+> the patch at all.
+>
+> If Adrian makes a change to the original source code - problem will
+> cease to exist in all future versions.
+>
+> It is important to find just the easiest way that would require a
+> minimum of changes in the source code and will not affect the build
+> for other operating systems.
+>
+> Best regards.
+> Denis.
+>
+>
+> 2011/7/11  <ragel-user at jgoettgens.de>:
+>> Denis,
+>>
+>> The VS version has been updated to properly take of '\' in file names, even
+>> for the import statement. Unfortunately this does not solve you problem. I
+>> found that bogus imports cause an exception inside the function do_scan()
+>> triggered by line "int len = input.gcount()".
+>>
+>> I have also added the early return statement as you suggested. At least with
+>> the simple test project inside Ragel\tests Ragel no longer crashes.
+>>
+>> jg
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Mon Jul 11 16:27:33 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 11 Jul 2011 18:27:33 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+References: <CAD5e4CmZVsaqmARNNf6O0i=1iaOvEg7JRxdMrn4Q9KCA2q7vYA@mail.gmail.com><FEAC022E8958464CB0E38582F82F4411@localdomain><CAD5e4Cm18H3gH90SMZERO4x-TekV3hWx9owz3KXcvjCWzA0mSw@mail.gmail.com><FF29B7C404CE4DF78F600B1DA0E20CAC@localdomain><CAD5e4C=H6w3FBKDPc7f5CSJJjEpCbLzcxR7wFFwmBtd=CC+m4g@mail.gmail.com><103E7DEFB8A04BF895202C5B562AB09B@localdomain><CAD5e4Ckm9PP=NQ4JeOM1FmrCk+AsjwcTJYXmRWjKP8erEF+zeA@mail.gmail.com><F403C1DA13584AF7B0CF3FC250311425@localdomain>
+	<CAD5e4CnBpEH4Pm+C08ZL_-zp+Gid3HLwiM4GifCB9+kF3xY6aQ@mail.gmail.com>
+Message-ID: <B1B5B323F3F249C9A67727FF5EFB07A1@localdomain>
+
+Well, Adrian knows about the path handling and at some point he probably 
+wants to make path handling OS agnostic, which requires some design 
+decisions. When you look at my hacks/patches you'll see that I am 
+essentially massaging argv, which is s.th. I wouldn't like to see in my own 
+code (but I have no difficulties doing it to sombody elses code) :), so he 
+probably does not want to see this in his distribution.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexandru.tica at gmail.com  Thu Jul 14 21:20:42 2011
+From: alexandru.tica at gmail.com (Alec Tica)
+Date: Fri, 15 Jul 2011 00:20:42 +0300
+Subject: [ragel-users] Detect keywords with a ragel scanner
+Message-ID: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+
+Hi,
+
+I'm new to Ragel and I'm trying to figure out how to solve,
+apparently, a very simple problem. Let's say I have the following
+text:
+
+"select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+
+I want to detect all "select" keywords using a scanner but taking into
+consideration the word boundaries. "select" is a keyword only if:
+
+1. starts at: the very beginning of the text or it has a whitespace
+before or a comment or a statement separator (;)
+2. ends at: the very end of the text or it has a whitespace after or a
+comment or a statement separator (;)
+3. is not within quotes
+4. is not part of a comment
+
+Till now I have:
+
+<code>
+%%{
+  machine example;
+
+  action is_eof {
+    true if p == eof - 1
+  }
+
+  # eof
+  EOF = zlen when is_eof;
+
+  # strings
+  squoted_string = ['] ( (any - [''])** ) ['];
+  dquoted_string = '"' ( any )* :>> '"';
+
+  # comments
+  ml_comment = '/*' ( any )* :>> '*/';
+  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+  comment = ml_comment | sl_comment;
+
+  tail = space | comment | ';' | EOF;
+
+  # keyword
+  select = 'select' . tail;
+
+  main := |*
+    squoted_string;
+    dquoted_string;
+    comment;
+    select => { puts "found at #{ts}-#{te}" };
+    any;
+  *|;
+
+}%%
+
+%% write data;
+
+data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+from dual;select'
+# convert the provided string in a stream of chars
+stream_data = data.unpack("c*") if(data.is_a?(String))
+eof = stream_data.length
+
+%% write init;
+%% write exec;
+</code>
+
+Of course, the above scanner incorrectly matches the "unselect" word
+from the data. Anyway, I feel that I'm not on the right track
+therefore I'd like to ask for your advice.
+
+Many thanks in advance!
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Fri Jul 15 08:29:30 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Fri, 15 Jul 2011 10:29:30 +0200
+Subject: [ragel-users] Go code generations
+Message-ID: <20110715082930.GA30915@miek.nl>
+
+Hello,
+
+I've just started to use Ragel and I'm really liking it. I use it 
+to generate Go code. But with new Go versions Ragel breaks, as the
+newest weekly release(s) restricts the use of 'goto'. 
+
+See this message from Andrew Gerrand:
+http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+
+This will soon show up in a 'stable' release thereby breaking
+Ragel's ability to generate Go code.
+
+ grtz,
+
+--
+    Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110715/db3e1a20/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Mon Jul 18 01:42:00 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Mon, 18 Jul 2011 01:42:00 +0000
+Subject: [ragel-users] BUG while processing import directive
+Message-ID: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+
+Hi Josef, if you can send me the patches I'll get this solved once and for all.  Famous last words, I know ;)
+
+Either I'll merge it in, or develop something functionally equivalent that doesn't modify the args. 
+
+Adrian
+------Original Message------
+From: ragel-user at jgoettgens.de
+Sender: ragel-users-bounces at complang.org
+To: ragel-users at complang.org
+ReplyTo: ragel-users at complang.org
+Subject: Re: [ragel-users] BUG while processing import directive
+Sent: Jul 11, 2011 9:27 AM
+
+Well, Adrian knows about the path handling and at some point he probably 
+wants to make path handling OS agnostic, which requires some design 
+decisions. When you look at my hacks/patches you'll see that I am 
+essentially massaging argv, which is s.th. I wouldn't like to see in my own 
+code (but I have no difficulties doing it to sombody elses code) :), so he 
+probably does not want to see this in his distribution.
+
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Jul 18 01:49:24 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Mon, 18 Jul 2011 01:49:24 +0000
+Subject: [ragel-users] Detect keywords with a ragel scanner
+In-Reply-To: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+References: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+Message-ID: <1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+
+Hi Talek, what you should do is include the tail items in the scanner and add a pattern that covers any word that is not 'select'. If you specify  'select' ahead of the generic pattern it will be matched in favour of the generic pattern on only that word. 
+
+Adrian
+-----Original Message-----
+From: Alec Tica <alexandru.tica at gmail.com>
+Sender: ragel-users-bounces at complang.org
+Date: Fri, 15 Jul 2011 00:20:42 
+To: <ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] Detect keywords with a ragel scanner
+
+Hi,
+
+I'm new to Ragel and I'm trying to figure out how to solve,
+apparently, a very simple problem. Let's say I have the following
+text:
+
+"select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+
+I want to detect all "select" keywords using a scanner but taking into
+consideration the word boundaries. "select" is a keyword only if:
+
+1. starts at: the very beginning of the text or it has a whitespace
+before or a comment or a statement separator (;)
+2. ends at: the very end of the text or it has a whitespace after or a
+comment or a statement separator (;)
+3. is not within quotes
+4. is not part of a comment
+
+Till now I have:
+
+<code>
+%%{
+  machine example;
+
+  action is_eof {
+    true if p == eof - 1
+  }
+
+  # eof
+  EOF = zlen when is_eof;
+
+  # strings
+  squoted_string = ['] ( (any - [''])** ) ['];
+  dquoted_string = '"' ( any )* :>> '"';
+
+  # comments
+  ml_comment = '/*' ( any )* :>> '*/';
+  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+  comment = ml_comment | sl_comment;
+
+  tail = space | comment | ';' | EOF;
+
+  # keyword
+  select = 'select' . tail;
+
+  main := |*
+    squoted_string;
+    dquoted_string;
+    comment;
+    select => { puts "found at #{ts}-#{te}" };
+    any;
+  *|;
+
+}%%
+
+%% write data;
+
+data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+from dual;select'
+# convert the provided string in a stream of chars
+stream_data = data.unpack("c*") if(data.is_a?(String))
+eof = stream_data.length
+
+%% write init;
+%% write exec;
+</code>
+
+Of course, the above scanner incorrectly matches the "unselect" word
+from the data. Anyway, I feel that I'm not on the right track
+therefore I'd like to ask for your advice.
+
+Many thanks in advance!
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Mon Jul 18 02:41:49 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 17 Jul 2011 19:41:49 -0700
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <4E239D6D.3070807@complang.org>
+
+Thanks for the heads up.
+
+http://www.complang.org/redmine/issues/307
+
+On 11-07-15 01:29 AM, Miek Gieben wrote:
+> Hello,
+>
+> I've just started to use Ragel and I'm really liking it. I use it
+> to generate Go code. But with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> See this message from Andrew Gerrand:
+> http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+>
+> This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>   grtz,
+>
+> --
+>      Miek
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Mon Jul 18 11:25:18 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Mon, 18 Jul 2011 13:25:18 +0200
+Subject: [ragel-users] Go code generations
+In-Reply-To: <4E239D6D.3070807@complang.org>
+References: <20110715082930.GA30915@miek.nl>
+ <4E239D6D.3070807@complang.org>
+Message-ID: <20110718112518.GA20783@miek.nl>
+
+[ Quoting Adrian Thurston at 19:41 on July 17 in "Re: [ragel-users] Go code generatio"... ]
+> http://www.complang.org/redmine/issues/307
+
+thanks.
+
+I'm asking for the impossible here, but do you dare to give an ETA?  :-)
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110718/b1964fd1/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graham.miller at gmail.com  Mon Jul 18 13:49:14 2011
+From: graham.miller at gmail.com (Graham Miller)
+Date: Mon, 18 Jul 2011 09:49:14 -0400
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110715082930.GA30915@miek.nl>
+References: <20110715082930.GA30915@miek.nl>
+Message-ID: <CAAd2J_S-Kyx3_uh8tyTVD1tCVfYfO8tba2G8Pzr2MjTTgUJ9gQ@mail.gmail.com>
+
+Miek, thanks for pointing this out.  I hadn't thought about it, but it will
+prevent me from upgrading until this can be worked out.
+
+graham
+
+
+On Fri, Jul 15, 2011 at 4:29 AM, Miek Gieben <miek at miek.nl> wrote:
+
+> Hello,
+>
+> I've just started to use Ragel and I'm really liking it. I use it
+> to generate Go code. But with new Go versions Ragel breaks, as the
+> newest weekly release(s) restricts the use of 'goto'.
+>
+> See this message from Andrew Gerrand:
+>
+> http://groups.google.com/group/golang-nuts/browse_thread/thread/a27ca841a496956b/6768a0f0326a6569?lnk=gst&q=goto#6768a0f0326a6569
+>
+> This will soon show up in a 'stable' release thereby breaking
+> Ragel's ability to generate Go code.
+>
+>  grtz,
+>
+> --
+>     Miek
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110718/71959919/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From alexandru.tica at gmail.com  Mon Jul 18 18:16:37 2011
+From: alexandru.tica at gmail.com (Alec Tica)
+Date: Mon, 18 Jul 2011 21:16:37 +0300
+Subject: [ragel-users] Detect keywords with a ragel scanner
+In-Reply-To: <1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+References: <CA+5xd7APv6AAevfhbi=72mZHTpgkhDB8mQCmuptLrZSF5g0QUw@mail.gmail.com>
+	<1318919204-1310953767-cardhu_decombobulator_blackberry.rim.net-1626884289-@b26.c9.bise6.blackberry>
+Message-ID: <CA+5xd7DZcpUHHXVvC_RvWBXzdiHmAxxQd1cixFF3OLrc5bT6NQ@mail.gmail.com>
+
+Thanks a lot Adrian! It's working beautifully!
+
+On Mon, Jul 18, 2011 at 4:49 AM,  <thurston at complang.org> wrote:
+> Hi Talek, what you should do is include the tail items in the scanner and add a pattern that covers any word that is not 'select'. If you specify  'select' ahead of the generic pattern it will be matched in favour of the generic pattern on only that word.
+>
+> Adrian
+> -----Original Message-----
+> From: Alec Tica <alexandru.tica at gmail.com>
+> Sender: ragel-users-bounces at complang.org
+> Date: Fri, 15 Jul 2011 00:20:42
+> To: <ragel-users at complang.org>
+> Reply-To: ragel-users at complang.org
+> Subject: [ragel-users] Detect keywords with a ragel scanner
+>
+> Hi,
+>
+> I'm new to Ragel and I'm trying to figure out how to solve,
+> apparently, a very simple problem. Let's say I have the following
+> text:
+>
+> "select 1 from dual;select 2 from dual;/*comment*/select 3 from dual;select"
+>
+> I want to detect all "select" keywords using a scanner but taking into
+> consideration the word boundaries. "select" is a keyword only if:
+>
+> 1. starts at: the very beginning of the text or it has a whitespace
+> before or a comment or a statement separator (;)
+> 2. ends at: the very end of the text or it has a whitespace after or a
+> comment or a statement separator (;)
+> 3. is not within quotes
+> 4. is not part of a comment
+>
+> Till now I have:
+>
+> <code>
+> %%{
+>  machine example;
+>
+>  action is_eof {
+>    true if p == eof - 1
+>  }
+>
+>  # eof
+>  EOF = zlen when is_eof;
+>
+>  # strings
+>  squoted_string = ['] ( (any - [''])** ) ['];
+>  dquoted_string = '"' ( any )* :>> '"';
+>
+>  # comments
+>  ml_comment = '/*' ( any )* :>> '*/';
+>  sl_comment = '--' ( any )* :>> ('\n' | EOF);
+>  comment = ml_comment | sl_comment;
+>
+>  tail = space | comment | ';' | EOF;
+>
+>  # keyword
+>  select = 'select' . tail;
+>
+>  main := |*
+>    squoted_string;
+>    dquoted_string;
+>    comment;
+>    select => { puts "found at #{ts}-#{te}" };
+>    any;
+>  *|;
+>
+> }%%
+>
+> %% write data;
+>
+> data = 'unselect 1 from dual;select 2 from dual;/*comment*/select 3
+> from dual;select'
+> # convert the provided string in a stream of chars
+> stream_data = data.unpack("c*") if(data.is_a?(String))
+> eof = stream_data.length
+>
+> %% write init;
+> %% write exec;
+> </code>
+>
+> Of course, the above scanner incorrectly matches the "unselect" word
+> from the data. Anyway, I feel that I'm not on the right track
+> therefore I'd like to ask for your advice.
+>
+> Many thanks in advance!
+>
+> --
+> talek
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+
+
+-- 
+talek
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Mon Jul 18 20:08:39 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 18 Jul 2011 22:08:39 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+Message-ID: <37579C5A984147A9B632F9DDA88DE781@localdomain>
+
+Hi Adrian,
+
+even if you'd assimilate all of my _MSC_VER related patches, the project 
+would still not compile under Visual Studio, as some files would be missing. 
+Besides manipulating argv for the -I cmd line option, there's still the 
+problem of the '\' char, that is generally interpreted as an escape for 
+sources, but inside path specs on a Windows box it is not at all an escape 
+char. Either you allow for a mechanism to not interpret the '\' char, e.g. 
+as is done by Perl using single quote chars, or use a "subgrammar" when a 
+path name is expected, thereby omitting any quoting rules. The choice is 
+yours.
+
+Iff^0 you want to unify the sources for the Linux and Windows build, you'd 
+probably need to take the following steps:
+
+(1) replace the automake/configure crap with cmake to have a real cross 
+platform build system
+
+(2)  make a design decision on how to handle any path separation character 
+as described above
+
+For the time being (the next 1000 years^1), the current patches and 
+additions are bad but not that that bad. First, the additional Visual Studio 
+related files are static with the restriction that only a single Visual 
+Studio version is supported (more or less). Secondly, there are only minimal 
+code changes (even less if I forget to patch some source files).
+
+Once a decision has been made, (2) should be straightforward. Unfortunately, 
+(1) is really involved. I have done some beginner's projects with cmake, but 
+lately I am running only third party cmake based projects. Currently I am 
+using some cmake based open source software from Oracle which nicely builds 
+on headless Linux servers as well as on my Windows 7 machine and even IDEs 
+for easy debugging and exploring are supported. If there is sufficient 
+common interest I'd would be willing to invest some time into it. As far as 
+running Ragel for a specific platform is concerned, I have doubts that the 
+effort ist justified. If basic cross platform support is a higher goal, then 
+it could make sense.
+
+jg
+
+^0: See http://en.wikipedia.org/wiki/If_and_only_if
+^1: This refers to "once and for all". Homework: elaborate on the historic 
+background of both remarks and explain the irony :(
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Jul 19 03:46:17 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 18 Jul 2011 20:46:17 -0700
+Subject: [ragel-users] Go code generations
+In-Reply-To: <20110718112518.GA20783@miek.nl>
+References: <20110715082930.GA30915@miek.nl> <4E239D6D.3070807@complang.org>
+	<20110718112518.GA20783@miek.nl>
+Message-ID: <4E24FE09.4000006@complang.org>
+
+Strict policy of no ETAs for open source, I'm sure you understand. 
+Unless you want to pay me of course ... :)
+
+But that said, it will probably get done soonish because I'm currently 
+working on ragel 7.0, including the code generators. It will be a good 
+time to get it done.
+
+-Adrian
+
+On 11-07-18 04:25 AM, Miek Gieben wrote:
+> [ Quoting Adrian Thurston at 19:41 on July 17 in "Re: [ragel-users] Go code generatio"... ]
+>> http://www.complang.org/redmine/issues/307
+>
+> thanks.
+>
+> I'm asking for the impossible here, but do you dare to give an ETA?  :-)
+>
+> grtz Miek
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Tue Jul 19 03:49:10 2011
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 18 Jul 2011 20:49:10 -0700
+Subject: [ragel-users] trunk very broken
+Message-ID: <4E24FEB6.5060400@complang.org>
+
+I'm breaking the trunk pretty bad and putting it back together with a 
+rad new conditions implementation. When that's done I'm going to call it 
+7.0.
+
+In the meantime use 6.7. There is nothing of use in the trunk that's not 
+in 6.7. If need be, I'll do a 6.8 for anything that should go out quickly.
+
+Regards,
+  Adrian
+
+-- 
+Dr. Adrian D. Thurston
+http://www.complang.org/thurston/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From alexander.me at gmail.com  Tue Jul 19 10:42:25 2011
+From: alexander.me at gmail.com (Denis Naumov)
+Date: Tue, 19 Jul 2011 14:42:25 +0400
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <37579C5A984147A9B632F9DDA88DE781@localdomain>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry>
+	<37579C5A984147A9B632F9DDA88DE781@localdomain>
+Message-ID: <CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+
+Hi Adrian, Joseph.
+
+I want to express some ideas about cross-platform ragel.
+Joseph may add something, or offer the best solutions require minimal changes.
+
+1. =========================================
+
+ragel Windows specific code somewhere uses _WIN32 define, but
+somewhere _MSC_VER.
+IMHO it is better do not use _MSC_VER because _MSC_VER define is set
+only for Microsoft VC compiler and contain it's version code.
+_WIN32 define is used by all (as far as I know), compilers for Windows.
+
+I myself often use this design:
+somewhere in the general Include file that is included in all *. cpp files using
+
+# Ifndef __WIN32__
+# If defined (_WIN32) | | defined (WIN32)
+# Define __WIN32__
+# Endif
+# Endif
+
+and further where necessary
+
+# Ifdef __WIN32__
+   ...
+# Else
+   ...
+# Endif
+
+2. ==========================================
+
+ I found that in the main.cpp include unistd.h twice.
+ Also, there is no unistd.h header file in Windows, and I and Joseph
+have to create empty file to compile the project.
+ Could you move include unistd.h to use it only for unix-like systems.
+ Something like
+
+# Ifdef __WIN32__
+   ...
+# Else
+   # Include <unistd.h>
+# Endif
+
+  Fix it - 3 seconds.
+
+3. ==========================================
+
+  About the problem with '\' and '/' in paths.
+  I totally agree with Joseph. The first thing you may do - it does
+not handle escape sequences in strings that can are the paths of
+files.
+  This is a strings in "include" and "import" directives.
+
+  The situation on the one hand is simple - if _WIN32 use '\' in a way
+or another, '/', but the other is
+  some exotics. As I understand it when running under Windows in
+Minwig-cigwin-... and other shells, we sometimes get
+  that even so we should strictly be used '/'-unix separator.
+
+  Possible ways how to solve the problem:
+     - Solution 1.
+       all strings that are paths - copy in a separate buffer, and
+always use '\' to '/' replacement for them.
+       when concatenating paths with '/' always.
+       because '/' path work on all systems (windows, * nix, mac). We
+simply adjust the path if the user uses the '\'.
+
+     - Solution 2
+       you can create a global variable that will contain the correct
+path separator character.
+       correct path separator character will detect at startup.
+       For example you can try using argv [0] (first argument - the
+name of the program)
+       to create path like ".\ragel" - and try opening the file read-only.
+       if this is possible - then the system in which we started using
+'\' as path separator.
+       save it in a global variable and use later .
+       Or you can get an environment variable using the getenv (eg
+PATH), which will always contain the path to search.
+       scan the resulting string and find it '/' or '\' - this is the
+path separator.
+
+     - Maybe even some ideas:)))
+
+Best regards.
+Denis.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ragel-user at jgoettgens.de  Tue Jul 19 17:15:51 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Tue, 19 Jul 2011 19:15:51 +0200
+Subject: [ragel-users] BUG while processing import directive
+In-Reply-To: <CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+References: <1017176282-1310953326-cardhu_decombobulator_blackberry.rim.net-1833240408-@b26.c9.bise6.blackberry><37579C5A984147A9B632F9DDA88DE781@localdomain>
+	<CAD5e4C=pW9rS5KqaZsvSBn7t54ZMPK2qgUexK82eu2De8jLiug@mail.gmail.com>
+Message-ID: <730F834E515F4AD195A7A1CAAA827656@localdomain>
+
+Denis,
+
+some patches apply to the Windows OS in general, which is handled by _WIN32. 
+Even if you compile Ragel using mingw, _WIN32 might be defined. _MSC_VER 
+applies only to the Microsoft C/C++ compiler and its specific runtime 
+library. The runtime libraries of the other C/C++ compilers might or might 
+not show subtle differences. In order to really clean up the code and one 
+should first get all the other compilers (Microsoft, Intel, Digital Mars, 
+GNU in mingw and cygwin flavor, Borland, ...), study their runtime libs and 
+then make a decision about the preprocessor symbols. Also, runtime libs 
+might be different for different compiler versions. Is it worth the effort?
+
+The current MSC runtime libs more or less treat '/' and '\' equivalently, as 
+do the GNU compilers, but assuming that '/' is generally supported is a bit 
+naive. If the goal is to compile Ragel specs on a Windows machine, one can 
+rely on the behavior of a specific runtime lib to reduce the amount of 
+written code. If the goal is to make Ragel 100% cross platform, one should 
+consider treating any path issues inside Ragel. Also, how do you want to 
+handle code that comes from a Windows machine that gets ported to a POSIX 
+environment? You probably have to allow '\' on Linux systems, too. That's a 
+No-go. None of these considerations affect the generated code of the FSMs. 
+So, is it worth the effort?
+
+Once the basic source code is cross platform the next step is to make the 
+build system cross platform, possibly using cmake. I would be willing to 
+invest some time, but not because Ragel needs it, but because it is on my 
+list of things to study. Again, the output of Ragel is not affected by this.
+
+My suggestion for treating paths is to not allow native path seps if they 
+differ from '/'. In rare cases names would need some patching in order to 
+get a valid path for a specific platform. Currently, my patches for Windows 
+could then be removed.
+
+jg 
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From miek at miek.nl  Wed Jul 20 18:39:48 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Wed, 20 Jul 2011 20:39:48 +0200
+Subject: [ragel-users] size of generated files
+Message-ID: <20110720183948.GA29397@miek.nl>
+
+Hello,
+
+I'm using Ragel (svn) to generate Go code. Currently I'm encountering
+a bug whereby the linker (6l) hangs when linking the code. 
+
+This caused me to check the generated .go file, and its size
+approaches 10M. Is this normal for Ragel generated files or
+could there be something (very) wrong with my state machine
+definition?
+
+ grtz,
+
+--
+    Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110720/f2c906e7/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From miek at miek.nl  Wed Jul 20 19:54:46 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Wed, 20 Jul 2011 21:54:46 +0200
+Subject: [ragel-users] size of generated files
+In-Reply-To: <20110720183948.GA29397@miek.nl>
+References: <20110720183948.GA29397@miek.nl>
+Message-ID: <20110720195446.GA25159@miek.nl>
+
+[ Quoting Miek Gieben at 20:39 on July 20 in "[ragel-users] size of generated fil"... ]
+> Hello,
+> 
+> This caused me to check the generated .go file, and its size
+> approaches 10M. Is this normal for Ragel generated files or
+> could there be something (very) wrong with my state machine
+> definition?
+
+Rewritting it to use a scanner makes quite the difference...
+It is now down to 44K.
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110720/95bb5a9d/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Jul 20 22:07:16 2011
+From: thurston at complang.org (thurston at complang.org)
+Date: Wed, 20 Jul 2011 22:07:16 +0000
+Subject: [ragel-users] size of generated files
+In-Reply-To: <20110720183948.GA29397@miek.nl>
+References: <20110720183948.GA29397@miek.nl>
+Message-ID: <338577054-1311199640-cardhu_decombobulator_blackberry.rim.net-1692735067-@b26.c9.bise6.blackberry>
+
+That's definitely not normal. Sounds like you've got a state explosion. It also sounds like you've got it sorted out from your other message, but I just want to caution you against using the trunk in SVN. It is where I am developing 7.0 and it is temporarily broken. 
+-----Original Message-----
+From: Miek Gieben <miek at miek.nl>
+Sender: ragel-users-bounces at complang.org
+Date: Wed, 20 Jul 2011 20:39:48 
+To: ragel-users<ragel-users at complang.org>
+Reply-To: ragel-users at complang.org
+Subject: [ragel-users] size of generated files
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jensesaat at googlemail.com  Fri Jul 22 10:40:11 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Fri, 22 Jul 2011 12:40:11 +0200
+Subject: [ragel-users] Problems with eof
+Message-ID: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+
+Hi!
+
+I'm very new to this list and ragel itself. I played around a bit and got an
+error which i can't fix.
+
+The error message from my compiler is:
+examples\checker.cpp(135): error C2065: 'eof' : undeclared identifier
+
+I see that eof is used, but never declared...but why? It's the generated
+code from ragel.exe.
+
+I'm using visual studio 2010.
+
+I appended the files for you!
+
+Thank you very much for your help.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/436a1701/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: checker.cpp
+Type: text/x-c++src
+Size: 3386 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/436a1701/attachment-0001.cpp>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: checker.rl
+Type: application/octet-stream
+Size: 959 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/436a1701/attachment-0001.obj>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From miek at miek.nl  Fri Jul 22 10:45:06 2011
+From: miek at miek.nl (Miek Gieben)
+Date: Fri, 22 Jul 2011 12:45:06 +0200
+Subject: [ragel-users] Problems with eof
+In-Reply-To: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+References: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+Message-ID: <20110722104506.GA13359@miek.nl>
+
+[ Quoting Jens Saathoff at 12:40 on July 22 in "[ragel-users] Problems with eof"... ]
+> Hi!
+> 
+> I'm very new to this list and ragel itself. I played around a bit and got an
+> error which i can't fix.
+> 
+> The error message from my compiler is:
+> examples\checker.cpp(135): error C2065: 'eof' : undeclared identifier
+
+You must declare it yourself. See the Ragel manual paragraph 5.1...
+
+grtz Miek
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 198 bytes
+Desc: Digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/0d3a4267/attachment-0001.sig>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Fri Jul 22 11:46:11 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Fri, 22 Jul 2011 13:46:11 +0200
+Subject: [ragel-users] Problems with eof
+In-Reply-To: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+References: <CAFAt_NgLXZBX0g45m+D7w+qvsQZuUeHw=XiDugQoJjoXqmgt-Q@mail.gmail.com>
+Message-ID: <EE12F3582BAB4C54A981B51745AB924C@localdomain>
+
+You need to declare “const char *eof”, or drop the “const” like you declared p, pe, and cs. Have a look @ chap 5.1 of the docs.
+
+You might also want to fiddle with your specification of your FSM. The “eof” was implicitly generated by Ragel because you did not really have a terminal way out of the machine. If you add s.th. like a trailing ‘;’ (main := number+ ';'; ), or whatever, Ragel no longer tests against “eof” and you no longer have to declare it. 
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/271b9100/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Fri Jul 22 14:30:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Fri, 22 Jul 2011 16:30:14 +0200
+Subject: [ragel-users] Problems with eof
+Message-ID: <CAFAt_Nj+g2=qTz-6SOrHjNrzEw_GM0SY8YWJ3-u2zVT419Go1g@mail.gmail.com>
+
+Hi! Thanks for your answers. Reading the doc made it clear.
+
+Is there are problem in the mailinglist? I did not not receive your answer
+via mail, found it via gmane.org
+
+In the next days i wil ask more questions ;-)
+
+Thanks a lot!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110722/7bdf7a01/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Sat Jul 23 12:54:04 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Sat, 23 Jul 2011 14:54:04 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file with
+	actions)
+Message-ID: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+
+Hi!
+
+As i'm very new to ragel i just played around a bit and tried some examples,
+modified them a bit and so on.
+
+Before  started with Ragel i used boost::spirit to parse text. boost::spirit
+is fine, speed is ok, much faster than using simple regexes, but one
+problem: The compilation time of a boost::spirit-grammar is a hell. I
+created a grammar for pokerhandhistory-parsing, the debug-compilation time
+is about 20 minutes. A bit to long!
+
+Here is pokerhandhistory-file: http://pastebin.com/WjDP1xmj
+
+I'm extracting almost all information like Datetime, Limit and all player
+actions and fill some structs. After parsing it's inserted to a database.
+
+My questions:
+1.Would it be easy to create such a parser with Ragel?
+
+2.How to parse things like this: "player1 raises 1 to 2" all characters
+before ' raises ' digit ' to ' digit? (a playername can contain an action
+like player 1 raises raises 1 to 2)
+
+3.How to create actions for such a line? In boost:spirit i can call a
+function in this way: rule = (char_+ >> double_)[class::myfunction(_1,_2)].
+_1 would be the char-array and _2 a double? Is it possible with Ragel?
+
+4.Can i use a symbol-table in Ragel? example of a symboltable with actions:
+(L"calls", 1)
+(L"bets", 2)
+(L"folds", 3)
+(L"posts the small blind of", 4)
+(L"posts a dead small blind of", 5)
+(L"posts the big blind of", 6)
+(L"posts", 7)
+(L"antes", 8)
+a rule for this is: rule = name SYMBOL::ACTION[function(_1, _2)]
+
+
+So...please don't laugh ;-)
+
+Thank you very much!!!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110723/676a7545/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Sat Jul 23 12:57:51 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Sat, 23 Jul 2011 14:57:51 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	with actions)
+Message-ID: <CAFAt_NiDjge-v26dei26RDiS9o8114W5YqD-fGY+fcQ79j4dMQ@mail.gmail.com>
+
+Sorry. I forgot to attach my little test:
+
+#include <string.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cmath>
+
+
+
+void parse(char * str)
+{
+char *eof = NULL;
+char *p = str; // data pointer
+char *pe = str + strlen(str); // past end
+int cs;        // machine state
+int len = 0;
+char token[1024];
+static char *text_start;
+
+eof = pe;
+%%{
+machine parser;
+write data;
+ action MarkStartOfName{
+text_start = fpc;
+}
+ action PrintPlayerName{
+int text_len = fpc - text_start;
+if (text_len > 0) {
+printf("PLAYER(%.*s)\n", text_len, text_start);
+}
+}
+
+playername = lower+ >MarkStartOfName ^(space 'raises' space '$' digit+ space
+'to' space '$' digit+) @PrintPlayerName ;
+#playername = any+ >MarkStartOfName ^ ' raises $1 to $2' /*(space 'raises'
+space '$' digit+ space 'to' space '$' digit+)*/ @PrintPlayerName ;
+ main := playername;
+
+write init;
+write exec;
+}%%
+
+printf("\n");
+}
+
+int main()
+{
+  parse("player raises $1 to $2");
+  getchar();
+}
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110723/404657f9/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Jul 23 16:00:19 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 23 Jul 2011 18:00:19 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+In-Reply-To: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+References: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+Message-ID: <4464B64CDC68405D81A5CF4F9350775B@localdomain>
+
+Jens!
+
+It looks as if the “poker” language mainly consists of a simple list of key 
+value pairs, so a plain tokenizer might suffice. Compared to tools like 
+flex, or the scanner part of ANTLR, the focus is more on states and 
+transitions compared to entire. When matching arbitrary text you probably 
+also need to have a look at the longest-match Kleen star operator. With 
+Ragel you can do many things “on the fly”, but if you are just transforming 
+a list into a different format, you may not need this power. Likewise you 
+wouldn't need the power of an LR or LL(*) parser (though LL(*) grammars are 
+very easy to code and the speed penalty might be acceptable). You could use 
+the tokenizer of the C runtime library and subsequently match keywords using 
+the output from gperf. Simple and not slow.
+
+I am using both techniques to remotely control an Asterisk PBX server 
+(telphony system) using the AMI protocol 
+(http://www.voip-info.org/wiki/view/Asterisk+manager+API). The AMI protocol 
+shares a lot with your "poker" language. The main difference is that I am 
+dealing with a real-time system (asynchronous communication, timing issues, 
+net problems, etc.) and I know that a valid input stream always has 
+terminating characters (or I insert a "timeout" token at the socket level, 
+so no need for expr**). Unfortunately not all Asterisk modules follow the 
+AMI protocol exactly (instead of violating the protocol view this as 
+extending the protocol) and there are a couple of exceptions that makes the 
+handwritten code now very ugly. This is where Ragel starts to shine.
+
+There are also various text transformation tools out there. I think it could 
+be possible to transform your key value lists into SQL code without any 
+written line of source code (if you don't count the code the transformation 
+specification).
+
+If you have a well behaved source, the system supplied tokenizer (+ gperf) 
+is probably preferrable, otherwise Ragel. Ragel is more fun, though. There's 
+a graphviz installer for your windows machine and starting from your simple 
+example you could add some output for all available actions to see what's 
+going on during execution time. It won't take long before you get a feeling 
+how things work and where you must be careful.
+
+Of course, if Adrian had a lot of spare time left over, he could add an 
+"instrumentation" option to Ragel by adding diagnostic code to all states 
+and transitions (essentially adding any allowable action with some code). In 
+the simplest form there would be just some console output. A better solution 
+would be to fire events though a socket and with a little extra work to 
+control the input, one could write a nice graphics tool to visualize the FSM 
+and its transitions. This would be helpful for beginners, but generally 
+would be useful as a teaching tool for a college level CS class.
+
+Happy tokenizing,
+jg
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Sat Jul 23 16:07:27 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Sat, 23 Jul 2011 18:07:27 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log
+	filewithactions)
+In-Reply-To: <4464B64CDC68405D81A5CF4F9350775B@localdomain>
+References: <CAFAt_Njo_HtZNK76bYKsC-JCAi+Ti1Zd-ib0icUzq-u1v3R0HA@mail.gmail.com>
+	<4464B64CDC68405D81A5CF4F9350775B@localdomain>
+Message-ID: <DACDE9FE92974AA3AE726325676D9D5A@localdomain>
+
+Damn!
+
+Replace "compared to entire" by "compared to the entire matched input".
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From jensesaat at googlemail.com  Mon Jul 25 08:30:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 10:30:14 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+
+Hi! Thank you very much for your answer.
+Very nice. But there's a point that's against simple tokenizing...to much
+or's.
+What does it mean? A file can begin with Game or Spiel (Game in German) and
+more like currencies ($,€). I think tokenizing will be a bit ugly for that.
+
+Can you tell me how to solve the line with raise with ragel?
+
+raiseaction = any+ space 'raises $' digit+ space 'to' space '$' digit+ (but
+any does consume the raises, too)
+
+How would you set up such a rule in ragel?
+
+Thank you very much!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110725/2c32443d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ragel-user at jgoettgens.de  Mon Jul 25 15:49:00 2011
+From: ragel-user at jgoettgens.de (ragel-user at jgoettgens.de)
+Date: Mon, 25 Jul 2011 17:49:00 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log
+	filewithactions)
+In-Reply-To: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+References: <CAFAt_Nh3j2o+gwOpLDvhCoKSiM3WqXHZjM9n=KAZmw6yt74_AQ@mail.gmail.com>
+Message-ID: <1EC25BD11599461A999DC05EF71264A8@localdomain>
+
+If this is so, http://pastebin.com/WjDP1xmj is not representative for your computer language. Since there is only a table, the tokenizer takes apart the lexical elements and since most of the lexical elements are fixed, gperf is perfect for that job. I don’t see at what point you need to deal with many alternatives. 
+
+Fill up the various possible actions with some code && you’ll see where your FSM got stuck , and/or generate graphviz output and follow the states by hand for a given input string. In case line 23 of your sample input data should be (possibly partially) matched by your “raiseaction” I’d start debugging by looking at what the “any” machine really matches 
+
+jg
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110725/8f0768c5/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: wlEmoticon-smile[1].png
+Type: image/png
+Size: 1041 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110725/8f0768c5/attachment-0001.png>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Mon Jul 25 16:47:37 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 18:47:37 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_Nh3upecnk+Vd7RnauXuLR9uLMb0u8VFAokKm9w8E_mktQ@mail.gmail.com>
+
+Hi!
+
+The "any" matches the whole line.
+
+I only need help with the subject "playername raises $1 to $2"
+
+Thank you
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110725/a785f392/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jensesaat at googlemail.com  Mon Jul 25 16:56:14 2011
+From: jensesaat at googlemail.com (Jens Saathoff)
+Date: Mon, 25 Jul 2011 18:56:14 +0200
+Subject: [ragel-users] Parsing PokerHand-History file (kind of log file
+	withactions)
+Message-ID: <CAFAt_NhS=_NcQEDkOhXSR_SHzn5NrOXXSYSoNo-G7FiDaKCgrw@mail.gmail.com>
+
+Hi!
+
+The "any" matches the whole line.
+
+I only need help with the subject "playername raises $1 to $2"
+
+Thank you
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110725/38ef606d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From shawn at bighugh.com  Wed Jul 27 15:00:05 2011
+From: shawn at bighugh.com (Shawn Hoover)
+Date: Wed, 27 Jul 2011 11:00:05 -0400
+Subject: [ragel-users] State chart style and entering actions
+Message-ID: <CAN5w8SOLy5p4jGWJesce3og9evPPSzYVS0hYFKK4F3Y4GDGSOA@mail.gmail.com>
+
+Hello,
+
+I'm using the state chart style for processing application logic. So far
+I've gotten by with finishing actions attached to specific events, but now
+I'd like to use an entering action for an entire labeled expression. Here's
+an example:
+
+machine := (
+start: START -> A,
+A: (IDLE -> A |
+   POLL @poll OPEN -> A |
+   POLL @poll CLOSED -> B), >~a_entry,
+B: (IDLE -> B |
+   EXIT -> final)
+);
+
+I would like to execute a_entry once and only once when the A "loop" is
+entered. It does execute on entrance, but then it also executes every time I
+get IDLE or POLL OPEN.
+
+Is there a way to make a_entry execute only once while still using state
+charts and the union operator in the same structure? I suppose the following
+would work:
+
+A: (IDLE | POLL @poll OPEN)* POLL @poll CLOSED -> B >~a_entry;
+
+But I'd like to retain the original structure if there's a better way to
+attach the action.
+
+Thanks,
+Shawn
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20110727/204b538d/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

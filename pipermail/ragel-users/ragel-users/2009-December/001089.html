@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] short strings,	including some which are 1-letter prefixes of other
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20short%20strings%2C%0A%09including%20some%20which%20are%201-letter%20prefixes%20of%20other&In-Reply-To=%3C969165AA-D44F-41F4-85B0-165C757CA4E6%40dalkescientific.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001087.html">
+   <LINK REL="Next"  HREF="001096.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] short strings,	including some which are 1-letter prefixes of other</H1>
+    <B>Andrew Dalke</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20short%20strings%2C%0A%09including%20some%20which%20are%201-letter%20prefixes%20of%20other&In-Reply-To=%3C969165AA-D44F-41F4-85B0-165C757CA4E6%40dalkescientific.com%3E"
+       TITLE="[ragel-users] short strings,	including some which are 1-letter prefixes of other">dalke at dalkescientific.com
+       </A><BR>
+    <I>Mon Dec  7 17:01:13 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001087.html">[ragel-users] New ragel.m4 for checking for Ragel in autoconf
+</A></li>
+        <LI>Next message: <A HREF="001096.html">[ragel-users] short strings, including some which are 1-letter prefixes of other
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1089">[ date ]</a>
+              <a href="thread.html#1089">[ thread ]</a>
+              <a href="subject.html#1089">[ subject ]</a>
+              <a href="author.html#1089">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I'm updating a parser I wrote a couple of years ago, which parses a molecular format called SMILES. Molecules contain atoms and bonds. The atoms include the element name as an abbreviation.
+
+Consider C and Cl as two such abbreviations. One is a prefix of the other. I had
+
+  is_raw_atom = (
+      #
+      'B' % raw_atom_B_5_action |
+      'C' % raw_atom_C_6_action |
+      'Cl' % raw_atom_Cl_17_action |
+        ...
+
+and that worked for what I was doing before, but now I'm trying to get error handling to work. Suppose someone does &quot;CQ&quot;. I want raw_atom_C_6_action to occur and then an error.
+
+Ragel doesn't do that. It reports the error at the 'C', because it never transitions out from the end state.
+
+What I did in my current update (in addition to changing the action names) is this:
+
+aliphatic_organic = (
+  'B'  %is_aliphatic_B  %err(is_aliphatic_B)  |
+  'C'  %is_aliphatic_C  %err(is_aliphatic_C)  |
+  'N'  &gt;is_aliphatic_N |
+     ...
+  'Cl' %is_aliphatic_Cl %err(is_aliphatic_Cl) |
+  'Br' @is_aliphatic_Br |
+      ...
+);
+
+
+It works, but is it correct and proper? I did see there was the |* ... *| construct designed for things like this, but I didn't want the backtracking.
+
+Best regards,
+
+
+				Andrew
+				<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">dalke at dalkescientific.com</A>
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001087.html">[ragel-users] New ragel.m4 for checking for Ragel in autoconf
+</A></li>
+	<LI>Next message: <A HREF="001096.html">[ragel-users] short strings, including some which are 1-letter prefixes of other
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1089">[ date ]</a>
+              <a href="thread.html#1089">[ thread ]</a>
+              <a href="subject.html#1089">[ subject ]</a>
+              <a href="author.html#1089">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

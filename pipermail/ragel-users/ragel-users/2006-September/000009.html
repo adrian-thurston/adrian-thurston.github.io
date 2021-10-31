@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Minimisation question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C4509CD7D.9010109%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000008.html">
+   <LINK REL="Next"  HREF="000010.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Minimisation question</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C4509CD7D.9010109%40cs.queensu.ca%3E"
+       TITLE="Minimisation question">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Thu Sep 14 21:45:33 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000008.html">Minimisation question
+</A></li>
+        <LI>Next message: <A HREF="000010.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've been using gdb and hitting ctrl-c when it explodes. From there I 
+explore the data to see what's going on. But if it terminates I would use 
+gprof to get a sense of what's happening. Once I have an idea of where the 
+problem might be I make the smallest ragel spec I can which reproduces the 
+problem and explore using gdb or sometimes print statements.
+
+If you want to send me the full spec I'd love to look into why it's taking 
+so long. Ragel should be able to process it faster.
+
+Cheers,
+  Adrian
+
+Colin Fleming wrote:
+&gt;<i> Great, thanks! The patch works well for the grammar I sent:
+</I>&gt;<i> 
+</I>&gt;<i> time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V &gt; test.dot
+</I>&gt;<i> fsm name  : AsciiXml
+</I>&gt;<i> num states: 269
+</I>&gt;<i> 
+</I>&gt;<i> real    0m0.087s
+</I>&gt;<i> user    0m0.079s
+</I>&gt;<i> sys     0m0.011s
+</I>&gt;<i> 
+</I>&gt;<i> But the full Unicode grammar still takes a while:
+</I>&gt;<i> 
+</I>&gt;<i> time ragel xml.rl -s | rlcodegen -V &gt; test.dot
+</I>&gt;<i> fsm name  : Xml
+</I>&gt;<i> num states: 445
+</I>&gt;<i> 
+</I>&gt;<i> real    0m43.829s
+</I>&gt;<i> user    0m43.293s
+</I>&gt;<i> sys     0m0.565s
+</I>&gt;<i> 
+</I>&gt;<i> I guess there's another production creating unreachable states. It's a
+</I>&gt;<i> vast improvement though, it never even got close to compiling
+</I>&gt;<i> beforehand. Is there some way I can diagnose what's happening myself?
+</I>&gt;<i> 
+</I>&gt;<i> On 9/14/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> Pretty much every operation can cause unreachable states. For example,
+</I>&gt;&gt;<i> during union a new start state is created with epsilon transitions drawn to
+</I>&gt;&gt;<i> the old start states. The epsilon operation effectively copies transition
+</I>&gt;&gt;<i> lists from the destination state to the source state. If the old start
+</I>&gt;&gt;<i> states don't have any transitions in from elsewhere in the machine then they
+</I>&gt;&gt;<i> become unreachable. The on-the-fly cleanup will reap states with no external
+</I>&gt;&gt;<i> entry points. This gets most unreachables, but just like in garbage
+</I>&gt;&gt;<i> collection, cycles cause problems.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> In your ragel file the subtraction operation is leaving behind unreachables.
+</I>&gt;&gt;<i> Subtraction may in fact need a full mark and sweep (I had thought the
+</I>&gt;&gt;<i> on-the-fly was sufficient). The attached patch will allow you to compile
+</I>&gt;&gt;<i> without -e.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Cheers,
+</I>&gt;&gt;<i>   Adrian
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Colin Fleming wrote:
+</I>&gt;&gt;&gt;<i> Ok, thanks for the help! What causes unreachable states? Can I change
+</I>&gt;&gt;&gt;<i> something about the grammar to avoid them (apart from -e, of course)?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Cheers,
+</I>&gt;&gt;&gt;<i> Colin
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i> Index: ragel/fsmgraph.cpp
+</I>&gt;&gt;<i> ===================================================================
+</I>&gt;&gt;<i> --- ragel/fsmgraph.cpp  (revision 3586)
+</I>&gt;&gt;<i> +++ ragel/fsmgraph.cpp  (working copy)
+</I>&gt;&gt;<i> @@ -496,6 +496,7 @@
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>         /* Remove states that have no path to a final state. */
+</I>&gt;&gt;<i>         removeDeadEndStates();
+</I>&gt;&gt;<i> +       removeUnreachableStates();
+</I>&gt;&gt;<i>  }
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000008.html">Minimisation question
+</A></li>
+	<LI>Next message: <A HREF="000010.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

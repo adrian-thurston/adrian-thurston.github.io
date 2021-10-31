@@ -1,0 +1,4362 @@
+From thurs... at cs.queensu.ca  Fri Mar  2 18:52:27 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 13:52:27 -0500
+Subject: [ragel-users] Re: new backend executable names in 5.18
+In-Reply-To: <1172120930.838688.120190@j27g2000cwj.googlegroups.com>
+References: <45D260D3.6080508@cs.queensu.ca> <1172120930.838688.120190@j27g2000cwj.googlegroups.com>
+Message-ID: <45E8726B.4090404@cs.queensu.ca>
+
+Hello,
+
+At present there is one ruby test case in test/atoi3.rl. Expect more to be
+added in the future.
+
+If you'd like to implement rlgen-javascript I would suggest starting with
+rlgen-java. Generally it doesn't take too much work to add a new language
+and get the basics working.
+
+Cheers,
+ Adrian
+
+mdaines wrote:
+>> rlgen-ruby     Ruby (new, experimental)
+> 
+> I too would like to see some samples.
+> 
+> When will we see rlgen-javascript? I'm only half kidding, though I
+> think I see parsing going on in JavaScript sometimes that seems like
+> maybe it could benefit? Plus, I am leaning toward thinking such a
+> thing could be useful to me, maybe. Maybe fiddling around with that is
+> a good leisure-time way to learn about this whole subject and about
+> how Ragel is implemented...
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 21:36:17 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 16:36:17 -0500
+Subject: [ragel-users] selecting a starting state or how to serialize
+ a machine
+In-Reply-To: <1172290115.150566.229860@v33g2000cwv.googlegroups.com>
+References: <1172290115.150566.229860@v33g2000cwv.googlegroups.com>
+Message-ID: <45E898D1.4010206@cs.queensu.ca>
+
+Hi Jason, you can save off the cs variable. Also, you can tell ragel that it
+should access cs using a pointer, so that the current state lives somewhere
+other than the current function. Do this with "access data_pointer->;"
+
+Adrian
+
+Jason wrote:
+> I am finding more uses for ragel all the time :-)
+> Now I am experimenting with using a ragel to model work flow logic.
+> For example, a document has an associated state, approved, rejected,
+> pending, etc. So I want to load the document and "post" events that
+> will drive the document status to new states, triggering actions
+> along
+> the way.
+> 
+> So the question is: How do I tell a ragel machine I want to start at
+> a
+> particular point (where it left off before)?
+> 
+> Do I just archive the entire machine variables (fixing up pointers of
+> course)?
+> 
+> thanks,
+> Jason
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 21:44:28 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 16:44:28 -0500
+Subject: [ragel-users] Re: selecting a starting state or how to serialize
+ a machine
+In-Reply-To: <1172373564.738689.178450@v33g2000cwv.googlegroups.com>
+References: <1172290115.150566.229860@v33g2000cwv.googlegroups.com> <1172373564.738689.178450@v33g2000cwv.googlegroups.com>
+Message-ID: <45E89ABC.4010204@cs.queensu.ca>
+
+For a really long time now I've been meaning to implement a new feature
+which should help you out.
+
+%% write entry <machine_or_label>;
+
+With this ragel should generate:
+
+static const int entry_name = X;
+
+Where X is a state number representing the entry point given. Then before
+running the state machine on an input character you can go:
+
+cs = entry_name;
+
+This will work just like fgoto <machine_or_label>; except cs is modified
+before entering the processing loop.
+
+-Adrian
+
+skk wrote:
+> What I have done with a text editor in a windows control is build the
+> initial state machine so things transition through the basic states as
+> required.  I validate this machine first.  Then I build in transitions
+> from the start state into the internal states with the input that
+> represents the current state.  In the text editor, build the machine
+> to handle the cursor movement, character insert, delete, insert/
+> overwright, skip mask characters and so on.  When entering the machine
+> I then create a transition from the initial state into the internal
+> states after computing the current state of the cursor.  The current
+> state of the cursor can be far left/right, insert/overwright, valid
+> character to the left/right/both, etc.  This is encoded into an
+> integer (all input is in integers, not characters) and is fed in as
+> the first character thus putting me exactly where I want to be for the
+> next keyboard input character (integer).  This is necessary because
+> the user may have moved the text cursor with the mouse and the last
+> state I was in is not valid any more.
+> 
+> On Feb 23, 9:08 pm, "Jason" <jason2... at jasonjobe.com> wrote:
+>> I am finding more uses for ragel all the time :-)
+>> Now I am experimenting with using a ragel to model work flow logic.
+>> For example, a document has an associated state, approved, rejected,
+>> pending, etc. So I want to load the document and "post" events that
+>> will drive the document status to new states, triggering actions
+>> along
+>> the way.
+>>
+>> So the question is: How do I tell a ragel machine I want to start at
+>> a
+>> particular point (where it left off before)?
+>>
+>> Do I just archive the entire machine variables (fixing up pointers of
+>> course)?
+>>
+>> thanks,
+>> Jason
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 22:36:59 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 17:36:59 -0500
+Subject: [ragel-users] token buffer not correct
+In-Reply-To: <1172605242.835835.194270@8g2000cwh.googlegroups.com>
+References: <1172605242.835835.194270@8g2000cwh.googlegroups.com>
+Message-ID: <45E8A70B.3090009@cs.queensu.ca>
+
+Hi Jason,
+
+In scanner pattern actions *p is not reliable. Sometimes the action is
+executed on the character following the match, other times it is executed on
+the last character of the match. This is an optimization which depends on
+the nature of the patterns. Use *tokstart instead. This will fix the problem
+with '{'.
+
+In the second issue, I noticed that you jump to a new machine definition to
+process { ... } blocks. But before you return you don't set s->data. It
+stays at the old value, which is why it appears that the data pointer is not
+advanced.
+
+Adrian
+
+Jason wrote:
+> BTW, this is pull scanner.
+> 
+> Essentially I see a possible problem / bug in 2 areas. One is the
+> return value of a single character. Specifically in the enclosed
+> example TK_Char should be return the int value of the char matched
+> (e.g. '{') but it isn't.
+> 
+> The second involves the *non* advancement of the token / data pointer
+> illustrated below. The digraph value, "<:" appears at the beginning of
+> the output of the following token TK_TEXT.
+> 
+> My input is this
+> 
+> (app MyApp
+> 
+> 	New: (
+> 		User.Submit.Application: (
+> 			>> Submitted
+> 			<: {#<xml> pre_action </xml>#}
+> 			:>  { (one) }
+> 		)
+> 	)
+> )
+> 
+> The problem tokens are printed thusly
+> 
+> 	parser: TK_PRE(271):6 "<:"
+> 	parser: TK_TEXT(266):6 "<: {#<xml> pre_action </xml>#}"
+> 
+> The excerpted rule is
+> 
+> 			# Consume text delimited by <xml> ... </xml>
+> 			xml  := (any_count_line* -- "</xml>") :>> "</xml>"
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_XML;
+> 				s->token_name = "TK_XML";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> I've tried a number of things with the grammar to no avail. So I don't
+> know if this a problem with ragel or my spec.
+> 
+> Any pointers would be most appreciated.
+> 
+> many thanks,
+> Jason
+> 
+> ---------------------------- Full .rl
+> ----------------------------------------------------------------------
+> #include "reader_s.h"
+> 
+> #ifndef SCOPE
+> #define SCOPE
+> #endif
+> 
+> 
+> %%{
+> 	machine Scanner;
+> 	write data;
+> }%%
+> 
+> 
+> SCOPE void scan_init_buf( Scanner *s, char *buf )
+> {
+> 	memset (s, '\0', sizeof(Scanner));
+> 	s->curline = 1;
+> 	s->buf = buf;
+> 	s->p = s->buf;
+> 	%%{ write init; }%%
+> }
+> 
+> SCOPE void scan_finalize( Scanner *s )
+> {
+> }
+> 
+> #define ret_tok( _tok ) token = _tok; s->token = _tok; s->data = s-
+>> tokstart; s->token_name = #_tok
+> #define ret_char( _tok ) token = _tok; s->token = *s->tokstart; s-
+>> data = s->tokstart; s->token_name = "TK_Char"
+> 
+> SCOPE int scan( Scanner *s )
+> {
+> 	char *p = s->p;
+> 	char *pe = s->pe;
+> 	int token = TK_NO_TOKEN;
+> 
+> 	while ( 1 ) {
+> 
+> 		%%{
+> 			machine Scanner;
+> 			access s->;
+> 
+> 			newline = '\n' @{s->curline += 1;};
+> 			any_count_line = any | newline;
+> 
+> 			# Consume a C comment.
+> 			c_comment := any_count_line* :>> '*/' @{fgoto main;};
+> 
+> 			# Consume text delimited by <xml> ... </xml>
+> 			xml  := (any_count_line* -- "</xml>") :>> "</xml>"
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_XML;
+> 				s->token_name = "TK_XML";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> 			text_block := (any_count_line* -- '#}') :>> '#}'
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_TEXT;
+> 				s->token_name = "TK_TEXT";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> 			main := |*
+> 
+> 			newline;
+> 
+> 			# Alpha numberic characters or underscore.
+> 			alnum_u = alnum | '_';
+> 
+> 			# Alpha charactres or underscore.
+> 			alpha_u = alpha | '_';
+> 
+> 			ident = alpha_u alnum_u*;
+> 
+> 			# Identifiers
+> 			ident =>
+> 				{ ret_tok( TK_Identifier ); fbreak; };
+> 
+> 			# Keypath
+> 			keypath = ident ('.' ident)*;
+> 			keypath => { ret_tok( TK_Keypath ); fbreak; };
+> 
+> 			# Keywords
+> 			ident ':' => {
+> 				ret_tok (TK_Keyword); fbreak;
+> 			};
+> 
+> 			keypath ':' => {
+> 				ret_tok (TK_Keyword); fbreak;
+> 			};
+> 
+> 			# Strings and Text
+> 			"'" ( [^'\\] | /\\./ )* "'" => { ret_tok (TK_String); fbreak; };
+> 			'"' ( [^"\\] | /\\./ )* '"' => { ret_tok (TK_String); fbreak; };
+> 
+> 			"<xml>" { fgoto xml; };
+> 			'{#' 	{ fgoto text_block; };
+> 
+> 			# Special Digraphs
+> 			">>" @ { ret_tok (TK_SHIFT_RT); fbreak; };
+> 			"<<" @ { ret_tok (TK_SHIFT_LT); fbreak; };
+> 			":>" @ { ret_tok (TK_POST); fbreak; };
+> 			"<:" @ { ret_tok (TK_PRE); fbreak; };
+> 
+> 			"<=" => { ret_tok (TK_LE); fbreak; };
+> 			">=" => { ret_tok (TK_GE); fbreak; };
+> 			"!=" => { ret_tok (TK_NE); fbreak; };
+> 
+> 			"++" => { ret_tok (TK_Increment); fbreak; };
+> 			"--" => { ret_tok (TK_Decrement); fbreak; };
+> 
+> 			# Whitespace
+> 			[ \t\n];
+> 
+> 	# Numbers
+> 	digit+ => {
+> 		ret_tok (TK_Integer); fbreak;
+> 	};
+> 
+> 	digit+'.' digit+ => {
+> 		ret_tok (TK_Real); fbreak;
+> 	};
+> 
+> 	digit{1,3} (',' digit{3})+ => { ret_tok (TK_Integer); fbreak; };
+> 
+> 	digit{1,3} (',' digit{3})+ '.' digit+ => { ret_tok (TK_Real);
+> fbreak; };
+> 
+> 	'0x' xdigit+ => { ret_tok (TK_Hex); fbreak; };
+> 
+>         # Describe both c style comments and c++ style comments. The
+>         # priority bump on tne terminator of the comments brings us
+>         # out of the extend* which matches everything.
+>         '//' [^\n]* newline;
+> 
+> 	'/*' { fgoto c_comment; };
+> 
+> 
+> 			# EOF
+> 			0 =>
+> 				{ ret_tok( TK_EOF ); fbreak; };
+> 
+> 			# Anything else
+> 			any =>
+> 				{ ret_char( *p ); fbreak; };
+> 
+> 			*|;
+> 
+> 			write exec;
+> 		}%%
+> 
+> 		if ( s->cs == Scanner_error )
+> 			return TK_ERR;
+> 
+> 		if ( token != TK_NO_TOKEN ) {
+> 			/* Save p and pe. fbreak does not advance p. */
+> 			s->p = p + 1;
+> 			s->pe = pe;
+> 			s->len = s->p - s->data;
+> 			s->token = token;
+> 			return token;
+> 		}
+> 	}
+> }
+> 
+> #ifdef TEST
+> 
+> #include <stdlib.h>
+> #include <stdio.h>
+> #include <string.h>
+> 
+> 
+> void output(Scanner *ss)
+> {
+> 	int tok;
+> 
+> 	while ( 1 ) {
+> 		tok = scan (ss);
+> 		if ( tok == TK_EOF ) {
+> 			printf ("parser: EOF\n");
+> 			break;
+> 		}
+> 		else if ( tok == TK_ERR ) {
+> 			printf ("parser: ERR\n");
+> 			break;
+> 		}
+> 		else {
+> 			printf ("parser: %s(%d):%d \"", ss->token_name, tok, ss->curline);
+> 			fwrite ( ss->data, 1, ss->len, stdout );
+> 			printf ("\"\n" );
+> 		}
+> 	}
+> }
+> 
+> #define BUFSIZE 4096
+> 
+> int main (int argc, char** argv)
+> {
+> 	Scanner ss;
+>    	char buf[BUFSIZE];
+> 
+> 	int len = fread ( buf, sizeof(char), BUFSIZE, stdin );
+> 	buf[len] = '\0';
+> 	scan_init_buf (&ss, buf);
+> 
+> //	char *input = "(do with:1,345.99 and: \"some string\")";
+> //	scan_init_buf(&ss, input);
+> 
+> 	output (&ss);
+> 	scan_finalize (&ss);
+> 
+> 	return 0;
+> }
+> 
+> #endif
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 22:48:52 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 17:48:52 -0500
+Subject: [ragel-users] reflection of the machine
+In-Reply-To: <1172632883.572593.173920@s48g2000cws.googlegroups.com>
+References: <1172632883.572593.173920@s48g2000cws.googlegroups.com>
+Message-ID: <45E8A9D4.80208@cs.queensu.ca>
+
+
+Jason wrote:
+> Is it possible to get a representation of the machine to enable the
+> following:
+> 
+> 1) Get a string name or representation of a machine, labeled node, and
+> action.
+> 
+> 2) Provide defined constants for named nodes.
+
+Not at present. My (rapidly expanding) Ragel TODO list contains an entry
+about debugging. I would like to make it possible to retrieve the set of
+machine definition paths corresponding to a state. I say set because a
+single state may be a composition of several states that are defined in
+different places in the regex grammar (think ambiguity). I would like to be
+able to "step" through a state machine and map the current state back to the
+grammar.
+
+> Is it possible to initialize a machine to a state other than the
+> defined starting point?
+
+See my post: Re: [ragel-users] Re: selecting a starting state or how to
+serialize a machine DATED Fri, 02 Mar 2007 16:44:28 -0500
+
+Cheers,
+ Adrian
+
+
+From oliver.schonef... at uni-bielefeld.de  Thu Mar  1 10:16:15 2007
+From: oliver.schonef... at uni-bielefeld.de (Oliver)
+Date: Thu, 01 Mar 2007 02:16:15 -0800
+Subject: Error handling and reporting in Ragel
+Message-ID: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+
+Hello,
+
+I'm currently using Ragel to write a parser for an XML-like language.
+In
+case of a parsing error, I want to be able to provide meaningful
+feedback
+to the user.
+
+The following is a subset of my machine:
+%{{
+  machine Test;
+  alphtype char;
+
+  NCName = [a-zA-Z] . [a-zA-Z0-9]*;
+  Prefix = NCName;
+  LocalPart = NCName;
+  PrefixedName = Prefix ':' LocalPart;
+  UnprefixedName = LocalPart;
+  QName = PrefixedName | UnprefixedName;
+  LQName = '(' NCName ')' QName;
+  AttValue = ('"' [^<&\"]* '"' | "'" [^<&\']* "'");
+  Attribute = QName Eq AttValue;
+  StartTag = '<' LQName (S Attribute)* S? '>';
+  main := StartTag*;
+}}%
+
+The following Input (without double quotes) should generate:
+  1) "<(l1) test>" -> "Expected QName."
+  2) "<l1)test>"   -> "Expected '('."
+
+I have been experimenting with global error state actions. I modified
+the
+'LQName' rule like this:
+  action err1 {
+    std::cout << "Expected '('." << std::endl;
+  }
+
+  # actions err2 ... err4 are similar to err1
+
+  LQName = '(' @!err1 NCName @!err2 ')' @!err3 QName @!err4;
+
+It this the way to go, or can this be done elegantly in a less verbose
+way.
+Embedding error actions in all rules looks a litte cumbersome to me.
+
+Best Regards,
+Thanks,
+Oliver
+--
+--------------------------------------------------------
+And remember: "To Infinity And Far Beyond ... Somehow?!"
+
+Hi! I'm a .signature virus! Copy me in your ~/.signature
+to help me spread!             <- Save this lifeform ;-)
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 23:28:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 18:28:04 -0500
+Subject: [ragel-users] Error handling and reporting in Ragel
+In-Reply-To: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+References: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+Message-ID: <45E8B304.7090105@cs.queensu.ca>
+
+Sorry I don't have much else for you. If you want to specialize error
+actions they need to be specified directly in machine definition as you've
+done. The alternative is a global error action which prints the
+character/position which the error occurred at.
+
+Regards,
+ Adrian
+
+Oliver wrote:
+> Hello,
+> 
+> I'm currently using Ragel to write a parser for an XML-like language.
+> In
+> case of a parsing error, I want to be able to provide meaningful
+> feedback
+> to the user.
+> 
+> The following is a subset of my machine:
+> %{{
+>   machine Test;
+>   alphtype char;
+> 
+>   NCName = [a-zA-Z] . [a-zA-Z0-9]*;
+>   Prefix = NCName;
+>   LocalPart = NCName;
+>   PrefixedName = Prefix ':' LocalPart;
+>   UnprefixedName = LocalPart;
+>   QName = PrefixedName | UnprefixedName;
+>   LQName = '(' NCName ')' QName;
+>   AttValue = ('"' [^<&\"]* '"' | "'" [^<&\']* "'");
+>   Attribute = QName Eq AttValue;
+>   StartTag = '<' LQName (S Attribute)* S? '>';
+>   main := StartTag*;
+> }}%
+> 
+> The following Input (without double quotes) should generate:
+>   1) "<(l1) test>" -> "Expected QName."
+>   2) "<l1)test>"   -> "Expected '('."
+> 
+> I have been experimenting with global error state actions. I modified
+> the
+> 'LQName' rule like this:
+>   action err1 {
+>     std::cout << "Expected '('." << std::endl;
+>   }
+> 
+>   # actions err2 ... err4 are similar to err1
+> 
+>   LQName = '(' @!err1 NCName @!err2 ')' @!err3 QName @!err4;
+> 
+> It this the way to go, or can this be done elegantly in a less verbose
+> way.
+> Embedding error actions in all rules looks a litte cumbersome to me.
+> 
+> Best Regards,
+> Thanks,
+> Oliver
+> --
+> --------------------------------------------------------
+> And remember: "To Infinity And Far Beyond ... Somehow?!"
+> 
+> Hi! I'm a .signature virus! Copy me in your ~/.signature
+> to help me spread!             <- Save this lifeform ;-)
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Mar  5 04:42:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 04 Mar 2007 23:42:16 -0500
+Subject: test case failure
+Message-ID: <45EB9FA8.70807@cs.queensu.ca>
+
+Hello,
+
+Marcus Rueckert pointed out that the test case cond4.rl fails when Ragel 
+has been compiled with g++ 4.1. The problem is that conditions do not 
+yet have a forced ordering when more than one must be executed on the 
+same character. When using g++ 4.1 they sometimes come out in a 
+different order. Unless you embed multiple conditions on a single 
+character and depend on a particular order, this failure can be safely 
+ignored.
+
+Regards,
+  Adrian
+
+
+From j_goettg... at hotmail.com  Mon Mar  5 17:27:11 2007
+From: j_goettg... at hotmail.com (callossa)
+Date: Mon, 05 Mar 2007 09:27:11 -0800
+Subject: test case failure
+In-Reply-To: <45EB9FA8.70807@cs.queensu.ca>
+References: <45EB9FA8.70807@cs.queensu.ca>
+Message-ID: <1173115631.834587.52750@64g2000cwx.googlegroups.com>
+
+The same problem occurs when ragel is compiled with g++ 3.4.4 (cygwin
+environment), so it is likely not to depend on a specific g++ version.
+
+
+From roberto.als... at gmail.com  Wed Mar  7 10:35:21 2007
+From: roberto.als... at gmail.com (ralsina)
+Date: Wed, 07 Mar 2007 02:35:21 -0800
+Subject: Using ragel to validate SPF
+Message-ID: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+
+Just wanted to mention that I have used ragel to validate SPF
+(www.openspf.org) in my RaSPF (http://code.google.com/p/ragel) and
+it's really a great tool!
+
+
+From thurs... at cs.queensu.ca  Wed Mar  7 13:30:13 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 07 Mar 2007 08:30:13 -0500
+Subject: [ragel-users] Using ragel to validate SPF
+In-Reply-To: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+References: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+Message-ID: <45EEBE65.8030109@cs.queensu.ca>
+
+Hello,
+
+Thanks for posting this! There is a slight typo in the link. I'm sure 
+you meant http://code.google.com/p/raspf/. But that reminds me, I need 
+to delete that old google code project for ragel.
+
+Cheers,
+  Adrian
+
+ralsina wrote:
+> Just wanted to mention that I have used ragel to validate SPF
+> (www.openspf.org) in my RaSPF (http://code.google.com/p/ragel) and
+> it's really a great tool!
+> 
+> 
+> 
+
+
+From roberto.als... at gmail.com  Thu Mar  8 00:47:26 2007
+From: roberto.als... at gmail.com (Roberto Alsina)
+Date: Wed, 7 Mar 2007 21:47:26 -0300 (ART)
+Subject: [ragel-users] Re: Using ragel to validate SPF
+In-Reply-To: <45EEBE65.8030109@cs.queensu.ca>
+References: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+    <45EEBE65.8030109@cs.queensu.ca>
+Message-ID: <36136.201.235.72.15.1173314846.squirrel@netmanagers.com.ar>
+
+>
+> Hello,
+>
+> Thanks for posting this! There is a slight typo in the link. I'm sure
+> you meant http://code.google.com/p/raspf/.
+
+Oops. Yeah, that's it.
+
+> But that reminds me, I need
+> to delete that old google code project for ragel.
+
+After I get the current version stabilized, I am trying to rewrite (at
+least some pieces) using ragel and maybe Kelbt. Now, I really need to
+learn this :-)
+
+
+
+From roberto.als... at gmail.com  Sun Mar 11 17:23:48 2007
+From: roberto.als... at gmail.com (ralsina)
+Date: Sun, 11 Mar 2007 10:23:48 -0700
+Subject: Silly question
+Message-ID: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+
+Hi,
+
+I am trying to use ragel to validate grammars defined in RFCs, and
+when doing a piece of RFC2822, I find this:
+
+    comment = '(' (FWS? ccontent)* FWS? ')';
+    ccontent = ctext | quoted_pair | comment;
+
+As you can see, each one depends on the other. This is illegal in
+ragel, right? Or is there a way around it?
+
+
+From thurs... at cs.queensu.ca  Mon Mar 12 14:46:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 12 Mar 2007 10:46:08 -0400
+Subject: [ragel-users] Silly question
+In-Reply-To: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+References: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+Message-ID: <45F567B0.50700@cs.queensu.ca>
+
+Hi,
+
+You're right, Ragel doesn't support recursion since it works with regular
+languages. Though it is possible to handle it using manual coding tricks. It
+can be done using actions which increment and decrement a counter and then
+jump to the appropriate place based on the current value. Look at the
+processing of '{' and '}' in the ragel source for an example.
+
+You can also use conditions to balance paretheses. Have a look at cond6.rl
+for an example.
+
+Cheers,
+ Adrian
+
+ralsina wrote:
+> Hi,
+> 
+> I am trying to use ragel to validate grammars defined in RFCs, and
+> when doing a piece of RFC2822, I find this:
+> 
+>     comment = '(' (FWS? ccontent)* FWS? ')';
+>     ccontent = ctext | quoted_pair | comment;
+> 
+> As you can see, each one depends on the other. This is illegal in
+> ragel, right? Or is there a way around it?
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Tue Mar 13 16:44:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 13 Mar 2007 12:44:18 -0400
+Subject: changes to ragel, feedback requested
+Message-ID: <45F6D4E2.5040709@cs.queensu.ca>
+
+Hi all,
+
+I have made some changes which I'd like to mention here in case anybody
+would like to discuss them.
+
+There are two basic changes.
+
+1. All machine instantiations (using ":=") now have a corresponding entry
+point generated in the output code. This can be used to initialize cs to
+something other than main.
+
+2. The definition of the main machine is now optional. If it is not given
+then the start state is not generated and cs is not initialized by the write
+init statement.
+
+The idea is that I want to be able to do this:
+
+%%{
+    machine foo;
+
+    main_v1 := ...;
+    main_v2 := ...;
+}%%
+...
+int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+%% write init;
+
+I like this, but it has an implication that I'm worried about. If you
+mis-spell main or otherwise forget to add it without realizing, then CS will
+never be initialized and undefined behaviour will occur.
+
+%%{
+    machine foo;
+    this_should_be_main := ...;
+}%%
+...
+// cs won't get initialized here
+int cs;
+%% write init;
+
+What do you think? Do we say too bad for you ... or do we find some other
+way? Any feedback would be appreciated.
+
+Thanks,
+ Adrian
+
+
+From jason2... at jasonjobe.com  Mon Mar 19 19:28:57 2007
+From: jason2... at jasonjobe.com (Jason)
+Date: Mon, 19 Mar 2007 12:28:57 -0700
+Subject: changes to ragel, feedback requested
+In-Reply-To: <45F6D4E2.5040709@cs.queensu.ca>
+References: <45F6D4E2.5040709@cs.queensu.ca>
+Message-ID: <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+
+Adrian,
+
+I think the  benefits are worth it.
+
+What if you defaulted to assigning cs to the first one and switch the
+order of your two example statements.
+...
+%% write init;
+int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+
+This way cs is always initialized but is easily overridden by the
+developer.
+
+Also, are the declarations no longer static?
+
+thanks,
+Jason
+
+
+
+From thurs... at cs.queensu.ca  Tue Mar 20 20:53:33 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 16:53:33 -0400
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+References: <45F6D4E2.5040709@cs.queensu.ca> <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+Message-ID: <460049CD.5060902@cs.queensu.ca>
+
+Hi Jason, thanks for the feedback. Defaulting to the first/last is a
+possibility. I'm not sure I like the requirement that cs be initialized
+after the write init. Could be a source of bugs more common than the one
+we're trying to prevent.
+
+They should still be static. Why do you ask?
+
+-Adrian
+
+Jason wrote:
+> Adrian,
+> 
+> I think the  benefits are worth it.
+> 
+> What if you defaulted to assigning cs to the first one and switch the
+> order of your two example statements.
+> ...
+> %% write init;
+> int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+> 
+> This way cs is always initialized but is easily overridden by the
+> developer.
+> 
+> Also, are the declarations no longer static?
+> 
+> thanks,
+> Jason
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070320/7a14e48d/attachment.sig>
+
+From oliver.schonef... at uni-bielefeld.de  Tue Mar 20 22:03:47 2007
+From: oliver.schonef... at uni-bielefeld.de (Oliver Schonefeld)
+Date: Tue, 20 Mar 2007 23:03:47 +0100
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <460049CD.5060902@cs.queensu.ca>
+References: <45F6D4E2.5040709@cs.queensu.ca>
+ <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+ <460049CD.5060...@cs.queensu.ca>
+Message-ID: <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+
+Hello Adrian,
+
+Eines schoenen Tages schrieb Adrian Thurston:
+> Defaulting to the first/last is a
+> possibility. I'm not sure I like the requirement that cs be initialized
+> after the write init. Could be a source of bugs more common than the one
+> we're trying to prevent.
+
+How about an additional option to 'init', which prevents the initalization
+of cs. Something link '%write init nocsinit'. The makes the need for the to
+initalize cs more explicit.
+
+Best Regards,
+Oliver
+-- 
+--------------------------------------------------------
+And remember: "To Infinity And Far Beyond ... Somehow?!"
+
+Hi! I'm a .signature virus! Copy me in your ~/.signature
+to help me spread!             <- Save this lifeform ;-)
+
+
+From thurs... at cs.queensu.ca  Wed Mar 21 02:09:58 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 22:09:58 -0400
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+References: <45F6D4E2.5040709@cs.queensu.ca> <1174332537.673281.172090@o5g2000hsb.googlegroups.com> <460049CD.5060902@cs.queensu.ca> <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+Message-ID: <460093F6.4080104@cs.queensu.ca>
+
+Ah, I like that. CS is always initialized unless it is explicitly
+requested that it isn't. When the user wants to init CS it can happen
+before write init. Also, CS isn't initialized twice. Seems like a winner
+to me!
+
+In regards to the question of initializing with the first vs last
+instantiation, I am leaning towards the last since Ragel programs are
+normally specified in a bottom-up nature (leaf machine definitions come
+first). Instantiations can go in any order, but in the programs I write
+the main machine always ends up last.
+
+Adrian
+
+Oliver Schonefeld wrote:
+> Hello Adrian,
+> 
+> Eines schoenen Tages schrieb Adrian Thurston:
+>> Defaulting to the first/last is a
+>> possibility. I'm not sure I like the requirement that cs be initialized
+>> after the write init. Could be a source of bugs more common than the one
+>> we're trying to prevent.
+> 
+> How about an additional option to 'init', which prevents the initalization
+> of cs. Something link '%write init nocsinit'. The makes the need for the to
+> initalize cs more explicit.
+> 
+> Best Regards,
+> Oliver
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070320/6dd6bda9/attachment.sig>
+
+From patr... at baymotion.com  Tue Mar 20 22:22:58 2007
+From: patr... at baymotion.com (Patrick O'Grady)
+Date: Tue, 20 Mar 2007 14:22:58 -0800
+Subject: Problem with a scanner dropping the first character of an identifier.
+Message-ID: <000f01c76b3e$50a3b980$ab03040a@poddy>
+
+Hi, all--
+
+I've been struggling with a little self-test fixture which uses Ragel to 
+scan some input.  Here's the test program:
+
+
+#include <stdio.h>
+
+%%{
+    machine scanner ;
+
+    ids := |*
+
+        identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+
+        identifier
+                =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart, 
+tokstart);
+                        fret ;
+                    }
+                ;
+
+        (' '|'\n'|'\r')*
+                =>  { fret; }
+                ;
+
+        any
+                =>  { printf("Ignored.\n"); fret; }
+                ;
+    *| ;
+
+    main := ( any %{ fhold; fcall ids; } )* ;
+}%%
+
+
+
+
+int main()
+{
+    unsigned cs ;
+    char const * p ;
+    char const * pe ;
+    char const * tokstart ;
+    char const * tokend ;
+    unsigned act ;
+    unsigned stack[100] ;
+    unsigned top ;
+
+    %%write data ;
+
+    %%write init ;
+
+    char const s[] = "Once upon a time." ;
+
+    p = s ;
+    pe = &(s[sizeof(s)]);
+
+    %%write exec ;
+
+    %% write eof ;
+
+    return 0 ;
+}
+
+
+I'm compling with Ragel 5.19/MSVC, and I get the following output.
+
+Got identifier: nce.
+Got identifier: upon.
+Got identifier: a.
+Got identifier: time.
+Ignored.
+Ignored.
+
+Everything here is as expected, except the first identifier, which should be 
+"Once", not "nce"--it seems to have skipped over the first 'O'.  First--is 
+there a better way to get a list of all the tokens in the input?  Anyone 
+have any clues about this misbehavior?  Thanks in advance.
+
+-patrick
+
+
+
+
+
+From thurs... at cs.queensu.ca  Wed Mar 21 02:38:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 22:38:04 -0400
+Subject: [ragel-users] Problem with a scanner dropping the first character
+ of an identifier.
+In-Reply-To: <000f01c76b3e$50a3b980$ab03040a@poddy>
+References: <000f01c76b3e$50a3b980$ab03040a@poddy>
+Message-ID: <46009A8C.9000300@cs.queensu.ca>
+
+Hi Patrick,
+
+In the main machine the use of % causes the action to be executed on the
+following character. If you change the action embedding operator to @ or
+$ the action will be executed immediately and you should get the results
+you want.
+
+Using tokstart and tokend is the only way to retrieve token text. One of
+the goals of Ragel is to have a tool which generates code with no
+dependencies, including malloc. This is why I have a "hands-off"
+approach to buffer and token-data management. Whenever possible I prefer
+to leave this up to the user, as she is in the best position to decide
+how memory management is to be done.
+
+Cheers,
+ Adrian
+
+Patrick O'Grady wrote:
+> Hi, all--
+> 
+> I've been struggling with a little self-test fixture which uses Ragel to 
+> scan some input.  Here's the test program:
+> 
+> 
+> #include <stdio.h>
+> 
+> %%{
+>     machine scanner ;
+> 
+>     ids := |*
+> 
+>         identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+> 
+>         identifier
+>                 =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart, 
+> tokstart);
+>                         fret ;
+>                     }
+>                 ;
+> 
+>         (' '|'\n'|'\r')*
+>                 =>  { fret; }
+>                 ;
+> 
+>         any
+>                 =>  { printf("Ignored.\n"); fret; }
+>                 ;
+>     *| ;
+> 
+>     main := ( any %{ fhold; fcall ids; } )* ;
+> }%%
+> 
+> 
+> 
+> 
+> int main()
+> {
+>     unsigned cs ;
+>     char const * p ;
+>     char const * pe ;
+>     char const * tokstart ;
+>     char const * tokend ;
+>     unsigned act ;
+>     unsigned stack[100] ;
+>     unsigned top ;
+> 
+>     %%write data ;
+> 
+>     %%write init ;
+> 
+>     char const s[] = "Once upon a time." ;
+> 
+>     p = s ;
+>     pe = &(s[sizeof(s)]);
+> 
+>     %%write exec ;
+> 
+>     %% write eof ;
+> 
+>     return 0 ;
+> }
+> 
+> 
+> I'm compling with Ragel 5.19/MSVC, and I get the following output.
+> 
+> Got identifier: nce.
+> Got identifier: upon.
+> Got identifier: a.
+> Got identifier: time.
+> Ignored.
+> Ignored.
+> 
+> Everything here is as expected, except the first identifier, which should be 
+> "Once", not "nce"--it seems to have skipped over the first 'O'.  First--is 
+> there a better way to get a list of all the tokens in the input?  Anyone 
+> have any clues about this misbehavior?  Thanks in advance.
+> 
+> -patrick
+> 
+> 
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070320/33afcc2e/attachment.sig>
+
+From patr... at baymotion.com  Wed Mar 21 03:50:09 2007
+From: patr... at baymotion.com (Patrick O'Grady)
+Date: Tue, 20 Mar 2007 20:50:09 -0700
+Subject: Problem with a scanner dropping the first character of an identifier.
+In-Reply-To: <46009A8C.9000300@cs.queensu.ca>
+References: <000f01c76b3e$50a3b980$ab03040a@poddy>
+   <46009A8C.9000300@cs.queensu.ca>
+Message-ID: <1174449009.161579.147090@n59g2000hsh.googlegroups.com>
+
+Adrian--
+
+Thanks very much; that cleared up my problem-- I knew that it had to
+be something simple.  In terms of the buffer management--the arguments
+you presented are exactly why I'm interested in Ragel--Ragel is one of
+the very few parser generator tools which doesn't have to rely on the
+thread's call stack in order to keep its state information--allowing
+me to manipulate a state machine as events are received by whichever
+thread actually receives the event.   I'm also very interested in how
+state machines can be inherited and augmented, hopefully without
+having to edit the original source for those machines.  Ragel is a
+terriffic tool--and thanks again for your help.  If I did have one
+request, however, it would be to perhaps add a mode where instead of
+using pointer arithmetic to advance through the buffer, the pointer
+could be adjusted through function calls or #define macros that I
+could override.  I'd use this to allow parsing across non-contiguous
+buffers.
+
+-patrick
+
+
+
+
+On Mar 20, 6:38 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Patrick,
+>
+> In the main machine the use of % causes the action to be executed on the
+> following character. If you change the action embedding operator to @ or
+> $ the action will be executed immediately and you should get the results
+> you want.
+>
+> Using tokstart and tokend is the only way to retrieve token text. One of
+> the goals of Ragel is to have a tool which generates code with no
+> dependencies, including malloc. This is why I have a "hands-off"
+> approach to buffer and token-data management. Whenever possible I prefer
+> to leave this up to the user, as she is in the best position to decide
+> how memory management is to be done.
+>
+> Cheers,
+>  Adrian
+>
+> Patrick O'Grady wrote:
+> > Hi, all--
+>
+> > I've been struggling with a little self-test fixture which uses Ragel to
+> > scan some input.  Here's the test program:
+>
+> > #include <stdio.h>
+>
+> > %%{
+> >     machine scanner ;
+>
+> >     ids := |*
+>
+> >         identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+>
+> >         identifier
+> >                 =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart,
+> > tokstart);
+> >                         fret ;
+> >                     }
+> >                 ;
+>
+> >         (' '|'\n'|'\r')*
+> >                 =>  { fret; }
+> >                 ;
+>
+> >         any
+> >                 =>  { printf("Ignored.\n"); fret; }
+> >                 ;
+> >     *| ;
+>
+> >     main := ( any %{ fhold; fcall ids; } )* ;
+> > }%%
+>
+> > int main()
+> > {
+> >     unsigned cs ;
+> >     char const * p ;
+> >     char const * pe ;
+> >     char const * tokstart ;
+> >     char const * tokend ;
+> >     unsigned act ;
+> >     unsigned stack[100] ;
+> >     unsigned top ;
+>
+> >     %%write data ;
+>
+> >     %%write init ;
+>
+> >     char const s[] = "Once upon a time." ;
+>
+> >     p = s ;
+> >     pe = &(s[sizeof(s)]);
+>
+> >     %%write exec ;
+>
+> >     %% write eof ;
+>
+> >     return 0 ;
+> > }
+>
+> > I'm compling with Ragel 5.19/MSVC, and I get the following output.
+>
+> > Got identifier: nce.
+> > Got identifier: upon.
+> > Got identifier: a.
+> > Got identifier: time.
+> > Ignored.
+> > Ignored.
+>
+> > Everything here is as expected, except the first identifier, which should be
+> > "Once", not "nce"--it seems to have skipped over the first 'O'.  First--is
+> > there a better way to get a list of all the tokens in the input?  Anyone
+> > have any clues about this misbehavior?  Thanks in advance.
+>
+> > -patrick
+>
+> > >
+>
+>
+>  signature.asc
+> 1KDownload
+
+
+From rcar... at pinyon.org  Tue Mar 27 16:49:17 2007
+From: rcar... at pinyon.org (Russell L. Carter)
+Date: Tue, 27 Mar 2007 09:49:17 -0700
+Subject: bootstrap from 5.16->5.19
+Message-ID: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+
+Hi,
+Is there a workaround for getting from 5.16 to 5.19 svn?  5.16
+ragel won't compile 5.19's rl files.  Debian sadly is still
+back in 5.16 for the unstable package, and the 5.19 rpm's complain
+about needing GLIBC_2.4 when I install them on either my
+RHEL4, or 32bit debian boxen.
+
+I am motivated to try to do this to avoid having to pass through
+all those syntax changes I see in the changelog...
+
+Thanks,
+Russell
+
+
+From rcar... at pinyon.org  Tue Mar 27 16:54:16 2007
+From: rcar... at pinyon.org (Russell L. Carter)
+Date: Tue, 27 Mar 2007 09:54:16 -0700
+Subject: [ragel-users] bootstrap from 5.16->5.19
+In-Reply-To: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+References: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+Message-ID: <46094C38.1040207@pinyon.org>
+
+Duh!
+I just tried the 5.19 tar.gz, that builds fine.
+Thanks,
+Russell
+
+
+Russell L. Carter wrote:
+> Hi,
+> Is there a workaround for getting from 5.16 to 5.19 svn?  5.16
+> ragel won't compile 5.19's rl files.  Debian sadly is still
+> back in 5.16 for the unstable package, and the 5.19 rpm's complain
+> about needing GLIBC_2.4 when I install them on either my
+> RHEL4, or 32bit debian boxen.
+> 
+> I am motivated to try to do this to avoid having to pass through
+> all those syntax changes I see in the changelog...
+> 
+> Thanks,
+> Russell
+> 
+> 
+> > 
+
+
+From jer... at hinegardner.org  Sat Mar 24 00:26:35 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Fri, 23 Mar 2007 18:26:35 -0600
+Subject: Packaging ragel for Fedora Extras
+Message-ID: <20070324002635.GB3475@hinegardner.org>
+
+Hi all,
+
+I'm packaging up ragel for inclusion in Fedora Extras and I came across
+a parallel make dependency bug.  It seems the dependency graph as it
+currently stands can start building some of the command line
+applications before the common and redfsm libraries are complete. The
+attached patch should fix it.  
+
+I've also made a patch for the ragel(1) man page. It was referencing
+rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+ragel created ruby code.  It is also attached.
+
+I personally haven't used ragel for any of my projects, just seen it via
+other projects and noticed it hadn't been built for Fedora yet, so i
+thought I would do that.
+
+Once ragel is building in Fedora Extras I'll post another announcement
+here.  In the meantime if anyone would like to try out the rpm I've
+built feel free.  Please send any and all feedback.
+
+    http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+    http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+--- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
++++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+@@ -18,9 +18,9 @@
+ #   along with Ragel; if not, write to the Free Software
+ #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ 
+-
+-BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+-ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
++BUILD_COMMON = common redfsm
++BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
++ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+ 
+ #*************************************
+ 
+@@ -33,11 +33,14 @@
+ # build targets
+ all: $(BUILD_SUBDIRS)
+ 
+-.PHONY: $(BUILD_SUBDIRS)
++.PHONY: $(ALL_SUBDIRS)
+ 
+-$(BUILD_SUBDIRS):
++$(BUILD_COMMON):
+ 	@cd $@ && $(MAKE)
+ 
++$(BUILD_SUBDIRS): $(BUILD_COMMON)
++	cd $@ && $(MAKE)
++
+ # clean targets.
+ 
+ CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+-------------- next part --------------
+--- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
++++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+@@ -33,13 +33,12 @@
+ this is the frontend component of Ragel, which generates an intermediate
+ file format that must be processed by rlcodegen(1).
+ 
+-Ragel compiles finite state machines from regular languages into executable
+-code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+-machines can not only recognize byte
+-sequences as regular expression machines do, but can also execute code at
+-arbitrary points in the recognition of a regular language.  User code is
+-embedded using inline operators that do not disrupt the regular language
+-syntax.
++Ragel compiles finite state machines from regular languages into
++executable code.  Ragel can generate C, C++, Objective-C, D, Java or
++Ruby code. Ragel state machines can not only recognize byte sequences as
++regular expression machines do, but can also execute code at arbitrary
++points in the recognition of a regular language.  User code is embedded
++using inline operators that do not disrupt the regular language syntax.
+ 
+ The core language consists of standard regular expression operators, such as
+ union, concatenation and kleene star, accompanied by action embedding
+@@ -554,7 +553,10 @@
+ Ragel was written by Adrian Thurston <thurs... at cs.queensu.ca>.  Objective-C
+ output contributed by Erich Ocean. D output contributed by Alan West. 
+ .SH "SEE ALSO"
+-.BR rlcodegen (1),
++.BR rlgen-cd(1),
++.BR rlgen-dot(1),
++.BR rlgen-java(1),
++.BR rlgen-ruby(1),
+ .BR re2c (1),
+ .BR flex (1)
+ 
+
+From thurs... at cs.queensu.ca  Mon Mar 26 01:39:12 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 25 Mar 2007 21:39:12 -0400
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <20070324002635.GB3475@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+Message-ID: <46072440.2090007@cs.queensu.ca>
+
+Hi Jeremy,
+
+Ah, great! Thanks for the packaging and the patches. With the exception
+of adding the mention to Ruby in the man page, I just applied them. Ruby
+code generation isn't finished yet and until it is I'm trying not to
+advertise it.
+
+Thanks again,
+ Adrian
+
+Jeremy Hinegardner wrote:
+> Hi all,
+> 
+> I'm packaging up ragel for inclusion in Fedora Extras and I came across
+> a parallel make dependency bug.  It seems the dependency graph as it
+> currently stands can start building some of the command line
+> applications before the common and redfsm libraries are complete. The
+> attached patch should fix it.  
+> 
+> I've also made a patch for the ragel(1) man page. It was referencing
+> rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> ragel created ruby code.  It is also attached.
+> 
+> I personally haven't used ragel for any of my projects, just seen it via
+> other projects and noticed it hadn't been built for Fedora yet, so i
+> thought I would do that.
+> 
+> Once ragel is building in Fedora Extras I'll post another announcement
+> here.  In the meantime if anyone would like to try out the rpm I've
+> built feel free.  Please send any and all feedback.
+> 
+>     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+>     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+> 
+> enjoy,
+> 
+> -jeremy
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> --- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
+> +++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+> @@ -18,9 +18,9 @@
+>  #   along with Ragel; if not, write to the Free Software
+>  #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+>  
+> -
+> -BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+> -ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
+> +BUILD_COMMON = common redfsm
+> +BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+> +ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+>  
+>  #*************************************
+>  
+> @@ -33,11 +33,14 @@
+>  # build targets
+>  all: $(BUILD_SUBDIRS)
+>  
+> -.PHONY: $(BUILD_SUBDIRS)
+> +.PHONY: $(ALL_SUBDIRS)
+>  
+> -$(BUILD_SUBDIRS):
+> +$(BUILD_COMMON):
+>  	@cd $@ && $(MAKE)
+>  
+> +$(BUILD_SUBDIRS): $(BUILD_COMMON)
+> +	cd $@ && $(MAKE)
+> +
+>  # clean targets.
+>  
+>  CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> --- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
+> +++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+> @@ -33,13 +33,12 @@
+>  this is the frontend component of Ragel, which generates an intermediate
+>  file format that must be processed by rlcodegen(1).
+>  
+> -Ragel compiles finite state machines from regular languages into executable
+> -code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+> -machines can not only recognize byte
+> -sequences as regular expression machines do, but can also execute code at
+> -arbitrary points in the recognition of a regular language.  User code is
+> -embedded using inline operators that do not disrupt the regular language
+> -syntax.
+> +Ragel compiles finite state machines from regular languages into
+> +executable code.  Ragel can generate C, C++, Objective-C, D, Java or
+> +Ruby code. Ragel state machines can not only recognize byte sequences as
+> +regular expression machines do, but can also execute code at arbitrary
+> +points in the recognition of a regular language.  User code is embedded
+> +using inline operators that do not disrupt the regular language syntax.
+>  
+>  The core language consists of standard regular expression operators, such as
+>  union, concatenation and kleene star, accompanied by action embedding
+> @@ -554,7 +553,10 @@
+>  Ragel was written by Adrian Thurston <thurs... at cs.queensu.ca>.  Objective-C
+>  output contributed by Erich Ocean. D output contributed by Alan West. 
+>  .SH "SEE ALSO"
+> -.BR rlcodegen (1),
+> +.BR rlgen-cd(1),
+> +.BR rlgen-dot(1),
+> +.BR rlgen-java(1),
+> +.BR rlgen-ruby(1),
+>  .BR re2c (1),
+>  .BR flex (1)
+>  
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070325/4a48c6c1/attachment.sig>
+
+From jer... at hinegardner.org  Mon Mar 26 15:49:08 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 09:49:08 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <46072440.2090007@cs.queensu.ca>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca>
+Message-ID: <20070326154908.GD3490@hinegardner.org>
+
+Hi Adrian,
+
+Thanks, looks like the packages propogated throughout Fedora Extras this
+weekend so if anyone wants to install ragel on Fedora Core 5 or later
+(Core 6, devel) you can just: 
+
+    yum install ragel
+
+If anyone finds any bugs with the way it is packaged or deployed on
+Fedora, please don't hesitate to contact me.
+
+It ended up getting shipped out with Ruby mentioned in the manpage.  If
+you like I'll back that documentation out, and push out a new package
+until you're ready for the ruby feature to be announced.
+
+enjoy,
+
+-jeremy
+
+--
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+
+On Sun, Mar 25, 2007 at 09:39:12PM -0400, Adrian Thurston wrote:
+> Hi Jeremy,
+> 
+> Ah, great! Thanks for the packaging and the patches. With the exception
+> of adding the mention to Ruby in the man page, I just applied them. Ruby
+> code generation isn't finished yet and until it is I'm trying not to
+> advertise it.
+> 
+> Thanks again,
+>  Adrian
+> 
+> Jeremy Hinegardner wrote:
+> > Hi all,
+> > 
+> > I'm packaging up ragel for inclusion in Fedora Extras and I came across
+> > a parallel make dependency bug.  It seems the dependency graph as it
+> > currently stands can start building some of the command line
+> > applications before the common and redfsm libraries are complete. The
+> > attached patch should fix it.  
+> > 
+> > I've also made a patch for the ragel(1) man page. It was referencing
+> > rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> > ragel created ruby code.  It is also attached.
+> > 
+> > I personally haven't used ragel for any of my projects, just seen it via
+> > other projects and noticed it hadn't been built for Fedora yet, so i
+> > thought I would do that.
+> > 
+> > Once ragel is building in Fedora Extras I'll post another announcement
+> > here.  In the meantime if anyone would like to try out the rpm I've
+> > built feel free.  Please send any and all feedback.
+> > 
+> >     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+> >     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+> > 
+> > enjoy,
+> > 
+> > -jeremy
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070326/19cd3310/attachment.sig>
+
+From thurs... at cs.queensu.ca  Mon Mar 26 16:17:06 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 26 Mar 2007 12:17:06 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326154908.GD3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+Message-ID: <4607F202.5050704@cs.queensu.ca>
+
+
+Jeremy Hinegardner wrote:
+> Thanks, looks like the packages propogated throughout Fedora Extras this
+> weekend so if anyone wants to install ragel on Fedora Core 5 or later
+> (Core 6, devel) you can just: 
+> 
+>     yum install ragel
+
+Great!
+
+> It ended up getting shipped out with Ruby mentioned in the manpage.  If
+> you like I'll back that documentation out, and push out a new package
+> until you're ready for the ruby feature to be announced.
+
+No, need to back it out. It's not that big of an issue.
+
+Regards,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070326/fafd658f/attachment.sig>
+
+From jer... at hinegardner.org  Mon Mar 26 16:30:17 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 10:30:17 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <4607F202.5050704@cs.queensu.ca>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org> <4607F202.5050704@cs.queensu.ca>
+Message-ID: <20070326163016.GF3490@hinegardner.org>
+
+On Mon, Mar 26, 2007 at 12:17:06PM -0400, Adrian Thurston wrote:
+> 
+> Jeremy Hinegardner wrote:
+> > Thanks, looks like the packages propogated throughout Fedora Extras this
+> > weekend so if anyone wants to install ragel on Fedora Core 5 or later
+> > (Core 6, devel) you can just: 
+> > 
+> >     yum install ragel
+> 
+> Great!
+
+My pleasure, glad to help out where I can.
+
+> > It ended up getting shipped out with Ruby mentioned in the manpage.  If
+> > you like I'll back that documentation out, and push out a new package
+> > until you're ready for the ruby feature to be announced.
+> 
+> No, need to back it out. It's not that big of an issue.
+
+Okay, that makes it easy :-).
+
+enjoy,
+
+-jeremy
+
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070326/cb4d3941/attachment.sig>
+
+From step... at concord.org  Mon Mar 26 18:46:11 2007
+From: step... at concord.org (Stephen Bannasch)
+Date: Mon, 26 Mar 2007 14:46:11 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326154908.GD3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+ <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+Message-ID: <p06240808c22dc4f98f8f@[192.168.1.100]>
+
+At 9:49 AM -0600 3/26/07, Jeremy Hinegardner wrote:
+>Hi Adrian,
+>
+>Thanks, looks like the packages propogated throughout Fedora Extras this
+>weekend so if anyone wants to install ragel on Fedora Core 5 or later
+>(Core 6, devel) you can just:
+>
+>    yum install ragel
+>
+>If anyone finds any bugs with the way it is packaged or deployed on
+>Fedora, please don't hesitate to contact me.
+>
+>It ended up getting shipped out with Ruby mentioned in the manpage.  If
+>you like I'll back that documentation out, and push out a new package
+>until you're ready for the ruby feature to be announced.
+>
+>enjoy,
+>
+>-jeremy
+
+
+Hi Jeremy,
+
+I have the following repositories listed:
+
+$ ls /etc/yum.repos.d/
+fedora-core.repo         fedora-extras-development.repo  fedora-legacy.repo   fedora-updates.repo.rpmnew
+fedora-development.repo  fedora-extras.repo              fedora-updates.repo  fedora-updates-testing.repo
+
+But I don't see ragel listed:
+
+$ yum list ragel
+Loading "installonlyn" plugin
+Setting up repositories
+core                                                                 [1/3]
+extras                                                               [2/3]
+updates-released                                                     [3/3]
+Reading repository metadata in from local files
+$
+
+Is there something I'm missing?
+-- 
+- Stephen Bannasch
+  Concord Consortium, http://www.concord.org
+
+
+From jer... at hinegardner.org  Mon Mar 26 19:21:43 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 13:21:43 -0600
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <p06240808c22dc4f98f8f@[192.168.1.100]>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org> <p06240808c22dc4f98f8f@[192.168.1.100]>
+Message-ID: <20070326192143.GK3490@hinegardner.org>
+
+On Mon, Mar 26, 2007 at 02:46:11PM -0400, Stephen Bannasch wrote:
+> Hi Jeremy,
+> 
+> I have the following repositories listed:
+> 
+> $ ls /etc/yum.repos.d/
+> fedora-core.repo         fedora-extras-development.repo  fedora-legacy.repo   fedora-updates.repo.rpmnew
+> fedora-development.repo  fedora-extras.repo              fedora-updates.repo  fedora-updates-testing.repo
+> 
+> But I don't see ragel listed:
+> 
+> $ yum list ragel
+> Loading "installonlyn" plugin
+> Setting up repositories
+> core                                                                 [1/3]
+> extras                                                               [2/3]
+> updates-released                                                     [3/3]
+> Reading repository metadata in from local files
+> $
+> 
+> Is there something I'm missing?
+
+That should probably read 'sudo yum install ragel'.  Since I'm assuming
+you are not root when you did 'yum list ragel' it only used the local
+package listing and didn't download the updated package listings from
+repos.
+
+Try 'sudo yum list ragel' and see what happens.
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel/attachments/20070326/165466c3/attachment.sig>
+
+From step... at concord.org  Mon Mar 26 21:02:02 2007
+From: step... at concord.org (Stephen Bannasch)
+Date: Mon, 26 Mar 2007 17:02:02 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326192143.GK3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+ <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+ <p06240808c22dc4f98f8f@[192.168.1.100]>
+ <20070326192143.GK3490@hinegardner.org>
+Message-ID: <p06240810c22de3d3c4a5@[192.168.1.100]>
+
+>That should probably read 'sudo yum install ragel'.  Since I'm assuming
+>you are not root when you did 'yum list ragel' it only used the local
+>package listing and didn't download the updated package listings from
+>repos.
+>
+>Try 'sudo yum list ragel' and see what happens.
+>
+>enjoy,
+>
+>-jeremy
+
+Something much better! Thanks for the pointer.
+-- 
+- Stephen Bannasch
+  Concord Consortium, http://www.concord.org
+
+
+From s... at infonet.ca  Thu Mar 29 06:08:25 2007
+From: s... at infonet.ca (Gilles J. Seguin)
+Date: Thu, 29 Mar 2007 02:08:25 -0400
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <20070324002635.GB3475@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+Message-ID: <1175148506.2979.36.camel@seggil.infonet.ca>
+
+On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> Hi all,
+> 
+> I'm packaging up ragel for inclusion in Fedora Extras
+
+thanks a lot
+
+> and I came across a parallel make dependency bug.  It seems
+> the dependency graph as it
+> currently stands can start building some of the command line
+> applications before the common and redfsm libraries are complete. The
+> attached patch should fix it.  
+
+interesting, problem was not showing up here, from log
+
++ make -j2
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+ar -cr common.a common.o 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+ar -cr redfsm.a redfsm.o gendata.o xmltags.o xmlscan.o xmlparse.o 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+g++  -o ragel main.o parsetree.o parsedata.o fsmstate.o fsmbase.o
+fsmattach.o fsmmin.o fsmgraph.o fsmap.o xmlcodegen.o rlscan.o
+rlparse.o ../common/common.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+g++  -o rlgen-ruby main.o
+rubycodegen.o ../common/common.a ../redfsm/redfsm.a 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+g++  -o rlgen-dot main.o
+gvdotgen.o ../common/common.a ../redfsm/redfsm.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+g++  -o rlgen-cd main.o fsmcodegen.o tabcodegen.o ftabcodegen.o
+flatcodegen.o fflatcodegen.o gotocodegen.o fgotocodegen.o
+ipgotocodegen.o splitcodegen.o ../common/common.a ../redfsm/redfsm.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+
+> I've also made a patch for the ragel(1) man page. It was referencing
+> rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> ragel created ruby code.  It is also attached.
+> 
+> I personally haven't used ragel for any of my projects, just seen it via
+> other projects and noticed it hadn't been built for Fedora yet, so i
+> thought I would do that.
+
+a spec file was on previous release, should have release my spec earlier
+but my spec file was not able to produce the debuginfo rpm package
+though everything else was working fine
+i got
++ /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+finish stripping
+0 blocks
+
+that last line means that the cpio utility has empty source from the
+stripping.
+And more crazy if i run the script manually, it work !!
+
+i will try your source rpm and will comment
+
+
+
+From s... at infonet.ca  Thu Mar 29 11:19:22 2007
+From: s... at infonet.ca (Gilles J. Seguin)
+Date: Thu, 29 Mar 2007 07:19:22 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <1175148506.2979.36.camel@seggil.infonet.ca>
+References: <20070324002635.GB3475@hinegardner.org>
+	 <1175148506.2979.36.camel@seggil.infonet.ca>
+Message-ID: <1175167162.25724.12.camel@seggil.infonet.ca>
+
+On Thu, 2007-03-29 at 02:08 -0400, Gilles J. Seguin wrote:
+> On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> > Hi all,
+> > 
+> > I'm packaging up ragel for inclusion in Fedora Extras
+> 
+> thanks a lot
+> 
+> > and I came across a parallel make dependency bug.  It seems
+> > the dependency graph as it
+> > currently stands can start building some of the command line
+> > applications before the common and redfsm libraries are complete. The
+> > attached patch should fix it.  
+> 
+> interesting, problem was not showing up here, from log
+> 
+> + make -j2
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+
+this build is put on hold because prerequisite is not meet,
+that is common.a
+
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> ar -cr common.a common.o
+
+now prerequisite is done
+starting parallel build
+
+that is, if common and redfsm are the directory in subdir macro
+the parallel build start sooner
+
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+> ar -cr redfsm.a redfsm.o gendata.o xmltags.o xmlscan.o xmlparse.o 
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+> g++  -o ragel main.o parsetree.o parsedata.o fsmstate.o fsmbase.o
+> fsmattach.o fsmmin.o fsmgraph.o fsmap.o xmlcodegen.o rlscan.o
+> rlparse.o ../common/common.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+> g++  -o rlgen-ruby main.o
+> rubycodegen.o ../common/common.a ../redfsm/redfsm.a 
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+> g++  -o rlgen-dot main.o
+> gvdotgen.o ../common/common.a ../redfsm/redfsm.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+> g++  -o rlgen-cd main.o fsmcodegen.o tabcodegen.o ftabcodegen.o
+> flatcodegen.o fflatcodegen.o gotocodegen.o fgotocodegen.o
+> ipgotocodegen.o splitcodegen.o ../common/common.a ../redfsm/redfsm.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+> 
+> > I've also made a patch for the ragel(1) man page. It was referencing
+> > rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> > ragel created ruby code.  It is also attached.
+> > 
+> > I personally haven't used ragel for any of my projects, just seen it via
+> > other projects and noticed it hadn't been built for Fedora yet, so i
+> > thought I would do that.
+> 
+> a spec file was on previous release, should have release my spec earlier
+> but my spec file was not able to produce the debuginfo rpm package
+> though everything else was working fine
+> i got
+> + /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+> finish stripping
+> 0 blocks
+
+i am in shock, option -s for install utility.
+I have wasted lot of time.
+
+> that last line means that the cpio utility has empty source from the
+> stripping.
+> And more crazy if i run the script manually, it work !!
+
+do you have a patch to allow short-circuit for rpm install :-)
+sure it was working, I was by passing the install -s
+doing it manually
+
+
+
+From jer... at hinegardner.org  Thu Mar 29 16:11:10 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Thu, 29 Mar 2007 10:11:10 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <1175167162.25724.12.camel@seggil.infonet.ca>
+References: <20070324002635.GB3475@hinegardner.org> <1175148506.2979.36.camel@seggil.infonet.ca> <1175167162.25724.12.camel@seggil.infonet.ca>
+Message-ID: <20070329161110.GA8198@hinegardner.org>
+
+On Thu, Mar 29, 2007 at 07:19:22AM -0400, Gilles J. Seguin wrote:
+> 
+> On Thu, 2007-03-29 at 02:08 -0400, Gilles J. Seguin wrote:
+> > On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> > > Hi all,
+> > > 
+> > > I'm packaging up ragel for inclusion in Fedora Extras
+> > 
+> > thanks a lot
+> > 
+> > > and I came across a parallel make dependency bug.  It seems
+> > > the dependency graph as it
+> > > currently stands can start building some of the command line
+> > > applications before the common and redfsm libraries are complete. The
+> > > attached patch should fix it.  
+> > 
+> > interesting, problem was not showing up here, from log
+> > 
+> > + make -j2
+> > make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+> 
+> this build is put on hold because prerequisite is not meet,
+> that is common.a
+
+Fedora Extras builds runs with make -j3 normally, and that is when it
+turned up on my build box.  Hence the patch to reorder the dependencies
+so common and redfsm are required for the other builds.
+
+> > make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> > ar -cr common.a common.o
+> 
+> now prerequisite is done
+> starting parallel build
+> 
+> that is, if common and redfsm are the directory in subdir macro
+> the parallel build start sooner
+
+[...]
+
+> > a spec file was on previous release, should have release my spec earlier
+> > but my spec file was not able to produce the debuginfo rpm package
+> > though everything else was working fine
+> > i got
+> > + /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+> > finish stripping
+> > 0 blocks
+> 
+> i am in shock, option -s for install utility.
+> I have wasted lot of time.
+
+I have another patch in the Source RPM that removes that -s from the
+install command.  I didn't think it would be necessary propogate that
+upstream.
+
+With that in place rpmbuild -ba will create a non-empty debug-info rpm.
+
+> > that last line means that the cpio utility has empty source from the
+> > stripping.
+> > And more crazy if i run the script manually, it work !!
+> 
+> do you have a patch to allow short-circuit for rpm install :-)
+> sure it was working, I was by passing the install -s
+> doing it manually
+
+The patches I'm using are avaialble in the Fedora Extras source tree,
+browse them here:
+
+    http://cvs.fedora.redhat.com/viewcvs/devel/ragel/?root=extras
+
+The source RPM is here:
+
+    http://redhat.download.fedoraproject.org/pub/fedora/linux/extras/6/SRPMS/ragel-5.19-4.fc6.src.rpm
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 18:52:27 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 13:52:27 -0500
+Subject: [ragel-users] Re: new backend executable names in 5.18
+In-Reply-To: <1172120930.838688.120190@j27g2000cwj.googlegroups.com>
+References: <45D260D3.6080508@cs.queensu.ca> <1172120930.838688.120190@j27g2000cwj.googlegroups.com>
+Message-ID: <45E8726B.4090404@cs.queensu.ca>
+
+Hello,
+
+At present there is one ruby test case in test/atoi3.rl. Expect more to be
+added in the future.
+
+If you'd like to implement rlgen-javascript I would suggest starting with
+rlgen-java. Generally it doesn't take too much work to add a new language
+and get the basics working.
+
+Cheers,
+ Adrian
+
+mdaines wrote:
+>> rlgen-ruby     Ruby (new, experimental)
+> 
+> I too would like to see some samples.
+> 
+> When will we see rlgen-javascript? I'm only half kidding, though I
+> think I see parsing going on in JavaScript sometimes that seems like
+> maybe it could benefit? Plus, I am leaning toward thinking such a
+> thing could be useful to me, maybe. Maybe fiddling around with that is
+> a good leisure-time way to learn about this whole subject and about
+> how Ragel is implemented...
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 21:36:17 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 16:36:17 -0500
+Subject: [ragel-users] selecting a starting state or how to serialize
+ a machine
+In-Reply-To: <1172290115.150566.229860@v33g2000cwv.googlegroups.com>
+References: <1172290115.150566.229860@v33g2000cwv.googlegroups.com>
+Message-ID: <45E898D1.4010206@cs.queensu.ca>
+
+Hi Jason, you can save off the cs variable. Also, you can tell ragel that it
+should access cs using a pointer, so that the current state lives somewhere
+other than the current function. Do this with "access data_pointer->;"
+
+Adrian
+
+Jason wrote:
+> I am finding more uses for ragel all the time :-)
+> Now I am experimenting with using a ragel to model work flow logic.
+> For example, a document has an associated state, approved, rejected,
+> pending, etc. So I want to load the document and "post" events that
+> will drive the document status to new states, triggering actions
+> along
+> the way.
+> 
+> So the question is: How do I tell a ragel machine I want to start at
+> a
+> particular point (where it left off before)?
+> 
+> Do I just archive the entire machine variables (fixing up pointers of
+> course)?
+> 
+> thanks,
+> Jason
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 21:44:28 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 16:44:28 -0500
+Subject: [ragel-users] Re: selecting a starting state or how to serialize
+ a machine
+In-Reply-To: <1172373564.738689.178450@v33g2000cwv.googlegroups.com>
+References: <1172290115.150566.229860@v33g2000cwv.googlegroups.com> <1172373564.738689.178450@v33g2000cwv.googlegroups.com>
+Message-ID: <45E89ABC.4010204@cs.queensu.ca>
+
+For a really long time now I've been meaning to implement a new feature
+which should help you out.
+
+%% write entry <machine_or_label>;
+
+With this ragel should generate:
+
+static const int entry_name = X;
+
+Where X is a state number representing the entry point given. Then before
+running the state machine on an input character you can go:
+
+cs = entry_name;
+
+This will work just like fgoto <machine_or_label>; except cs is modified
+before entering the processing loop.
+
+-Adrian
+
+skk wrote:
+> What I have done with a text editor in a windows control is build the
+> initial state machine so things transition through the basic states as
+> required.  I validate this machine first.  Then I build in transitions
+> from the start state into the internal states with the input that
+> represents the current state.  In the text editor, build the machine
+> to handle the cursor movement, character insert, delete, insert/
+> overwright, skip mask characters and so on.  When entering the machine
+> I then create a transition from the initial state into the internal
+> states after computing the current state of the cursor.  The current
+> state of the cursor can be far left/right, insert/overwright, valid
+> character to the left/right/both, etc.  This is encoded into an
+> integer (all input is in integers, not characters) and is fed in as
+> the first character thus putting me exactly where I want to be for the
+> next keyboard input character (integer).  This is necessary because
+> the user may have moved the text cursor with the mouse and the last
+> state I was in is not valid any more.
+> 
+> On Feb 23, 9:08 pm, "Jason" <jason2... at jasonjobe.com> wrote:
+>> I am finding more uses for ragel all the time :-)
+>> Now I am experimenting with using a ragel to model work flow logic.
+>> For example, a document has an associated state, approved, rejected,
+>> pending, etc. So I want to load the document and "post" events that
+>> will drive the document status to new states, triggering actions
+>> along
+>> the way.
+>>
+>> So the question is: How do I tell a ragel machine I want to start at
+>> a
+>> particular point (where it left off before)?
+>>
+>> Do I just archive the entire machine variables (fixing up pointers of
+>> course)?
+>>
+>> thanks,
+>> Jason
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 22:36:59 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 17:36:59 -0500
+Subject: [ragel-users] token buffer not correct
+In-Reply-To: <1172605242.835835.194270@8g2000cwh.googlegroups.com>
+References: <1172605242.835835.194270@8g2000cwh.googlegroups.com>
+Message-ID: <45E8A70B.3090009@cs.queensu.ca>
+
+Hi Jason,
+
+In scanner pattern actions *p is not reliable. Sometimes the action is
+executed on the character following the match, other times it is executed on
+the last character of the match. This is an optimization which depends on
+the nature of the patterns. Use *tokstart instead. This will fix the problem
+with '{'.
+
+In the second issue, I noticed that you jump to a new machine definition to
+process { ... } blocks. But before you return you don't set s->data. It
+stays at the old value, which is why it appears that the data pointer is not
+advanced.
+
+Adrian
+
+Jason wrote:
+> BTW, this is pull scanner.
+> 
+> Essentially I see a possible problem / bug in 2 areas. One is the
+> return value of a single character. Specifically in the enclosed
+> example TK_Char should be return the int value of the char matched
+> (e.g. '{') but it isn't.
+> 
+> The second involves the *non* advancement of the token / data pointer
+> illustrated below. The digraph value, "<:" appears at the beginning of
+> the output of the following token TK_TEXT.
+> 
+> My input is this
+> 
+> (app MyApp
+> 
+> 	New: (
+> 		User.Submit.Application: (
+> 			>> Submitted
+> 			<: {#<xml> pre_action </xml>#}
+> 			:>  { (one) }
+> 		)
+> 	)
+> )
+> 
+> The problem tokens are printed thusly
+> 
+> 	parser: TK_PRE(271):6 "<:"
+> 	parser: TK_TEXT(266):6 "<: {#<xml> pre_action </xml>#}"
+> 
+> The excerpted rule is
+> 
+> 			# Consume text delimited by <xml> ... </xml>
+> 			xml  := (any_count_line* -- "</xml>") :>> "</xml>"
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_XML;
+> 				s->token_name = "TK_XML";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> I've tried a number of things with the grammar to no avail. So I don't
+> know if this a problem with ragel or my spec.
+> 
+> Any pointers would be most appreciated.
+> 
+> many thanks,
+> Jason
+> 
+> ---------------------------- Full .rl
+> ----------------------------------------------------------------------
+> #include "reader_s.h"
+> 
+> #ifndef SCOPE
+> #define SCOPE
+> #endif
+> 
+> 
+> %%{
+> 	machine Scanner;
+> 	write data;
+> }%%
+> 
+> 
+> SCOPE void scan_init_buf( Scanner *s, char *buf )
+> {
+> 	memset (s, '\0', sizeof(Scanner));
+> 	s->curline = 1;
+> 	s->buf = buf;
+> 	s->p = s->buf;
+> 	%%{ write init; }%%
+> }
+> 
+> SCOPE void scan_finalize( Scanner *s )
+> {
+> }
+> 
+> #define ret_tok( _tok ) token = _tok; s->token = _tok; s->data = s-
+>> tokstart; s->token_name = #_tok
+> #define ret_char( _tok ) token = _tok; s->token = *s->tokstart; s-
+>> data = s->tokstart; s->token_name = "TK_Char"
+> 
+> SCOPE int scan( Scanner *s )
+> {
+> 	char *p = s->p;
+> 	char *pe = s->pe;
+> 	int token = TK_NO_TOKEN;
+> 
+> 	while ( 1 ) {
+> 
+> 		%%{
+> 			machine Scanner;
+> 			access s->;
+> 
+> 			newline = '\n' @{s->curline += 1;};
+> 			any_count_line = any | newline;
+> 
+> 			# Consume a C comment.
+> 			c_comment := any_count_line* :>> '*/' @{fgoto main;};
+> 
+> 			# Consume text delimited by <xml> ... </xml>
+> 			xml  := (any_count_line* -- "</xml>") :>> "</xml>"
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_XML;
+> 				s->token_name = "TK_XML";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> 			text_block := (any_count_line* -- '#}') :>> '#}'
+> 			@{
+> 				/* Save p and pe. fbreak does not advance p. */
+> 				s->token = TK_TEXT;
+> 				s->token_name = "TK_TEXT";
+> 
+> 				s->p = p + 1;
+> 				s->pe = pe;
+> 				s->len = s->p - s->data;
+> 				return TK_XML;
+> 			};
+> 
+> 			main := |*
+> 
+> 			newline;
+> 
+> 			# Alpha numberic characters or underscore.
+> 			alnum_u = alnum | '_';
+> 
+> 			# Alpha charactres or underscore.
+> 			alpha_u = alpha | '_';
+> 
+> 			ident = alpha_u alnum_u*;
+> 
+> 			# Identifiers
+> 			ident =>
+> 				{ ret_tok( TK_Identifier ); fbreak; };
+> 
+> 			# Keypath
+> 			keypath = ident ('.' ident)*;
+> 			keypath => { ret_tok( TK_Keypath ); fbreak; };
+> 
+> 			# Keywords
+> 			ident ':' => {
+> 				ret_tok (TK_Keyword); fbreak;
+> 			};
+> 
+> 			keypath ':' => {
+> 				ret_tok (TK_Keyword); fbreak;
+> 			};
+> 
+> 			# Strings and Text
+> 			"'" ( [^'\\] | /\\./ )* "'" => { ret_tok (TK_String); fbreak; };
+> 			'"' ( [^"\\] | /\\./ )* '"' => { ret_tok (TK_String); fbreak; };
+> 
+> 			"<xml>" { fgoto xml; };
+> 			'{#' 	{ fgoto text_block; };
+> 
+> 			# Special Digraphs
+> 			">>" @ { ret_tok (TK_SHIFT_RT); fbreak; };
+> 			"<<" @ { ret_tok (TK_SHIFT_LT); fbreak; };
+> 			":>" @ { ret_tok (TK_POST); fbreak; };
+> 			"<:" @ { ret_tok (TK_PRE); fbreak; };
+> 
+> 			"<=" => { ret_tok (TK_LE); fbreak; };
+> 			">=" => { ret_tok (TK_GE); fbreak; };
+> 			"!=" => { ret_tok (TK_NE); fbreak; };
+> 
+> 			"++" => { ret_tok (TK_Increment); fbreak; };
+> 			"--" => { ret_tok (TK_Decrement); fbreak; };
+> 
+> 			# Whitespace
+> 			[ \t\n];
+> 
+> 	# Numbers
+> 	digit+ => {
+> 		ret_tok (TK_Integer); fbreak;
+> 	};
+> 
+> 	digit+'.' digit+ => {
+> 		ret_tok (TK_Real); fbreak;
+> 	};
+> 
+> 	digit{1,3} (',' digit{3})+ => { ret_tok (TK_Integer); fbreak; };
+> 
+> 	digit{1,3} (',' digit{3})+ '.' digit+ => { ret_tok (TK_Real);
+> fbreak; };
+> 
+> 	'0x' xdigit+ => { ret_tok (TK_Hex); fbreak; };
+> 
+>         # Describe both c style comments and c++ style comments. The
+>         # priority bump on tne terminator of the comments brings us
+>         # out of the extend* which matches everything.
+>         '//' [^\n]* newline;
+> 
+> 	'/*' { fgoto c_comment; };
+> 
+> 
+> 			# EOF
+> 			0 =>
+> 				{ ret_tok( TK_EOF ); fbreak; };
+> 
+> 			# Anything else
+> 			any =>
+> 				{ ret_char( *p ); fbreak; };
+> 
+> 			*|;
+> 
+> 			write exec;
+> 		}%%
+> 
+> 		if ( s->cs == Scanner_error )
+> 			return TK_ERR;
+> 
+> 		if ( token != TK_NO_TOKEN ) {
+> 			/* Save p and pe. fbreak does not advance p. */
+> 			s->p = p + 1;
+> 			s->pe = pe;
+> 			s->len = s->p - s->data;
+> 			s->token = token;
+> 			return token;
+> 		}
+> 	}
+> }
+> 
+> #ifdef TEST
+> 
+> #include <stdlib.h>
+> #include <stdio.h>
+> #include <string.h>
+> 
+> 
+> void output(Scanner *ss)
+> {
+> 	int tok;
+> 
+> 	while ( 1 ) {
+> 		tok = scan (ss);
+> 		if ( tok == TK_EOF ) {
+> 			printf ("parser: EOF\n");
+> 			break;
+> 		}
+> 		else if ( tok == TK_ERR ) {
+> 			printf ("parser: ERR\n");
+> 			break;
+> 		}
+> 		else {
+> 			printf ("parser: %s(%d):%d \"", ss->token_name, tok, ss->curline);
+> 			fwrite ( ss->data, 1, ss->len, stdout );
+> 			printf ("\"\n" );
+> 		}
+> 	}
+> }
+> 
+> #define BUFSIZE 4096
+> 
+> int main (int argc, char** argv)
+> {
+> 	Scanner ss;
+>    	char buf[BUFSIZE];
+> 
+> 	int len = fread ( buf, sizeof(char), BUFSIZE, stdin );
+> 	buf[len] = '\0';
+> 	scan_init_buf (&ss, buf);
+> 
+> //	char *input = "(do with:1,345.99 and: \"some string\")";
+> //	scan_init_buf(&ss, input);
+> 
+> 	output (&ss);
+> 	scan_finalize (&ss);
+> 
+> 	return 0;
+> }
+> 
+> #endif
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 22:48:52 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 17:48:52 -0500
+Subject: [ragel-users] reflection of the machine
+In-Reply-To: <1172632883.572593.173920@s48g2000cws.googlegroups.com>
+References: <1172632883.572593.173920@s48g2000cws.googlegroups.com>
+Message-ID: <45E8A9D4.80208@cs.queensu.ca>
+
+
+Jason wrote:
+> Is it possible to get a representation of the machine to enable the
+> following:
+> 
+> 1) Get a string name or representation of a machine, labeled node, and
+> action.
+> 
+> 2) Provide defined constants for named nodes.
+
+Not at present. My (rapidly expanding) Ragel TODO list contains an entry
+about debugging. I would like to make it possible to retrieve the set of
+machine definition paths corresponding to a state. I say set because a
+single state may be a composition of several states that are defined in
+different places in the regex grammar (think ambiguity). I would like to be
+able to "step" through a state machine and map the current state back to the
+grammar.
+
+> Is it possible to initialize a machine to a state other than the
+> defined starting point?
+
+See my post: Re: [ragel-users] Re: selecting a starting state or how to
+serialize a machine DATED Fri, 02 Mar 2007 16:44:28 -0500
+
+Cheers,
+ Adrian
+
+
+From oliver.schonef... at uni-bielefeld.de  Thu Mar  1 10:16:15 2007
+From: oliver.schonef... at uni-bielefeld.de (Oliver)
+Date: Thu, 01 Mar 2007 02:16:15 -0800
+Subject: Error handling and reporting in Ragel
+Message-ID: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+
+Hello,
+
+I'm currently using Ragel to write a parser for an XML-like language.
+In
+case of a parsing error, I want to be able to provide meaningful
+feedback
+to the user.
+
+The following is a subset of my machine:
+%{{
+  machine Test;
+  alphtype char;
+
+  NCName = [a-zA-Z] . [a-zA-Z0-9]*;
+  Prefix = NCName;
+  LocalPart = NCName;
+  PrefixedName = Prefix ':' LocalPart;
+  UnprefixedName = LocalPart;
+  QName = PrefixedName | UnprefixedName;
+  LQName = '(' NCName ')' QName;
+  AttValue = ('"' [^<&\"]* '"' | "'" [^<&\']* "'");
+  Attribute = QName Eq AttValue;
+  StartTag = '<' LQName (S Attribute)* S? '>';
+  main := StartTag*;
+}}%
+
+The following Input (without double quotes) should generate:
+  1) "<(l1) test>" -> "Expected QName."
+  2) "<l1)test>"   -> "Expected '('."
+
+I have been experimenting with global error state actions. I modified
+the
+'LQName' rule like this:
+  action err1 {
+    std::cout << "Expected '('." << std::endl;
+  }
+
+  # actions err2 ... err4 are similar to err1
+
+  LQName = '(' @!err1 NCName @!err2 ')' @!err3 QName @!err4;
+
+It this the way to go, or can this be done elegantly in a less verbose
+way.
+Embedding error actions in all rules looks a litte cumbersome to me.
+
+Best Regards,
+Thanks,
+Oliver
+--
+--------------------------------------------------------
+And remember: "To Infinity And Far Beyond ... Somehow?!"
+
+Hi! I'm a .signature virus! Copy me in your ~/.signature
+to help me spread!             <- Save this lifeform ;-)
+
+
+From thurs... at cs.queensu.ca  Fri Mar  2 23:28:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 02 Mar 2007 18:28:04 -0500
+Subject: [ragel-users] Error handling and reporting in Ragel
+In-Reply-To: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+References: <1172744175.847549.3260@z35g2000cwz.googlegroups.com>
+Message-ID: <45E8B304.7090105@cs.queensu.ca>
+
+Sorry I don't have much else for you. If you want to specialize error
+actions they need to be specified directly in machine definition as you've
+done. The alternative is a global error action which prints the
+character/position which the error occurred at.
+
+Regards,
+ Adrian
+
+Oliver wrote:
+> Hello,
+> 
+> I'm currently using Ragel to write a parser for an XML-like language.
+> In
+> case of a parsing error, I want to be able to provide meaningful
+> feedback
+> to the user.
+> 
+> The following is a subset of my machine:
+> %{{
+>   machine Test;
+>   alphtype char;
+> 
+>   NCName = [a-zA-Z] . [a-zA-Z0-9]*;
+>   Prefix = NCName;
+>   LocalPart = NCName;
+>   PrefixedName = Prefix ':' LocalPart;
+>   UnprefixedName = LocalPart;
+>   QName = PrefixedName | UnprefixedName;
+>   LQName = '(' NCName ')' QName;
+>   AttValue = ('"' [^<&\"]* '"' | "'" [^<&\']* "'");
+>   Attribute = QName Eq AttValue;
+>   StartTag = '<' LQName (S Attribute)* S? '>';
+>   main := StartTag*;
+> }}%
+> 
+> The following Input (without double quotes) should generate:
+>   1) "<(l1) test>" -> "Expected QName."
+>   2) "<l1)test>"   -> "Expected '('."
+> 
+> I have been experimenting with global error state actions. I modified
+> the
+> 'LQName' rule like this:
+>   action err1 {
+>     std::cout << "Expected '('." << std::endl;
+>   }
+> 
+>   # actions err2 ... err4 are similar to err1
+> 
+>   LQName = '(' @!err1 NCName @!err2 ')' @!err3 QName @!err4;
+> 
+> It this the way to go, or can this be done elegantly in a less verbose
+> way.
+> Embedding error actions in all rules looks a litte cumbersome to me.
+> 
+> Best Regards,
+> Thanks,
+> Oliver
+> --
+> --------------------------------------------------------
+> And remember: "To Infinity And Far Beyond ... Somehow?!"
+> 
+> Hi! I'm a .signature virus! Copy me in your ~/.signature
+> to help me spread!             <- Save this lifeform ;-)
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Mar  5 04:42:16 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 04 Mar 2007 23:42:16 -0500
+Subject: test case failure
+Message-ID: <45EB9FA8.70807@cs.queensu.ca>
+
+Hello,
+
+Marcus Rueckert pointed out that the test case cond4.rl fails when Ragel 
+has been compiled with g++ 4.1. The problem is that conditions do not 
+yet have a forced ordering when more than one must be executed on the 
+same character. When using g++ 4.1 they sometimes come out in a 
+different order. Unless you embed multiple conditions on a single 
+character and depend on a particular order, this failure can be safely 
+ignored.
+
+Regards,
+  Adrian
+
+
+From j_goettg... at hotmail.com  Mon Mar  5 17:27:11 2007
+From: j_goettg... at hotmail.com (callossa)
+Date: Mon, 05 Mar 2007 09:27:11 -0800
+Subject: test case failure
+In-Reply-To: <45EB9FA8.70807@cs.queensu.ca>
+References: <45EB9FA8.70807@cs.queensu.ca>
+Message-ID: <1173115631.834587.52750@64g2000cwx.googlegroups.com>
+
+The same problem occurs when ragel is compiled with g++ 3.4.4 (cygwin
+environment), so it is likely not to depend on a specific g++ version.
+
+
+From roberto.als... at gmail.com  Wed Mar  7 10:35:21 2007
+From: roberto.als... at gmail.com (ralsina)
+Date: Wed, 07 Mar 2007 02:35:21 -0800
+Subject: Using ragel to validate SPF
+Message-ID: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+
+Just wanted to mention that I have used ragel to validate SPF
+(www.openspf.org) in my RaSPF (http://code.google.com/p/ragel) and
+it's really a great tool!
+
+
+From thurs... at cs.queensu.ca  Wed Mar  7 13:30:13 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 07 Mar 2007 08:30:13 -0500
+Subject: [ragel-users] Using ragel to validate SPF
+In-Reply-To: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+References: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+Message-ID: <45EEBE65.8030109@cs.queensu.ca>
+
+Hello,
+
+Thanks for posting this! There is a slight typo in the link. I'm sure 
+you meant http://code.google.com/p/raspf/. But that reminds me, I need 
+to delete that old google code project for ragel.
+
+Cheers,
+  Adrian
+
+ralsina wrote:
+> Just wanted to mention that I have used ragel to validate SPF
+> (www.openspf.org) in my RaSPF (http://code.google.com/p/ragel) and
+> it's really a great tool!
+> 
+> 
+> 
+
+
+From roberto.als... at gmail.com  Thu Mar  8 00:47:26 2007
+From: roberto.als... at gmail.com (Roberto Alsina)
+Date: Wed, 7 Mar 2007 21:47:26 -0300 (ART)
+Subject: [ragel-users] Re: Using ragel to validate SPF
+In-Reply-To: <45EEBE65.8030109@cs.queensu.ca>
+References: <1173263721.211544.230760@64g2000cwx.googlegroups.com>
+    <45EEBE65.8030109@cs.queensu.ca>
+Message-ID: <36136.201.235.72.15.1173314846.squirrel@netmanagers.com.ar>
+
+>
+> Hello,
+>
+> Thanks for posting this! There is a slight typo in the link. I'm sure
+> you meant http://code.google.com/p/raspf/.
+
+Oops. Yeah, that's it.
+
+> But that reminds me, I need
+> to delete that old google code project for ragel.
+
+After I get the current version stabilized, I am trying to rewrite (at
+least some pieces) using ragel and maybe Kelbt. Now, I really need to
+learn this :-)
+
+
+
+From roberto.als... at gmail.com  Sun Mar 11 17:23:48 2007
+From: roberto.als... at gmail.com (ralsina)
+Date: Sun, 11 Mar 2007 10:23:48 -0700
+Subject: Silly question
+Message-ID: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+
+Hi,
+
+I am trying to use ragel to validate grammars defined in RFCs, and
+when doing a piece of RFC2822, I find this:
+
+    comment = '(' (FWS? ccontent)* FWS? ')';
+    ccontent = ctext | quoted_pair | comment;
+
+As you can see, each one depends on the other. This is illegal in
+ragel, right? Or is there a way around it?
+
+
+From thurs... at cs.queensu.ca  Mon Mar 12 14:46:08 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 12 Mar 2007 10:46:08 -0400
+Subject: [ragel-users] Silly question
+In-Reply-To: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+References: <1173633828.697733.153390@h3g2000cwc.googlegroups.com>
+Message-ID: <45F567B0.50700@cs.queensu.ca>
+
+Hi,
+
+You're right, Ragel doesn't support recursion since it works with regular
+languages. Though it is possible to handle it using manual coding tricks. It
+can be done using actions which increment and decrement a counter and then
+jump to the appropriate place based on the current value. Look at the
+processing of '{' and '}' in the ragel source for an example.
+
+You can also use conditions to balance paretheses. Have a look at cond6.rl
+for an example.
+
+Cheers,
+ Adrian
+
+ralsina wrote:
+> Hi,
+> 
+> I am trying to use ragel to validate grammars defined in RFCs, and
+> when doing a piece of RFC2822, I find this:
+> 
+>     comment = '(' (FWS? ccontent)* FWS? ')';
+>     ccontent = ctext | quoted_pair | comment;
+> 
+> As you can see, each one depends on the other. This is illegal in
+> ragel, right? Or is there a way around it?
+> 
+> 
+> 
+
+
+From thurs... at cs.queensu.ca  Tue Mar 13 16:44:18 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 13 Mar 2007 12:44:18 -0400
+Subject: changes to ragel, feedback requested
+Message-ID: <45F6D4E2.5040709@cs.queensu.ca>
+
+Hi all,
+
+I have made some changes which I'd like to mention here in case anybody
+would like to discuss them.
+
+There are two basic changes.
+
+1. All machine instantiations (using ":=") now have a corresponding entry
+point generated in the output code. This can be used to initialize cs to
+something other than main.
+
+2. The definition of the main machine is now optional. If it is not given
+then the start state is not generated and cs is not initialized by the write
+init statement.
+
+The idea is that I want to be able to do this:
+
+%%{
+    machine foo;
+
+    main_v1 := ...;
+    main_v2 := ...;
+}%%
+...
+int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+%% write init;
+
+I like this, but it has an implication that I'm worried about. If you
+mis-spell main or otherwise forget to add it without realizing, then CS will
+never be initialized and undefined behaviour will occur.
+
+%%{
+    machine foo;
+    this_should_be_main := ...;
+}%%
+...
+// cs won't get initialized here
+int cs;
+%% write init;
+
+What do you think? Do we say too bad for you ... or do we find some other
+way? Any feedback would be appreciated.
+
+Thanks,
+ Adrian
+
+
+From jason2... at jasonjobe.com  Mon Mar 19 19:28:57 2007
+From: jason2... at jasonjobe.com (Jason)
+Date: Mon, 19 Mar 2007 12:28:57 -0700
+Subject: changes to ragel, feedback requested
+In-Reply-To: <45F6D4E2.5040709@cs.queensu.ca>
+References: <45F6D4E2.5040709@cs.queensu.ca>
+Message-ID: <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+
+Adrian,
+
+I think the  benefits are worth it.
+
+What if you defaulted to assigning cs to the first one and switch the
+order of your two example statements.
+...
+%% write init;
+int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+
+This way cs is always initialized but is easily overridden by the
+developer.
+
+Also, are the declarations no longer static?
+
+thanks,
+Jason
+
+
+
+From thurs... at cs.queensu.ca  Tue Mar 20 20:53:33 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 16:53:33 -0400
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+References: <45F6D4E2.5040709@cs.queensu.ca> <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+Message-ID: <460049CD.5060902@cs.queensu.ca>
+
+Hi Jason, thanks for the feedback. Defaulting to the first/last is a
+possibility. I'm not sure I like the requirement that cs be initialized
+after the write init. Could be a source of bugs more common than the one
+we're trying to prevent.
+
+They should still be static. Why do you ask?
+
+-Adrian
+
+Jason wrote:
+> Adrian,
+> 
+> I think the  benefits are worth it.
+> 
+> What if you defaulted to assigning cs to the first one and switch the
+> order of your two example statements.
+> ...
+> %% write init;
+> int cs = (some_test)? foo_en_main_v1 : foo_en_main_v2;
+> 
+> This way cs is always initialized but is easily overridden by the
+> developer.
+> 
+> Also, are the declarations no longer static?
+> 
+> thanks,
+> Jason
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070320/7a14e48d/attachment-0001.sig>
+
+From oliver.schonef... at uni-bielefeld.de  Tue Mar 20 22:03:47 2007
+From: oliver.schonef... at uni-bielefeld.de (Oliver Schonefeld)
+Date: Tue, 20 Mar 2007 23:03:47 +0100
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <460049CD.5060902@cs.queensu.ca>
+References: <45F6D4E2.5040709@cs.queensu.ca>
+ <1174332537.673281.172090@o5g2000hsb.googlegroups.com>
+ <460049CD.5060...@cs.queensu.ca>
+Message-ID: <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+
+Hello Adrian,
+
+Eines schoenen Tages schrieb Adrian Thurston:
+> Defaulting to the first/last is a
+> possibility. I'm not sure I like the requirement that cs be initialized
+> after the write init. Could be a source of bugs more common than the one
+> we're trying to prevent.
+
+How about an additional option to 'init', which prevents the initalization
+of cs. Something link '%write init nocsinit'. The makes the need for the to
+initalize cs more explicit.
+
+Best Regards,
+Oliver
+-- 
+--------------------------------------------------------
+And remember: "To Infinity And Far Beyond ... Somehow?!"
+
+Hi! I'm a .signature virus! Copy me in your ~/.signature
+to help me spread!             <- Save this lifeform ;-)
+
+
+From thurs... at cs.queensu.ca  Wed Mar 21 02:09:58 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 22:09:58 -0400
+Subject: [ragel-users] Re: changes to ragel, feedback requested
+In-Reply-To: <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+References: <45F6D4E2.5040709@cs.queensu.ca> <1174332537.673281.172090@o5g2000hsb.googlegroups.com> <460049CD.5060902@cs.queensu.ca> <20070320220347.GA6078@tihany.southpark.psychopathen.org>
+Message-ID: <460093F6.4080104@cs.queensu.ca>
+
+Ah, I like that. CS is always initialized unless it is explicitly
+requested that it isn't. When the user wants to init CS it can happen
+before write init. Also, CS isn't initialized twice. Seems like a winner
+to me!
+
+In regards to the question of initializing with the first vs last
+instantiation, I am leaning towards the last since Ragel programs are
+normally specified in a bottom-up nature (leaf machine definitions come
+first). Instantiations can go in any order, but in the programs I write
+the main machine always ends up last.
+
+Adrian
+
+Oliver Schonefeld wrote:
+> Hello Adrian,
+> 
+> Eines schoenen Tages schrieb Adrian Thurston:
+>> Defaulting to the first/last is a
+>> possibility. I'm not sure I like the requirement that cs be initialized
+>> after the write init. Could be a source of bugs more common than the one
+>> we're trying to prevent.
+> 
+> How about an additional option to 'init', which prevents the initalization
+> of cs. Something link '%write init nocsinit'. The makes the need for the to
+> initalize cs more explicit.
+> 
+> Best Regards,
+> Oliver
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070320/6dd6bda9/attachment-0001.sig>
+
+From patr... at baymotion.com  Tue Mar 20 22:22:58 2007
+From: patr... at baymotion.com (Patrick O'Grady)
+Date: Tue, 20 Mar 2007 14:22:58 -0800
+Subject: Problem with a scanner dropping the first character of an identifier.
+Message-ID: <000f01c76b3e$50a3b980$ab03040a@poddy>
+
+Hi, all--
+
+I've been struggling with a little self-test fixture which uses Ragel to 
+scan some input.  Here's the test program:
+
+
+#include <stdio.h>
+
+%%{
+    machine scanner ;
+
+    ids := |*
+
+        identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+
+        identifier
+                =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart, 
+tokstart);
+                        fret ;
+                    }
+                ;
+
+        (' '|'\n'|'\r')*
+                =>  { fret; }
+                ;
+
+        any
+                =>  { printf("Ignored.\n"); fret; }
+                ;
+    *| ;
+
+    main := ( any %{ fhold; fcall ids; } )* ;
+}%%
+
+
+
+
+int main()
+{
+    unsigned cs ;
+    char const * p ;
+    char const * pe ;
+    char const * tokstart ;
+    char const * tokend ;
+    unsigned act ;
+    unsigned stack[100] ;
+    unsigned top ;
+
+    %%write data ;
+
+    %%write init ;
+
+    char const s[] = "Once upon a time." ;
+
+    p = s ;
+    pe = &(s[sizeof(s)]);
+
+    %%write exec ;
+
+    %% write eof ;
+
+    return 0 ;
+}
+
+
+I'm compling with Ragel 5.19/MSVC, and I get the following output.
+
+Got identifier: nce.
+Got identifier: upon.
+Got identifier: a.
+Got identifier: time.
+Ignored.
+Ignored.
+
+Everything here is as expected, except the first identifier, which should be 
+"Once", not "nce"--it seems to have skipped over the first 'O'.  First--is 
+there a better way to get a list of all the tokens in the input?  Anyone 
+have any clues about this misbehavior?  Thanks in advance.
+
+-patrick
+
+
+
+
+
+From thurs... at cs.queensu.ca  Wed Mar 21 02:38:04 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 20 Mar 2007 22:38:04 -0400
+Subject: [ragel-users] Problem with a scanner dropping the first character
+ of an identifier.
+In-Reply-To: <000f01c76b3e$50a3b980$ab03040a@poddy>
+References: <000f01c76b3e$50a3b980$ab03040a@poddy>
+Message-ID: <46009A8C.9000300@cs.queensu.ca>
+
+Hi Patrick,
+
+In the main machine the use of % causes the action to be executed on the
+following character. If you change the action embedding operator to @ or
+$ the action will be executed immediately and you should get the results
+you want.
+
+Using tokstart and tokend is the only way to retrieve token text. One of
+the goals of Ragel is to have a tool which generates code with no
+dependencies, including malloc. This is why I have a "hands-off"
+approach to buffer and token-data management. Whenever possible I prefer
+to leave this up to the user, as she is in the best position to decide
+how memory management is to be done.
+
+Cheers,
+ Adrian
+
+Patrick O'Grady wrote:
+> Hi, all--
+> 
+> I've been struggling with a little self-test fixture which uses Ragel to 
+> scan some input.  Here's the test program:
+> 
+> 
+> #include <stdio.h>
+> 
+> %%{
+>     machine scanner ;
+> 
+>     ids := |*
+> 
+>         identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+> 
+>         identifier
+>                 =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart, 
+> tokstart);
+>                         fret ;
+>                     }
+>                 ;
+> 
+>         (' '|'\n'|'\r')*
+>                 =>  { fret; }
+>                 ;
+> 
+>         any
+>                 =>  { printf("Ignored.\n"); fret; }
+>                 ;
+>     *| ;
+> 
+>     main := ( any %{ fhold; fcall ids; } )* ;
+> }%%
+> 
+> 
+> 
+> 
+> int main()
+> {
+>     unsigned cs ;
+>     char const * p ;
+>     char const * pe ;
+>     char const * tokstart ;
+>     char const * tokend ;
+>     unsigned act ;
+>     unsigned stack[100] ;
+>     unsigned top ;
+> 
+>     %%write data ;
+> 
+>     %%write init ;
+> 
+>     char const s[] = "Once upon a time." ;
+> 
+>     p = s ;
+>     pe = &(s[sizeof(s)]);
+> 
+>     %%write exec ;
+> 
+>     %% write eof ;
+> 
+>     return 0 ;
+> }
+> 
+> 
+> I'm compling with Ragel 5.19/MSVC, and I get the following output.
+> 
+> Got identifier: nce.
+> Got identifier: upon.
+> Got identifier: a.
+> Got identifier: time.
+> Ignored.
+> Ignored.
+> 
+> Everything here is as expected, except the first identifier, which should be 
+> "Once", not "nce"--it seems to have skipped over the first 'O'.  First--is 
+> there a better way to get a list of all the tokens in the input?  Anyone 
+> have any clues about this misbehavior?  Thanks in advance.
+> 
+> -patrick
+> 
+> 
+> 
+> 
+> 
+> --~--~---------~--~----~------------~-------~--~----~
+> You received this message because you are subscribed to the Google Groups "ragel-users" group.
+> To post to this group, send email to ragel-users at googlegroups.com
+> To unsubscribe from this group, send email to ragel-users-unsubscribe at googlegroups.com
+> For more options, visit this group at http://groups.google.com/group/ragel-users?hl=en
+> -~----------~----~----~----~------~----~------~--~---
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070320/33afcc2e/attachment-0001.sig>
+
+From patr... at baymotion.com  Wed Mar 21 03:50:09 2007
+From: patr... at baymotion.com (Patrick O'Grady)
+Date: Tue, 20 Mar 2007 20:50:09 -0700
+Subject: Problem with a scanner dropping the first character of an identifier.
+In-Reply-To: <46009A8C.9000300@cs.queensu.ca>
+References: <000f01c76b3e$50a3b980$ab03040a@poddy>
+   <46009A8C.9000300@cs.queensu.ca>
+Message-ID: <1174449009.161579.147090@n59g2000hsh.googlegroups.com>
+
+Adrian--
+
+Thanks very much; that cleared up my problem-- I knew that it had to
+be something simple.  In terms of the buffer management--the arguments
+you presented are exactly why I'm interested in Ragel--Ragel is one of
+the very few parser generator tools which doesn't have to rely on the
+thread's call stack in order to keep its state information--allowing
+me to manipulate a state machine as events are received by whichever
+thread actually receives the event.   I'm also very interested in how
+state machines can be inherited and augmented, hopefully without
+having to edit the original source for those machines.  Ragel is a
+terriffic tool--and thanks again for your help.  If I did have one
+request, however, it would be to perhaps add a mode where instead of
+using pointer arithmetic to advance through the buffer, the pointer
+could be adjusted through function calls or #define macros that I
+could override.  I'd use this to allow parsing across non-contiguous
+buffers.
+
+-patrick
+
+
+
+
+On Mar 20, 6:38 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Hi Patrick,
+>
+> In the main machine the use of % causes the action to be executed on the
+> following character. If you change the action embedding operator to @ or
+> $ the action will be executed immediately and you should get the results
+> you want.
+>
+> Using tokstart and tokend is the only way to retrieve token text. One of
+> the goals of Ragel is to have a tool which generates code with no
+> dependencies, including malloc. This is why I have a "hands-off"
+> approach to buffer and token-data management. Whenever possible I prefer
+> to leave this up to the user, as she is in the best position to decide
+> how memory management is to be done.
+>
+> Cheers,
+>  Adrian
+>
+> Patrick O'Grady wrote:
+> > Hi, all--
+>
+> > I've been struggling with a little self-test fixture which uses Ragel to
+> > scan some input.  Here's the test program:
+>
+> > #include <stdio.h>
+>
+> > %%{
+> >     machine scanner ;
+>
+> >     ids := |*
+>
+> >         identifier = [a-zA-Z_][a-zA-Z0-9_]* ;
+>
+> >         identifier
+> >                 =>  {   printf("Got identifier: %.*s.\n", tokend - tokstart,
+> > tokstart);
+> >                         fret ;
+> >                     }
+> >                 ;
+>
+> >         (' '|'\n'|'\r')*
+> >                 =>  { fret; }
+> >                 ;
+>
+> >         any
+> >                 =>  { printf("Ignored.\n"); fret; }
+> >                 ;
+> >     *| ;
+>
+> >     main := ( any %{ fhold; fcall ids; } )* ;
+> > }%%
+>
+> > int main()
+> > {
+> >     unsigned cs ;
+> >     char const * p ;
+> >     char const * pe ;
+> >     char const * tokstart ;
+> >     char const * tokend ;
+> >     unsigned act ;
+> >     unsigned stack[100] ;
+> >     unsigned top ;
+>
+> >     %%write data ;
+>
+> >     %%write init ;
+>
+> >     char const s[] = "Once upon a time." ;
+>
+> >     p = s ;
+> >     pe = &(s[sizeof(s)]);
+>
+> >     %%write exec ;
+>
+> >     %% write eof ;
+>
+> >     return 0 ;
+> > }
+>
+> > I'm compling with Ragel 5.19/MSVC, and I get the following output.
+>
+> > Got identifier: nce.
+> > Got identifier: upon.
+> > Got identifier: a.
+> > Got identifier: time.
+> > Ignored.
+> > Ignored.
+>
+> > Everything here is as expected, except the first identifier, which should be
+> > "Once", not "nce"--it seems to have skipped over the first 'O'.  First--is
+> > there a better way to get a list of all the tokens in the input?  Anyone
+> > have any clues about this misbehavior?  Thanks in advance.
+>
+> > -patrick
+>
+> > >
+>
+>
+>  signature.asc
+> 1KDownload
+
+
+From rcar... at pinyon.org  Tue Mar 27 16:49:17 2007
+From: rcar... at pinyon.org (Russell L. Carter)
+Date: Tue, 27 Mar 2007 09:49:17 -0700
+Subject: bootstrap from 5.16->5.19
+Message-ID: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+
+Hi,
+Is there a workaround for getting from 5.16 to 5.19 svn?  5.16
+ragel won't compile 5.19's rl files.  Debian sadly is still
+back in 5.16 for the unstable package, and the 5.19 rpm's complain
+about needing GLIBC_2.4 when I install them on either my
+RHEL4, or 32bit debian boxen.
+
+I am motivated to try to do this to avoid having to pass through
+all those syntax changes I see in the changelog...
+
+Thanks,
+Russell
+
+
+From rcar... at pinyon.org  Tue Mar 27 16:54:16 2007
+From: rcar... at pinyon.org (Russell L. Carter)
+Date: Tue, 27 Mar 2007 09:54:16 -0700
+Subject: [ragel-users] bootstrap from 5.16->5.19
+In-Reply-To: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+References: <1175014157.169844.252880@b75g2000hsg.googlegroups.com>
+Message-ID: <46094C38.1040207@pinyon.org>
+
+Duh!
+I just tried the 5.19 tar.gz, that builds fine.
+Thanks,
+Russell
+
+
+Russell L. Carter wrote:
+> Hi,
+> Is there a workaround for getting from 5.16 to 5.19 svn?  5.16
+> ragel won't compile 5.19's rl files.  Debian sadly is still
+> back in 5.16 for the unstable package, and the 5.19 rpm's complain
+> about needing GLIBC_2.4 when I install them on either my
+> RHEL4, or 32bit debian boxen.
+> 
+> I am motivated to try to do this to avoid having to pass through
+> all those syntax changes I see in the changelog...
+> 
+> Thanks,
+> Russell
+> 
+> 
+> > 
+
+
+From jer... at hinegardner.org  Sat Mar 24 00:26:35 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Fri, 23 Mar 2007 18:26:35 -0600
+Subject: Packaging ragel for Fedora Extras
+Message-ID: <20070324002635.GB3475@hinegardner.org>
+
+Hi all,
+
+I'm packaging up ragel for inclusion in Fedora Extras and I came across
+a parallel make dependency bug.  It seems the dependency graph as it
+currently stands can start building some of the command line
+applications before the common and redfsm libraries are complete. The
+attached patch should fix it.  
+
+I've also made a patch for the ragel(1) man page. It was referencing
+rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+ragel created ruby code.  It is also attached.
+
+I personally haven't used ragel for any of my projects, just seen it via
+other projects and noticed it hadn't been built for Fedora yet, so i
+thought I would do that.
+
+Once ragel is building in Fedora Extras I'll post another announcement
+here.  In the meantime if anyone would like to try out the rpm I've
+built feel free.  Please send any and all feedback.
+
+    http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+    http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+--- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
++++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+@@ -18,9 +18,9 @@
+ #   along with Ragel; if not, write to the Free Software
+ #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ 
+-
+-BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+-ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
++BUILD_COMMON = common redfsm
++BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
++ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+ 
+ #*************************************
+ 
+@@ -33,11 +33,14 @@
+ # build targets
+ all: $(BUILD_SUBDIRS)
+ 
+-.PHONY: $(BUILD_SUBDIRS)
++.PHONY: $(ALL_SUBDIRS)
+ 
+-$(BUILD_SUBDIRS):
++$(BUILD_COMMON):
+ 	@cd $@ && $(MAKE)
+ 
++$(BUILD_SUBDIRS): $(BUILD_COMMON)
++	cd $@ && $(MAKE)
++
+ # clean targets.
+ 
+ CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+-------------- next part --------------
+--- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
++++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+@@ -33,13 +33,12 @@
+ this is the frontend component of Ragel, which generates an intermediate
+ file format that must be processed by rlcodegen(1).
+ 
+-Ragel compiles finite state machines from regular languages into executable
+-code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+-machines can not only recognize byte
+-sequences as regular expression machines do, but can also execute code at
+-arbitrary points in the recognition of a regular language.  User code is
+-embedded using inline operators that do not disrupt the regular language
+-syntax.
++Ragel compiles finite state machines from regular languages into
++executable code.  Ragel can generate C, C++, Objective-C, D, Java or
++Ruby code. Ragel state machines can not only recognize byte sequences as
++regular expression machines do, but can also execute code at arbitrary
++points in the recognition of a regular language.  User code is embedded
++using inline operators that do not disrupt the regular language syntax.
+ 
+ The core language consists of standard regular expression operators, such as
+ union, concatenation and kleene star, accompanied by action embedding
+@@ -554,7 +553,10 @@
+ Ragel was written by Adrian Thurston <thurs... at cs.queensu.ca>.  Objective-C
+ output contributed by Erich Ocean. D output contributed by Alan West. 
+ .SH "SEE ALSO"
+-.BR rlcodegen (1),
++.BR rlgen-cd(1),
++.BR rlgen-dot(1),
++.BR rlgen-java(1),
++.BR rlgen-ruby(1),
+ .BR re2c (1),
+ .BR flex (1)
+ 
+
+From thurs... at cs.queensu.ca  Mon Mar 26 01:39:12 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 25 Mar 2007 21:39:12 -0400
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <20070324002635.GB3475@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+Message-ID: <46072440.2090007@cs.queensu.ca>
+
+Hi Jeremy,
+
+Ah, great! Thanks for the packaging and the patches. With the exception
+of adding the mention to Ruby in the man page, I just applied them. Ruby
+code generation isn't finished yet and until it is I'm trying not to
+advertise it.
+
+Thanks again,
+ Adrian
+
+Jeremy Hinegardner wrote:
+> Hi all,
+> 
+> I'm packaging up ragel for inclusion in Fedora Extras and I came across
+> a parallel make dependency bug.  It seems the dependency graph as it
+> currently stands can start building some of the command line
+> applications before the common and redfsm libraries are complete. The
+> attached patch should fix it.  
+> 
+> I've also made a patch for the ragel(1) man page. It was referencing
+> rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> ragel created ruby code.  It is also attached.
+> 
+> I personally haven't used ragel for any of my projects, just seen it via
+> other projects and noticed it hadn't been built for Fedora yet, so i
+> thought I would do that.
+> 
+> Once ragel is building in Fedora Extras I'll post another announcement
+> here.  In the meantime if anyone would like to try out the rpm I've
+> built feel free.  Please send any and all feedback.
+> 
+>     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+>     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+> 
+> enjoy,
+> 
+> -jeremy
+> 
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> --- Makefile.in.orig	2007-03-03 08:13:42.000000000 -0700
+> +++ Makefile.in	2007-03-20 00:07:04.000000000 -0600
+> @@ -18,9 +18,9 @@
+>  #   along with Ragel; if not, write to the Free Software
+>  #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+>  
+> -
+> -BUILD_SUBDIRS = common ragel redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+> -ALL_SUBDIRS = $(BUILD_SUBDIRS) test examples doc
+> +BUILD_COMMON = common redfsm
+> +BUILD_SUBDIRS = ragel rlgen-cd rlgen-java rlgen-ruby rlgen-dot
+> +ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+>  
+>  #*************************************
+>  
+> @@ -33,11 +33,14 @@
+>  # build targets
+>  all: $(BUILD_SUBDIRS)
+>  
+> -.PHONY: $(BUILD_SUBDIRS)
+> +.PHONY: $(ALL_SUBDIRS)
+>  
+> -$(BUILD_SUBDIRS):
+> +$(BUILD_COMMON):
+>  	@cd $@ && $(MAKE)
+>  
+> +$(BUILD_SUBDIRS): $(BUILD_COMMON)
+> +	cd $@ && $(MAKE)
+> +
+>  # clean targets.
+>  
+>  CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> --- doc/ragel.1.in.orig	2007-03-23 18:09:24.000000000 -0600
+> +++ doc/ragel.1.in	2007-03-23 18:09:32.000000000 -0600
+> @@ -33,13 +33,12 @@
+>  this is the frontend component of Ragel, which generates an intermediate
+>  file format that must be processed by rlcodegen(1).
+>  
+> -Ragel compiles finite state machines from regular languages into executable
+> -code.  Ragel can generate C, C++, Objective-C, D, or Java code. Ragel state
+> -machines can not only recognize byte
+> -sequences as regular expression machines do, but can also execute code at
+> -arbitrary points in the recognition of a regular language.  User code is
+> -embedded using inline operators that do not disrupt the regular language
+> -syntax.
+> +Ragel compiles finite state machines from regular languages into
+> +executable code.  Ragel can generate C, C++, Objective-C, D, Java or
+> +Ruby code. Ragel state machines can not only recognize byte sequences as
+> +regular expression machines do, but can also execute code at arbitrary
+> +points in the recognition of a regular language.  User code is embedded
+> +using inline operators that do not disrupt the regular language syntax.
+>  
+>  The core language consists of standard regular expression operators, such as
+>  union, concatenation and kleene star, accompanied by action embedding
+> @@ -554,7 +553,10 @@
+>  Ragel was written by Adrian Thurston <thurs... at cs.queensu.ca>.  Objective-C
+>  output contributed by Erich Ocean. D output contributed by Alan West. 
+>  .SH "SEE ALSO"
+> -.BR rlcodegen (1),
+> +.BR rlgen-cd(1),
+> +.BR rlgen-dot(1),
+> +.BR rlgen-java(1),
+> +.BR rlgen-ruby(1),
+>  .BR re2c (1),
+>  .BR flex (1)
+>  
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070325/4a48c6c1/attachment-0001.sig>
+
+From jer... at hinegardner.org  Mon Mar 26 15:49:08 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 09:49:08 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <46072440.2090007@cs.queensu.ca>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca>
+Message-ID: <20070326154908.GD3490@hinegardner.org>
+
+Hi Adrian,
+
+Thanks, looks like the packages propogated throughout Fedora Extras this
+weekend so if anyone wants to install ragel on Fedora Core 5 or later
+(Core 6, devel) you can just: 
+
+    yum install ragel
+
+If anyone finds any bugs with the way it is packaged or deployed on
+Fedora, please don't hesitate to contact me.
+
+It ended up getting shipped out with Ruby mentioned in the manpage.  If
+you like I'll back that documentation out, and push out a new package
+until you're ready for the ruby feature to be announced.
+
+enjoy,
+
+-jeremy
+
+--
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+
+On Sun, Mar 25, 2007 at 09:39:12PM -0400, Adrian Thurston wrote:
+> Hi Jeremy,
+> 
+> Ah, great! Thanks for the packaging and the patches. With the exception
+> of adding the mention to Ruby in the man page, I just applied them. Ruby
+> code generation isn't finished yet and until it is I'm trying not to
+> advertise it.
+> 
+> Thanks again,
+>  Adrian
+> 
+> Jeremy Hinegardner wrote:
+> > Hi all,
+> > 
+> > I'm packaging up ragel for inclusion in Fedora Extras and I came across
+> > a parallel make dependency bug.  It seems the dependency graph as it
+> > currently stands can start building some of the command line
+> > applications before the common and redfsm libraries are complete. The
+> > attached patch should fix it.  
+> > 
+> > I've also made a patch for the ragel(1) man page. It was referencing
+> > rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> > ragel created ruby code.  It is also attached.
+> > 
+> > I personally haven't used ragel for any of my projects, just seen it via
+> > other projects and noticed it hadn't been built for Fedora yet, so i
+> > thought I would do that.
+> > 
+> > Once ragel is building in Fedora Extras I'll post another announcement
+> > here.  In the meantime if anyone would like to try out the rpm I've
+> > built feel free.  Please send any and all feedback.
+> > 
+> >     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.i386.rpm
+> >     http://www.hinegardner.org/fedora-extras/ragel-5.19-3.src.rpm
+> > 
+> > enjoy,
+> > 
+> > -jeremy
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070326/19cd3310/attachment-0001.sig>
+
+From thurs... at cs.queensu.ca  Mon Mar 26 16:17:06 2007
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 26 Mar 2007 12:17:06 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326154908.GD3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+Message-ID: <4607F202.5050704@cs.queensu.ca>
+
+
+Jeremy Hinegardner wrote:
+> Thanks, looks like the packages propogated throughout Fedora Extras this
+> weekend so if anyone wants to install ragel on Fedora Core 5 or later
+> (Core 6, devel) you can just: 
+> 
+>     yum install ragel
+
+Great!
+
+> It ended up getting shipped out with Ruby mentioned in the manpage.  If
+> you like I'll back that documentation out, and push out a new package
+> until you're ready for the ruby feature to be announced.
+
+No, need to back it out. It's not that big of an issue.
+
+Regards,
+ Adrian
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070326/fafd658f/attachment-0001.sig>
+
+From jer... at hinegardner.org  Mon Mar 26 16:30:17 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 10:30:17 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <4607F202.5050704@cs.queensu.ca>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org> <4607F202.5050704@cs.queensu.ca>
+Message-ID: <20070326163016.GF3490@hinegardner.org>
+
+On Mon, Mar 26, 2007 at 12:17:06PM -0400, Adrian Thurston wrote:
+> 
+> Jeremy Hinegardner wrote:
+> > Thanks, looks like the packages propogated throughout Fedora Extras this
+> > weekend so if anyone wants to install ragel on Fedora Core 5 or later
+> > (Core 6, devel) you can just: 
+> > 
+> >     yum install ragel
+> 
+> Great!
+
+My pleasure, glad to help out where I can.
+
+> > It ended up getting shipped out with Ruby mentioned in the manpage.  If
+> > you like I'll back that documentation out, and push out a new package
+> > until you're ready for the ruby feature to be announced.
+> 
+> No, need to back it out. It's not that big of an issue.
+
+Okay, that makes it easy :-).
+
+enjoy,
+
+-jeremy
+
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070326/cb4d3941/attachment-0001.sig>
+
+From step... at concord.org  Mon Mar 26 18:46:11 2007
+From: step... at concord.org (Stephen Bannasch)
+Date: Mon, 26 Mar 2007 14:46:11 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326154908.GD3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+ <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+Message-ID: <p06240808c22dc4f98f8f@[192.168.1.100]>
+
+At 9:49 AM -0600 3/26/07, Jeremy Hinegardner wrote:
+>Hi Adrian,
+>
+>Thanks, looks like the packages propogated throughout Fedora Extras this
+>weekend so if anyone wants to install ragel on Fedora Core 5 or later
+>(Core 6, devel) you can just:
+>
+>    yum install ragel
+>
+>If anyone finds any bugs with the way it is packaged or deployed on
+>Fedora, please don't hesitate to contact me.
+>
+>It ended up getting shipped out with Ruby mentioned in the manpage.  If
+>you like I'll back that documentation out, and push out a new package
+>until you're ready for the ruby feature to be announced.
+>
+>enjoy,
+>
+>-jeremy
+
+
+Hi Jeremy,
+
+I have the following repositories listed:
+
+$ ls /etc/yum.repos.d/
+fedora-core.repo         fedora-extras-development.repo  fedora-legacy.repo   fedora-updates.repo.rpmnew
+fedora-development.repo  fedora-extras.repo              fedora-updates.repo  fedora-updates-testing.repo
+
+But I don't see ragel listed:
+
+$ yum list ragel
+Loading "installonlyn" plugin
+Setting up repositories
+core                                                                 [1/3]
+extras                                                               [2/3]
+updates-released                                                     [3/3]
+Reading repository metadata in from local files
+$
+
+Is there something I'm missing?
+-- 
+- Stephen Bannasch
+  Concord Consortium, http://www.concord.org
+
+
+From jer... at hinegardner.org  Mon Mar 26 19:21:43 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Mon, 26 Mar 2007 13:21:43 -0600
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <p06240808c22dc4f98f8f@[192.168.1.100]>
+References: <20070324002635.GB3475@hinegardner.org> <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org> <p06240808c22dc4f98f8f@[192.168.1.100]>
+Message-ID: <20070326192143.GK3490@hinegardner.org>
+
+On Mon, Mar 26, 2007 at 02:46:11PM -0400, Stephen Bannasch wrote:
+> Hi Jeremy,
+> 
+> I have the following repositories listed:
+> 
+> $ ls /etc/yum.repos.d/
+> fedora-core.repo         fedora-extras-development.repo  fedora-legacy.repo   fedora-updates.repo.rpmnew
+> fedora-development.repo  fedora-extras.repo              fedora-updates.repo  fedora-updates-testing.repo
+> 
+> But I don't see ragel listed:
+> 
+> $ yum list ragel
+> Loading "installonlyn" plugin
+> Setting up repositories
+> core                                                                 [1/3]
+> extras                                                               [2/3]
+> updates-released                                                     [3/3]
+> Reading repository metadata in from local files
+> $
+> 
+> Is there something I'm missing?
+
+That should probably read 'sudo yum install ragel'.  Since I'm assuming
+you are not root when you did 'yum list ragel' it only used the local
+package listing and didn't download the updated package listings from
+repos.
+
+Try 'sudo yum list ragel' and see what happens.
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 187 bytes
+Desc: not available
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20070326/165466c3/attachment-0001.sig>
+
+From step... at concord.org  Mon Mar 26 21:02:02 2007
+From: step... at concord.org (Stephen Bannasch)
+Date: Mon, 26 Mar 2007 17:02:02 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <20070326192143.GK3490@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+ <46072440.2090007@cs.queensu.ca> <20070326154908.GD3490@hinegardner.org>
+ <p06240808c22dc4f98f8f@[192.168.1.100]>
+ <20070326192143.GK3490@hinegardner.org>
+Message-ID: <p06240810c22de3d3c4a5@[192.168.1.100]>
+
+>That should probably read 'sudo yum install ragel'.  Since I'm assuming
+>you are not root when you did 'yum list ragel' it only used the local
+>package listing and didn't download the updated package listings from
+>repos.
+>
+>Try 'sudo yum list ragel' and see what happens.
+>
+>enjoy,
+>
+>-jeremy
+
+Something much better! Thanks for the pointer.
+-- 
+- Stephen Bannasch
+  Concord Consortium, http://www.concord.org
+
+
+From s... at infonet.ca  Thu Mar 29 06:08:25 2007
+From: s... at infonet.ca (Gilles J. Seguin)
+Date: Thu, 29 Mar 2007 02:08:25 -0400
+Subject: [ragel-users] Packaging ragel for Fedora Extras
+In-Reply-To: <20070324002635.GB3475@hinegardner.org>
+References: <20070324002635.GB3475@hinegardner.org>
+Message-ID: <1175148506.2979.36.camel@seggil.infonet.ca>
+
+On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> Hi all,
+> 
+> I'm packaging up ragel for inclusion in Fedora Extras
+
+thanks a lot
+
+> and I came across a parallel make dependency bug.  It seems
+> the dependency graph as it
+> currently stands can start building some of the command line
+> applications before the common and redfsm libraries are complete. The
+> attached patch should fix it.  
+
+interesting, problem was not showing up here, from log
+
++ make -j2
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+ar -cr common.a common.o 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+ar -cr redfsm.a redfsm.o gendata.o xmltags.o xmlscan.o xmlparse.o 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+g++  -o ragel main.o parsetree.o parsedata.o fsmstate.o fsmbase.o
+fsmattach.o fsmmin.o fsmgraph.o fsmap.o xmlcodegen.o rlscan.o
+rlparse.o ../common/common.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+g++  -o rlgen-ruby main.o
+rubycodegen.o ../common/common.a ../redfsm/redfsm.a 
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+g++  -o rlgen-dot main.o
+gvdotgen.o ../common/common.a ../redfsm/redfsm.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+g++  -o rlgen-cd main.o fsmcodegen.o tabcodegen.o ftabcodegen.o
+flatcodegen.o fflatcodegen.o gotocodegen.o fgotocodegen.o
+ipgotocodegen.o splitcodegen.o ../common/common.a ../redfsm/redfsm.a
+make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+
+> I've also made a patch for the ragel(1) man page. It was referencing
+> rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> ragel created ruby code.  It is also attached.
+> 
+> I personally haven't used ragel for any of my projects, just seen it via
+> other projects and noticed it hadn't been built for Fedora yet, so i
+> thought I would do that.
+
+a spec file was on previous release, should have release my spec earlier
+but my spec file was not able to produce the debuginfo rpm package
+though everything else was working fine
+i got
++ /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+finish stripping
+0 blocks
+
+that last line means that the cpio utility has empty source from the
+stripping.
+And more crazy if i run the script manually, it work !!
+
+i will try your source rpm and will comment
+
+
+
+From s... at infonet.ca  Thu Mar 29 11:19:22 2007
+From: s... at infonet.ca (Gilles J. Seguin)
+Date: Thu, 29 Mar 2007 07:19:22 -0400
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <1175148506.2979.36.camel@seggil.infonet.ca>
+References: <20070324002635.GB3475@hinegardner.org>
+	 <1175148506.2979.36.camel@seggil.infonet.ca>
+Message-ID: <1175167162.25724.12.camel@seggil.infonet.ca>
+
+On Thu, 2007-03-29 at 02:08 -0400, Gilles J. Seguin wrote:
+> On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> > Hi all,
+> > 
+> > I'm packaging up ragel for inclusion in Fedora Extras
+> 
+> thanks a lot
+> 
+> > and I came across a parallel make dependency bug.  It seems
+> > the dependency graph as it
+> > currently stands can start building some of the command line
+> > applications before the common and redfsm libraries are complete. The
+> > attached patch should fix it.  
+> 
+> interesting, problem was not showing up here, from log
+> 
+> + make -j2
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+
+this build is put on hold because prerequisite is not meet,
+that is common.a
+
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> ar -cr common.a common.o
+
+now prerequisite is done
+starting parallel build
+
+that is, if common and redfsm are the directory in subdir macro
+the parallel build start sooner
+
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+> ar -cr redfsm.a redfsm.o gendata.o xmltags.o xmlscan.o xmlparse.o 
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/redfsm'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+> g++  -o ragel main.o parsetree.o parsedata.o fsmstate.o fsmbase.o
+> fsmattach.o fsmmin.o fsmgraph.o fsmap.o xmlcodegen.o rlscan.o
+> rlparse.o ../common/common.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-java'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+> g++  -o rlgen-ruby main.o
+> rubycodegen.o ../common/common.a ../redfsm/redfsm.a 
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-ruby'
+> make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+> g++  -o rlgen-dot main.o
+> gvdotgen.o ../common/common.a ../redfsm/redfsm.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-dot'
+> g++  -o rlgen-cd main.o fsmcodegen.o tabcodegen.o ftabcodegen.o
+> flatcodegen.o fflatcodegen.o gotocodegen.o fgotocodegen.o
+> ipgotocodegen.o splitcodegen.o ../common/common.a ../redfsm/redfsm.a
+> make[1]: Leaving directory `/h1/rpmbuild/BUILD/ragel-5.19/rlgen-cd'
+> 
+> > I've also made a patch for the ragel(1) man page. It was referencing
+> > rlcodegen(1) which doesn't appear to exist anymore, and didn't mention
+> > ragel created ruby code.  It is also attached.
+> > 
+> > I personally haven't used ragel for any of my projects, just seen it via
+> > other projects and noticed it hadn't been built for Fedora yet, so i
+> > thought I would do that.
+> 
+> a spec file was on previous release, should have release my spec earlier
+> but my spec file was not able to produce the debuginfo rpm package
+> though everything else was working fine
+> i got
+> + /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+> finish stripping
+> 0 blocks
+
+i am in shock, option -s for install utility.
+I have wasted lot of time.
+
+> that last line means that the cpio utility has empty source from the
+> stripping.
+> And more crazy if i run the script manually, it work !!
+
+do you have a patch to allow short-circuit for rpm install :-)
+sure it was working, I was by passing the install -s
+doing it manually
+
+
+
+From jer... at hinegardner.org  Thu Mar 29 16:11:10 2007
+From: jer... at hinegardner.org (Jeremy Hinegardner)
+Date: Thu, 29 Mar 2007 10:11:10 -0600
+Subject: [ragel-users] Re: Packaging ragel for Fedora Extras
+In-Reply-To: <1175167162.25724.12.camel@seggil.infonet.ca>
+References: <20070324002635.GB3475@hinegardner.org> <1175148506.2979.36.camel@seggil.infonet.ca> <1175167162.25724.12.camel@seggil.infonet.ca>
+Message-ID: <20070329161110.GA8198@hinegardner.org>
+
+On Thu, Mar 29, 2007 at 07:19:22AM -0400, Gilles J. Seguin wrote:
+> 
+> On Thu, 2007-03-29 at 02:08 -0400, Gilles J. Seguin wrote:
+> > On Fri, 2007-03-23 at 18:26 -0600, Jeremy Hinegardner wrote:
+> > > Hi all,
+> > > 
+> > > I'm packaging up ragel for inclusion in Fedora Extras
+> > 
+> > thanks a lot
+> > 
+> > > and I came across a parallel make dependency bug.  It seems
+> > > the dependency graph as it
+> > > currently stands can start building some of the command line
+> > > applications before the common and redfsm libraries are complete. The
+> > > attached patch should fix it.  
+> > 
+> > interesting, problem was not showing up here, from log
+> > 
+> > + make -j2
+> > make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/ragel'
+> 
+> this build is put on hold because prerequisite is not meet,
+> that is common.a
+
+Fedora Extras builds runs with make -j3 normally, and that is when it
+turned up on my build box.  Hence the patch to reorder the dependencies
+so common and redfsm are required for the other builds.
+
+> > make[1]: Entering directory `/h1/rpmbuild/BUILD/ragel-5.19/common'
+> > ar -cr common.a common.o
+> 
+> now prerequisite is done
+> starting parallel build
+> 
+> that is, if common and redfsm are the directory in subdir macro
+> the parallel build start sooner
+
+[...]
+
+> > a spec file was on previous release, should have release my spec earlier
+> > but my spec file was not able to produce the debuginfo rpm package
+> > though everything else was working fine
+> > i got
+> > + /usr/lib/rpm/find-debuginfo.sh /h1/rpmbuild/BUILD/ragel-5.19
+> > finish stripping
+> > 0 blocks
+> 
+> i am in shock, option -s for install utility.
+> I have wasted lot of time.
+
+I have another patch in the Source RPM that removes that -s from the
+install command.  I didn't think it would be necessary propogate that
+upstream.
+
+With that in place rpmbuild -ba will create a non-empty debug-info rpm.
+
+> > that last line means that the cpio utility has empty source from the
+> > stripping.
+> > And more crazy if i run the script manually, it work !!
+> 
+> do you have a patch to allow short-circuit for rpm install :-)
+> sure it was working, I was by passing the install -s
+> doing it manually
+
+The patches I'm using are avaialble in the Fedora Extras source tree,
+browse them here:
+
+    http://cvs.fedora.redhat.com/viewcvs/devel/ragel/?root=extras
+
+The source RPM is here:
+
+    http://redhat.download.fedoraproject.org/pub/fedora/linux/extras/6/SRPMS/ragel-5.19-4.fc6.src.rpm
+
+enjoy,
+
+-jeremy
+
+-- 
+========================================================================
+ Jeremy Hinegardner                              jer... at hinegardner.org 
+
+

@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Parsing a template language
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20a%20template%20language&In-Reply-To=%3CAANLkTimtKeFEsPfVc7pgQ-qgS23uNw%3DX_s2Q%3DZ5meoDM%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001136.html">
+   <LINK REL="Next"  HREF="001138.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Parsing a template language</H1>
+    <B>Tobias Lütke</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Parsing%20a%20template%20language&In-Reply-To=%3CAANLkTimtKeFEsPfVc7pgQ-qgS23uNw%3DX_s2Q%3DZ5meoDM%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Parsing a template language">tobi at leetsoft.com
+       </A><BR>
+    <I>Tue Jul 27 01:15:47 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001136.html">[ragel-users] Greedy star operator
+</A></li>
+        <LI>Next message: <A HREF="001138.html">[ragel-users] Parsing a template language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1137">[ date ]</a>
+              <a href="thread.html#1137">[ thread ]</a>
+              <a href="subject.html#1137">[ subject ]</a>
+              <a href="author.html#1137">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've been working on a parser for simple template language. I'm using Ragel.
+
+The requirements are modest. I'm trying to find [[tags]] that can be
+embedded anywhere in the input string.
+
+I'm trying to parse a simple template language, something that can
+have tags such as {{foo}} embedded within HTML. I tried several
+approaches to parse this but had to resort to using a Ragel scanner
+and use the inefficient approach of only matching a single character
+as a &quot;catch all&quot;. I feel this is the wrong way to go about this. I'm
+essentially abusing the longest-match bias of the scanner to implement
+my default rule ( it can only be 1 char long, so it should always be
+the last resort ).
+
+%%{
+
+ machine parser;
+
+ action start      { tokstart = p; }
+ action on_tag      { results &lt;&lt; [:tag, data[tokstart..p]] }
+ action on_static  { results &lt;&lt; [:static, data[p..p]] }
+
+ tag  = ('[[' lower+ ']]') &gt;start @on_tag;
+
+ main := |*
+   tag;
+   any      =&gt; on_static;
+ *|;
+
+}%%
+
+( actions written in ruby, but should be easy to understand ).
+
+How would you go about writing a parser for such a simple language? Is
+Ragel maybe not the right tool? It seems you have to fight Ragel tooth
+and nails if the syntax is unpredictable such as this.
+
+
+Regards
+-- tobi
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001136.html">[ragel-users] Greedy star operator
+</A></li>
+	<LI>Next message: <A HREF="001138.html">[ragel-users] Parsing a template language
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1137">[ date ]</a>
+              <a href="thread.html#1137">[ thread ]</a>
+              <a href="subject.html#1137">[ subject ]</a>
+              <a href="author.html#1137">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

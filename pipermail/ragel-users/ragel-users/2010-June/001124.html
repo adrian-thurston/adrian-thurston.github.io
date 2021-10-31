@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] EOF and token termination
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3CAANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001123.html">
+   <LINK REL="Next"  HREF="001125.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] EOF and token termination</H1>
+    <B>Brian Maher</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20EOF%20and%20token%20termination&In-Reply-To=%3CAANLkTim5upljbpGqt8ReN2D6cTccmh57d6FsYiEub9JV%40mail.gmail.com%3E"
+       TITLE="[ragel-users] EOF and token termination">brimworks at gmail.com
+       </A><BR>
+    <I>Sun Jun 27 13:46:45 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001123.html">[ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+</A></li>
+        <LI>Next message: <A HREF="001125.html">[ragel-users] EOF and token termination
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1124">[ date ]</a>
+              <a href="thread.html#1124">[ thread ]</a>
+              <a href="subject.html#1124">[ subject ]</a>
+              <a href="author.html#1124">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Ragel Users,
+
+First, I just want to say that Ragel is an awesome tool, thank you
+Adrian for sharing this tool with the open source community!
+
+Recently I've been trying to write a grammar for which individual
+tokens may be pre-maturely terminated by EOF.  I came up with the
+following rather hacky solution below (emit the same action as though
+the token was &quot;recognized&quot;, then fbreak so that only one token is
+guaranteed to be &quot;seen&quot;).  The things that I don't like with this
+solution are that:
+
+  * I'm not keen on having to redundantly call the token's action in
+two places since a maintainer later on may forget to update one of the
+places where $eof(token_action) is done.
+
+  * te is not updated (although this isn't a big deal since I can just
+use p instead of relying on te, and if I really wanted to make a fuss
+about this I could always add $eof{te=p;}).
+
+One idea I had was to $eof{fgoto final;}, but that doesn't work since
+the &quot;final&quot; label is only defined within the context of state charts
+and can't be used as a &quot;normal label&quot;.
+
+--------------example.rl
+
+#include &lt;stdio.h&gt;
+
+%% machine t;
+%% write data;
+
+#define INPUT &quot;abcd&quot;
+
+int main() {
+   char *ts, *te;
+   int   cs, act, i;
+   char *input = INPUT;
+   char *p     = input;
+   char *pe    = input + (sizeof(INPUT) - 1);
+   char *eof   = pe;
+
+   fprintf(stderr, &quot;Input[&quot;);
+   fwrite(p, 1, pe-p, stderr);
+   fprintf(stderr, &quot;]\n&quot;);
+
+   %%{
+       write init;
+
+       action text {
+           fprintf(stderr, &quot;Text [%c]\n&quot;, *p);
+       }
+
+       action token {
+           fprintf(stderr, &quot;Token[&quot;);
+           fwrite(ts, 1, p-ts, stderr);
+           fprintf(stderr, &quot;]\n&quot;);
+       }
+
+       Token = &quot;abc&quot; &quot;def&quot; $eof(token) $eof{fbreak;};
+
+        main := |*
+           Token =&gt; token;
+           any   =&gt; text;
+       *|;
+       write exec;
+
+   }%%
+   fprintf(stderr, &quot;end\n&quot;);
+   return 0;
+}
+
+--------------/example.rl
+
+Thanks!
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001123.html">[ragel-users] Ragel grammars for HTML, CSS, and JavaScript
+</A></li>
+	<LI>Next message: <A HREF="001125.html">[ragel-users] EOF and token termination
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1124">[ date ]</a>
+              <a href="thread.html#1124">[ thread ]</a>
+              <a href="subject.html#1124">[ subject ]</a>
+              <a href="author.html#1124">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

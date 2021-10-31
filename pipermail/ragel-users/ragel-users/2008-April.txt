@@ -1,0 +1,3962 @@
+From Martin.Pir... at iaik.tugraz.at  Tue Apr  1 14:16:37 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 1 Apr 2008 07:16:37 -0700 (PDT)
+Subject: Splitting common definitions and actions implementation
+In-Reply-To: <47F1151F.40707@cs.queensu.ca>
+References: <47F0FC38.2000004@iaik.tugraz.at> <47F1151F.40707@cs.queensu.ca>
+Message-ID: <cbd12046-1b0e-42b5-b5ff-955bf16140e5@b5g2000pri.googlegroups.com>
+
+On Mar 31, 6:45 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Here's an example of this minus the state references in actions.
+> http://code.whytheluckystiff.net/hpricot/browser/trunk/ext/hpricot_scan
+>
+> The java and c .rl files define actions and then include the common.rl,
+> which contains all the machine definitions. You don't need to worry
+> about circular dependencies since references to states are resolved
+> after all the input (including all included files) is read in.
+
+Thanks, I got stuck yesterday and wondered whether it is possible
+at all because of the circular references or the error was mine.
+After studying above example I started again from scratch and I can
+reproduce a working example now :-)
+
+Thanks again,
+  Martin
+
+
+From ma... at nanorex.com  Fri Apr  4 14:42:48 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 04 Apr 2008 10:42:48 -0400
+Subject: Ragel lines listing inside GDB
+Message-ID: <47F63E68.1010502@nanorex.com>
+
+hi all,
+
+   I find I am not able to list the lines of my .rl file when stepping 
+through with GDB. Has anyone who has experienced this also found a solution?
+
+   I'm running ragel without the -L flag so the #line directives are 
+being generated.
+
+   One of the workarounds I've found is to use the -L flag and then set 
+breakpoints on the .cpp file. Since most of the debug is with the 
+non-ragel parts of the file this works most of the time but it is an 
+extra step to correlate the ragel file line with the .cpp file so I was 
+wondering if a direct means of listing lines in the .rl file is possible.
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:02:11 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:02:11 -0400
+Subject: [ragel-users] Ragel lines listing inside GDB
+In-Reply-To: <47F63E68.1010502@nanorex.com>
+References: <47F63E68.1010502@nanorex.com>
+Message-ID: <47F98EB3.8030006@cs.queensu.ca>
+
+I noticed the other day that some scanner actions are not prefixed with
+line information. I think there is just one part of the code where where
+I forgot to add it in. Can you send me output that is missing #line
+directives?
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> hi all,
+> 
+>    I find I am not able to list the lines of my .rl file when stepping 
+> through with GDB. Has anyone who has experienced this also found a solution?
+> 
+>    I'm running ragel without the -L flag so the #line directives are 
+> being generated.
+> 
+>    One of the workarounds I've found is to use the -L flag and then set 
+> breakpoints on the .cpp file. Since most of the debug is with the 
+> non-ragel parts of the file this works most of the time but it is an 
+> extra step to correlate the ragel file line with the .cpp file so I was 
+> wondering if a direct means of listing lines in the .rl file is possible.
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:14:28 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:14:28 -0400
+Subject: new include file searching
+Message-ID: <47F99194.8080902@cs.queensu.ca>
+
+Hi,
+
+The way ragel finds files that are included and imported has changed.
+Previously ragel searched for the target from the point of invocation
+(it just did fopen on the file name given). Now Ragel searches from the
+location of the current file. Additional search locations can be given
+using -I option.
+
+Cheers,
+ Adrian
+
+
+From graceindustr... at gmail.com  Wed Apr  9 15:28:02 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 11:28:02 -0400
+Subject: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+Message-ID: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+
+I  assume I have something wrong in my Ragel source file,
+but no idea where to look from this error message.
+
+Can anyone shed any light on what this error message means?:
+
+ if ( p == eof )
+               ^
+BootLoaderStateChart.cpp(713) : Error: need explicit cast to convert
+from: int (*C func)(int ) to  : char const *
+--- errorlevel 1
+1 error, 0 warnings
+
+[p or eof are pointers to functions??  I did not declare eof, was not using
+it.]
+
+If I leave out "%% write exec;" I don't get the error.
+The line number of cpp(713) seems to be completely bogus.
+My Ragel file is not that long, and line 713 of .cpp
+isn't anywhere near the offending "p == eof".
+
+My Code:
+
+int BootLoaderStateChart::Execute( const uint8_t *data )
+{
+  const char *p  = (const char *) data;
+  const char *pe = p+1;
+
+  if( (cs == BootLoaderStateChart_error) ||
+      (cs == BootLoaderStateChart_first_final)
+    )
+    {
+      return -1; /* Error */
+    }
+
+  %% write exec;
+
+    if ( cs == BootLoaderStateChart_error )
+     {
+      return -1; /* Error */
+     }
+
+    if( cs >= BootLoaderStateChart_first_final )
+     {
+      return 1; /* Matched */
+     }
+    return 0; /* No Match */
+}
+
+Ragels Code:
+
+#line 479 "BootLoaderStateChart.rl"
+ {EEPROMFileSize_u16 = 4096;}
+ break;
+#line 708 "BootLoaderStateChart.cpp"
+  }
+ }
+
+_again:
+ if ( cs == 0 )
+  goto _out;
+ if ( ++p != pe )
+  goto _resume;
+ _test_eof: {}
+ if ( p == eof )
+ {
+ const char *__acts = _BootLoaderStateChart_actions +
+_BootLoaderStateChart_eof_actions[cs];
+ unsigned int __nacts = (unsigned int) *__acts++;
+ while ( __nacts-- > 0 ) {
+  switch ( *__acts++ ) {
+ case 1:
+#line 193 "BootLoaderStateChart.rl"
+ {
+  }
+ break;
+ case 10:
+#line 363 "BootLoaderStateChart.rl"
+ {
+  }
+ break;
+
+
+
+Digital Mars Compiler command when building the above:
+dmc.exe -c -oDMCDebug\BootLoaderStateChart.obj -D__WXMSW__
+-D__WXDEBUG__ -g -o+none -mn -Ar -Ae -HP299 -w-
+-I"G:\wx287/include" -I"G:\wx287/contrib/include"
+-I"G:\wx287/lib/dmc_lib/mswd" -I" \DM\STLPORT\STLPORT"
+BootLoaderStateChart.cpp
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080409/e8e2816c/attachment.html>
+
+From thurs... at cs.queensu.ca  Wed Apr  9 17:26:43 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 09 Apr 2008 13:26:43 -0400
+Subject: [ragel-users] Error: need explicit cast to convert from: int
+ (*C func)(int ) to : char const *
+In-Reply-To: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+References: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+Message-ID: <47FCFC53.7080008@cs.queensu.ca>
+
+Do you have
+
+using std::eof;
+
+or something similar in your program? The compiler seems to be resolving
+"eof" to something other than the char* that is needed in 6.X. You
+should just be able to add:
+
+const char *eof = 0;
+
+after the declaration of pe and make the error go away.
+
+-Adrian
+
+Bob Paddock wrote:
+>  
+> I  assume I have something wrong in my Ragel source file,
+> but no idea where to look from this error message.
+> 
+> Can anyone shed any light on what this error message means?:
+> 
+>  if ( p == eof )
+>                ^
+> BootLoaderStateChart.cpp(713) : Error: need explicit cast to convert
+> from: int (*C func)(int ) to  : char const *
+> --- errorlevel 1
+> 1 error, 0 warnings
+> 
+> [p or eof are pointers to functions??  I did not declare eof, was not
+> using it.]
+> 
+> If I leave out "%% write exec;" I don't get the error.
+> 
+> The line number of cpp(713) seems to be completely bogus.
+> My Ragel file is not that long, and line 713 of .cpp
+> isn't anywhere near the offending "p == eof".
+>  
+> My Code:
+> 
+> int BootLoaderStateChart::Execute( const uint8_t *data )
+> {
+>   const char *p  = (const char *) data;
+>   const char *pe = p+1;
+> 
+>   if( (cs == BootLoaderStateChart_error) ||
+>       (cs == BootLoaderStateChart_first_final)
+>     )
+>     {
+>       return -1; /* Error */
+>     }
+> 
+>   %% write exec;
+> 
+>     if ( cs == BootLoaderStateChart_error )
+>      {
+>       return -1; /* Error */
+>      }
+> 
+>     if( cs >= BootLoaderStateChart_first_final )
+>      {
+>       return 1; /* Matched */
+>      }
+> 
+>     return 0; /* No Match */
+> }
+>  
+> Ragels Code:
+> 
+> #line 479 "BootLoaderStateChart.rl"
+>  {EEPROMFileSize_u16 = 4096;}
+>  break;
+> #line 708 "BootLoaderStateChart.cpp"
+>   }
+>  }
+> 
+> _again:
+>  if ( cs == 0 )
+>   goto _out;
+>  if ( ++p != pe )
+>   goto _resume;
+>  _test_eof: {}
+>  if ( p == eof )
+>  {
+>  const char *__acts = _BootLoaderStateChart_actions +
+> _BootLoaderStateChart_eof_actions[cs];
+>  unsigned int __nacts = (unsigned int) *__acts++;
+>  while ( __nacts-- > 0 ) {
+>   switch ( *__acts++ ) {
+>  case 1:
+> #line 193 "BootLoaderStateChart.rl"
+>  {
+>   }
+>  break;
+>  case 10:
+> #line 363 "BootLoaderStateChart.rl"
+>  {
+>   }
+>  break;
+> 
+>  
+> 
+> Digital Mars Compiler command when building the above:
+> dmc.exe -c -oDMCDebug\BootLoaderStateChart.obj -D__WXMSW__
+> -D__WXDEBUG__ -g -o+none -mn -Ar -Ae -HP299 -w-
+> -I"G:\wx287/include" -I"G:\wx287/contrib/include"
+> -I"G:\wx287/lib/dmc_lib/mswd" -I" \DM\STLPORT\STLPORT"
+> BootLoaderStateChart.cpp
+> 
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Wed Apr  9 18:10:25 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 14:10:25 -0400
+Subject: [ragel-users] Re: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+In-Reply-To: <47FCFC53.7080...@cs.queensu.ca>
+References: <a3aee9a50804090828m31c46f5dy9db6490012978...@mail.gmail.com>
+	 <47FCFC53.7080...@cs.queensu.ca>
+Message-ID: <a3aee9a50804091110l18a4ac2bj6257c10171900db7@mail.gmail.com>
+
+On 4/9/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Do you have
+>
+> using std::eof;
+>
+> or something similar in your program?
+
+
+No.
+
+
+> You should just be able to add:
+>
+> const char *eof = 0;
+>
+> after the declaration of pe and make the error go away.
+
+
+
+It did, thank you.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080409/5c645c5f/attachment.html>
+
+From rak... at gmail.com  Thu Apr 10 17:22:40 2008
+From: rak... at gmail.com (rakrok)
+Date: Thu, 10 Apr 2008 10:22:40 -0700 (PDT)
+Subject: Matching multibyte or wide-chars
+Message-ID: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+
+Hello,
+
+I'm trying to tokenize multibyte strings.  In C-land, I would read in
+a mb char, convert it to widechar, and then I can use the widechar to
+test if it's iswalnum, iswalpha, and then tokenize it appropriately.
+
+In Ragel there is no mb/wc correspondence to the alnum/alpha character
+classes as far as I can tell.  It would have been nice to be able to
+define it like so:
+walpha = /./ when { iswalpha(towide(p)); };
+
+With towide() being a wrapper around mbrtowc.  Unfortunately semantic
+conditions aren't supported for the unsigned long alphtype.
+
+So my question is, is there an [easy] way to do this?  Ideally it
+would be nice to be able to define the acceptance criteria of a
+machine to be the same as that of a code block.  In that way, I can
+use the built-in widechar support in the C runtime, or use ICU, or
+whatnot.
+
+I can always try to explicitly list the mb/wc i'm interested in, but
+that means having to implement locale specific code, which sounds
+complex to me.
+
+Any ideas would be greatly appreciated,
+
+
+From thurs... at cs.queensu.ca  Fri Apr 11 18:32:39 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 Apr 2008 14:32:39 -0400
+Subject: [ragel-users] Matching multibyte or wide-chars
+In-Reply-To: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+Message-ID: <47FFAEC7.7080809@cs.queensu.ca>
+
+
+
+rakrok wrote:
+> I can always try to explicitly list the mb/wc i'm interested in, but
+> that means having to implement locale specific code, which sounds
+> complex to me.
+
+Sorry that's the only option at this time. Perhaps someone has already
+defined character classes that they're willing to share.
+
+-Adrian
+
+
+From rak... at gmail.com  Fri Apr 11 18:40:11 2008
+From: rak... at gmail.com (Rak Rok)
+Date: Fri, 11 Apr 2008 14:40:11 -0400
+Subject: [ragel-users] Re: Matching multibyte or wide-chars
+In-Reply-To: <47FFAEC7.7080...@cs.queensu.ca>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3...@k13g2000hse.googlegroups.com>
+	 <47FFAEC7.7080...@cs.queensu.ca>
+Message-ID: <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+
+>  Sorry that's the only option at this time. Perhaps someone has already
+>  defined character classes that they're willing to share.
+
+I've been poring through the iswalpha code in glibc and it doesn't
+seem like it will be too difficult to define the character classes.
+It boils down to a bunch of rather large table lookups.  I'm looking
+into building it for Ragel.  Will be happy to share the code with you
+guys if you're interested in adding it to the set of defined character
+classes.  I'm thinking of calling them wdigit, walpha, walnum, etc.
+Is this something you'd be interested in having?
+
+-rr-
+
+
+From thurs... at cs.queensu.ca  Fri Apr 11 20:23:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 Apr 2008 16:23:08 -0400
+Subject: [ragel-users] Re: Matching multibyte or wide-chars
+In-Reply-To: <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com> <47FFAEC7.7080809@cs.queensu.ca> <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+Message-ID: <47FFC8AC.3060302@cs.queensu.ca>
+
+I think it would be great to distribute these ragel definitions with
+ragel as a library. Maybe as wchar/<locale>-def.rl or something.
+
+-Adrian
+
+Rak Rok wrote:
+>>  Sorry that's the only option at this time. Perhaps someone has already
+>>  defined character classes that they're willing to share.
+> 
+> I've been poring through the iswalpha code in glibc and it doesn't
+> seem like it will be too difficult to define the character classes.
+> It boils down to a bunch of rather large table lookups.  I'm looking
+> into building it for Ragel.  Will be happy to share the code with you
+> guys if you're interested in adding it to the set of defined character
+> classes.  I'm thinking of calling them wdigit, walpha, walnum, etc.
+> Is this something you'd be interested in having?
+> 
+> -rr-
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Sat Apr 12 17:10:40 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 12 Apr 2008 13:10:40 -0400
+Subject: [ragel-users] fnext followed by fbreak
+In-Reply-To: <47ED6601.50101@gmail.com>
+References: <47ED6601.50101@gmail.com>
+Message-ID: <4800ED10.7040905@cs.queensu.ca>
+
+Hi Andrei,
+
+This has been fixed in trunk.
+
+-Adrian
+
+Andrei Polushin wrote:
+> The action like this:
+> 
+>      action x {
+>          fnext somewhere_else;
+>          fbreak;
+>      };
+> 
+> become generated as follows:
+> 
+>      action x {
+>          cs = 123;                   // fnext somewhere_else;
+>          {p++; cs = 456; goto _out;} // fbreak;
+>      };
+> 
+> where '123' is the desired next state (aka somewhere_else),
+> and '456' is the default target state for the transition.
+> 
+> That is, the effect of fnext is neglected, when followed by fbreak.
+> 
+> For now, the workaround is to redeclare 'cs' in local block:
+> 
+>      action x {
+>          fnext somewhere_else;
+>          {int cs = -1; fbreak;}
+>      };
+> 
+> but I hope there should be a better solution for this.
+> 
+> For actions that involve both fnext and fbreak, I would suggest
+> generating {cs = ...} in the beginning of the action, and omit
+> that assignnment in the code generated by fbreak.
+> 
+> --
+> Andrei Polushin
+> 
+> 
+> > 
+> 
+
+
+From polus... at gmail.com  Sat Apr 12 22:25:02 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Sun, 13 Apr 2008 05:25:02 +0700
+Subject: fnext followed by fbreak
+In-Reply-To: <4800ED10.7040...@cs.queensu.ca>
+References: <47ED6601.50...@gmail.com> <4800ED10.7040...@cs.queensu.ca>
+Message-ID: <480136BE.6040...@gmail.com>
+
+Adrian Thurston wrote:
+> This has been fixed in trunk.
+
+OK, thank you for that. But it still doesn't work for the scanner actions.
+
+I've  wrote a test program to clarify that, it's attached.
+
+
+> Andrei Polushin wrote:
+>> The action like this:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          fbreak;
+>>      };
+>>
+>> become generated as follows:
+>>
+>>      action x {
+>>          cs = 123;                   // fnext somewhere_else;
+>>          {p++; cs = 456; goto _out;} // fbreak;
+>>      };
+>>
+>> where '123' is the desired next state (aka somewhere_else),
+>> and '456' is the default target state for the transition.
+>>
+>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>
+>> For now, the workaround is to redeclare 'cs' in local block:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          {int cs = -1; fbreak;}
+>>      };
+>>
+>> but I hope there should be a better solution for this.
+>>
+>> For actions that involve both fnext and fbreak, I would suggest
+>> generating {cs = ...} in the beginning of the action, and omit
+>> that assignnment in the code generated by fbreak.
+
+-- 
+Andrei Polushin
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: fnext.cpp.rl
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080413/f524a342/attachment.ksh>
+
+From thurs... at cs.queensu.ca  Sat Apr 12 23:53:50 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Sat, 12 Apr 2008 23:53:50 +0000
+Subject: [ragel-users] Re: fnext followed by fbreak
+In-Reply-To: <480136BE.6040000@gmail.com>
+References: <47ED6601.50101@gmail.com> <4800ED10.7040905@cs.queensu.ca><480136BE.6040000@gmail.com>
+Message-ID: <1120047512-1208044431-cardhu_decombobulator_blackberry.rim.net-1497766577-@bxe150.bisx.prod.on.blackberry>
+
+Oops, I forgot to cover that case. I'll fix that tomorrow.
+
+-Adrian
+-----Original Message-----
+From: Andrei Polushin <polushin at gmail.com>
+
+Date: Sun, 13 Apr 2008 05:25:02 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: fnext followed by fbreak
+
+
+Adrian Thurston wrote:
+> This has been fixed in trunk.
+
+OK, thank you for that. But it still doesn't work for the scanner actions.
+
+I've  wrote a test program to clarify that, it's attached.
+
+
+> Andrei Polushin wrote:
+>> The action like this:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          fbreak;
+>>      };
+>>
+>> become generated as follows:
+>>
+>>      action x {
+>>          cs = 123;                   // fnext somewhere_else;
+>>          {p++; cs = 456; goto _out;} // fbreak;
+>>      };
+>>
+>> where '123' is the desired next state (aka somewhere_else),
+>> and '456' is the default target state for the transition.
+>>
+>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>
+>> For now, the workaround is to redeclare 'cs' in local block:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          {int cs = -1; fbreak;}
+>>      };
+>>
+>> but I hope there should be a better solution for this.
+>>
+>> For actions that involve both fnext and fbreak, I would suggest
+>> generating {cs = ...} in the beginning of the action, and omit
+>> that assignnment in the code generated by fbreak.
+
+-- 
+Andrei Polushin
+
+
+
+
+From thurs... at cs.queensu.ca  Sun Apr 13 22:04:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 13 Apr 2008 18:04:08 -0400
+Subject: [ragel-users] Re: fnext followed by fbreak
+In-Reply-To: <480136BE.6040000@gmail.com>
+References: <47ED6601.50101@gmail.com> <4800ED10.7040905@cs.queensu.ca> <480136BE.6040000@gmail.com>
+Message-ID: <48028358.1020409@cs.queensu.ca>
+
+Should now work in scanner actions too.
+
+-Adrian
+
+Andrei Polushin wrote:
+> Adrian Thurston wrote:
+>> This has been fixed in trunk.
+> 
+> OK, thank you for that. But it still doesn't work for the scanner actions.
+> 
+> I've  wrote a test program to clarify that, it's attached.
+> 
+> 
+>> Andrei Polushin wrote:
+>>> The action like this:
+>>>
+>>>      action x {
+>>>          fnext somewhere_else;
+>>>          fbreak;
+>>>      };
+>>>
+>>> become generated as follows:
+>>>
+>>>      action x {
+>>>          cs = 123;                   // fnext somewhere_else;
+>>>          {p++; cs = 456; goto _out;} // fbreak;
+>>>      };
+>>>
+>>> where '123' is the desired next state (aka somewhere_else),
+>>> and '456' is the default target state for the transition.
+>>>
+>>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>>
+>>> For now, the workaround is to redeclare 'cs' in local block:
+>>>
+>>>      action x {
+>>>          fnext somewhere_else;
+>>>          {int cs = -1; fbreak;}
+>>>      };
+>>>
+>>> but I hope there should be a better solution for this.
+>>>
+>>> For actions that involve both fnext and fbreak, I would suggest
+>>> generating {cs = ...} in the beginning of the action, and omit
+>>> that assignnment in the code generated by fbreak.
+> 
+
+
+From polus... at gmail.com  Tue Apr 15 06:47:48 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Tue, 15 Apr 2008 13:47:48 +0700
+Subject: fnext followed by fbreak
+In-Reply-To: <48028358.1020...@cs.queensu.ca>
+References: <47ED6601.50...@gmail.com> <4800ED10.7040...@cs.queensu.ca> <480136BE.6040...@gmail.com> <48028358.1020...@cs.queensu.ca>
+Message-ID: <48044F94.4080...@gmail.com>
+
+Adrian Thurston wrote:
+> Should now work in scanner actions too.
+
+I can confirm that it really works as expected.
+
+Thank you very much indeed.
+
+
+> Andrei Polushin wrote:
+>> Adrian Thurston wrote:
+>>> This has been fixed in trunk.
+>> OK, thank you for that. But it still doesn't work for the scanner actions.
+>>
+>> I've  wrote a test program to clarify that, it's attached.
+>>
+>>
+>>> Andrei Polushin wrote:
+>>>> The action like this:
+>>>>
+>>>>      action x {
+>>>>          fnext somewhere_else;
+>>>>          fbreak;
+>>>>      };
+>>>>
+>>>> become generated as follows:
+>>>>
+>>>>      action x {
+>>>>          cs = 123;                   // fnext somewhere_else;
+>>>>          {p++; cs = 456; goto _out;} // fbreak;
+>>>>      };
+>>>>
+>>>> where '123' is the desired next state (aka somewhere_else),
+>>>> and '456' is the default target state for the transition.
+>>>>
+>>>> That is, the effect of fnext is neglected, when followed by fbreak.
+
+-- 
+Andrei Polushin
+
+
+From dbalm... at gmail.com  Sat Apr 19 09:34:28 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Sat, 19 Apr 2008 02:34:28 -0700 (PDT)
+Subject: Possible bug in scanner
+Message-ID: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+
+Hey folks,
+
+I think I may have found a bug in the scanner. Not sure if this is the
+best place to post bug reports but I couldn't find anywhere else on
+the website.
+
+Here's my machine definition. I've simplified it as much as possible;
+
+%%{
+    machine Word;
+
+    main := |*
+        'a' {PUTS("a: ");};
+        [ab]+ . 'c' {PUTS("abc: ");};
+        any;
+    *|;
+}%%
+
+To run it, get the full code here;
+    http://pastie.caboo.se/183409
+
+Basically I'm running this with the string "ba a". What I'd expect to
+happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+and then the "any" rule would consume the 'b' then 'a' would match
+twice. Unfortunately, only the second 'a' matches.
+
+If I run this with the string "ba" I get a segfault which also seems
+to indicate a bug. Perhaps I'm just doing something wrong?
+
+Cheers,
+
+
+From thurs... at cs.queensu.ca  Sat Apr 19 16:36:38 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 19 Apr 2008 12:36:38 -0400
+Subject: [ragel-users] Possible bug in scanner
+In-Reply-To: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+Message-ID: <480A1F96.7080904@cs.queensu.ca>
+
+Hi David,
+
+I'm finding something wrong with the code generated using -T0 and -T1.
+The wrong eof actions are being executed. I haven't tracked it down
+completely but it seems to be related to the changes in 6.0. I'll fix it
+asap.
+
+Thanks,
+ Adrian
+
+David Balmain wrote:
+> Hey folks,
+> 
+> I think I may have found a bug in the scanner. Not sure if this is the
+> best place to post bug reports but I couldn't find anywhere else on
+> the website.
+> 
+> Here's my machine definition. I've simplified it as much as possible;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+>         any;
+>     *|;
+> }%%
+> 
+> To run it, get the full code here;
+>     http://pastie.caboo.se/183409
+> 
+> Basically I'm running this with the string "ba a". What I'd expect to
+> happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+> and then the "any" rule would consume the 'b' then 'a' would match
+> twice. Unfortunately, only the second 'a' matches.
+> 
+> If I run this with the string "ba" I get a segfault which also seems
+> to indicate a bug. Perhaps I'm just doing something wrong?
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Sun Apr 20 23:44:34 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 20 Apr 2008 19:44:34 -0400
+Subject: [ragel-users] Possible bug in scanner
+In-Reply-To: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+Message-ID: <480BD562.1020801@cs.queensu.ca>
+
+I just checked in a fix for this.
+
+This bug affects -T0 and -T1 for all target languages. The problem
+occurs when the last token of a scanner requires some backtracking to match.
+
+-Adrian
+
+David Balmain wrote:
+> Hey folks,
+> 
+> I think I may have found a bug in the scanner. Not sure if this is the
+> best place to post bug reports but I couldn't find anywhere else on
+> the website.
+> 
+> Here's my machine definition. I've simplified it as much as possible;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+>         any;
+>     *|;
+> }%%
+> 
+> To run it, get the full code here;
+>     http://pastie.caboo.se/183409
+> 
+> Basically I'm running this with the string "ba a". What I'd expect to
+> happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+> and then the "any" rule would consume the 'b' then 'a' would match
+> twice. Unfortunately, only the second 'a' matches.
+> 
+> If I run this with the string "ba" I get a segfault which also seems
+> to indicate a bug. Perhaps I'm just doing something wrong?
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From dbalm... at gmail.com  Mon Apr 21 08:35:09 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Mon, 21 Apr 2008 01:35:09 -0700 (PDT)
+Subject: Possible bug in scanner
+In-Reply-To: <480BD562.1020801@cs.queensu.ca>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com> 
+	<480BD562.1020801@cs.queensu.ca>
+Message-ID: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+
+On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I just checked in a fix for this.
+>
+> This bug affects -T0 and -T1 for all target languages. The problem
+> occurs when the last token of a scanner requires some backtracking to match.
+
+Hi Adrian,
+
+Thanks for getting on to this so quickly. Unfortunately it doesn't
+seem to have fixed a problem. I'm actually using -G2 as well as the
+default (-T0 I believe) and the error occurs in both cases. I've
+investigated this a little more and found a work around;
+
+%%{
+    machine Word;
+
+    main := |*
+        'a' {PUTS("a: ");};
+        [ab]+ . 'c' {PUTS("abc: ");};
+-        any;
++        any {};
+    *|;
+
+}%%
+
+Note the empty braces after 'any'. With them I get this for my
+"longest match"?? switch;
+
+            switch( act ) {//--
+                case 1:
+                    {{p = ((te))-1;}PUTS("a: ");}
+                    break;
+                case 3:
+                    {{p = ((te))-1;}}
+                    break;
+                default: break;
+            }
+
+Without the empty braces "case 3:" is missing;
+
+            switch( act ) {//--
+                case 1:
+                    {{p = ((te))-1;}PUTS("a: ");}
+                    break;
+                default: break;
+            }
+
+So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+particularly bad if we are at the end of a string as it will continue
+to scan after the null byte causing a segfault. I've tried to find
+were the problem is in the source so I could give you a patch but it
+is taking me a little while figure things out  and I thought you'd
+probably be able to fix this straight away. Let me know if there is
+anything else I can do to help.
+
+Cheers,
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 15:01:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 11:01:19 -0400
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>  <480BD562.1020801@cs.queensu.ca> <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+Message-ID: <480CAC3F.8000205@cs.queensu.ca>
+
+Yes that's the problem. There is supposed to be a case there to handle
+the shifting of p regardless of whether or not there is a user action.
+Expect a fix shortly.
+
+Cheers,
+ Adrian
+
+David Balmain wrote:
+> On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> I just checked in a fix for this.
+>>
+>> This bug affects -T0 and -T1 for all target languages. The problem
+>> occurs when the last token of a scanner requires some backtracking to match.
+> 
+> Hi Adrian,
+> 
+> Thanks for getting on to this so quickly. Unfortunately it doesn't
+> seem to have fixed a problem. I'm actually using -G2 as well as the
+> default (-T0 I believe) and the error occurs in both cases. I've
+> investigated this a little more and found a work around;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+> -        any;
+> +        any {};
+>     *|;
+> 
+> }%%
+> 
+> Note the empty braces after 'any'. With them I get this for my
+> "longest match"?? switch;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 case 3:
+>                     {{p = ((te))-1;}}
+>                     break;
+>                 default: break;
+>             }
+> 
+> Without the empty braces "case 3:" is missing;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 default: break;
+>             }
+> 
+> So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+> particularly bad if we are at the end of a string as it will continue
+> to scan after the null byte causing a segfault. I've tried to find
+> were the problem is in the source so I could give you a patch but it
+> is taking me a little while figure things out  and I thought you'd
+> probably be able to fix this straight away. Let me know if there is
+> anything else I can do to help.
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 17:55:45 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 13:55:45 -0400
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>  <480BD562.1020801@cs.queensu.ca> <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+Message-ID: <480CD521.1090603@cs.queensu.ca>
+
+Hi David, I just checked in a fix for this. Let me know if it doesn't
+work for you.
+
+Thanks,
+ Adrian
+
+David Balmain wrote:
+> On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> I just checked in a fix for this.
+>>
+>> This bug affects -T0 and -T1 for all target languages. The problem
+>> occurs when the last token of a scanner requires some backtracking to match.
+> 
+> Hi Adrian,
+> 
+> Thanks for getting on to this so quickly. Unfortunately it doesn't
+> seem to have fixed a problem. I'm actually using -G2 as well as the
+> default (-T0 I believe) and the error occurs in both cases. I've
+> investigated this a little more and found a work around;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+> -        any;
+> +        any {};
+>     *|;
+> 
+> }%%
+> 
+> Note the empty braces after 'any'. With them I get this for my
+> "longest match"?? switch;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 case 3:
+>                     {{p = ((te))-1;}}
+>                     break;
+>                 default: break;
+>             }
+> 
+> Without the empty braces "case 3:" is missing;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 default: break;
+>             }
+> 
+> So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+> particularly bad if we are at the end of a string as it will continue
+> to scan after the null byte causing a segfault. I've tried to find
+> were the problem is in the source so I could give you a patch but it
+> is taking me a little while figure things out  and I thought you'd
+> probably be able to fix this straight away. Let me know if there is
+> anything else I can do to help.
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From dbalm... at gmail.com  Mon Apr 21 22:03:43 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Tue, 22 Apr 2008 08:03:43 +1000
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <480CD521.1090...@cs.queensu.ca>
+References: <795ad37e-c754-4143-91c6-45610861d...@p25g2000pri.googlegroups.com>
+	 <480BD562.1020...@cs.queensu.ca>
+	 <684f774b-1f38-4b75-8e35-5c342522d...@f24g2000prh.googlegroups.com>
+	 <480CD521.1090...@cs.queensu.ca>
+Message-ID: <7145d5d30804211503ya232438kb29d80859e5b7c29@mail.gmail.com>
+
+On Tue, Apr 22, 2008 at 3:55 AM, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>  Hi David, I just checked in a fix for this. Let me know if it doesn't
+>  work for you.
+
+Awesome. Thanks Adrian. That did the trick.
+
+-- 
+David Balmain
+Home: +612 6260 8417
+Fax: +612 6260 8417
+Mobile: +614 0077 1395
+
+
+From Martin.Pir... at iaik.tugraz.at  Mon Apr 21 13:39:12 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Mon, 21 Apr 2008 06:39:12 -0700 (PDT)
+Subject: making fgoto a no-op
+Message-ID: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+
+Dear readers....
+
+I have
+
+%%{
+
+action check_data {
+  check_foo(......);
+  fgoto *cs;     # no-op if no error occured, else stop with error
+}
+
+}%%
+
+
+check_foo(.....) {
+  if (........) {
+    cs = machine_error;
+  }
+}
+
+
+Question:
+I can't check the data using the Ragel machine and don't
+want to place the code in the action{...} definition. So I call
+out to the language side, but still want to use the Ragel
+error state as feedback/abort, if errors do happen.
+
+What are (could be) the side effects of directly manipulating
+cs this way or is that approach ok?
+
+
+Thanks,
+Martin
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 14:50:56 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 10:50:56 -0400
+Subject: [ragel-users] making fgoto a no-op
+In-Reply-To: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+Message-ID: <480CA9D0.20605@cs.queensu.ca>
+
+Hi Martin,
+
+In the -G2 machine cs isn't always kept up to date inside the execution
+loop. You could init another variable using
+
+int targ_cs = ftargs;
+
+and then base the logic on that.
+
+-Adrian
+
+
+Martin Pirker wrote:
+> Dear readers....
+> 
+> I have
+> 
+> %%{
+> 
+> action check_data {
+>   check_foo(......);
+>   fgoto *cs;     # no-op if no error occured, else stop with error
+> }
+> 
+> }%%
+> 
+> 
+> check_foo(.....) {
+>   if (........) {
+>     cs = machine_error;
+>   }
+> }
+> 
+> 
+> Question:
+> I can't check the data using the Ragel machine and don't
+> want to place the code in the action{...} definition. So I call
+> out to the language side, but still want to use the Ragel
+> error state as feedback/abort, if errors do happen.
+> 
+> What are (could be) the side effects of directly manipulating
+> cs this way or is that approach ok?
+> 
+> 
+> Thanks,
+> Martin
+> 
+> > 
+> 
+
+
+From Martin.Pir... at iaik.tugraz.at  Tue Apr 22 12:19:39 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 22 Apr 2008 05:19:39 -0700 (PDT)
+Subject: making fgoto a no-op
+In-Reply-To: <480CA9D0.20605@cs.queensu.ca>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com> 
+	<480CA9D0.20605@cs.queensu.ca>
+Message-ID: <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+
+Hi...
+
+On Apr 21, 10:50 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> In the -G2 machine cs isn't always kept up to date inside the execution
+> loop.
+
+I guessed that my approach is not portable across all backends,
+thanks for confirming.
+
+> You could init another variable using
+> int targ_cs = ftargs;
+> and then base the logic on that.
+
+By expanding the logic in check_data action I can easily test for a
+return value and then fgoto to error if needed. Unfortunately, this
+would
+require duplication of this logic in every similar action in the .rl
+file,
+which I want to prevent (bloating, languages portability)
+
+Instead of the cs hack I could pass ftargs or fcurs as another
+parameter
+to the native language side, return the desired target as return value
+and
+then always fgoto.
+This approach does not work in case of something like:
+... ("whatever" %check_data)*  %something "newinput" ...
+In case of no error the fgoto omits %something and continues
+at newinput (=next state), thus the fgoto is never a real no-op.
+(As far as my experiments showed).
+
+
+I guess I have to sleep over this once more... :-)
+
+Martin
+
+
+From Martin.Pir... at iaik.tugraz.at  Tue Apr 22 13:44:19 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 22 Apr 2008 06:44:19 -0700 (PDT)
+Subject: making fgoto a no-op
+In-Reply-To: <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com> 
+	<480CA9D0.20605@cs.queensu.ca> <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+Message-ID: <4724b559-f00f-4380-9523-872c4f2cc472@c65g2000hsa.googlegroups.com>
+
+On Apr 22, 2:19 pm, Martin Pirker <Martin.Pir... at iaik.tugraz.at>
+wrote:
+> I guess I have to sleep over this once more... :-)
+
+The one line winner is:
+action check_data { if (check_foo(...)) { fgoto *machine_error; } }
+
+copy'n'paste'n'replace compliant ;-)
+
+Martin
+
+
+From ma... at nanorex.com  Wed Apr 23 20:04:25 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Wed, 23 Apr 2008 16:04:25 -0400
+Subject: Line numbering from included files
+Message-ID: <480F9649.3010405@nanorex.com>
+
+Hi Adrian,
+
+    If I include a bunch of ragel files into one master ragel file which 
+I then compile to .cpp the line numbering gets mixed up. All line 
+numbering info, whether with the #line directive or in the comments 
+generated when using the -L option refer to lines in the master Ragel 
+file. There is no reference to line numbers in the included files. So if 
+an error occurs at those locations, the line number information ends up 
+being misleading.
+
+   Can this be fixed in a future version?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Thu Apr 24 20:46:13 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 24 Apr 2008 16:46:13 -0400
+Subject: [ragel-users] Line numbering from included files
+In-Reply-To: <480F9649.3010405@nanorex.com>
+References: <480F9649.3010405@nanorex.com>
+Message-ID: <4810F195.3070501@cs.queensu.ca>
+
+Sure, I'll add that to the TODO list.
+
+Thanks,
+ Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>     If I include a bunch of ragel files into one master ragel file which 
+> I then compile to .cpp the line numbering gets mixed up. All line 
+> numbering info, whether with the #line directive or in the comments 
+> generated when using the -L option refer to lines in the master Ragel 
+> file. There is no reference to line numbers in the included files. So if 
+> an error occurs at those locations, the line number information ends up 
+> being misleading.
+> 
+>    Can this be fixed in a future version?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From graceindustr... at gmail.com  Thu Apr 24 15:21:10 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Thu, 24 Apr 2008 11:21:10 -0400
+Subject: How do I be "done" from within a State Chart action?
+Message-ID: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+
+I have a serial protocol where I call Execute() as each character
+comes in.
+
+At the end of my data transfer I know that I am done from within
+an action.  With the knowledge that the transfer is complete how
+do I get Execute() to return that the machine matched?
+
+There will be no more characters coming in to drive the machine.
+
+My attempts at using fbreak, which does nothing by staying in the
+current state (as it should I believe), or '' -> final which
+breaks the transfer protocol, have not worked.
+How do I be "done" from within a State Chart action?
+
+int StateChart::Execute( const uint8_t *data )
+{
+  const char *p  = (const char *) data;
+  const char *pe = p+1;
+  const char *eof = 0; // This fixes compiler bug for Ragel 6.1 with DMC
+8.5.x
+
+ wxLogVerbose( _("Execute[%02X]"), *data );
+
+  if( (cs == StateChart_error) ||
+      (cs == StateChart_first_final)
+    )
+    {
+      wxLogVerbose( _("-1 Error B4 write cs = [State{%d}]") , cs );
+      return -1; /* Error */
+    }
+
+  %% write exec;
+
+    if ( cs == StateChart_error )
+     {
+      wxLogVerbose( _("-1 Error after write cs = [State{%d}]") , cs );
+      return -1; /* Error */
+     }
+
+    if( cs >= StateChart_first_final )
+     {
+      wxLogVerbose( _("!*Matched*! cs = [State{%d}]") , cs );
+      return 1; /* Matched */
+     }
+
+    wxLogVerbose( _("No Matched cs = [State{%d}]") , cs );
+    return 0; /* No Match */
+}
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080424/93b6b5a7/attachment.html>
+
+From thurs... at cs.queensu.ca  Thu Apr 24 20:52:09 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 24 Apr 2008 16:52:09 -0400
+Subject: [ragel-users] How do I be "done" from within a State Chart action?
+In-Reply-To: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+References: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+Message-ID: <4810F2F9.1070709@cs.queensu.ca>
+
+Hi Bob,
+
+You could use fgoto done; with
+
+done := "";
+
+Bob Paddock wrote:
+> My attempts at using fbreak, which does nothing by staying in the
+> current state (as it should I believe), or '' -> final which
+> breaks the transfer protocol, have not worked.
+
+fbreak should leave you in the target state.
+
+-Adrian
+
+
+From graceindustr... at gmail.com  Fri Apr 25 16:59:52 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 25 Apr 2008 12:59:52 -0400
+Subject: [ragel-users] Re: How do I be "done" from within a State Chart action?
+In-Reply-To: <4810F2F9.1070...@cs.queensu.ca>
+References: <a3aee9a50804240821x2aa38060v25394ba8daa43...@mail.gmail.com>
+	 <4810F2F9.1070...@cs.queensu.ca>
+Message-ID: <a3aee9a50804250959o2282d1d6x3b31d1a71bdecbcb@mail.gmail.com>
+
+That worked, thank you.
+
+
+On 4/24/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Hi Bob,
+>
+> You could use fgoto done; with
+>
+> done := "";
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080425/b279a6f9/attachment.html>
+
+From graceindustr... at gmail.com  Wed Apr  9 18:22:14 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 14:22:14 -0400
+Subject: State Chart Finishing Actions?
+Message-ID: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+
+<ragel-users at googlegroups.com>
+
+I have the following State Chart snippet:
+
+FlashPageSize: (
+                '>' @start_signal_received -> UnitID             |
+
+                    'Q' @{FlashPageSize_u16 =  32;} -> EEPROMSize    |
+                    'R' @{FlashPageSize_u16 =  64;} -> EEPROMSize    |
+                    'S' @{FlashPageSize_u16 = 128;} -> EEPROMSize    |
+                    'T' @{FlashPageSize_u16 = 256;} -> EEPROMSize    |
+                    'U' @{FlashPageSize_u16 = 512;} -> EEPROMSize
+               ),
+
+EEPROMSize: (
+             '>' @start_signal_received -> UnitID            |
+
+                 '.' @{EEPROMFileSize_u16 =   64;} -> BaudSwitch     |
+                 '/' @{EEPROMFileSize_u16 =  128;} -> BaudSwitch     |
+                 '0' @{EEPROMFileSize_u16 =  256;} -> BaudSwitch     |
+                 '1' @{EEPROMFileSize_u16 =  512;} -> BaudSwitch     |
+                 '2' @{EEPROMFileSize_u16 = 1024;} -> BaudSwitch     |
+                 '3' @{EEPROMFileSize_u16 = 2048;} -> BaudSwitch     |
+                 '4' @{EEPROMFileSize_u16 = 4096;} -> BaudSwitch     |
+
+                 '!' @FlashPageRequest        -> PageRequest # Page request
+here indicates we have no EEPROM
+             ),
+How do I call a function (@Finishing Action?) for for all
+transitions leaving EEPROMSize?  I don't know the syntax for
+doing that in conjunction with a State Chart.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080409/1f1fbb14/attachment.html>
+
+From thurs... at cs.queensu.ca  Wed Apr  9 20:55:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 09 Apr 2008 16:55:23 -0400
+Subject: [ragel-users] State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+Message-ID: <47FD2D3B.6060405@cs.queensu.ca>
+
+On the very last line of the example you provided you could change
+
+),
+
+to
+
+) @A,
+
+Cheers,
+ Adrian
+
+Bob Paddock wrote:
+> <mailto:ragel-users at googlegroups.com> 
+> 
+> I have the following State Chart snippet:
+> 
+> FlashPageSize: (
+>                 '>' @start_signal_received -> UnitID             |
+> 
+>                     'Q' @{FlashPageSize_u16 =  32;} -> EEPROMSize    |
+>                     'R' @{FlashPageSize_u16 =  64;} -> EEPROMSize    |
+>                     'S' @{FlashPageSize_u16 = 128;} -> EEPROMSize    |
+>                     'T' @{FlashPageSize_u16 = 256;} -> EEPROMSize    |
+>                     'U' @{FlashPageSize_u16 = 512;} -> EEPROMSize
+>                ),
+> 
+> EEPROMSize: (
+>              '>' @start_signal_received -> UnitID            |
+> 
+>                  '.' @{EEPROMFileSize_u16 =   64;} -> BaudSwitch     |
+>                  '/' @{EEPROMFileSize_u16 =  128;} -> BaudSwitch     |
+>                  '0' @{EEPROMFileSize_u16 =  256;} -> BaudSwitch     |
+>                  '1' @{EEPROMFileSize_u16 =  512;} -> BaudSwitch     |
+>                  '2' @{EEPROMFileSize_u16 = 1024;} -> BaudSwitch     |
+>                  '3' @{EEPROMFileSize_u16 = 2048;} -> BaudSwitch     |
+>                  '4' @{EEPROMFileSize_u16 = 4096;} -> BaudSwitch     |
+> 
+>                  '!' @FlashPageRequest        -> PageRequest # Page
+> request here indicates we have no EEPROM
+>              ),
+> 
+> How do I call a function (@Finishing Action?) for for all
+> transitions leaving EEPROMSize?  I don't know the syntax for
+> doing that in conjunction with a State Chart.
+>  
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Tue Apr 15 17:55:44 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 15 Apr 2008 13:55:44 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <47FD2D3B.6060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+
+Am I not understanding something here, or is there
+a bug with State Charts in 6.1?
+
+I'm dealing with a serial protocol.  I want to stay
+in the starting state until I receive a ">".
+
+Here is a snippet of have I have:
+
+action Starting {
+ wxLogVerbose( _("Starting [State{%d}]") , cs );
+}
+
+bootloader = (
+ start: (
+  '>' @start_signal_received -> UnitID
+  any*                       -> start # Only a '>' means anything to us in
+the starting state
+ )@Starting,
+
+ UnitID: (
+  '>' @start_signal_received   -> UnitID         |
+
+ 'A' @{ DeviceID_u16 = 1; }    -> FlashSize      |
+ ...
+
+Everything seems to work but the action 'Starting' is called for
+*EVERY* state in the chart.  If this is what any* does, this
+isn't what I want.  I only want 'Starting' called when I
+transition from 'start' to 'UnitID'.  Once I leave 'start'
+I don't want to see any more 'Starting' message.
+
+?
+
+Example output:
+13:22:49: >
+13:22:49: Execute[0x3E]  {Byte passed to write exec}
+13:22:49: Begin
+13:22:49: Synchronization Signal Received.
+13:22:49: Starting [State{2}]  {This is good, it belongs here}
+
+13:22:49: [Not printable]
+13:22:49: Execute[0x95]
+13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+
+13:22:49: o
+13:22:49: Execute[0x6F]
+13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+13:22:49: DeviceFlashSize = 65536
+
+If I use *any in other states then they show up in the list when
+then should not as well.
+
+Compiled on  Windows with Digital Mars Compiler with:
+
+BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+ G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+BootLoaderStateChart.cpp
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080415/2941f81b/attachment.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 15 20:37:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 Apr 2008 16:37:01 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+Message-ID: <480511ED.2060000@cs.queensu.ca>
+
+Hi Bob,
+
+I think what you want instead of any* is [^>]. The any* will forever
+remain active as a thread through the machine, which is why the Starting
+action is propagated to every state.
+
+-Adrian
+
+Bob Paddock wrote:
+> 
+> Am I not understanding something here, or is there
+> a bug with State Charts in 6.1?
+> 
+> I'm dealing with a serial protocol.  I want to stay
+> in the starting state until I receive a ">".
+> 
+> Here is a snippet of have I have:
+> 
+> action Starting {
+>  wxLogVerbose( _("Starting [State{%d}]") , cs );
+> }
+> 
+> bootloader = (
+>  start: (
+>   '>' @start_signal_received -> UnitID
+>   any*                       -> start # Only a '>' means anything to us
+> in the starting state
+>  )@Starting,
+> 
+>  UnitID: (
+>   '>' @start_signal_received   -> UnitID         |
+> 
+>  'A' @{ DeviceID_u16 = 1; }    -> FlashSize      |
+>  ...
+> 
+> Everything seems to work but the action 'Starting' is called for
+> *EVERY* state in the chart.  If this is what any* does, this
+> isn't what I want.  I only want 'Starting' called when I
+> transition from 'start' to 'UnitID'.  Once I leave 'start'
+> I don't want to see any more 'Starting' message.
+> 
+> ?
+> 
+> Example output:
+> 13:22:49: >
+> 13:22:49: Execute[0x3E]  {Byte passed to write exec}
+> 13:22:49: Begin
+> 13:22:49: Synchronization Signal Received.
+> 13:22:49: Starting [State{2}]  {This is good, it belongs here}
+> 
+> 13:22:49: [Not printable]
+> 13:22:49: Execute[0x95]
+> 13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+> 13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+> 
+> 13:22:49: o
+> 13:22:49: Execute[0x6F]
+> 13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+> 13:22:49: DeviceFlashSize = 65536
+> 
+> If I use *any in other states then they show up in the list when
+> then should not as well.
+> 
+> Compiled on  Windows with Digital Mars Compiler with:
+> 
+> BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+>  G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+> BootLoaderStateChart.cpp
+> 
+>  
+> 
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Wed Apr 16 14:17:42 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 16 Apr 2008 10:17:42 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <480511ED.2060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804160717w58e0e9dag42e1cb3504412358@mail.gmail.com>
+
+>
+>
+> I think what you want instead of any* is [^>]. The any* will forever
+> remain active as a thread through the machine, which is why the Starting
+> action is propagated to every state.
+
+
+
+That fixed it, thank you.  I was under the mistaken impression that
+the states within the () of the State Chart state were confined to that
+section
+of the chart.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080416/35b26073/attachment.html>
+
+From graceindustr... at gmail.com  Fri Apr 25 17:02:50 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 25 Apr 2008 13:02:50 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <480511ED.2060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+
+On 4/15/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> I think what you want instead of any* is [^>].
+
+
+[^>] worked fine when I have a few states.
+Is there a better way to do it if you have say
+forty states that would be valid?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080425/d8b8a299/attachment.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 29 00:53:51 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 28 Apr 2008 20:53:51 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com> <480511ED.2060000@cs.queensu.ca> <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+Message-ID: <4816719F.8050502@cs.queensu.ca>
+
+Hi Bob, you can use priorities to do this.
+
+(
+   'a' |
+   'b' |
+   'c' |
+   ...
+) @1 |
+(
+   any @0
+)
+
+Though there really should be a guarded union operator that does this.
+
+-Adrian
+
+Bob Paddock wrote:
+> 
+> 
+> On 4/15/08, *Adrian Thurston* <thurs... at cs.queensu.ca
+> <mailto:thurs... at cs.queensu.ca>> wrote:
+> 
+> 
+>     I think what you want instead of any* is [^>]. 
+> 
+>  
+> [^>] worked fine when I have a few states.
+> Is there a better way to do it if you have say
+> forty states that would be valid?
+>  
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Tue Apr 29 11:52:47 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 29 Apr 2008 07:52:47 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <4816719F.8050...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+	 <a3aee9a50804251002n18c3fe46v7a6beccb193df...@mail.gmail.com>
+	 <4816719F.8050...@cs.queensu.ca>
+Message-ID: <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+
+>
+> (
+>   'a' |
+>   'b' |
+>   'c' |
+>   ...
+> ) @1 |
+> (
+>   any @0
+> )
+
+
+
+Is this 'any' going to be for the life of the machine, like my original
+'any* 'which won't work in my case,
+or just for this section of the State Chart, which is what I need?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20080429/350b96ec/attachment.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 29 14:37:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 29 Apr 2008 10:37:01 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com> <480511ED.2060000@cs.queensu.ca> <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com> <4816719F.8050502@cs.queensu.ca> <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+Message-ID: <4817328D.6090308@cs.queensu.ca>
+
+Since there is no kleene star it accepts only a single character and
+won't persist throughout the machine.
+
+Cheers,
+ Adrian
+
+Bob Paddock wrote:
+> 
+> 
+>     (
+>       'a' |
+>       'b' |
+>       'c' |
+>       ...
+>     ) @1 |
+>     (
+>       any @0
+>     )
+> 
+>  
+>  
+> Is this 'any' going to be for the life of the machine, like my original
+> 'any* 'which won't work in my case,
+> or just for this section of the State Chart, which is what I need?
+> 
+> > 
+
+
+From jonathan.st... at gmail.com  Sat Apr  5 15:34:25 2008
+From: jonathan.st... at gmail.com (Jonathan Stott)
+Date: Sat, 5 Apr 2008 16:34:25 +0100
+Subject: Surpressing Mulitple Matches
+Message-ID: <20080405163425.bd67723f.jonathan.st...@gmail.com>
+
+Hi all
+
+I'm writing a parser for some irc logs (to convert them to wiki markup and/or html) and the machine is fairly simple. 
+
+eol = '\n';
+text = any -- eol;
+
+# action line (generated from /me)
+
+action_line = timestamp action_nick text %print_action eol;
+
+
+# text line, normal irc chat
+
+text_line = timestamp nick text %print_text eol;
+
+
+# system line. Joins, parts etc.  Included so I can ignore it.
+# system_leader is a unique bit of text the irc client puts just after the timestamp for all system info. 
+
+system_line = timestamp system_leader nick text eol;
+
+
+# hr line. A convention which has developed. 
+#A line of just '-'s should be converted to a <hr />
+
+hr_line = timestamp nick '-'{3,} %print_hr eol;
+
+line = action_line | text_line | system_line | hr_line
+
+main := line*
+
+print_action, print_text both print a nicely formatted line, with two newlines, suitable for the wiki. print_hr prints '----', the wiki markup for a <hr />.  Except that any hr_line, is also a valid text line, so two lines get printed.  And I can't really exclude '-' from a text_line, they do get used in typing.  Is there any solution to avoiding printing both lines? (Beyond the obvious one of some test like 'if this is all -s, don't print' in the print_text action)
+
+Regards
+Jon
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:06:06 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:06:06 -0400
+Subject: [ragel-users] Surpressing Mulitple Matches
+In-Reply-To: <20080405163425.bd67723f.jonathan.stott@gmail.com>
+References: <20080405163425.bd67723f.jonathan.stott@gmail.com>
+Message-ID: <47F98F9E.20608@cs.queensu.ca>
+
+Hi Jonathan,
+
+I think you should consider using a scanner. Though you're not scanning
+tokens, you're scanning lines. Should multiple patterns match only one
+pattern action will be executed.
+
+-Adrian
+
+Jonathan Stott wrote:
+> Hi all
+> 
+> I'm writing a parser for some irc logs (to convert them to wiki markup and/or html) and the machine is fairly simple. 
+> 
+> eol = '\n';
+> text = any -- eol;
+> 
+> # action line (generated from /me)
+> 
+> action_line = timestamp action_nick text %print_action eol;
+> 
+> 
+> # text line, normal irc chat
+> 
+> text_line = timestamp nick text %print_text eol;
+> 
+> 
+> # system line. Joins, parts etc.  Included so I can ignore it.
+> # system_leader is a unique bit of text the irc client puts just after the timestamp for all system info. 
+> 
+> system_line = timestamp system_leader nick text eol;
+> 
+> 
+> # hr line. A convention which has developed. 
+> #A line of just '-'s should be converted to a <hr />
+> 
+> hr_line = timestamp nick '-'{3,} %print_hr eol;
+> 
+> line = action_line | text_line | system_line | hr_line
+> 
+> main := line*
+> 
+> print_action, print_text both print a nicely formatted line, with two newlines, suitable for the wiki. print_hr prints '----', the wiki markup for a <hr />.  Except that any hr_line, is also a valid text line, so two lines get printed.  And I can't really exclude '-' from a text_line, they do get used in typing.  Is there any solution to avoiding printing both lines? (Beyond the obvious one of some test like 'if this is all -s, don't print' in the print_text action)
+> 
+> Regards
+> Jon
+> 
+> > 
+> 
+
+
+From Martin.Pir... at iaik.tugraz.at  Tue Apr  1 14:16:37 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 1 Apr 2008 07:16:37 -0700 (PDT)
+Subject: Splitting common definitions and actions implementation
+In-Reply-To: <47F1151F.40707@cs.queensu.ca>
+References: <47F0FC38.2000004@iaik.tugraz.at> <47F1151F.40707@cs.queensu.ca>
+Message-ID: <cbd12046-1b0e-42b5-b5ff-955bf16140e5@b5g2000pri.googlegroups.com>
+
+On Mar 31, 6:45 pm, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> Here's an example of this minus the state references in actions.
+> http://code.whytheluckystiff.net/hpricot/browser/trunk/ext/hpricot_scan
+>
+> The java and c .rl files define actions and then include the common.rl,
+> which contains all the machine definitions. You don't need to worry
+> about circular dependencies since references to states are resolved
+> after all the input (including all included files) is read in.
+
+Thanks, I got stuck yesterday and wondered whether it is possible
+at all because of the circular references or the error was mine.
+After studying above example I started again from scratch and I can
+reproduce a working example now :-)
+
+Thanks again,
+  Martin
+
+
+From ma... at nanorex.com  Fri Apr  4 14:42:48 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Fri, 04 Apr 2008 10:42:48 -0400
+Subject: Ragel lines listing inside GDB
+Message-ID: <47F63E68.1010502@nanorex.com>
+
+hi all,
+
+   I find I am not able to list the lines of my .rl file when stepping 
+through with GDB. Has anyone who has experienced this also found a solution?
+
+   I'm running ragel without the -L flag so the #line directives are 
+being generated.
+
+   One of the workarounds I've found is to use the -L flag and then set 
+breakpoints on the .cpp file. Since most of the debug is with the 
+non-ragel parts of the file this works most of the time but it is an 
+extra step to correlate the ragel file line with the .cpp file so I was 
+wondering if a direct means of listing lines in the .rl file is possible.
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:02:11 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:02:11 -0400
+Subject: [ragel-users] Ragel lines listing inside GDB
+In-Reply-To: <47F63E68.1010502@nanorex.com>
+References: <47F63E68.1010502@nanorex.com>
+Message-ID: <47F98EB3.8030006@cs.queensu.ca>
+
+I noticed the other day that some scanner actions are not prefixed with
+line information. I think there is just one part of the code where where
+I forgot to add it in. Can you send me output that is missing #line
+directives?
+
+-Adrian
+
+Manoj Rajagopalan wrote:
+> hi all,
+> 
+>    I find I am not able to list the lines of my .rl file when stepping 
+> through with GDB. Has anyone who has experienced this also found a solution?
+> 
+>    I'm running ragel without the -L flag so the #line directives are 
+> being generated.
+> 
+>    One of the workarounds I've found is to use the -L flag and then set 
+> breakpoints on the .cpp file. Since most of the debug is with the 
+> non-ragel parts of the file this works most of the time but it is an 
+> extra step to correlate the ragel file line with the .cpp file so I was 
+> wondering if a direct means of listing lines in the .rl file is possible.
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:14:28 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:14:28 -0400
+Subject: new include file searching
+Message-ID: <47F99194.8080902@cs.queensu.ca>
+
+Hi,
+
+The way ragel finds files that are included and imported has changed.
+Previously ragel searched for the target from the point of invocation
+(it just did fopen on the file name given). Now Ragel searches from the
+location of the current file. Additional search locations can be given
+using -I option.
+
+Cheers,
+ Adrian
+
+
+From graceindustr... at gmail.com  Wed Apr  9 15:28:02 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 11:28:02 -0400
+Subject: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+Message-ID: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+
+I  assume I have something wrong in my Ragel source file,
+but no idea where to look from this error message.
+
+Can anyone shed any light on what this error message means?:
+
+ if ( p == eof )
+               ^
+BootLoaderStateChart.cpp(713) : Error: need explicit cast to convert
+from: int (*C func)(int ) to  : char const *
+--- errorlevel 1
+1 error, 0 warnings
+
+[p or eof are pointers to functions??  I did not declare eof, was not using
+it.]
+
+If I leave out "%% write exec;" I don't get the error.
+The line number of cpp(713) seems to be completely bogus.
+My Ragel file is not that long, and line 713 of .cpp
+isn't anywhere near the offending "p == eof".
+
+My Code:
+
+int BootLoaderStateChart::Execute( const uint8_t *data )
+{
+  const char *p  = (const char *) data;
+  const char *pe = p+1;
+
+  if( (cs == BootLoaderStateChart_error) ||
+      (cs == BootLoaderStateChart_first_final)
+    )
+    {
+      return -1; /* Error */
+    }
+
+  %% write exec;
+
+    if ( cs == BootLoaderStateChart_error )
+     {
+      return -1; /* Error */
+     }
+
+    if( cs >= BootLoaderStateChart_first_final )
+     {
+      return 1; /* Matched */
+     }
+    return 0; /* No Match */
+}
+
+Ragels Code:
+
+#line 479 "BootLoaderStateChart.rl"
+ {EEPROMFileSize_u16 = 4096;}
+ break;
+#line 708 "BootLoaderStateChart.cpp"
+  }
+ }
+
+_again:
+ if ( cs == 0 )
+  goto _out;
+ if ( ++p != pe )
+  goto _resume;
+ _test_eof: {}
+ if ( p == eof )
+ {
+ const char *__acts = _BootLoaderStateChart_actions +
+_BootLoaderStateChart_eof_actions[cs];
+ unsigned int __nacts = (unsigned int) *__acts++;
+ while ( __nacts-- > 0 ) {
+  switch ( *__acts++ ) {
+ case 1:
+#line 193 "BootLoaderStateChart.rl"
+ {
+  }
+ break;
+ case 10:
+#line 363 "BootLoaderStateChart.rl"
+ {
+  }
+ break;
+
+
+
+Digital Mars Compiler command when building the above:
+dmc.exe -c -oDMCDebug\BootLoaderStateChart.obj -D__WXMSW__
+-D__WXDEBUG__ -g -o+none -mn -Ar -Ae -HP299 -w-
+-I"G:\wx287/include" -I"G:\wx287/contrib/include"
+-I"G:\wx287/lib/dmc_lib/mswd" -I" \DM\STLPORT\STLPORT"
+BootLoaderStateChart.cpp
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080409/e8e2816c/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Wed Apr  9 17:26:43 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 09 Apr 2008 13:26:43 -0400
+Subject: [ragel-users] Error: need explicit cast to convert from: int
+ (*C func)(int ) to : char const *
+In-Reply-To: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+References: <a3aee9a50804090828m31c46f5dy9db6490012978788@mail.gmail.com>
+Message-ID: <47FCFC53.7080008@cs.queensu.ca>
+
+Do you have
+
+using std::eof;
+
+or something similar in your program? The compiler seems to be resolving
+"eof" to something other than the char* that is needed in 6.X. You
+should just be able to add:
+
+const char *eof = 0;
+
+after the declaration of pe and make the error go away.
+
+-Adrian
+
+Bob Paddock wrote:
+>  
+> I  assume I have something wrong in my Ragel source file,
+> but no idea where to look from this error message.
+> 
+> Can anyone shed any light on what this error message means?:
+> 
+>  if ( p == eof )
+>                ^
+> BootLoaderStateChart.cpp(713) : Error: need explicit cast to convert
+> from: int (*C func)(int ) to  : char const *
+> --- errorlevel 1
+> 1 error, 0 warnings
+> 
+> [p or eof are pointers to functions??  I did not declare eof, was not
+> using it.]
+> 
+> If I leave out "%% write exec;" I don't get the error.
+> 
+> The line number of cpp(713) seems to be completely bogus.
+> My Ragel file is not that long, and line 713 of .cpp
+> isn't anywhere near the offending "p == eof".
+>  
+> My Code:
+> 
+> int BootLoaderStateChart::Execute( const uint8_t *data )
+> {
+>   const char *p  = (const char *) data;
+>   const char *pe = p+1;
+> 
+>   if( (cs == BootLoaderStateChart_error) ||
+>       (cs == BootLoaderStateChart_first_final)
+>     )
+>     {
+>       return -1; /* Error */
+>     }
+> 
+>   %% write exec;
+> 
+>     if ( cs == BootLoaderStateChart_error )
+>      {
+>       return -1; /* Error */
+>      }
+> 
+>     if( cs >= BootLoaderStateChart_first_final )
+>      {
+>       return 1; /* Matched */
+>      }
+> 
+>     return 0; /* No Match */
+> }
+>  
+> Ragels Code:
+> 
+> #line 479 "BootLoaderStateChart.rl"
+>  {EEPROMFileSize_u16 = 4096;}
+>  break;
+> #line 708 "BootLoaderStateChart.cpp"
+>   }
+>  }
+> 
+> _again:
+>  if ( cs == 0 )
+>   goto _out;
+>  if ( ++p != pe )
+>   goto _resume;
+>  _test_eof: {}
+>  if ( p == eof )
+>  {
+>  const char *__acts = _BootLoaderStateChart_actions +
+> _BootLoaderStateChart_eof_actions[cs];
+>  unsigned int __nacts = (unsigned int) *__acts++;
+>  while ( __nacts-- > 0 ) {
+>   switch ( *__acts++ ) {
+>  case 1:
+> #line 193 "BootLoaderStateChart.rl"
+>  {
+>   }
+>  break;
+>  case 10:
+> #line 363 "BootLoaderStateChart.rl"
+>  {
+>   }
+>  break;
+> 
+>  
+> 
+> Digital Mars Compiler command when building the above:
+> dmc.exe -c -oDMCDebug\BootLoaderStateChart.obj -D__WXMSW__
+> -D__WXDEBUG__ -g -o+none -mn -Ar -Ae -HP299 -w-
+> -I"G:\wx287/include" -I"G:\wx287/contrib/include"
+> -I"G:\wx287/lib/dmc_lib/mswd" -I" \DM\STLPORT\STLPORT"
+> BootLoaderStateChart.cpp
+> 
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Wed Apr  9 18:10:25 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 14:10:25 -0400
+Subject: [ragel-users] Re: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+In-Reply-To: <47FCFC53.7080...@cs.queensu.ca>
+References: <a3aee9a50804090828m31c46f5dy9db6490012978...@mail.gmail.com>
+	 <47FCFC53.7080...@cs.queensu.ca>
+Message-ID: <a3aee9a50804091110l18a4ac2bj6257c10171900db7@mail.gmail.com>
+
+On 4/9/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Do you have
+>
+> using std::eof;
+>
+> or something similar in your program?
+
+
+No.
+
+
+> You should just be able to add:
+>
+> const char *eof = 0;
+>
+> after the declaration of pe and make the error go away.
+
+
+
+It did, thank you.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080409/5c645c5f/attachment-0001.html>
+
+From rak... at gmail.com  Thu Apr 10 17:22:40 2008
+From: rak... at gmail.com (rakrok)
+Date: Thu, 10 Apr 2008 10:22:40 -0700 (PDT)
+Subject: Matching multibyte or wide-chars
+Message-ID: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+
+Hello,
+
+I'm trying to tokenize multibyte strings.  In C-land, I would read in
+a mb char, convert it to widechar, and then I can use the widechar to
+test if it's iswalnum, iswalpha, and then tokenize it appropriately.
+
+In Ragel there is no mb/wc correspondence to the alnum/alpha character
+classes as far as I can tell.  It would have been nice to be able to
+define it like so:
+walpha = /./ when { iswalpha(towide(p)); };
+
+With towide() being a wrapper around mbrtowc.  Unfortunately semantic
+conditions aren't supported for the unsigned long alphtype.
+
+So my question is, is there an [easy] way to do this?  Ideally it
+would be nice to be able to define the acceptance criteria of a
+machine to be the same as that of a code block.  In that way, I can
+use the built-in widechar support in the C runtime, or use ICU, or
+whatnot.
+
+I can always try to explicitly list the mb/wc i'm interested in, but
+that means having to implement locale specific code, which sounds
+complex to me.
+
+Any ideas would be greatly appreciated,
+
+
+From thurs... at cs.queensu.ca  Fri Apr 11 18:32:39 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 Apr 2008 14:32:39 -0400
+Subject: [ragel-users] Matching multibyte or wide-chars
+In-Reply-To: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com>
+Message-ID: <47FFAEC7.7080809@cs.queensu.ca>
+
+
+
+rakrok wrote:
+> I can always try to explicitly list the mb/wc i'm interested in, but
+> that means having to implement locale specific code, which sounds
+> complex to me.
+
+Sorry that's the only option at this time. Perhaps someone has already
+defined character classes that they're willing to share.
+
+-Adrian
+
+
+From rak... at gmail.com  Fri Apr 11 18:40:11 2008
+From: rak... at gmail.com (Rak Rok)
+Date: Fri, 11 Apr 2008 14:40:11 -0400
+Subject: [ragel-users] Re: Matching multibyte or wide-chars
+In-Reply-To: <47FFAEC7.7080...@cs.queensu.ca>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3...@k13g2000hse.googlegroups.com>
+	 <47FFAEC7.7080...@cs.queensu.ca>
+Message-ID: <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+
+>  Sorry that's the only option at this time. Perhaps someone has already
+>  defined character classes that they're willing to share.
+
+I've been poring through the iswalpha code in glibc and it doesn't
+seem like it will be too difficult to define the character classes.
+It boils down to a bunch of rather large table lookups.  I'm looking
+into building it for Ragel.  Will be happy to share the code with you
+guys if you're interested in adding it to the set of defined character
+classes.  I'm thinking of calling them wdigit, walpha, walnum, etc.
+Is this something you'd be interested in having?
+
+-rr-
+
+
+From thurs... at cs.queensu.ca  Fri Apr 11 20:23:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Fri, 11 Apr 2008 16:23:08 -0400
+Subject: [ragel-users] Re: Matching multibyte or wide-chars
+In-Reply-To: <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+References: <acb6ff7c-bcda-4fb4-a690-6183269c3bc1@k13g2000hse.googlegroups.com> <47FFAEC7.7080809@cs.queensu.ca> <67f853a30804111140w723798abtb3e949a4765509b2@mail.gmail.com>
+Message-ID: <47FFC8AC.3060302@cs.queensu.ca>
+
+I think it would be great to distribute these ragel definitions with
+ragel as a library. Maybe as wchar/<locale>-def.rl or something.
+
+-Adrian
+
+Rak Rok wrote:
+>>  Sorry that's the only option at this time. Perhaps someone has already
+>>  defined character classes that they're willing to share.
+> 
+> I've been poring through the iswalpha code in glibc and it doesn't
+> seem like it will be too difficult to define the character classes.
+> It boils down to a bunch of rather large table lookups.  I'm looking
+> into building it for Ragel.  Will be happy to share the code with you
+> guys if you're interested in adding it to the set of defined character
+> classes.  I'm thinking of calling them wdigit, walpha, walnum, etc.
+> Is this something you'd be interested in having?
+> 
+> -rr-
+> 
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Sat Apr 12 17:10:40 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 12 Apr 2008 13:10:40 -0400
+Subject: [ragel-users] fnext followed by fbreak
+In-Reply-To: <47ED6601.50101@gmail.com>
+References: <47ED6601.50101@gmail.com>
+Message-ID: <4800ED10.7040905@cs.queensu.ca>
+
+Hi Andrei,
+
+This has been fixed in trunk.
+
+-Adrian
+
+Andrei Polushin wrote:
+> The action like this:
+> 
+>      action x {
+>          fnext somewhere_else;
+>          fbreak;
+>      };
+> 
+> become generated as follows:
+> 
+>      action x {
+>          cs = 123;                   // fnext somewhere_else;
+>          {p++; cs = 456; goto _out;} // fbreak;
+>      };
+> 
+> where '123' is the desired next state (aka somewhere_else),
+> and '456' is the default target state for the transition.
+> 
+> That is, the effect of fnext is neglected, when followed by fbreak.
+> 
+> For now, the workaround is to redeclare 'cs' in local block:
+> 
+>      action x {
+>          fnext somewhere_else;
+>          {int cs = -1; fbreak;}
+>      };
+> 
+> but I hope there should be a better solution for this.
+> 
+> For actions that involve both fnext and fbreak, I would suggest
+> generating {cs = ...} in the beginning of the action, and omit
+> that assignnment in the code generated by fbreak.
+> 
+> --
+> Andrei Polushin
+> 
+> 
+> > 
+> 
+
+
+From polus... at gmail.com  Sat Apr 12 22:25:02 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Sun, 13 Apr 2008 05:25:02 +0700
+Subject: fnext followed by fbreak
+In-Reply-To: <4800ED10.7040...@cs.queensu.ca>
+References: <47ED6601.50...@gmail.com> <4800ED10.7040...@cs.queensu.ca>
+Message-ID: <480136BE.6040...@gmail.com>
+
+Adrian Thurston wrote:
+> This has been fixed in trunk.
+
+OK, thank you for that. But it still doesn't work for the scanner actions.
+
+I've  wrote a test program to clarify that, it's attached.
+
+
+> Andrei Polushin wrote:
+>> The action like this:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          fbreak;
+>>      };
+>>
+>> become generated as follows:
+>>
+>>      action x {
+>>          cs = 123;                   // fnext somewhere_else;
+>>          {p++; cs = 456; goto _out;} // fbreak;
+>>      };
+>>
+>> where '123' is the desired next state (aka somewhere_else),
+>> and '456' is the default target state for the transition.
+>>
+>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>
+>> For now, the workaround is to redeclare 'cs' in local block:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          {int cs = -1; fbreak;}
+>>      };
+>>
+>> but I hope there should be a better solution for this.
+>>
+>> For actions that involve both fnext and fbreak, I would suggest
+>> generating {cs = ...} in the beginning of the action, and omit
+>> that assignnment in the code generated by fbreak.
+
+-- 
+Andrei Polushin
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: fnext.cpp.rl
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080413/f524a342/attachment-0001.ksh>
+
+From thurs... at cs.queensu.ca  Sat Apr 12 23:53:50 2008
+From: thurs... at cs.queensu.ca (=?utf-8?B?QWRyaWFuIFRodXJzdG9u?=)
+Date: Sat, 12 Apr 2008 23:53:50 +0000
+Subject: [ragel-users] Re: fnext followed by fbreak
+In-Reply-To: <480136BE.6040000@gmail.com>
+References: <47ED6601.50101@gmail.com> <4800ED10.7040905@cs.queensu.ca><480136BE.6040000@gmail.com>
+Message-ID: <1120047512-1208044431-cardhu_decombobulator_blackberry.rim.net-1497766577-@bxe150.bisx.prod.on.blackberry>
+
+Oops, I forgot to cover that case. I'll fix that tomorrow.
+
+-Adrian
+-----Original Message-----
+From: Andrei Polushin <polushin at gmail.com>
+
+Date: Sun, 13 Apr 2008 05:25:02 
+To:ragel-users at googlegroups.com
+Subject: [ragel-users] Re: fnext followed by fbreak
+
+
+Adrian Thurston wrote:
+> This has been fixed in trunk.
+
+OK, thank you for that. But it still doesn't work for the scanner actions.
+
+I've  wrote a test program to clarify that, it's attached.
+
+
+> Andrei Polushin wrote:
+>> The action like this:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          fbreak;
+>>      };
+>>
+>> become generated as follows:
+>>
+>>      action x {
+>>          cs = 123;                   // fnext somewhere_else;
+>>          {p++; cs = 456; goto _out;} // fbreak;
+>>      };
+>>
+>> where '123' is the desired next state (aka somewhere_else),
+>> and '456' is the default target state for the transition.
+>>
+>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>
+>> For now, the workaround is to redeclare 'cs' in local block:
+>>
+>>      action x {
+>>          fnext somewhere_else;
+>>          {int cs = -1; fbreak;}
+>>      };
+>>
+>> but I hope there should be a better solution for this.
+>>
+>> For actions that involve both fnext and fbreak, I would suggest
+>> generating {cs = ...} in the beginning of the action, and omit
+>> that assignnment in the code generated by fbreak.
+
+-- 
+Andrei Polushin
+
+
+
+
+From thurs... at cs.queensu.ca  Sun Apr 13 22:04:08 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 13 Apr 2008 18:04:08 -0400
+Subject: [ragel-users] Re: fnext followed by fbreak
+In-Reply-To: <480136BE.6040000@gmail.com>
+References: <47ED6601.50101@gmail.com> <4800ED10.7040905@cs.queensu.ca> <480136BE.6040000@gmail.com>
+Message-ID: <48028358.1020409@cs.queensu.ca>
+
+Should now work in scanner actions too.
+
+-Adrian
+
+Andrei Polushin wrote:
+> Adrian Thurston wrote:
+>> This has been fixed in trunk.
+> 
+> OK, thank you for that. But it still doesn't work for the scanner actions.
+> 
+> I've  wrote a test program to clarify that, it's attached.
+> 
+> 
+>> Andrei Polushin wrote:
+>>> The action like this:
+>>>
+>>>      action x {
+>>>          fnext somewhere_else;
+>>>          fbreak;
+>>>      };
+>>>
+>>> become generated as follows:
+>>>
+>>>      action x {
+>>>          cs = 123;                   // fnext somewhere_else;
+>>>          {p++; cs = 456; goto _out;} // fbreak;
+>>>      };
+>>>
+>>> where '123' is the desired next state (aka somewhere_else),
+>>> and '456' is the default target state for the transition.
+>>>
+>>> That is, the effect of fnext is neglected, when followed by fbreak.
+>>>
+>>> For now, the workaround is to redeclare 'cs' in local block:
+>>>
+>>>      action x {
+>>>          fnext somewhere_else;
+>>>          {int cs = -1; fbreak;}
+>>>      };
+>>>
+>>> but I hope there should be a better solution for this.
+>>>
+>>> For actions that involve both fnext and fbreak, I would suggest
+>>> generating {cs = ...} in the beginning of the action, and omit
+>>> that assignnment in the code generated by fbreak.
+> 
+
+
+From polus... at gmail.com  Tue Apr 15 06:47:48 2008
+From: polus... at gmail.com (Andrei Polushin)
+Date: Tue, 15 Apr 2008 13:47:48 +0700
+Subject: fnext followed by fbreak
+In-Reply-To: <48028358.1020...@cs.queensu.ca>
+References: <47ED6601.50...@gmail.com> <4800ED10.7040...@cs.queensu.ca> <480136BE.6040...@gmail.com> <48028358.1020...@cs.queensu.ca>
+Message-ID: <48044F94.4080...@gmail.com>
+
+Adrian Thurston wrote:
+> Should now work in scanner actions too.
+
+I can confirm that it really works as expected.
+
+Thank you very much indeed.
+
+
+> Andrei Polushin wrote:
+>> Adrian Thurston wrote:
+>>> This has been fixed in trunk.
+>> OK, thank you for that. But it still doesn't work for the scanner actions.
+>>
+>> I've  wrote a test program to clarify that, it's attached.
+>>
+>>
+>>> Andrei Polushin wrote:
+>>>> The action like this:
+>>>>
+>>>>      action x {
+>>>>          fnext somewhere_else;
+>>>>          fbreak;
+>>>>      };
+>>>>
+>>>> become generated as follows:
+>>>>
+>>>>      action x {
+>>>>          cs = 123;                   // fnext somewhere_else;
+>>>>          {p++; cs = 456; goto _out;} // fbreak;
+>>>>      };
+>>>>
+>>>> where '123' is the desired next state (aka somewhere_else),
+>>>> and '456' is the default target state for the transition.
+>>>>
+>>>> That is, the effect of fnext is neglected, when followed by fbreak.
+
+-- 
+Andrei Polushin
+
+
+From dbalm... at gmail.com  Sat Apr 19 09:34:28 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Sat, 19 Apr 2008 02:34:28 -0700 (PDT)
+Subject: Possible bug in scanner
+Message-ID: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+
+Hey folks,
+
+I think I may have found a bug in the scanner. Not sure if this is the
+best place to post bug reports but I couldn't find anywhere else on
+the website.
+
+Here's my machine definition. I've simplified it as much as possible;
+
+%%{
+    machine Word;
+
+    main := |*
+        'a' {PUTS("a: ");};
+        [ab]+ . 'c' {PUTS("abc: ");};
+        any;
+    *|;
+}%%
+
+To run it, get the full code here;
+    http://pastie.caboo.se/183409
+
+Basically I'm running this with the string "ba a". What I'd expect to
+happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+and then the "any" rule would consume the 'b' then 'a' would match
+twice. Unfortunately, only the second 'a' matches.
+
+If I run this with the string "ba" I get a segfault which also seems
+to indicate a bug. Perhaps I'm just doing something wrong?
+
+Cheers,
+
+
+From thurs... at cs.queensu.ca  Sat Apr 19 16:36:38 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sat, 19 Apr 2008 12:36:38 -0400
+Subject: [ragel-users] Possible bug in scanner
+In-Reply-To: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+Message-ID: <480A1F96.7080904@cs.queensu.ca>
+
+Hi David,
+
+I'm finding something wrong with the code generated using -T0 and -T1.
+The wrong eof actions are being executed. I haven't tracked it down
+completely but it seems to be related to the changes in 6.0. I'll fix it
+asap.
+
+Thanks,
+ Adrian
+
+David Balmain wrote:
+> Hey folks,
+> 
+> I think I may have found a bug in the scanner. Not sure if this is the
+> best place to post bug reports but I couldn't find anywhere else on
+> the website.
+> 
+> Here's my machine definition. I've simplified it as much as possible;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+>         any;
+>     *|;
+> }%%
+> 
+> To run it, get the full code here;
+>     http://pastie.caboo.se/183409
+> 
+> Basically I'm running this with the string "ba a". What I'd expect to
+> happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+> and then the "any" rule would consume the 'b' then 'a' would match
+> twice. Unfortunately, only the second 'a' matches.
+> 
+> If I run this with the string "ba" I get a segfault which also seems
+> to indicate a bug. Perhaps I'm just doing something wrong?
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Sun Apr 20 23:44:34 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 20 Apr 2008 19:44:34 -0400
+Subject: [ragel-users] Possible bug in scanner
+In-Reply-To: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>
+Message-ID: <480BD562.1020801@cs.queensu.ca>
+
+I just checked in a fix for this.
+
+This bug affects -T0 and -T1 for all target languages. The problem
+occurs when the last token of a scanner requires some backtracking to match.
+
+-Adrian
+
+David Balmain wrote:
+> Hey folks,
+> 
+> I think I may have found a bug in the scanner. Not sure if this is the
+> best place to post bug reports but I couldn't find anywhere else on
+> the website.
+> 
+> Here's my machine definition. I've simplified it as much as possible;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+>         any;
+>     *|;
+> }%%
+> 
+> To run it, get the full code here;
+>     http://pastie.caboo.se/183409
+> 
+> Basically I'm running this with the string "ba a". What I'd expect to
+> happen is that the "[ab]+ . 'c'" expression would match 'ba' then fail
+> and then the "any" rule would consume the 'b' then 'a' would match
+> twice. Unfortunately, only the second 'a' matches.
+> 
+> If I run this with the string "ba" I get a segfault which also seems
+> to indicate a bug. Perhaps I'm just doing something wrong?
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From dbalm... at gmail.com  Mon Apr 21 08:35:09 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Mon, 21 Apr 2008 01:35:09 -0700 (PDT)
+Subject: Possible bug in scanner
+In-Reply-To: <480BD562.1020801@cs.queensu.ca>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com> 
+	<480BD562.1020801@cs.queensu.ca>
+Message-ID: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+
+On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> I just checked in a fix for this.
+>
+> This bug affects -T0 and -T1 for all target languages. The problem
+> occurs when the last token of a scanner requires some backtracking to match.
+
+Hi Adrian,
+
+Thanks for getting on to this so quickly. Unfortunately it doesn't
+seem to have fixed a problem. I'm actually using -G2 as well as the
+default (-T0 I believe) and the error occurs in both cases. I've
+investigated this a little more and found a work around;
+
+%%{
+    machine Word;
+
+    main := |*
+        'a' {PUTS("a: ");};
+        [ab]+ . 'c' {PUTS("abc: ");};
+-        any;
++        any {};
+    *|;
+
+}%%
+
+Note the empty braces after 'any'. With them I get this for my
+"longest match"?? switch;
+
+            switch( act ) {//--
+                case 1:
+                    {{p = ((te))-1;}PUTS("a: ");}
+                    break;
+                case 3:
+                    {{p = ((te))-1;}}
+                    break;
+                default: break;
+            }
+
+Without the empty braces "case 3:" is missing;
+
+            switch( act ) {//--
+                case 1:
+                    {{p = ((te))-1;}PUTS("a: ");}
+                    break;
+                default: break;
+            }
+
+So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+particularly bad if we are at the end of a string as it will continue
+to scan after the null byte causing a segfault. I've tried to find
+were the problem is in the source so I could give you a patch but it
+is taking me a little while figure things out  and I thought you'd
+probably be able to fix this straight away. Let me know if there is
+anything else I can do to help.
+
+Cheers,
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 15:01:19 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 11:01:19 -0400
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>  <480BD562.1020801@cs.queensu.ca> <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+Message-ID: <480CAC3F.8000205@cs.queensu.ca>
+
+Yes that's the problem. There is supposed to be a case there to handle
+the shifting of p regardless of whether or not there is a user action.
+Expect a fix shortly.
+
+Cheers,
+ Adrian
+
+David Balmain wrote:
+> On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> I just checked in a fix for this.
+>>
+>> This bug affects -T0 and -T1 for all target languages. The problem
+>> occurs when the last token of a scanner requires some backtracking to match.
+> 
+> Hi Adrian,
+> 
+> Thanks for getting on to this so quickly. Unfortunately it doesn't
+> seem to have fixed a problem. I'm actually using -G2 as well as the
+> default (-T0 I believe) and the error occurs in both cases. I've
+> investigated this a little more and found a work around;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+> -        any;
+> +        any {};
+>     *|;
+> 
+> }%%
+> 
+> Note the empty braces after 'any'. With them I get this for my
+> "longest match"?? switch;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 case 3:
+>                     {{p = ((te))-1;}}
+>                     break;
+>                 default: break;
+>             }
+> 
+> Without the empty braces "case 3:" is missing;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 default: break;
+>             }
+> 
+> So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+> particularly bad if we are at the end of a string as it will continue
+> to scan after the null byte causing a segfault. I've tried to find
+> were the problem is in the source so I could give you a patch but it
+> is taking me a little while figure things out  and I thought you'd
+> probably be able to fix this straight away. Let me know if there is
+> anything else I can do to help.
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 17:55:45 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 13:55:45 -0400
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+References: <795ad37e-c754-4143-91c6-45610861d376@p25g2000pri.googlegroups.com>  <480BD562.1020801@cs.queensu.ca> <684f774b-1f38-4b75-8e35-5c342522d12c@f24g2000prh.googlegroups.com>
+Message-ID: <480CD521.1090603@cs.queensu.ca>
+
+Hi David, I just checked in a fix for this. Let me know if it doesn't
+work for you.
+
+Thanks,
+ Adrian
+
+David Balmain wrote:
+> On Apr 21, 9:44 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>> I just checked in a fix for this.
+>>
+>> This bug affects -T0 and -T1 for all target languages. The problem
+>> occurs when the last token of a scanner requires some backtracking to match.
+> 
+> Hi Adrian,
+> 
+> Thanks for getting on to this so quickly. Unfortunately it doesn't
+> seem to have fixed a problem. I'm actually using -G2 as well as the
+> default (-T0 I believe) and the error occurs in both cases. I've
+> investigated this a little more and found a work around;
+> 
+> %%{
+>     machine Word;
+> 
+>     main := |*
+>         'a' {PUTS("a: ");};
+>         [ab]+ . 'c' {PUTS("abc: ");};
+> -        any;
+> +        any {};
+>     *|;
+> 
+> }%%
+> 
+> Note the empty braces after 'any'. With them I get this for my
+> "longest match"?? switch;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 case 3:
+>                     {{p = ((te))-1;}}
+>                     break;
+>                 default: break;
+>             }
+> 
+> Without the empty braces "case 3:" is missing;
+> 
+>             switch( act ) {//--
+>                 case 1:
+>                     {{p = ((te))-1;}PUTS("a: ");}
+>                     break;
+>                 default: break;
+>             }
+> 
+> So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+> particularly bad if we are at the end of a string as it will continue
+> to scan after the null byte causing a segfault. I've tried to find
+> were the problem is in the source so I could give you a patch but it
+> is taking me a little while figure things out  and I thought you'd
+> probably be able to fix this straight away. Let me know if there is
+> anything else I can do to help.
+> 
+> Cheers,
+> Dave
+> > 
+> 
+
+
+From dbalm... at gmail.com  Mon Apr 21 22:03:43 2008
+From: dbalm... at gmail.com (David Balmain)
+Date: Tue, 22 Apr 2008 08:03:43 +1000
+Subject: [ragel-users] Re: Possible bug in scanner
+In-Reply-To: <480CD521.1090...@cs.queensu.ca>
+References: <795ad37e-c754-4143-91c6-45610861d...@p25g2000pri.googlegroups.com>
+	 <480BD562.1020...@cs.queensu.ca>
+	 <684f774b-1f38-4b75-8e35-5c342522d...@f24g2000prh.googlegroups.com>
+	 <480CD521.1090...@cs.queensu.ca>
+Message-ID: <7145d5d30804211503ya232438kb29d80859e5b7c29@mail.gmail.com>
+
+On Tue, Apr 22, 2008 at 3:55 AM, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>  Hi David, I just checked in a fix for this. Let me know if it doesn't
+>  work for you.
+
+Awesome. Thanks Adrian. That did the trick.
+
+-- 
+David Balmain
+Home: +612 6260 8417
+Fax: +612 6260 8417
+Mobile: +614 0077 1395
+
+
+From Martin.Pir... at iaik.tugraz.at  Mon Apr 21 13:39:12 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Mon, 21 Apr 2008 06:39:12 -0700 (PDT)
+Subject: making fgoto a no-op
+Message-ID: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+
+Dear readers....
+
+I have
+
+%%{
+
+action check_data {
+  check_foo(......);
+  fgoto *cs;     # no-op if no error occured, else stop with error
+}
+
+}%%
+
+
+check_foo(.....) {
+  if (........) {
+    cs = machine_error;
+  }
+}
+
+
+Question:
+I can't check the data using the Ragel machine and don't
+want to place the code in the action{...} definition. So I call
+out to the language side, but still want to use the Ragel
+error state as feedback/abort, if errors do happen.
+
+What are (could be) the side effects of directly manipulating
+cs this way or is that approach ok?
+
+
+Thanks,
+Martin
+
+
+From thurs... at cs.queensu.ca  Mon Apr 21 14:50:56 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 21 Apr 2008 10:50:56 -0400
+Subject: [ragel-users] making fgoto a no-op
+In-Reply-To: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com>
+Message-ID: <480CA9D0.20605@cs.queensu.ca>
+
+Hi Martin,
+
+In the -G2 machine cs isn't always kept up to date inside the execution
+loop. You could init another variable using
+
+int targ_cs = ftargs;
+
+and then base the logic on that.
+
+-Adrian
+
+
+Martin Pirker wrote:
+> Dear readers....
+> 
+> I have
+> 
+> %%{
+> 
+> action check_data {
+>   check_foo(......);
+>   fgoto *cs;     # no-op if no error occured, else stop with error
+> }
+> 
+> }%%
+> 
+> 
+> check_foo(.....) {
+>   if (........) {
+>     cs = machine_error;
+>   }
+> }
+> 
+> 
+> Question:
+> I can't check the data using the Ragel machine and don't
+> want to place the code in the action{...} definition. So I call
+> out to the language side, but still want to use the Ragel
+> error state as feedback/abort, if errors do happen.
+> 
+> What are (could be) the side effects of directly manipulating
+> cs this way or is that approach ok?
+> 
+> 
+> Thanks,
+> Martin
+> 
+> > 
+> 
+
+
+From Martin.Pir... at iaik.tugraz.at  Tue Apr 22 12:19:39 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 22 Apr 2008 05:19:39 -0700 (PDT)
+Subject: making fgoto a no-op
+In-Reply-To: <480CA9D0.20605@cs.queensu.ca>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com> 
+	<480CA9D0.20605@cs.queensu.ca>
+Message-ID: <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+
+Hi...
+
+On Apr 21, 10:50 am, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+> In the -G2 machine cs isn't always kept up to date inside the execution
+> loop.
+
+I guessed that my approach is not portable across all backends,
+thanks for confirming.
+
+> You could init another variable using
+> int targ_cs = ftargs;
+> and then base the logic on that.
+
+By expanding the logic in check_data action I can easily test for a
+return value and then fgoto to error if needed. Unfortunately, this
+would
+require duplication of this logic in every similar action in the .rl
+file,
+which I want to prevent (bloating, languages portability)
+
+Instead of the cs hack I could pass ftargs or fcurs as another
+parameter
+to the native language side, return the desired target as return value
+and
+then always fgoto.
+This approach does not work in case of something like:
+... ("whatever" %check_data)*  %something "newinput" ...
+In case of no error the fgoto omits %something and continues
+at newinput (=next state), thus the fgoto is never a real no-op.
+(As far as my experiments showed).
+
+
+I guess I have to sleep over this once more... :-)
+
+Martin
+
+
+From Martin.Pir... at iaik.tugraz.at  Tue Apr 22 13:44:19 2008
+From: Martin.Pir... at iaik.tugraz.at (Martin Pirker)
+Date: Tue, 22 Apr 2008 06:44:19 -0700 (PDT)
+Subject: making fgoto a no-op
+In-Reply-To: <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+References: <8703f53a-f3f7-472b-82da-296b066316c6@t12g2000prg.googlegroups.com> 
+	<480CA9D0.20605@cs.queensu.ca> <1dba5c7f-c254-4a1d-a85b-93dc1d61380a@d45g2000hsc.googlegroups.com>
+Message-ID: <4724b559-f00f-4380-9523-872c4f2cc472@c65g2000hsa.googlegroups.com>
+
+On Apr 22, 2:19 pm, Martin Pirker <Martin.Pir... at iaik.tugraz.at>
+wrote:
+> I guess I have to sleep over this once more... :-)
+
+The one line winner is:
+action check_data { if (check_foo(...)) { fgoto *machine_error; } }
+
+copy'n'paste'n'replace compliant ;-)
+
+Martin
+
+
+From ma... at nanorex.com  Wed Apr 23 20:04:25 2008
+From: ma... at nanorex.com (Manoj Rajagopalan)
+Date: Wed, 23 Apr 2008 16:04:25 -0400
+Subject: Line numbering from included files
+Message-ID: <480F9649.3010405@nanorex.com>
+
+Hi Adrian,
+
+    If I include a bunch of ragel files into one master ragel file which 
+I then compile to .cpp the line numbering gets mixed up. All line 
+numbering info, whether with the #line directive or in the comments 
+generated when using the -L option refer to lines in the master Ragel 
+file. There is no reference to line numbers in the included files. So if 
+an error occurs at those locations, the line number information ends up 
+being misleading.
+
+   Can this be fixed in a future version?
+
+Thanks,
+Manoj
+
+
+From thurs... at cs.queensu.ca  Thu Apr 24 20:46:13 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 24 Apr 2008 16:46:13 -0400
+Subject: [ragel-users] Line numbering from included files
+In-Reply-To: <480F9649.3010405@nanorex.com>
+References: <480F9649.3010405@nanorex.com>
+Message-ID: <4810F195.3070501@cs.queensu.ca>
+
+Sure, I'll add that to the TODO list.
+
+Thanks,
+ Adrian
+
+Manoj Rajagopalan wrote:
+> Hi Adrian,
+> 
+>     If I include a bunch of ragel files into one master ragel file which 
+> I then compile to .cpp the line numbering gets mixed up. All line 
+> numbering info, whether with the #line directive or in the comments 
+> generated when using the -L option refer to lines in the master Ragel 
+> file. There is no reference to line numbers in the included files. So if 
+> an error occurs at those locations, the line number information ends up 
+> being misleading.
+> 
+>    Can this be fixed in a future version?
+> 
+> Thanks,
+> Manoj
+> 
+> > 
+> 
+
+
+From graceindustr... at gmail.com  Thu Apr 24 15:21:10 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Thu, 24 Apr 2008 11:21:10 -0400
+Subject: How do I be "done" from within a State Chart action?
+Message-ID: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+
+I have a serial protocol where I call Execute() as each character
+comes in.
+
+At the end of my data transfer I know that I am done from within
+an action.  With the knowledge that the transfer is complete how
+do I get Execute() to return that the machine matched?
+
+There will be no more characters coming in to drive the machine.
+
+My attempts at using fbreak, which does nothing by staying in the
+current state (as it should I believe), or '' -> final which
+breaks the transfer protocol, have not worked.
+How do I be "done" from within a State Chart action?
+
+int StateChart::Execute( const uint8_t *data )
+{
+  const char *p  = (const char *) data;
+  const char *pe = p+1;
+  const char *eof = 0; // This fixes compiler bug for Ragel 6.1 with DMC
+8.5.x
+
+ wxLogVerbose( _("Execute[%02X]"), *data );
+
+  if( (cs == StateChart_error) ||
+      (cs == StateChart_first_final)
+    )
+    {
+      wxLogVerbose( _("-1 Error B4 write cs = [State{%d}]") , cs );
+      return -1; /* Error */
+    }
+
+  %% write exec;
+
+    if ( cs == StateChart_error )
+     {
+      wxLogVerbose( _("-1 Error after write cs = [State{%d}]") , cs );
+      return -1; /* Error */
+     }
+
+    if( cs >= StateChart_first_final )
+     {
+      wxLogVerbose( _("!*Matched*! cs = [State{%d}]") , cs );
+      return 1; /* Matched */
+     }
+
+    wxLogVerbose( _("No Matched cs = [State{%d}]") , cs );
+    return 0; /* No Match */
+}
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080424/93b6b5a7/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Thu Apr 24 20:52:09 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Thu, 24 Apr 2008 16:52:09 -0400
+Subject: [ragel-users] How do I be "done" from within a State Chart action?
+In-Reply-To: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+References: <a3aee9a50804240821x2aa38060v25394ba8daa43e8b@mail.gmail.com>
+Message-ID: <4810F2F9.1070709@cs.queensu.ca>
+
+Hi Bob,
+
+You could use fgoto done; with
+
+done := "";
+
+Bob Paddock wrote:
+> My attempts at using fbreak, which does nothing by staying in the
+> current state (as it should I believe), or '' -> final which
+> breaks the transfer protocol, have not worked.
+
+fbreak should leave you in the target state.
+
+-Adrian
+
+
+From graceindustr... at gmail.com  Fri Apr 25 16:59:52 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 25 Apr 2008 12:59:52 -0400
+Subject: [ragel-users] Re: How do I be "done" from within a State Chart action?
+In-Reply-To: <4810F2F9.1070...@cs.queensu.ca>
+References: <a3aee9a50804240821x2aa38060v25394ba8daa43...@mail.gmail.com>
+	 <4810F2F9.1070...@cs.queensu.ca>
+Message-ID: <a3aee9a50804250959o2282d1d6x3b31d1a71bdecbcb@mail.gmail.com>
+
+That worked, thank you.
+
+
+On 4/24/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> Hi Bob,
+>
+> You could use fgoto done; with
+>
+> done := "";
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080425/b279a6f9/attachment-0001.html>
+
+From graceindustr... at gmail.com  Wed Apr  9 18:22:14 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 9 Apr 2008 14:22:14 -0400
+Subject: State Chart Finishing Actions?
+Message-ID: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+
+<ragel-users at googlegroups.com>
+
+I have the following State Chart snippet:
+
+FlashPageSize: (
+                '>' @start_signal_received -> UnitID             |
+
+                    'Q' @{FlashPageSize_u16 =  32;} -> EEPROMSize    |
+                    'R' @{FlashPageSize_u16 =  64;} -> EEPROMSize    |
+                    'S' @{FlashPageSize_u16 = 128;} -> EEPROMSize    |
+                    'T' @{FlashPageSize_u16 = 256;} -> EEPROMSize    |
+                    'U' @{FlashPageSize_u16 = 512;} -> EEPROMSize
+               ),
+
+EEPROMSize: (
+             '>' @start_signal_received -> UnitID            |
+
+                 '.' @{EEPROMFileSize_u16 =   64;} -> BaudSwitch     |
+                 '/' @{EEPROMFileSize_u16 =  128;} -> BaudSwitch     |
+                 '0' @{EEPROMFileSize_u16 =  256;} -> BaudSwitch     |
+                 '1' @{EEPROMFileSize_u16 =  512;} -> BaudSwitch     |
+                 '2' @{EEPROMFileSize_u16 = 1024;} -> BaudSwitch     |
+                 '3' @{EEPROMFileSize_u16 = 2048;} -> BaudSwitch     |
+                 '4' @{EEPROMFileSize_u16 = 4096;} -> BaudSwitch     |
+
+                 '!' @FlashPageRequest        -> PageRequest # Page request
+here indicates we have no EEPROM
+             ),
+How do I call a function (@Finishing Action?) for for all
+transitions leaving EEPROMSize?  I don't know the syntax for
+doing that in conjunction with a State Chart.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080409/1f1fbb14/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Wed Apr  9 20:55:23 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Wed, 09 Apr 2008 16:55:23 -0400
+Subject: [ragel-users] State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com>
+Message-ID: <47FD2D3B.6060405@cs.queensu.ca>
+
+On the very last line of the example you provided you could change
+
+),
+
+to
+
+) @A,
+
+Cheers,
+ Adrian
+
+Bob Paddock wrote:
+> <mailto:ragel-users at googlegroups.com> 
+> 
+> I have the following State Chart snippet:
+> 
+> FlashPageSize: (
+>                 '>' @start_signal_received -> UnitID             |
+> 
+>                     'Q' @{FlashPageSize_u16 =  32;} -> EEPROMSize    |
+>                     'R' @{FlashPageSize_u16 =  64;} -> EEPROMSize    |
+>                     'S' @{FlashPageSize_u16 = 128;} -> EEPROMSize    |
+>                     'T' @{FlashPageSize_u16 = 256;} -> EEPROMSize    |
+>                     'U' @{FlashPageSize_u16 = 512;} -> EEPROMSize
+>                ),
+> 
+> EEPROMSize: (
+>              '>' @start_signal_received -> UnitID            |
+> 
+>                  '.' @{EEPROMFileSize_u16 =   64;} -> BaudSwitch     |
+>                  '/' @{EEPROMFileSize_u16 =  128;} -> BaudSwitch     |
+>                  '0' @{EEPROMFileSize_u16 =  256;} -> BaudSwitch     |
+>                  '1' @{EEPROMFileSize_u16 =  512;} -> BaudSwitch     |
+>                  '2' @{EEPROMFileSize_u16 = 1024;} -> BaudSwitch     |
+>                  '3' @{EEPROMFileSize_u16 = 2048;} -> BaudSwitch     |
+>                  '4' @{EEPROMFileSize_u16 = 4096;} -> BaudSwitch     |
+> 
+>                  '!' @FlashPageRequest        -> PageRequest # Page
+> request here indicates we have no EEPROM
+>              ),
+> 
+> How do I call a function (@Finishing Action?) for for all
+> transitions leaving EEPROMSize?  I don't know the syntax for
+> doing that in conjunction with a State Chart.
+>  
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Tue Apr 15 17:55:44 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 15 Apr 2008 13:55:44 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <47FD2D3B.6060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+
+Am I not understanding something here, or is there
+a bug with State Charts in 6.1?
+
+I'm dealing with a serial protocol.  I want to stay
+in the starting state until I receive a ">".
+
+Here is a snippet of have I have:
+
+action Starting {
+ wxLogVerbose( _("Starting [State{%d}]") , cs );
+}
+
+bootloader = (
+ start: (
+  '>' @start_signal_received -> UnitID
+  any*                       -> start # Only a '>' means anything to us in
+the starting state
+ )@Starting,
+
+ UnitID: (
+  '>' @start_signal_received   -> UnitID         |
+
+ 'A' @{ DeviceID_u16 = 1; }    -> FlashSize      |
+ ...
+
+Everything seems to work but the action 'Starting' is called for
+*EVERY* state in the chart.  If this is what any* does, this
+isn't what I want.  I only want 'Starting' called when I
+transition from 'start' to 'UnitID'.  Once I leave 'start'
+I don't want to see any more 'Starting' message.
+
+?
+
+Example output:
+13:22:49: >
+13:22:49: Execute[0x3E]  {Byte passed to write exec}
+13:22:49: Begin
+13:22:49: Synchronization Signal Received.
+13:22:49: Starting [State{2}]  {This is good, it belongs here}
+
+13:22:49: [Not printable]
+13:22:49: Execute[0x95]
+13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+
+13:22:49: o
+13:22:49: Execute[0x6F]
+13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+13:22:49: DeviceFlashSize = 65536
+
+If I use *any in other states then they show up in the list when
+then should not as well.
+
+Compiled on  Windows with Digital Mars Compiler with:
+
+BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+ G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+BootLoaderStateChart.cpp
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080415/2941f81b/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 15 20:37:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 15 Apr 2008 16:37:01 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com>
+Message-ID: <480511ED.2060000@cs.queensu.ca>
+
+Hi Bob,
+
+I think what you want instead of any* is [^>]. The any* will forever
+remain active as a thread through the machine, which is why the Starting
+action is propagated to every state.
+
+-Adrian
+
+Bob Paddock wrote:
+> 
+> Am I not understanding something here, or is there
+> a bug with State Charts in 6.1?
+> 
+> I'm dealing with a serial protocol.  I want to stay
+> in the starting state until I receive a ">".
+> 
+> Here is a snippet of have I have:
+> 
+> action Starting {
+>  wxLogVerbose( _("Starting [State{%d}]") , cs );
+> }
+> 
+> bootloader = (
+>  start: (
+>   '>' @start_signal_received -> UnitID
+>   any*                       -> start # Only a '>' means anything to us
+> in the starting state
+>  )@Starting,
+> 
+>  UnitID: (
+>   '>' @start_signal_received   -> UnitID         |
+> 
+>  'A' @{ DeviceID_u16 = 1; }    -> FlashSize      |
+>  ...
+> 
+> Everything seems to work but the action 'Starting' is called for
+> *EVERY* state in the chart.  If this is what any* does, this
+> isn't what I want.  I only want 'Starting' called when I
+> transition from 'start' to 'UnitID'.  Once I leave 'start'
+> I don't want to see any more 'Starting' message.
+> 
+> ?
+> 
+> Example output:
+> 13:22:49: >
+> 13:22:49: Execute[0x3E]  {Byte passed to write exec}
+> 13:22:49: Begin
+> 13:22:49: Synchronization Signal Received.
+> 13:22:49: Starting [State{2}]  {This is good, it belongs here}
+> 
+> 13:22:49: [Not printable]
+> 13:22:49: Execute[0x95]
+> 13:22:49: Starting [State{4}] {This is *BAD*, doesn't belong here}
+> 13:22:49: Device_ID=8, EXECCODE=00FF, PageMul = 8
+> 
+> 13:22:49: o
+> 13:22:49: Execute[0x6F]
+> 13:22:49: Starting [State{5}] {This is *BAD*, doesn't belong here}
+> 13:22:49: DeviceFlashSize = 65536
+> 
+> If I use *any in other states then they show up in the list when
+> then should not as well.
+> 
+> Compiled on  Windows with Digital Mars Compiler with:
+> 
+> BootLoaderStateChart.cpp: BootLoaderStateChart.rl
+>  G:\U\Ragel61\bin\ragel -s BootLoaderStateChart.rl -o
+> BootLoaderStateChart.cpp
+> 
+>  
+> 
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Wed Apr 16 14:17:42 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Wed, 16 Apr 2008 10:17:42 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <480511ED.2060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804160717w58e0e9dag42e1cb3504412358@mail.gmail.com>
+
+>
+>
+> I think what you want instead of any* is [^>]. The any* will forever
+> remain active as a thread through the machine, which is why the Starting
+> action is propagated to every state.
+
+
+
+That fixed it, thank you.  I was under the mistaken impression that
+the states within the () of the State Chart state were confined to that
+section
+of the chart.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080416/35b26073/attachment-0001.html>
+
+From graceindustr... at gmail.com  Fri Apr 25 17:02:50 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Fri, 25 Apr 2008 13:02:50 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <480511ED.2060...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+Message-ID: <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+
+On 4/15/08, Adrian Thurston <thurs... at cs.queensu.ca> wrote:
+>
+>
+> I think what you want instead of any* is [^>].
+
+
+[^>] worked fine when I have a few states.
+Is there a better way to do it if you have say
+forty states that would be valid?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080425/d8b8a299/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 29 00:53:51 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Mon, 28 Apr 2008 20:53:51 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com> <480511ED.2060000@cs.queensu.ca> <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com>
+Message-ID: <4816719F.8050502@cs.queensu.ca>
+
+Hi Bob, you can use priorities to do this.
+
+(
+   'a' |
+   'b' |
+   'c' |
+   ...
+) @1 |
+(
+   any @0
+)
+
+Though there really should be a guarded union operator that does this.
+
+-Adrian
+
+Bob Paddock wrote:
+> 
+> 
+> On 4/15/08, *Adrian Thurston* <thurs... at cs.queensu.ca
+> <mailto:thurs... at cs.queensu.ca>> wrote:
+> 
+> 
+>     I think what you want instead of any* is [^>]. 
+> 
+>  
+> [^>] worked fine when I have a few states.
+> Is there a better way to do it if you have say
+> forty states that would be valid?
+>  
+> 
+> > 
+
+
+From graceindustr... at gmail.com  Tue Apr 29 11:52:47 2008
+From: graceindustr... at gmail.com (Bob Paddock)
+Date: Tue, 29 Apr 2008 07:52:47 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <4816719F.8050...@cs.queensu.ca>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf4...@mail.gmail.com>
+	 <47FD2D3B.6060...@cs.queensu.ca>
+	 <a3aee9a50804151055l1cd9a807sfdcb8f1989999...@mail.gmail.com>
+	 <480511ED.2060...@cs.queensu.ca>
+	 <a3aee9a50804251002n18c3fe46v7a6beccb193df...@mail.gmail.com>
+	 <4816719F.8050...@cs.queensu.ca>
+Message-ID: <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+
+>
+> (
+>   'a' |
+>   'b' |
+>   'c' |
+>   ...
+> ) @1 |
+> (
+>   any @0
+> )
+
+
+
+Is this 'any' going to be for the life of the machine, like my original
+'any* 'which won't work in my case,
+or just for this section of the State Chart, which is what I need?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20080429/350b96ec/attachment-0001.html>
+
+From thurs... at cs.queensu.ca  Tue Apr 29 14:37:01 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Tue, 29 Apr 2008 10:37:01 -0400
+Subject: [ragel-users] Re: State Chart Finishing Actions?
+In-Reply-To: <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+References: <a3aee9a50804091122j5c18b7f3g84315ca06bdf43a3@mail.gmail.com> <47FD2D3B.6060405@cs.queensu.ca> <a3aee9a50804151055l1cd9a807sfdcb8f1989999f12@mail.gmail.com> <480511ED.2060000@cs.queensu.ca> <a3aee9a50804251002n18c3fe46v7a6beccb193dfa88@mail.gmail.com> <4816719F.8050502@cs.queensu.ca> <a3aee9a50804290452l532bae92xe02aa3eadb7025fb@mail.gmail.com>
+Message-ID: <4817328D.6090308@cs.queensu.ca>
+
+Since there is no kleene star it accepts only a single character and
+won't persist throughout the machine.
+
+Cheers,
+ Adrian
+
+Bob Paddock wrote:
+> 
+> 
+>     (
+>       'a' |
+>       'b' |
+>       'c' |
+>       ...
+>     ) @1 |
+>     (
+>       any @0
+>     )
+> 
+>  
+>  
+> Is this 'any' going to be for the life of the machine, like my original
+> 'any* 'which won't work in my case,
+> or just for this section of the State Chart, which is what I need?
+> 
+> > 
+
+
+From jonathan.st... at gmail.com  Sat Apr  5 15:34:25 2008
+From: jonathan.st... at gmail.com (Jonathan Stott)
+Date: Sat, 5 Apr 2008 16:34:25 +0100
+Subject: Surpressing Mulitple Matches
+Message-ID: <20080405163425.bd67723f.jonathan.st...@gmail.com>
+
+Hi all
+
+I'm writing a parser for some irc logs (to convert them to wiki markup and/or html) and the machine is fairly simple. 
+
+eol = '\n';
+text = any -- eol;
+
+# action line (generated from /me)
+
+action_line = timestamp action_nick text %print_action eol;
+
+
+# text line, normal irc chat
+
+text_line = timestamp nick text %print_text eol;
+
+
+# system line. Joins, parts etc.  Included so I can ignore it.
+# system_leader is a unique bit of text the irc client puts just after the timestamp for all system info. 
+
+system_line = timestamp system_leader nick text eol;
+
+
+# hr line. A convention which has developed. 
+#A line of just '-'s should be converted to a <hr />
+
+hr_line = timestamp nick '-'{3,} %print_hr eol;
+
+line = action_line | text_line | system_line | hr_line
+
+main := line*
+
+print_action, print_text both print a nicely formatted line, with two newlines, suitable for the wiki. print_hr prints '----', the wiki markup for a <hr />.  Except that any hr_line, is also a valid text line, so two lines get printed.  And I can't really exclude '-' from a text_line, they do get used in typing.  Is there any solution to avoiding printing both lines? (Beyond the obvious one of some test like 'if this is all -s, don't print' in the print_text action)
+
+Regards
+Jon
+
+
+From thurs... at cs.queensu.ca  Mon Apr  7 03:06:06 2008
+From: thurs... at cs.queensu.ca (Adrian Thurston)
+Date: Sun, 06 Apr 2008 23:06:06 -0400
+Subject: [ragel-users] Surpressing Mulitple Matches
+In-Reply-To: <20080405163425.bd67723f.jonathan.stott@gmail.com>
+References: <20080405163425.bd67723f.jonathan.stott@gmail.com>
+Message-ID: <47F98F9E.20608@cs.queensu.ca>
+
+Hi Jonathan,
+
+I think you should consider using a scanner. Though you're not scanning
+tokens, you're scanning lines. Should multiple patterns match only one
+pattern action will be executed.
+
+-Adrian
+
+Jonathan Stott wrote:
+> Hi all
+> 
+> I'm writing a parser for some irc logs (to convert them to wiki markup and/or html) and the machine is fairly simple. 
+> 
+> eol = '\n';
+> text = any -- eol;
+> 
+> # action line (generated from /me)
+> 
+> action_line = timestamp action_nick text %print_action eol;
+> 
+> 
+> # text line, normal irc chat
+> 
+> text_line = timestamp nick text %print_text eol;
+> 
+> 
+> # system line. Joins, parts etc.  Included so I can ignore it.
+> # system_leader is a unique bit of text the irc client puts just after the timestamp for all system info. 
+> 
+> system_line = timestamp system_leader nick text eol;
+> 
+> 
+> # hr line. A convention which has developed. 
+> #A line of just '-'s should be converted to a <hr />
+> 
+> hr_line = timestamp nick '-'{3,} %print_hr eol;
+> 
+> line = action_line | text_line | system_line | hr_line
+> 
+> main := line*
+> 
+> print_action, print_text both print a nicely formatted line, with two newlines, suitable for the wiki. print_hr prints '----', the wiki markup for a <hr />.  Except that any hr_line, is also a valid text line, so two lines get printed.  And I can't really exclude '-' from a text_line, they do get used in typing.  Is there any solution to avoiding printing both lines? (Beyond the obvious one of some test like 'if this is all -s, don't print' in the print_text action)
+> 
+> Regards
+> Jon
+> 
+> > 
+> 
+
+

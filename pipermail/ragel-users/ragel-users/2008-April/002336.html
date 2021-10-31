@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Possible bug in scanner
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Possible%20bug%20in%20scanner&In-Reply-To=%3C480CAC3F.8000205%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002335.html">
+   <LINK REL="Next"  HREF="002337.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Possible bug in scanner</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Possible%20bug%20in%20scanner&In-Reply-To=%3C480CAC3F.8000205%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Re: Possible bug in scanner">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Mon Apr 21 15:01:19 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002335.html">Possible bug in scanner
+</A></li>
+        <LI>Next message: <A HREF="002337.html">[ragel-users] Re: Possible bug in scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2336">[ date ]</a>
+              <a href="thread.html#2336">[ thread ]</a>
+              <a href="subject.html#2336">[ subject ]</a>
+              <a href="author.html#2336">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Yes that's the problem. There is supposed to be a case there to handle
+the shifting of p regardless of whether or not there is a user action.
+Expect a fix shortly.
+
+Cheers,
+ Adrian
+
+David Balmain wrote:
+&gt;<i> On Apr 21, 9:44 am, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt; wrote:
+</I>&gt;&gt;<i> I just checked in a fix for this.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> This bug affects -T0 and -T1 for all target languages. The problem
+</I>&gt;&gt;<i> occurs when the last token of a scanner requires some backtracking to match.
+</I>&gt;<i> 
+</I>&gt;<i> Hi Adrian,
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for getting on to this so quickly. Unfortunately it doesn't
+</I>&gt;<i> seem to have fixed a problem. I'm actually using -G2 as well as the
+</I>&gt;<i> default (-T0 I believe) and the error occurs in both cases. I've
+</I>&gt;<i> investigated this a little more and found a work around;
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i>     machine Word;
+</I>&gt;<i> 
+</I>&gt;<i>     main := |*
+</I>&gt;<i>         'a' {PUTS(&quot;a: &quot;);};
+</I>&gt;<i>         [ab]+ . 'c' {PUTS(&quot;abc: &quot;);};
+</I>&gt;<i> -        any;
+</I>&gt;<i> +        any {};
+</I>&gt;<i>     *|;
+</I>&gt;<i> 
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> Note the empty braces after 'any'. With them I get this for my
+</I>&gt;<i> &quot;longest match&quot;?? switch;
+</I>&gt;<i> 
+</I>&gt;<i>             switch( act ) {//--
+</I>&gt;<i>                 case 1:
+</I>&gt;<i>                     {{p = ((te))-1;}PUTS(&quot;a: &quot;);}
+</I>&gt;<i>                     break;
+</I>&gt;<i>                 case 3:
+</I>&gt;<i>                     {{p = ((te))-1;}}
+</I>&gt;<i>                     break;
+</I>&gt;<i>                 default: break;
+</I>&gt;<i>             }
+</I>&gt;<i> 
+</I>&gt;<i> Without the empty braces &quot;case 3:&quot; is missing;
+</I>&gt;<i> 
+</I>&gt;<i>             switch( act ) {//--
+</I>&gt;<i>                 case 1:
+</I>&gt;<i>                     {{p = ((te))-1;}PUTS(&quot;a: &quot;);}
+</I>&gt;<i>                     break;
+</I>&gt;<i>                 default: break;
+</I>&gt;<i>             }
+</I>&gt;<i> 
+</I>&gt;<i> So p never gets reset if the ( [ab]+ . 'c' ) fails to match. This is
+</I>&gt;<i> particularly bad if we are at the end of a string as it will continue
+</I>&gt;<i> to scan after the null byte causing a segfault. I've tried to find
+</I>&gt;<i> were the problem is in the source so I could give you a patch but it
+</I>&gt;<i> is taking me a little while figure things out  and I thought you'd
+</I>&gt;<i> probably be able to fix this straight away. Let me know if there is
+</I>&gt;<i> anything else I can do to help.
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Dave
+</I>&gt;<i> &gt; 
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002335.html">Possible bug in scanner
+</A></li>
+	<LI>Next message: <A HREF="002337.html">[ragel-users] Re: Possible bug in scanner
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2336">[ date ]</a>
+              <a href="thread.html#2336">[ thread ]</a>
+              <a href="subject.html#2336">[ subject ]</a>
+              <a href="author.html#2336">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

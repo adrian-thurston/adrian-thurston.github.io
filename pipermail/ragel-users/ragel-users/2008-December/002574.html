@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem with tag comment implementation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20tag%20comment%20implementation&In-Reply-To=%3C200812191027.CER79317%40persistent.co.in%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002573.html">
+   <LINK REL="Next"  HREF="002575.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem with tag comment implementation</H1>
+    <B>Hardik Parikh</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20with%20tag%20comment%20implementation&In-Reply-To=%3C200812191027.CER79317%40persistent.co.in%3E"
+       TITLE="[ragel-users] Problem with tag comment implementation">hardik_parikh at persistent.co.in
+       </A><BR>
+    <I>Fri Dec 19 10:26:50 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002573.html">[ragel-users] Need Help on Backward Reference concept of Regular Expression in Ragel Language
+</A></li>
+        <LI>Next message: <A HREF="002575.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2574">[ date ]</a>
+              <a href="thread.html#2574">[ thread ]</a>
+              <a href="subject.html#2574">[ subject ]</a>
+              <a href="author.html#2574">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+ 
+
+    I have requirement to consider following as valid comment in source
+language
+
+ 
+
+    |abc#
+
+             Some description ...
+
+   #abc|
+
+ 
+
+  And following is invalid comment
+
+ 
+
+    |abc#
+
+             Some description ...
+
+    #xyz|
+
+ 
+
+And for above requirement I need to capture token string and performed match
+operation as there is no inbuilt support for backward reference in ragel
+
+I tried out with following implementation
+
+ 
+
+action mark_start{
+
+     start = fpc+1;
+
+    // printf(&quot; Mark start at %c\n&quot;,fc);
+
+  }
+
+ action tagstart{
+
+    size_t len = fpc - start ;
+
+    s = calloc(len,sizeof(char));
+
+    strncpy(s,start,len);
+
+    s[len]='\0';
+
+  //  printf(&quot;Start : %s\n&quot;,s);
+
+  }
+
+ 
+
+ action tagend{
+
+    size_t len = fpc - start ;
+
+    e = calloc(len,sizeof(char));
+
+    strncpy(e,start,len);
+
+    e[len]='\0';
+
+   stringcmp = strncmp(e,s,sizeof(s));
+
+    //printf(&quot;End : %s\n&quot;,e);
+
+  }
+
+ 
+
+   curl_tag_comment =
+
+    '|'@mark_start (nonnewline - ws)* '#'@tagstart @comment(
+
+      newline %{ entity = INTERNAL_NL; } %curl_ccallback
+
+      |
+
+      ws
+
+      |
+
+      (nonnewline - ws) @comment
+
+    )* :&gt;&gt; ('#'@mark_start (nonnewline - ws)* '|' @tagend  when { stringcmp
+== 0}) @comment;
+
+ 
+
+ 
+
+Now I am able to capture both start and end substring properly and able to
+do math operation in when condition but it produces as a valid commet in
+parser for even a non valid statement.
+
+ 
+
+Like
+
+ 
+
+curl comment |abc#
+
+curl comment             Some  description ...
+
+curl comment  #xyz|
+
+ 
+
+Please provide me any suggestions where I am doing something wrong or is
+there any other better way to implement the same.
+
+ 
+
+Thanks &amp; Regards
+
+Hardik Parikh
+
+ 
+
+
+DISCLAIMER
+==========
+This e-mail may contain privileged and confidential information which is the property of Persistent Systems Ltd. It is intended only for the use of the individual or entity to which it is addressed. If you are not the intended recipient, you are not authorized to read, retain, copy, print, distribute or use this message. If you have received this communication in error, please notify the sender and delete all copies of this message. Persistent Systems Ltd. does not accept any liability for virus infected mails.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20081219/9ca0b1f2/attachment-0001.html">http://www.colm.net/pipermail/ragel-users/attachments/20081219/9ca0b1f2/attachment-0001.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002573.html">[ragel-users] Need Help on Backward Reference concept of Regular Expression in Ragel Language
+</A></li>
+	<LI>Next message: <A HREF="002575.html">[ragel-users] Problem with tag comment implementation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2574">[ date ]</a>
+              <a href="thread.html#2574">[ thread ]</a>
+              <a href="subject.html#2574">[ subject ]</a>
+              <a href="author.html#2574">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

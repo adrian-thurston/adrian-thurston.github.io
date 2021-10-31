@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] How do I act on eof in state charts
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20do%20I%20act%20on%20eof%20in%20state%20charts&In-Reply-To=%3C2BC60EB7-7673-479C-BF61-7C081D75F5DA%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001021.html">
+   <LINK REL="Next"  HREF="001025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] How do I act on eof in state charts</H1>
+    <B>Antony Blakey</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20How%20do%20I%20act%20on%20eof%20in%20state%20charts&In-Reply-To=%3C2BC60EB7-7673-479C-BF61-7C081D75F5DA%40gmail.com%3E"
+       TITLE="[ragel-users] How do I act on eof in state charts">antony.blakey at gmail.com
+       </A><BR>
+    <I>Thu Oct 22 00:07:46 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001021.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+        <LI>Next message: <A HREF="001025.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1022">[ date ]</a>
+              <a href="thread.html#1022">[ thread ]</a>
+              <a href="subject.html#1022">[ subject ]</a>
+              <a href="author.html#1022">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On 22/10/2009, at 12:10 AM, Antony Blakey wrote:
+
+&gt;<i> string_literal_body =
+</I>&gt;<i>  start: (
+</I>&gt;<i>    &quot;'&quot; -&gt; seen_quote |
+</I>&gt;<i>    [^'] -&gt; start
+</I>&gt;<i>  ),
+</I>&gt;<i>  seen_quote: (
+</I>&gt;<i>    &quot;'&quot; -&gt; start |
+</I>&gt;<i>    [^'] @{ fhold; } -&gt; final
+</I>&gt;<i>  );
+</I>&gt;<i> string_literal = &quot;'&quot; string_literal_body %{ puts &quot;string_literal&quot; } ;
+</I>&gt;<i>
+</I>&gt;<i> The problem occurs when a string literal ends at eof. How do I  
+</I>&gt;<i> specify the eof 'match' in the seen_quote state such that all the  
+</I>&gt;<i> leaving-transition actions that are in place above the  
+</I>&gt;<i> string_literal are executed, such as the 'puts' on the  
+</I>&gt;<i> 'string_literal' machine. I don't want to manually duplicate the  
+</I>&gt;<i> parent code because multiple machines reference string_literal, with  
+</I>&gt;<i> different leaving-transition actions.
+</I>&gt;<i>
+</I>&gt;<i> I couldn't get it to work using priorities - the terminator needs  
+</I>&gt;<i> lookahead to disambiguate; the following doesn't work:
+</I>&gt;<i>
+</I>&gt;<i> string_literal = &quot;'&quot; [^']* ( &quot;''&quot; [^']* )* '&quot;'
+</I>
+I ended up doing this:
+
+   string_literal_unqoted = &quot;'&quot; [^']* &quot;'&quot; ;
+   string_literal = string_literal_unqoted+ $(longest, 1) %(longest,  
+0) % { puts &quot;string_literal&quot; };
+
+which works. I would have thought that this:
+
+   string_literal = string_literal_unqoted string_literal_unqoted** %  
+{ puts &quot;string_literal&quot; };
+
+would work, but '**' doesn't work for me - if I use a main like this:
+
+   main := space* ( string_literal space* )* ;
+
+then I get two string_literals from 'a''b' rather than one, while the  
+explicit priorities do give me one string_literal.
+
+Of course this works as well:
+
+   main := space* ( string_literal &lt;: space* )* ;
+
+but given the pervasiveness of whitespace handling in my grammar (a  
+full Smalltalk parser) it's a real PITA because everything you want  
+greedy consumption for has to be thus annotated wherever it is used.
+
+Still, I'm interested in how you specify EOF transitions in an  
+explicit state machine. I also had success appending a 0 onto the  
+input for use as an EOF marker that can be matched in the state  
+machine, but I'm not sure yet if/how that will interfere with true EOF  
+functioning.
+
+Antony Blakey
+-------------
+CTO, Linkuistics Pty Ltd
+Ph: 0438 840 787
+
+In anything at all, perfection is finally attained not when there is  
+no longer anything to add, but when there is no longer anything to  
+take away.
+   -- Antoine de Saint-Exupery
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001021.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+	<LI>Next message: <A HREF="001025.html">[ragel-users] How do I act on eof in state charts
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1022">[ date ]</a>
+              <a href="thread.html#1022">[ thread ]</a>
+              <a href="subject.html#1022">[ subject ]</a>
+              <a href="author.html#1022">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

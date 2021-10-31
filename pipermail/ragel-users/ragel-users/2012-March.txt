@@ -1,0 +1,1994 @@
+From dpcmain at gmail.com  Wed Mar  7 20:03:12 2012
+From: dpcmain at gmail.com (Pei Deng)
+Date: Thu, 8 Mar 2012 04:03:12 +0800
+Subject: [ragel-users] A problem with ragel
+Message-ID: <CAPJ3TydB_tif5i2tp4n2cuLzQsc1a6QAGbGbKZGFewmkc+74AA@mail.gmail.com>
+
+Hi all,
+
+When i want to use ragel to parser uri abnf from rfc3986, but meet some
+error.
+
+First, i get the abnf from that rfc, then convert it to ragel form. As
+bellow:
+#-----------------------------------------------------------------------------------------------------
+%%{
+machine URI;
+
+action ActionStartScheme { StartScheme(fpc); }
+action ActionEndScheme { EndScheme(fpc); }
+
+action ActionStartAuthority { StartAuthority(fpc); }
+action ActionEndAuthority { EndAuthority(fpc); }
+
+action ActionStartUser { StartUser(fpc); }
+action ActionEndUser { EndUser(fpc); }
+
+action ActionStartHost { StartHost(fpc); }
+action ActionEndHost { EndHost(fpc); }
+
+action ActionStartPort { StartPort(fpc); }
+action ActionEndPort { EndPort(fpc); }
+
+action ActionStartPath { StartPath(fpc); }
+action ActionEndPath { EndPath(fpc); }
+
+action ActionStartQuery { StartQuery(fpc); }
+action ActionEndQuery { EndQuery(fpc); }
+
+action ActionStartFragment { StartFragment(fpc); }
+action ActionEndFragment { EndFragment(fpc); }
+
+action All { printf("%c", fc); }
+
+#ALPHA = %x41-5A / %x61-7A
+ALPHA = 0x41..0x5A | 0x61..0x7A;
+
+#CR = %x0D
+CR = 0x0D;
+
+#DIGIT = %x30-39
+DIGIT = 0x30..0x39;
+
+#DQUOTE = %x22
+DQUOTE = 0x22;
+
+#HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIG = DIGIT | "A" | "B" | "C" | "D" | "E" | "F";
+
+#LF = %x0A
+LF = 0x0A;
+
+#SP = %x20
+SP = 0x20;
+
+#unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+unreserved = ALPHA | DIGIT | "-" | "." | "_" | "~";
+
+#dec-octet = ( DIGIT ) / ( %x31-39 DIGIT ) / ( "1" 2DIGIT ) / ( "2" %x30-34
+DIGIT ) / ( "25" %x30-35 )
+dec_octet = ( DIGIT ) | ( 0x31..0x39 DIGIT ) | ( "1" DIGIT{2} ) | ( "2"
+0x30..0x34 DIGIT ) | ( "25" 0x30..0x35 );
+
+#pct-encoded = "%" HEXDIG HEXDIG
+pct_encoded = "%" HEXDIG HEXDIG;
+
+#gen-delims = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+gen_delims = ":" | "/" | "?" | "#" | "[" | "]" | "@";
+
+#sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
+"="
+sub_delims = "!" | "$" | "&" | "'" | "(" | ")" | "*" | "+" | "," | ";" |
+"=";
+
+#reserved = gen-delims / sub-delims
+reserved = gen_delims | sub_delims;
+
+#pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
+pchar = unreserved | pct_encoded | sub_delims | ":" | "@";
+
+#query = *( pchar / "/" / "?" )
+query = ( ( pchar | "/" | "?" )* );
+
+#fragment = *( pchar / "/" / "?" )
+fragment = ( pchar | "/" | "?" )*;
+
+#segment = *pchar
+segment = pchar*;
+
+#segment-nz = 1*pchar
+segment_nz = pchar+;
+
+#segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
+segment_nz_nc = ( unreserved | pct_encoded | sub_delims | "@" )+;
+
+#path-empty = 0<pchar>
+path_empty = "";
+
+#path-noscheme = segment-nz-nc *( "/" segment )
+path_noscheme = ( segment_nz_nc ( "/" segment )* ) $All;
+
+#path-rootless = segment-nz *( "/" segment )
+path_rootless = ( segment_nz ( "/" segment )* ) $All;
+
+#path-absolute = "/" [ segment-nz *( "/" segment ) ]
+path_absolute = ( "/" ( segment_nz ( "/" segment )* )? ) $All;
+
+#path-abempty = *( "/" segment )
+path_abempty = ( ( "/" segment )* ) $All;
+
+#path = path-abempty / path-absolute / path-noscheme / path-rootless /
+path-empty
+path = path_abempty | path_absolute | path_noscheme | path_rootless |
+path_empty;
+
+#reg-name = *( unreserved / pct-encoded / sub-delims )
+reg_name = ( unreserved | pct_encoded | sub_delims )*;
+
+#IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
+IPv4address = dec_octet "." dec_octet "." dec_octet "." dec_octet;
+
+#h16 = 1*4HEXDIG
+h16 = HEXDIG{1,4};
+
+#ls32 = ( h16 ":" h16 ) / IPv4address
+ls32 = ( h16 ":" h16 ) | IPv4address;
+
+#IPv6address = ( 6( h16 ":" ) ls32 ) / ( "::" 5( h16 ":" ) ls32 ) / ( [ h16
+] "::" 4( h16 ":" ) ls32 ) / ( [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+) / ( [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32 ) / ( [ *3( h16 ":" )
+h16 ] "::" h16 ":" ls32 ) / ( [ *4( h16 ":" ) h16 ] "::" ls32 ) / ( [ *5(
+h16 ":" ) h16 ] "::" h16 ) / ( [ *6( h16 ":" ) h16 ] "::" )
+IPv6address = ( ( h16 ":" ){6} ls32 ) | ( "::" ( h16 ":" ){5} ls32 ) | (
+h16? "::" ( h16 ":" ){4} ls32 ) | ( ( ( h16 ":" ){0,1} h16 )? "::" ( h16
+":" ){3} ls32 ) | ( ( ( h16 ":" ){0,2} h16 )? "::" ( h16 ":" ){2} ls32 ) |
+( ( ( h16 ":" ){0,3} h16 )? "::" h16 ":" ls32 ) | ( ( ( h16 ":" ){0,4} h16
+)? "::" ls32 ) | ( ( ( h16 ":" ){0,5} h16 )? "::" h16 ) | ( ( ( h16 ":"
+){0,6} h16 )? "::" );
+
+#IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+IPvFuture = "v" HEXDIG+ "." ( unreserved | sub_delims | ":" )+;
+
+#IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+IP_literal = "[" ( IPv6address | IPvFuture  ) "]";
+
+#port = *DIGIT
+port = DIGIT*;
+
+#host = IP-literal / IPv4address / reg-name
+host = IP_literal | IPv4address | reg_name;
+
+#userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+userinfo = ( unreserved | pct_encoded | sub_delims | ":" )*;
+
+#authority = [ userinfo "@" ] host [ ":" port ]
+authority = ( userinfo "@" )? host ( ":" port )?;
+
+#scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+scheme = ALPHA ( ALPHA | DIGIT | "+" | "-" | "." )*;
+
+#relative-part = ( "//" authority path-abempty ) / ( path-absolute ) / (
+path-noscheme ) / ( path-empty )
+relative_part = ( "//" authority path_abempty ) | ( path_absolute ) | (
+path_noscheme ) | ( path_empty );
+
+#relative-ref = relative-part [ "?" query ] [ "#" fragment ]
+relative_ref = relative_part ( "?" query )? ( "#" fragment )?;
+
+#hier-part = ( "//" authority path-abempty ) / ( path-absolute ) / (
+path-rootless ) / ( path-empty )
+hier_part = ( "//" authority path_abempty ) | ( path_absolute) | (
+path_rootless ) | ( path_empty );
+
+#absolute-URI = scheme ":" hier-part [ "?" query ]
+absolute_URI = scheme ":" hier_part ( "?" query )?;
+
+#URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+URI = scheme ":" hier_part ( "?" query )? ( "#" fragment )?;
+
+#URI-reference = URI / relative-ref
+URI_reference = URI | relative_ref;
+
+main := URI_reference | absolute_URI;
+}%%
+#-----------------------------------------------------------------------------------------------------
+
+I want to get the path from a uri, example as:
+"http://www.complang.org/ragel/examples/clang.rl"
+should out put:
+"/ragel/examples/clang.rl"
+but i get:
+"http//ragel/examples/clang.rl"
+
+I have read the doc of ragel, but i don't know where i do wrong.
+I have work on this problem several days :-(, so please give me some help,
+thanks very much :-)
+
+ps.
+my all need is to get some part information from a uri.
+i have see XuLang's question in this maillist, but i want to implement a
+all rfc 3986 abnf, not only a common regex match.
+
+
+
+-- 
+
+*Regards,*
+*Deng Pei*
+*
+*
+*Software Engineering Institute*
+*Email: dpcmain at gmail.com*
+*Address: East China Normal University, Shanghai, China 200062*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120308/5c3093cf/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From kevin.t.ryan at gmail.com  Wed Mar  7 21:18:54 2012
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Wed, 7 Mar 2012 16:18:54 -0500
+Subject: [ragel-users] Potential Bug?
+Message-ID: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+
+Hi - I think I've run into a bug.  If I create a file like:
+
+
+#include <stdio.h>
+
+%%{
+    machine test;
+
+    main := |*
+        [^] { printf("CARET\n"); };
+    *|;
+}%%
+
+%% write data;
+
+and try to run it with ragel -G2 test.rl -o test.c, ragel crashes.
+Changing the line starting with '[^]' to '"^"' fixes the problem, but
+I don't think Ragel should crash, but rather print an error message
+stating that it encountered invalid input at line xxxx.  ragel -v
+gives me:
+
+Ragel State Machine Compiler version 6.7 May 2011
+Copyright (c) 2001-2009 by Adrian Thurston
+
+I am on Windows XP.  Hope this is helpful.  Thanks!
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From luislavena at gmail.com  Tue Mar 13 20:00:19 2012
+From: luislavena at gmail.com (Luis Lavena)
+Date: Tue, 13 Mar 2012 17:00:19 -0300
+Subject: [ragel-users] Possible compilation error with GCC 4.7.0?
+Message-ID: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+
+Hello,
+
+While testing GCC 4.7.0 and clang 3.1, found the following problem
+when attempting to compile Ragel:
+
+First, with GCC 4.7.0:
+https://gist.github.com/2028996
+
+Later with clang 3.1.
+https://gist.github.com/2030776
+
+While the platform is MinGW (Windows), I don't think that is the issue
+exposed here as Ragel 6.7 compiles properly with GCC 4.6.1 and 4.6.2
+
+Is there a bug tracker to report this?
+
+Thank you.
+-- 
+Luis Lavena
+AREA 17
+-
+Perfection in design is achieved not when there is nothing more to add,
+but rather when there is nothing more to take away.
+Antoine de Saint-Exupéry
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Thu Mar 15 02:09:57 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Wed, 14 Mar 2012 19:09:57 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+Message-ID: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+
+Joesph Stewart,
+
+I think you were doing some work with binary protocols earlier. Any
+chance you can post some examples?
+
+Andrew,
+
+Reading some of your older posts, it seems that you were going to have
+stronger support for binary protocols in version 7. Is that still true?
+If so, any idea when we can expect to see this?
+
+-- 
+http://www.fastmail.fm - The way an email service should be
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Thu Mar 15 02:10:52 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Wed, 14 Mar 2012 19:10:52 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+Message-ID: <1331777452.26932.140661049375581@webmail.messagingengine.com>
+
+Joesph Stewart,
+
+I think you were doing some work with binary protocols earlier. Any
+chance you can post some examples?
+
+Andrew,
+
+Reading some of your older posts, it seems that you were going to have
+stronger support for binary protocols in version 7. Is that still true?
+If so, any idea when we can expect to see this?
+
+-- 
+http://www.fastmail.fm - A no graphics, no pop-ups email service
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From joseph.stewart at gmail.com  Thu Mar 15 23:08:35 2012
+From: joseph.stewart at gmail.com (Joseph Stewart)
+Date: Thu, 15 Mar 2012 16:08:35 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+Message-ID: <CANGQBe4--GimYgRwabhKB_46ibd+idxaHdH7ERdKkdnM50LEKw@mail.gmail.com>
+
+Sure... I'll share a "working example" from what I was working on at the
+time. Pleas keep in mind I wrote this over 8 months ago and never placed it
+into production (I've moved to a new role since them).
+
+Anyway beyond what's in the attached example, I had a terrible file format
+that I'd written an equally terrible state machine to read. This sample
+only deals with the wrapper part of the file. Essentially it looks like:
+
+opening xml-like tag with parameters type and info... this looks like
+<XRNDATA08192> the code
+length... this is a 4-byte little endian length
+binary blog of length bytes... binary data of the length from the previous
+element
+closing xml-like tag... this looks like </XRNDATA> in the code
+
+Finally, here's the C-code pasted below
+
+//----code start----
+#include <stdio.h>
+
+/*
+
+chunks in file look like
+
+<XRNDATA08192020001>LenData</XRNDATA>
+where "08192" is an ASCII type designator (can expect other types)
+where "020001" is an ASCII information field
+where Len is a 4-byte little endian length designator
+where Data is binary data of Len length
+
+*/
+
+#define XRN 'X', 'R', 'N', 'D', 'A', 'T', 'A'
+#define T1  '0', '8', '1', '9', '2'
+#define T2  '0', '0', '0', '1', '6'
+#define T3  '0', '0', '0', '0', '8'
+#define T4  '0', '0', '0', '0', '1'
+#define I1  '0', '2', '0', '0', '0', '1'
+
+%%{
+machine tds;
+write data;
+}%%
+
+int main() {
+int len = 0;
+unsigned char buf[] = {
+'<', XRN, T1, I1, '>', 0, 0, 0, 5, 48,49,50,51,52, '<', '/', XRN, '>',
+'<', XRN, T2, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T3, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T4, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T1, I1, '>', 0, 0, 0, 0, '<', '/', XRN, '>',
+'<', T1, I1, '>', 0, 0, 0, 0, '<', '/', XRN, '>',
+};
+int cs, r = 0;
+unsigned char *p = (unsigned char *)&buf;
+unsigned char *pe = p + sizeof(buf);
+unsigned char *eof = NULL;
+printf("len=%d\n", len);
+%%{
+t1 = '08192' @{ printf("t1\n"); };
+t2 = '00016' @{ printf("t2\n"); };
+t3 = '00008' @{ printf("t3\n"); };
+t4 = '00001' @{ printf("t4\n"); };
+type = (t1 | t2 | t3 | t4);
+info = '020001';
+open = '<XRNDATA' type info '>' @{ printf("begin XRNDATA\n"); len = 0; };
+len = extend{4} @{ printf("len = %d\n", (int)*p); len = (len*256) + (*p); };
+action check {len--}
+action bad {printf("BAD\n");}
+buffer = (any when check)* %when !check @{ printf("[%d]:%d\n", len, *p); };
+close = '</XRNDATA>' @{ printf("end XRNDATA\n"); };
+expr = (
+open @lerr(bad)
+len
+buffer
+close
+);
+main := expr* ;
+write init;
+write exec;
+}%%
+return 0;
+}
+//----code end----
+
+On Wed, Mar 14, 2012 at 7:09 PM, <pyguest at fastmail.fm> wrote:
+
+> Joesph Stewart,
+>
+> I think you were doing some work with binary protocols earlier. Any
+> chance you can post some examples?
+>
+> Andrew,
+>
+> Reading some of your older posts, it seems that you were going to have
+> stronger support for binary protocols in version 7. Is that still true?
+> If so, any idea when we can expect to see this?
+>
+> --
+> http://www.fastmail.fm - The way an email service should be
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120315/2b475bab/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Mar 17 01:26:57 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:26:57 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+Message-ID: <4F63E861.1040905@complang.org>
+
+Most of my binary protocol stuff is for work so unfortunately I can't 
+post that. There is some binary protocol stuff in the DSNP 
+implementation, but it's not extensive. I'm hoping 7.0 comes out 
+sometime in the next four months. The changes run deep, right down to 
+the core of the NFA -> DFA algorithm and so I'm in no rush.
+
+On 12-03-14 07:09 PM, pyguest at fastmail.fm wrote:
+> Joesph Stewart,
+>
+> I think you were doing some work with binary protocols earlier. Any
+> chance you can post some examples?
+>
+> Andrew,
+>
+> Reading some of your older posts, it seems that you were going to have
+> stronger support for binary protocols in version 7. Is that still true?
+> If so, any idea when we can expect to see this?
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar 17 01:28:54 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:28:54 -0700
+Subject: [ragel-users] Potential Bug?
+In-Reply-To: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+References: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+Message-ID: <4F63E8D6.8030603@complang.org>
+
+Definitely a bug. That should be a syntax error and not a crash.
+
+Thanks!
+
+-Adrian
+
+On 12-03-07 01:18 PM, Kevin T. Ryan wrote:
+> Hi - I think I've run into a bug.  If I create a file like:
+>
+>
+> #include<stdio.h>
+>
+> %%{
+>      machine test;
+>
+>      main := |*
+>          [^] { printf("CARET\n"); };
+>      *|;
+> }%%
+>
+> %% write data;
+>
+> and try to run it with ragel -G2 test.rl -o test.c, ragel crashes.
+> Changing the line starting with '[^]' to '"^"' fixes the problem, but
+> I don't think Ragel should crash, but rather print an error message
+> stating that it encountered invalid input at line xxxx.  ragel -v
+> gives me:
+>
+> Ragel State Machine Compiler version 6.7 May 2011
+> Copyright (c) 2001-2009 by Adrian Thurston
+>
+> I am on Windows XP.  Hope this is helpful.  Thanks!
+>
+> ktr
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar 17 01:34:09 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:34:09 -0700
+Subject: [ragel-users] Possible compilation error with GCC 4.7.0?
+In-Reply-To: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+References: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+Message-ID: <4F63EA11.2080503@complang.org>
+
+Thanks Luis. The mailinglist is the right place to post these. I track 
+issues with redmine, but that's not open to the public for writing. The 
+volume of reports I get is low enough at this time.
+
+Regards,
+  Adrian
+
+On 12-03-13 01:00 PM, Luis Lavena wrote:
+> Hello,
+>
+> While testing GCC 4.7.0 and clang 3.1, found the following problem
+> when attempting to compile Ragel:
+>
+> First, with GCC 4.7.0:
+> https://gist.github.com/2028996
+>
+> Later with clang 3.1.
+> https://gist.github.com/2030776
+>
+> While the platform is MinGW (Windows), I don't think that is the issue
+> exposed here as Ragel 6.7 compiles properly with GCC 4.6.1 and 4.6.2
+>
+> Is there a bug tracker to report this?
+>
+> Thank you.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Sat Mar 17 15:30:29 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Sat, 17 Mar 2012 08:30:29 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <4F63E861.1040905@complang.org>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+	<4F63E861.1040905@complang.org>
+Message-ID: <1331998229.19922.140661050459501@webmail.messagingengine.com>
+
+> implementation, but it's not extensive. I'm hoping 7.0 comes out 
+> sometime in the next four months. The changes run deep, right down to 
+> the core of the NFA -> DFA algorithm and so I'm in no rush.
+
+Thanks. What kind of support will there for binary protocols in version
+7.0? 
+Will it allow ability to work with bits or mostly at the byte level?
+
+-- 
+http://www.fastmail.fm - The professional email service
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rustompmody at gmail.com  Fri Mar 23 11:36:35 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 23 Mar 2012 17:06:35 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+Message-ID: <CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+
+On Fri, Mar 23, 2012 at 4:42 PM, Aurélien Aptel <aurelien.aptel at gmail.com>wrote:
+
+> So, as an experienced org-mode developper you're saying it's very
+> hard? I should focus on the ragel part in the application and try to
+> go as far as i can for org-mode then. I still need something I can be
+> evaluated to for the mid-term and final evaluation.
+>
+> Can you be my mentor? If no one can I should apply for another project :/
+>
+
+I am rather far from being an org mode developer; just a user.
+
+Adding a ragel backend for elisp on its own is too small for a gsoc project
+Using ragelized elisp to rewrite orgmode is a wonderful project, but large.
+
+The best solution is to chalk out a subset of the latter and work at that
+
+Ive cced the ragel list in case Adrian Thurston, the ragel author, thinks
+differently
+
+For the first Adrian and the ragel list is your best bet.
+For the second the orgmode list and developers.
+
+For myself I am interested and would like to be informed. I dont think I
+know enough of the internals of either to be the sole responsible party.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120323/b016b9d1/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From rustompmody at gmail.com  Fri Mar 23 12:27:15 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 23 Mar 2012 17:57:15 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+Message-ID: <CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+
+Just adding some context for my earlier post
+
+The org mode thread
+http://thread.gmane.org/gmane.emacs.orgmode/53735
+
+The org-mode gsoc project
+http://orgmode.org/worg/org-contrib/gsoc2012/orgmode-gsoc2012-ideas.html#sec-1-3
+
+
+On Fri, Mar 23, 2012 at 5:06 PM, Rustom Mody <rustompmody at gmail.com> wrote:
+
+> On Fri, Mar 23, 2012 at 4:42 PM, Aurélien Aptel <aurelien.aptel at gmail.com>wrote:
+>
+>> So, as an experienced org-mode developper you're saying it's very
+>> hard? I should focus on the ragel part in the application and try to
+>> go as far as i can for org-mode then. I still need something I can be
+>> evaluated to for the mid-term and final evaluation.
+>>
+>> Can you be my mentor? If no one can I should apply for another project :/
+>>
+>
+> I am rather far from being an org mode developer; just a user.
+>
+> Adding a ragel backend for elisp on its own is too small for a gsoc project
+> Using ragelized elisp to rewrite orgmode is a wonderful project, but large.
+>
+> The best solution is to chalk out a subset of the latter and work at that
+>
+> Ive cced the ragel list in case Adrian Thurston, the ragel author, thinks
+> differently
+>
+> For the first Adrian and the ragel list is your best bet.
+> For the second the orgmode list and developers.
+>
+> For myself I am interested and would like to be informed. I dont think I
+> know enough of the internals of either to be the sole responsible party.
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120323/e24a60d2/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ming.fu at netsweeper.com  Fri Mar 23 20:30:59 2012
+From: ming.fu at netsweeper.com (Ming Fu)
+Date: Fri, 23 Mar 2012 16:30:59 -0400
+Subject: [ragel-users] how to match beginning and end of payload.
+Message-ID: <4F6CDD83.1040303@netsweeper.com>
+
+Hi,
+
+I was trying to write a ragel equivalent of regular expression /^a.*b$/. 
+Basically matching input that start with 'a' and end with 'b'. The 
+document did not specifically say the $ of regular expression is supported.
+
+If I write something like:
+
+my_pattern = ( a ) > { if (*pe == 'b' )
+                                          action_match;
+                                      else
+                                          action_no_match ;
+                                    };
+
+main := my_pattern | some_other_patterns;
+
+
+what kind of action will cause the my_pattern to reach the final state 
+of the successful match of main?
+
+Best Regards,
+Ming
+
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tim at goddard.net.nz  Sat Mar 24 01:14:32 2012
+From: tim at goddard.net.nz (Timothy Goddard)
+Date: Sat, 24 Mar 2012 14:14:32 +1300
+Subject: [ragel-users] how to match beginning and end of payload.
+In-Reply-To: <4F6CDD83.1040303@netsweeper.com>
+References: <4F6CDD83.1040303@netsweeper.com>
+Message-ID: <201203241414.32635.tim@goddard.net.nz>
+
+Hi Ming,
+
+Once you write any* (equivalent to regexp .*) then there could be anything in 
+there, including the expression "b". It will never truly leave that machine as 
+however much input you provide and however many "b"s in encounters, you could 
+still be in the any* bit - an unlimited length sequence of any characters. 
+This is the same as regular expression behaviour, but can have unexpected 
+effects when actions are mixed in to the state machine.
+
+What you usually want to do is to say that the expression stops on the first 
+"b" - it matches the shortest possible sequence for any*. You can do this 
+either by excluding "b" from the matched characters, or embedding a priority. 
+The way to do this would be:
+
+"a" any* :>> "b"
+
+The :>> is an embedded priority operator - leaves the machine before it as 
+soon as the machine after it accepts (is matched). In this case, it says that 
+if we see a "b", assume that the any* bit is complete.
+
+Cheers,
+
+Tim
+
+On Saturday 24 March 2012 09:30:59 Ming Fu wrote:
+> Hi,
+> 
+> I was trying to write a ragel equivalent of regular expression /^a.*b$/.
+> Basically matching input that start with 'a' and end with 'b'. The
+> document did not specifically say the $ of regular expression is supported.
+> 
+> If I write something like:
+> 
+> my_pattern = ( a ) > { if (*pe == 'b' )
+>                                           action_match;
+>                                       else
+>                                           action_no_match ;
+>                                     };
+> 
+> main := my_pattern | some_other_patterns;
+> 
+> 
+> what kind of action will cause the my_pattern to reach the final state
+> of the successful match of main?
+> 
+> Best Regards,
+> Ming
+> 
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rustompmody at gmail.com  Sun Mar 25 04:17:00 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Sun, 25 Mar 2012 09:47:00 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+Message-ID: <CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+
+I asked Adrian Thurston the author of ragel if he would support help this
+project.
+His reply to me is here:
+
+Hi Rustom,
+
+I can certainly help with guidance. I'm about to relocate across much of
+canada and so I won't be able to crack open code very easiliy.
+
+Aurélien: my apologies I haven't responded. I certainly support your
+effort, just have had some big career/life changes going on.
+
+Regards,
+Adrian
+
+As for Nicolas:
+
+FYI, there is already an elisp Org parser being worked on in development
+branch of Org mode. It isn't finished yet, but still advanced enough so
+a generic exporter could be built upon it.
+
+Is there any interest in ignoring it and restart all the work from
+scratch?
+
+Yes I agree, no point redoing work unnecessarily.  Maybe the optimal
+solution would be for Aurélien to work with Nicolas and Adrian to minimize
+useless rework?
+
+Aurélien you now need to say what are your preferences in this matter.
+
+Rusi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20120325/ad72d5ec/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From aurelien.aptel at gmail.com  Tue Mar 27 20:03:09 2012
+From: aurelien.aptel at gmail.com (=?UTF-8?Q?Aur=C3=A9lien_Aptel?=)
+Date: Tue, 27 Mar 2012 22:03:09 +0200
+Subject: [ragel-users] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <87vclsykl6.fsf@gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+	<CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+	<CA+5B0FP1bkgdmG=0M59LXVhSJ+JOH_HTHw_RoFyXPoZ35RucTg@mail.gmail.com>
+	<87vclsykl6.fsf@gmail.com>
+Message-ID: <CA+5B0FP+ibOKuSfsfe2wpgNrA+eoWr-=JEoOTUSGoeGLdtoNBQ@mail.gmail.com>
+
+On Sun, Mar 25, 2012 at 1:40 PM, Nicolas Goaziou <n.goaziou at gmail.com> wrote:
+>> If so, I think it's ultimately a bad idea and it should be rewritten
+>> using ragel.
+>
+> It may be. But it allows for flexibility. Org's syntax is evolving, and
+> I consider org-element.el as a parser, but also as a guidance in that
+> process. Since there is no formal description for Org syntax yet, an
+> org-element.el is more useful than a full-blown parser generator for
+> now.
+
+Using a parser generator can be flexible too. Big changes in the
+syntax usually implies big changes in the parsing code. With a tool
+like ragel the operation is much less painful since the code is
+generated. Also, if the org syntax can be written as a grammar, it can
+be safely imported in other software that have a parser for it making
+the format more portable.
+
+> I don't know ragel (save for a short excursion in its website), but I'm
+> pretty sure that even if it generates elisp code without dependency, any
+> evolution to Org syntax will require to use it again. At that time, it
+> may be difficult to find someone able and willing to undertake that
+> updating task in a reasonable delay (since we're talking about a core
+> feature). On the other hand, there are quite a few elisp hackers in
+> Emacs's world.
+
+Frankly, I don't know ragel very much either. I've only used it on
+very simple things. But it's easy to use. You can even execute action
+at any state while parsing a token (look closely at the example on the
+homepage).
+
+> Now, if ragel can improve org-element.el while preserving its
+
+I'm not sure it's possible :/
+
+> flexibility (and a compatible output, since I assume you won't also
+> rewrite the generic export engine), I'm all ears.
+
+Yes, the output of the parser has to remain the same otherwise I would
+have to rewrite everything :p
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From aurelien.aptel at gmail.com  Tue Mar 27 20:49:58 2012
+From: aurelien.aptel at gmail.com (=?UTF-8?Q?Aur=C3=A9lien_Aptel?=)
+Date: Tue, 27 Mar 2012 22:49:58 +0200
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <87wr674aii.fsf@gnu.org>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+	<CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+	<CA+5B0FP1bkgdmG=0M59LXVhSJ+JOH_HTHw_RoFyXPoZ35RucTg@mail.gmail.com>
+	<87wr674aii.fsf@gnu.org>
+Message-ID: <CA+5B0FPazZwpfiBKHzje=hg75BECQXMYdFOD8C11zki3mR7t2w@mail.gmail.com>
+
+On Mon, Mar 26, 2012 at 6:01 PM, Bastien <bzg at gnu.org> wrote:
+>> Is it still hand written? If so, I think it's ultimately a bad idea
+>> and it should be rewritten using ragel.
+>
+> I guess that's because you're not fluent in english, but this sounds
+> a bit "peremptory".  We are not only interested in code, we are also
+
+Sorry I've made a bad impression or if my remarks feels a bit
+passive-agressive. It's harder (and longer) for me to write in
+english, yes :p
+
+> interested in learning from each others.  That's what make this list
+> a nice place to live in.  If you have code or explanations you want
+> to share, please do!
+
+From my classes, I thought it was widely accepted that sufficiently
+complex parsers should now be written by a tool like ragel. But again
+I'm not experienced, I never had to parse a complex language.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From dpcmain at gmail.com  Wed Mar  7 20:03:12 2012
+From: dpcmain at gmail.com (Pei Deng)
+Date: Thu, 8 Mar 2012 04:03:12 +0800
+Subject: [ragel-users] A problem with ragel
+Message-ID: <CAPJ3TydB_tif5i2tp4n2cuLzQsc1a6QAGbGbKZGFewmkc+74AA@mail.gmail.com>
+
+Hi all,
+
+When i want to use ragel to parser uri abnf from rfc3986, but meet some
+error.
+
+First, i get the abnf from that rfc, then convert it to ragel form. As
+bellow:
+#-----------------------------------------------------------------------------------------------------
+%%{
+machine URI;
+
+action ActionStartScheme { StartScheme(fpc); }
+action ActionEndScheme { EndScheme(fpc); }
+
+action ActionStartAuthority { StartAuthority(fpc); }
+action ActionEndAuthority { EndAuthority(fpc); }
+
+action ActionStartUser { StartUser(fpc); }
+action ActionEndUser { EndUser(fpc); }
+
+action ActionStartHost { StartHost(fpc); }
+action ActionEndHost { EndHost(fpc); }
+
+action ActionStartPort { StartPort(fpc); }
+action ActionEndPort { EndPort(fpc); }
+
+action ActionStartPath { StartPath(fpc); }
+action ActionEndPath { EndPath(fpc); }
+
+action ActionStartQuery { StartQuery(fpc); }
+action ActionEndQuery { EndQuery(fpc); }
+
+action ActionStartFragment { StartFragment(fpc); }
+action ActionEndFragment { EndFragment(fpc); }
+
+action All { printf("%c", fc); }
+
+#ALPHA = %x41-5A / %x61-7A
+ALPHA = 0x41..0x5A | 0x61..0x7A;
+
+#CR = %x0D
+CR = 0x0D;
+
+#DIGIT = %x30-39
+DIGIT = 0x30..0x39;
+
+#DQUOTE = %x22
+DQUOTE = 0x22;
+
+#HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIG = DIGIT | "A" | "B" | "C" | "D" | "E" | "F";
+
+#LF = %x0A
+LF = 0x0A;
+
+#SP = %x20
+SP = 0x20;
+
+#unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+unreserved = ALPHA | DIGIT | "-" | "." | "_" | "~";
+
+#dec-octet = ( DIGIT ) / ( %x31-39 DIGIT ) / ( "1" 2DIGIT ) / ( "2" %x30-34
+DIGIT ) / ( "25" %x30-35 )
+dec_octet = ( DIGIT ) | ( 0x31..0x39 DIGIT ) | ( "1" DIGIT{2} ) | ( "2"
+0x30..0x34 DIGIT ) | ( "25" 0x30..0x35 );
+
+#pct-encoded = "%" HEXDIG HEXDIG
+pct_encoded = "%" HEXDIG HEXDIG;
+
+#gen-delims = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+gen_delims = ":" | "/" | "?" | "#" | "[" | "]" | "@";
+
+#sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
+"="
+sub_delims = "!" | "$" | "&" | "'" | "(" | ")" | "*" | "+" | "," | ";" |
+"=";
+
+#reserved = gen-delims / sub-delims
+reserved = gen_delims | sub_delims;
+
+#pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
+pchar = unreserved | pct_encoded | sub_delims | ":" | "@";
+
+#query = *( pchar / "/" / "?" )
+query = ( ( pchar | "/" | "?" )* );
+
+#fragment = *( pchar / "/" / "?" )
+fragment = ( pchar | "/" | "?" )*;
+
+#segment = *pchar
+segment = pchar*;
+
+#segment-nz = 1*pchar
+segment_nz = pchar+;
+
+#segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
+segment_nz_nc = ( unreserved | pct_encoded | sub_delims | "@" )+;
+
+#path-empty = 0<pchar>
+path_empty = "";
+
+#path-noscheme = segment-nz-nc *( "/" segment )
+path_noscheme = ( segment_nz_nc ( "/" segment )* ) $All;
+
+#path-rootless = segment-nz *( "/" segment )
+path_rootless = ( segment_nz ( "/" segment )* ) $All;
+
+#path-absolute = "/" [ segment-nz *( "/" segment ) ]
+path_absolute = ( "/" ( segment_nz ( "/" segment )* )? ) $All;
+
+#path-abempty = *( "/" segment )
+path_abempty = ( ( "/" segment )* ) $All;
+
+#path = path-abempty / path-absolute / path-noscheme / path-rootless /
+path-empty
+path = path_abempty | path_absolute | path_noscheme | path_rootless |
+path_empty;
+
+#reg-name = *( unreserved / pct-encoded / sub-delims )
+reg_name = ( unreserved | pct_encoded | sub_delims )*;
+
+#IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
+IPv4address = dec_octet "." dec_octet "." dec_octet "." dec_octet;
+
+#h16 = 1*4HEXDIG
+h16 = HEXDIG{1,4};
+
+#ls32 = ( h16 ":" h16 ) / IPv4address
+ls32 = ( h16 ":" h16 ) | IPv4address;
+
+#IPv6address = ( 6( h16 ":" ) ls32 ) / ( "::" 5( h16 ":" ) ls32 ) / ( [ h16
+] "::" 4( h16 ":" ) ls32 ) / ( [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+) / ( [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32 ) / ( [ *3( h16 ":" )
+h16 ] "::" h16 ":" ls32 ) / ( [ *4( h16 ":" ) h16 ] "::" ls32 ) / ( [ *5(
+h16 ":" ) h16 ] "::" h16 ) / ( [ *6( h16 ":" ) h16 ] "::" )
+IPv6address = ( ( h16 ":" ){6} ls32 ) | ( "::" ( h16 ":" ){5} ls32 ) | (
+h16? "::" ( h16 ":" ){4} ls32 ) | ( ( ( h16 ":" ){0,1} h16 )? "::" ( h16
+":" ){3} ls32 ) | ( ( ( h16 ":" ){0,2} h16 )? "::" ( h16 ":" ){2} ls32 ) |
+( ( ( h16 ":" ){0,3} h16 )? "::" h16 ":" ls32 ) | ( ( ( h16 ":" ){0,4} h16
+)? "::" ls32 ) | ( ( ( h16 ":" ){0,5} h16 )? "::" h16 ) | ( ( ( h16 ":"
+){0,6} h16 )? "::" );
+
+#IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+IPvFuture = "v" HEXDIG+ "." ( unreserved | sub_delims | ":" )+;
+
+#IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+IP_literal = "[" ( IPv6address | IPvFuture  ) "]";
+
+#port = *DIGIT
+port = DIGIT*;
+
+#host = IP-literal / IPv4address / reg-name
+host = IP_literal | IPv4address | reg_name;
+
+#userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+userinfo = ( unreserved | pct_encoded | sub_delims | ":" )*;
+
+#authority = [ userinfo "@" ] host [ ":" port ]
+authority = ( userinfo "@" )? host ( ":" port )?;
+
+#scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+scheme = ALPHA ( ALPHA | DIGIT | "+" | "-" | "." )*;
+
+#relative-part = ( "//" authority path-abempty ) / ( path-absolute ) / (
+path-noscheme ) / ( path-empty )
+relative_part = ( "//" authority path_abempty ) | ( path_absolute ) | (
+path_noscheme ) | ( path_empty );
+
+#relative-ref = relative-part [ "?" query ] [ "#" fragment ]
+relative_ref = relative_part ( "?" query )? ( "#" fragment )?;
+
+#hier-part = ( "//" authority path-abempty ) / ( path-absolute ) / (
+path-rootless ) / ( path-empty )
+hier_part = ( "//" authority path_abempty ) | ( path_absolute) | (
+path_rootless ) | ( path_empty );
+
+#absolute-URI = scheme ":" hier-part [ "?" query ]
+absolute_URI = scheme ":" hier_part ( "?" query )?;
+
+#URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+URI = scheme ":" hier_part ( "?" query )? ( "#" fragment )?;
+
+#URI-reference = URI / relative-ref
+URI_reference = URI | relative_ref;
+
+main := URI_reference | absolute_URI;
+}%%
+#-----------------------------------------------------------------------------------------------------
+
+I want to get the path from a uri, example as:
+"http://www.complang.org/ragel/examples/clang.rl"
+should out put:
+"/ragel/examples/clang.rl"
+but i get:
+"http//ragel/examples/clang.rl"
+
+I have read the doc of ragel, but i don't know where i do wrong.
+I have work on this problem several days :-(, so please give me some help,
+thanks very much :-)
+
+ps.
+my all need is to get some part information from a uri.
+i have see XuLang's question in this maillist, but i want to implement a
+all rfc 3986 abnf, not only a common regex match.
+
+
+
+-- 
+
+*Regards,*
+*Deng Pei*
+*
+*
+*Software Engineering Institute*
+*Email: dpcmain at gmail.com*
+*Address: East China Normal University, Shanghai, China 200062*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120308/5c3093cf/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From kevin.t.ryan at gmail.com  Wed Mar  7 21:18:54 2012
+From: kevin.t.ryan at gmail.com (Kevin T. Ryan)
+Date: Wed, 7 Mar 2012 16:18:54 -0500
+Subject: [ragel-users] Potential Bug?
+Message-ID: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+
+Hi - I think I've run into a bug.  If I create a file like:
+
+
+#include <stdio.h>
+
+%%{
+    machine test;
+
+    main := |*
+        [^] { printf("CARET\n"); };
+    *|;
+}%%
+
+%% write data;
+
+and try to run it with ragel -G2 test.rl -o test.c, ragel crashes.
+Changing the line starting with '[^]' to '"^"' fixes the problem, but
+I don't think Ragel should crash, but rather print an error message
+stating that it encountered invalid input at line xxxx.  ragel -v
+gives me:
+
+Ragel State Machine Compiler version 6.7 May 2011
+Copyright (c) 2001-2009 by Adrian Thurston
+
+I am on Windows XP.  Hope this is helpful.  Thanks!
+
+ktr
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From luislavena at gmail.com  Tue Mar 13 20:00:19 2012
+From: luislavena at gmail.com (Luis Lavena)
+Date: Tue, 13 Mar 2012 17:00:19 -0300
+Subject: [ragel-users] Possible compilation error with GCC 4.7.0?
+Message-ID: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+
+Hello,
+
+While testing GCC 4.7.0 and clang 3.1, found the following problem
+when attempting to compile Ragel:
+
+First, with GCC 4.7.0:
+https://gist.github.com/2028996
+
+Later with clang 3.1.
+https://gist.github.com/2030776
+
+While the platform is MinGW (Windows), I don't think that is the issue
+exposed here as Ragel 6.7 compiles properly with GCC 4.6.1 and 4.6.2
+
+Is there a bug tracker to report this?
+
+Thank you.
+-- 
+Luis Lavena
+AREA 17
+-
+Perfection in design is achieved not when there is nothing more to add,
+but rather when there is nothing more to take away.
+Antoine de Saint-Exupéry
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Thu Mar 15 02:09:57 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Wed, 14 Mar 2012 19:09:57 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+Message-ID: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+
+Joesph Stewart,
+
+I think you were doing some work with binary protocols earlier. Any
+chance you can post some examples?
+
+Andrew,
+
+Reading some of your older posts, it seems that you were going to have
+stronger support for binary protocols in version 7. Is that still true?
+If so, any idea when we can expect to see this?
+
+-- 
+http://www.fastmail.fm - The way an email service should be
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Thu Mar 15 02:10:52 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Wed, 14 Mar 2012 19:10:52 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+Message-ID: <1331777452.26932.140661049375581@webmail.messagingengine.com>
+
+Joesph Stewart,
+
+I think you were doing some work with binary protocols earlier. Any
+chance you can post some examples?
+
+Andrew,
+
+Reading some of your older posts, it seems that you were going to have
+stronger support for binary protocols in version 7. Is that still true?
+If so, any idea when we can expect to see this?
+
+-- 
+http://www.fastmail.fm - A no graphics, no pop-ups email service
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From joseph.stewart at gmail.com  Thu Mar 15 23:08:35 2012
+From: joseph.stewart at gmail.com (Joseph Stewart)
+Date: Thu, 15 Mar 2012 16:08:35 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+Message-ID: <CANGQBe4--GimYgRwabhKB_46ibd+idxaHdH7ERdKkdnM50LEKw@mail.gmail.com>
+
+Sure... I'll share a "working example" from what I was working on at the
+time. Pleas keep in mind I wrote this over 8 months ago and never placed it
+into production (I've moved to a new role since them).
+
+Anyway beyond what's in the attached example, I had a terrible file format
+that I'd written an equally terrible state machine to read. This sample
+only deals with the wrapper part of the file. Essentially it looks like:
+
+opening xml-like tag with parameters type and info... this looks like
+<XRNDATA08192> the code
+length... this is a 4-byte little endian length
+binary blog of length bytes... binary data of the length from the previous
+element
+closing xml-like tag... this looks like </XRNDATA> in the code
+
+Finally, here's the C-code pasted below
+
+//----code start----
+#include <stdio.h>
+
+/*
+
+chunks in file look like
+
+<XRNDATA08192020001>LenData</XRNDATA>
+where "08192" is an ASCII type designator (can expect other types)
+where "020001" is an ASCII information field
+where Len is a 4-byte little endian length designator
+where Data is binary data of Len length
+
+*/
+
+#define XRN 'X', 'R', 'N', 'D', 'A', 'T', 'A'
+#define T1  '0', '8', '1', '9', '2'
+#define T2  '0', '0', '0', '1', '6'
+#define T3  '0', '0', '0', '0', '8'
+#define T4  '0', '0', '0', '0', '1'
+#define I1  '0', '2', '0', '0', '0', '1'
+
+%%{
+machine tds;
+write data;
+}%%
+
+int main() {
+int len = 0;
+unsigned char buf[] = {
+'<', XRN, T1, I1, '>', 0, 0, 0, 5, 48,49,50,51,52, '<', '/', XRN, '>',
+'<', XRN, T2, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T3, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T4, I1, '>', 0, 0, 0, 1, 10, '<', '/', XRN, '>',
+'<', XRN, T1, I1, '>', 0, 0, 0, 0, '<', '/', XRN, '>',
+'<', T1, I1, '>', 0, 0, 0, 0, '<', '/', XRN, '>',
+};
+int cs, r = 0;
+unsigned char *p = (unsigned char *)&buf;
+unsigned char *pe = p + sizeof(buf);
+unsigned char *eof = NULL;
+printf("len=%d\n", len);
+%%{
+t1 = '08192' @{ printf("t1\n"); };
+t2 = '00016' @{ printf("t2\n"); };
+t3 = '00008' @{ printf("t3\n"); };
+t4 = '00001' @{ printf("t4\n"); };
+type = (t1 | t2 | t3 | t4);
+info = '020001';
+open = '<XRNDATA' type info '>' @{ printf("begin XRNDATA\n"); len = 0; };
+len = extend{4} @{ printf("len = %d\n", (int)*p); len = (len*256) + (*p); };
+action check {len--}
+action bad {printf("BAD\n");}
+buffer = (any when check)* %when !check @{ printf("[%d]:%d\n", len, *p); };
+close = '</XRNDATA>' @{ printf("end XRNDATA\n"); };
+expr = (
+open @lerr(bad)
+len
+buffer
+close
+);
+main := expr* ;
+write init;
+write exec;
+}%%
+return 0;
+}
+//----code end----
+
+On Wed, Mar 14, 2012 at 7:09 PM, <pyguest at fastmail.fm> wrote:
+
+> Joesph Stewart,
+>
+> I think you were doing some work with binary protocols earlier. Any
+> chance you can post some examples?
+>
+> Andrew,
+>
+> Reading some of your older posts, it seems that you were going to have
+> stronger support for binary protocols in version 7. Is that still true?
+> If so, any idea when we can expect to see this?
+>
+> --
+> http://www.fastmail.fm - The way an email service should be
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120315/2b475bab/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Mar 17 01:26:57 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:26:57 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+Message-ID: <4F63E861.1040905@complang.org>
+
+Most of my binary protocol stuff is for work so unfortunately I can't 
+post that. There is some binary protocol stuff in the DSNP 
+implementation, but it's not extensive. I'm hoping 7.0 comes out 
+sometime in the next four months. The changes run deep, right down to 
+the core of the NFA -> DFA algorithm and so I'm in no rush.
+
+On 12-03-14 07:09 PM, pyguest at fastmail.fm wrote:
+> Joesph Stewart,
+>
+> I think you were doing some work with binary protocols earlier. Any
+> chance you can post some examples?
+>
+> Andrew,
+>
+> Reading some of your older posts, it seems that you were going to have
+> stronger support for binary protocols in version 7. Is that still true?
+> If so, any idea when we can expect to see this?
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar 17 01:28:54 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:28:54 -0700
+Subject: [ragel-users] Potential Bug?
+In-Reply-To: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+References: <CALBzPRn0hsNOW9vMwpe8GvuHKUY6ufiC2P1aBSMYW28BtzbsSg@mail.gmail.com>
+Message-ID: <4F63E8D6.8030603@complang.org>
+
+Definitely a bug. That should be a syntax error and not a crash.
+
+Thanks!
+
+-Adrian
+
+On 12-03-07 01:18 PM, Kevin T. Ryan wrote:
+> Hi - I think I've run into a bug.  If I create a file like:
+>
+>
+> #include<stdio.h>
+>
+> %%{
+>      machine test;
+>
+>      main := |*
+>          [^] { printf("CARET\n"); };
+>      *|;
+> }%%
+>
+> %% write data;
+>
+> and try to run it with ragel -G2 test.rl -o test.c, ragel crashes.
+> Changing the line starting with '[^]' to '"^"' fixes the problem, but
+> I don't think Ragel should crash, but rather print an error message
+> stating that it encountered invalid input at line xxxx.  ragel -v
+> gives me:
+>
+> Ragel State Machine Compiler version 6.7 May 2011
+> Copyright (c) 2001-2009 by Adrian Thurston
+>
+> I am on Windows XP.  Hope this is helpful.  Thanks!
+>
+> ktr
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Mar 17 01:34:09 2012
+From: thurston at complang.org (Adrian Thurston)
+Date: Fri, 16 Mar 2012 18:34:09 -0700
+Subject: [ragel-users] Possible compilation error with GCC 4.7.0?
+In-Reply-To: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+References: <CAN_J9atQQvjK7qF9W2R72_8YZSYZ_yDNqtppucyap6aKCT4RFA@mail.gmail.com>
+Message-ID: <4F63EA11.2080503@complang.org>
+
+Thanks Luis. The mailinglist is the right place to post these. I track 
+issues with redmine, but that's not open to the public for writing. The 
+volume of reports I get is low enough at this time.
+
+Regards,
+  Adrian
+
+On 12-03-13 01:00 PM, Luis Lavena wrote:
+> Hello,
+>
+> While testing GCC 4.7.0 and clang 3.1, found the following problem
+> when attempting to compile Ragel:
+>
+> First, with GCC 4.7.0:
+> https://gist.github.com/2028996
+>
+> Later with clang 3.1.
+> https://gist.github.com/2030776
+>
+> While the platform is MinGW (Windows), I don't think that is the issue
+> exposed here as Ragel 6.7 compiles properly with GCC 4.6.1 and 4.6.2
+>
+> Is there a bug tracker to report this?
+>
+> Thank you.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From pyguest at fastmail.fm  Sat Mar 17 15:30:29 2012
+From: pyguest at fastmail.fm (pyguest at fastmail.fm)
+Date: Sat, 17 Mar 2012 08:30:29 -0700
+Subject: [ragel-users] Handling binary protocols with ragel
+In-Reply-To: <4F63E861.1040905@complang.org>
+References: <1331777397.25985.140661049375581@webmail.messagingengine.com>
+	<4F63E861.1040905@complang.org>
+Message-ID: <1331998229.19922.140661050459501@webmail.messagingengine.com>
+
+> implementation, but it's not extensive. I'm hoping 7.0 comes out 
+> sometime in the next four months. The changes run deep, right down to 
+> the core of the NFA -> DFA algorithm and so I'm in no rush.
+
+Thanks. What kind of support will there for binary protocols in version
+7.0? 
+Will it allow ability to work with bits or mostly at the byte level?
+
+-- 
+http://www.fastmail.fm - The professional email service
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rustompmody at gmail.com  Fri Mar 23 11:36:35 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 23 Mar 2012 17:06:35 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+Message-ID: <CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+
+On Fri, Mar 23, 2012 at 4:42 PM, Aurélien Aptel <aurelien.aptel at gmail.com>wrote:
+
+> So, as an experienced org-mode developper you're saying it's very
+> hard? I should focus on the ragel part in the application and try to
+> go as far as i can for org-mode then. I still need something I can be
+> evaluated to for the mid-term and final evaluation.
+>
+> Can you be my mentor? If no one can I should apply for another project :/
+>
+
+I am rather far from being an org mode developer; just a user.
+
+Adding a ragel backend for elisp on its own is too small for a gsoc project
+Using ragelized elisp to rewrite orgmode is a wonderful project, but large.
+
+The best solution is to chalk out a subset of the latter and work at that
+
+Ive cced the ragel list in case Adrian Thurston, the ragel author, thinks
+differently
+
+For the first Adrian and the ragel list is your best bet.
+For the second the orgmode list and developers.
+
+For myself I am interested and would like to be informed. I dont think I
+know enough of the internals of either to be the sole responsible party.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120323/b016b9d1/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From rustompmody at gmail.com  Fri Mar 23 12:27:15 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Fri, 23 Mar 2012 17:57:15 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+Message-ID: <CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+
+Just adding some context for my earlier post
+
+The org mode thread
+http://thread.gmane.org/gmane.emacs.orgmode/53735
+
+The org-mode gsoc project
+http://orgmode.org/worg/org-contrib/gsoc2012/orgmode-gsoc2012-ideas.html#sec-1-3
+
+
+On Fri, Mar 23, 2012 at 5:06 PM, Rustom Mody <rustompmody at gmail.com> wrote:
+
+> On Fri, Mar 23, 2012 at 4:42 PM, Aurélien Aptel <aurelien.aptel at gmail.com>wrote:
+>
+>> So, as an experienced org-mode developper you're saying it's very
+>> hard? I should focus on the ragel part in the application and try to
+>> go as far as i can for org-mode then. I still need something I can be
+>> evaluated to for the mid-term and final evaluation.
+>>
+>> Can you be my mentor? If no one can I should apply for another project :/
+>>
+>
+> I am rather far from being an org mode developer; just a user.
+>
+> Adding a ragel backend for elisp on its own is too small for a gsoc project
+> Using ragelized elisp to rewrite orgmode is a wonderful project, but large.
+>
+> The best solution is to chalk out a subset of the latter and work at that
+>
+> Ive cced the ragel list in case Adrian Thurston, the ragel author, thinks
+> differently
+>
+> For the first Adrian and the ragel list is your best bet.
+> For the second the orgmode list and developers.
+>
+> For myself I am interested and would like to be informed. I dont think I
+> know enough of the internals of either to be the sole responsible party.
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120323/e24a60d2/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ming.fu at netsweeper.com  Fri Mar 23 20:30:59 2012
+From: ming.fu at netsweeper.com (Ming Fu)
+Date: Fri, 23 Mar 2012 16:30:59 -0400
+Subject: [ragel-users] how to match beginning and end of payload.
+Message-ID: <4F6CDD83.1040303@netsweeper.com>
+
+Hi,
+
+I was trying to write a ragel equivalent of regular expression /^a.*b$/. 
+Basically matching input that start with 'a' and end with 'b'. The 
+document did not specifically say the $ of regular expression is supported.
+
+If I write something like:
+
+my_pattern = ( a ) > { if (*pe == 'b' )
+                                          action_match;
+                                      else
+                                          action_no_match ;
+                                    };
+
+main := my_pattern | some_other_patterns;
+
+
+what kind of action will cause the my_pattern to reach the final state 
+of the successful match of main?
+
+Best Regards,
+Ming
+
+
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From tim at goddard.net.nz  Sat Mar 24 01:14:32 2012
+From: tim at goddard.net.nz (Timothy Goddard)
+Date: Sat, 24 Mar 2012 14:14:32 +1300
+Subject: [ragel-users] how to match beginning and end of payload.
+In-Reply-To: <4F6CDD83.1040303@netsweeper.com>
+References: <4F6CDD83.1040303@netsweeper.com>
+Message-ID: <201203241414.32635.tim@goddard.net.nz>
+
+Hi Ming,
+
+Once you write any* (equivalent to regexp .*) then there could be anything in 
+there, including the expression "b". It will never truly leave that machine as 
+however much input you provide and however many "b"s in encounters, you could 
+still be in the any* bit - an unlimited length sequence of any characters. 
+This is the same as regular expression behaviour, but can have unexpected 
+effects when actions are mixed in to the state machine.
+
+What you usually want to do is to say that the expression stops on the first 
+"b" - it matches the shortest possible sequence for any*. You can do this 
+either by excluding "b" from the matched characters, or embedding a priority. 
+The way to do this would be:
+
+"a" any* :>> "b"
+
+The :>> is an embedded priority operator - leaves the machine before it as 
+soon as the machine after it accepts (is matched). In this case, it says that 
+if we see a "b", assume that the any* bit is complete.
+
+Cheers,
+
+Tim
+
+On Saturday 24 March 2012 09:30:59 Ming Fu wrote:
+> Hi,
+> 
+> I was trying to write a ragel equivalent of regular expression /^a.*b$/.
+> Basically matching input that start with 'a' and end with 'b'. The
+> document did not specifically say the $ of regular expression is supported.
+> 
+> If I write something like:
+> 
+> my_pattern = ( a ) > { if (*pe == 'b' )
+>                                           action_match;
+>                                       else
+>                                           action_no_match ;
+>                                     };
+> 
+> main := my_pattern | some_other_patterns;
+> 
+> 
+> what kind of action will cause the my_pattern to reach the final state
+> of the successful match of main?
+> 
+> Best Regards,
+> Ming
+> 
+> 
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From rustompmody at gmail.com  Sun Mar 25 04:17:00 2012
+From: rustompmody at gmail.com (Rustom Mody)
+Date: Sun, 25 Mar 2012 09:47:00 +0530
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+Message-ID: <CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+
+I asked Adrian Thurston the author of ragel if he would support help this
+project.
+His reply to me is here:
+
+Hi Rustom,
+
+I can certainly help with guidance. I'm about to relocate across much of
+canada and so I won't be able to crack open code very easiliy.
+
+Aurélien: my apologies I haven't responded. I certainly support your
+effort, just have had some big career/life changes going on.
+
+Regards,
+Adrian
+
+As for Nicolas:
+
+FYI, there is already an elisp Org parser being worked on in development
+branch of Org mode. It isn't finished yet, but still advanced enough so
+a generic exporter could be built upon it.
+
+Is there any interest in ignoring it and restart all the work from
+scratch?
+
+Yes I agree, no point redoing work unnecessarily.  Maybe the optimal
+solution would be for Aurélien to work with Nicolas and Adrian to minimize
+useless rework?
+
+Aurélien you now need to say what are your preferences in this matter.
+
+Rusi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20120325/ad72d5ec/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From aurelien.aptel at gmail.com  Tue Mar 27 20:03:09 2012
+From: aurelien.aptel at gmail.com (=?UTF-8?Q?Aur=C3=A9lien_Aptel?=)
+Date: Tue, 27 Mar 2012 22:03:09 +0200
+Subject: [ragel-users] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <87vclsykl6.fsf@gmail.com>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+	<CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+	<CA+5B0FP1bkgdmG=0M59LXVhSJ+JOH_HTHw_RoFyXPoZ35RucTg@mail.gmail.com>
+	<87vclsykl6.fsf@gmail.com>
+Message-ID: <CA+5B0FP+ibOKuSfsfe2wpgNrA+eoWr-=JEoOTUSGoeGLdtoNBQ@mail.gmail.com>
+
+On Sun, Mar 25, 2012 at 1:40 PM, Nicolas Goaziou <n.goaziou at gmail.com> wrote:
+>> If so, I think it's ultimately a bad idea and it should be rewritten
+>> using ragel.
+>
+> It may be. But it allows for flexibility. Org's syntax is evolving, and
+> I consider org-element.el as a parser, but also as a guidance in that
+> process. Since there is no formal description for Org syntax yet, an
+> org-element.el is more useful than a full-blown parser generator for
+> now.
+
+Using a parser generator can be flexible too. Big changes in the
+syntax usually implies big changes in the parsing code. With a tool
+like ragel the operation is much less painful since the code is
+generated. Also, if the org syntax can be written as a grammar, it can
+be safely imported in other software that have a parser for it making
+the format more portable.
+
+> I don't know ragel (save for a short excursion in its website), but I'm
+> pretty sure that even if it generates elisp code without dependency, any
+> evolution to Org syntax will require to use it again. At that time, it
+> may be difficult to find someone able and willing to undertake that
+> updating task in a reasonable delay (since we're talking about a core
+> feature). On the other hand, there are quite a few elisp hackers in
+> Emacs's world.
+
+Frankly, I don't know ragel very much either. I've only used it on
+very simple things. But it's easy to use. You can even execute action
+at any state while parsing a token (look closely at the example on the
+homepage).
+
+> Now, if ragel can improve org-element.el while preserving its
+
+I'm not sure it's possible :/
+
+> flexibility (and a compatible output, since I assume you won't also
+> rewrite the generic export engine), I'm all ears.
+
+Yes, the output of the parser has to remain the same otherwise I would
+have to rewrite everything :p
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From aurelien.aptel at gmail.com  Tue Mar 27 20:49:58 2012
+From: aurelien.aptel at gmail.com (=?UTF-8?Q?Aur=C3=A9lien_Aptel?=)
+Date: Tue, 27 Mar 2012 22:49:58 +0200
+Subject: [ragel-users] [O] GSoC 2012 -- Elisp backend for Ragel
+In-Reply-To: <87wr674aii.fsf@gnu.org>
+References: <CAJ+TeoeqNvkOyZQAA9Prkh+gyuhGxNqA-H5d-fwo8R70RDLj=A@mail.gmail.com>
+	<CA+5B0FPLmMzJw0TJ1os_gYfZSU17=_ZzC8dkpmNUF=SXW1NK5w@mail.gmail.com>
+	<CAJ+Teof96icFpJdEgbMiZssUdgN7MTUUiQM+uW3pnv44SZGoJg@mail.gmail.com>
+	<CAJ+TeoebkVTLs9nrDTH_6xvzvkk1vTEZDL2iHmEAkTUfZRjpjQ@mail.gmail.com>
+	<CAJ+TeofzD-ScXPL1ajAb7wHeAP4xRWpT+4kzgy-PG_h5XoMSqA@mail.gmail.com>
+	<CA+5B0FP1bkgdmG=0M59LXVhSJ+JOH_HTHw_RoFyXPoZ35RucTg@mail.gmail.com>
+	<87wr674aii.fsf@gnu.org>
+Message-ID: <CA+5B0FPazZwpfiBKHzje=hg75BECQXMYdFOD8C11zki3mR7t2w@mail.gmail.com>
+
+On Mon, Mar 26, 2012 at 6:01 PM, Bastien <bzg at gnu.org> wrote:
+>> Is it still hand written? If so, I think it's ultimately a bad idea
+>> and it should be rewritten using ragel.
+>
+> I guess that's because you're not fluent in english, but this sounds
+> a bit "peremptory".  We are not only interested in code, we are also
+
+Sorry I've made a bad impression or if my remarks feels a bit
+passive-agressive. It's harder (and longer) for me to write in
+english, yes :p
+
+> interested in learning from each others.  That's what make this list
+> a nice place to live in.  If you have code or explanations you want
+> to share, please do!
+
+From my classes, I thought it was widely accepted that sufficiently
+complex parsers should now be written by a tool like ragel. But again
+I'm not experienced, I never had to parse a complex language.
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+

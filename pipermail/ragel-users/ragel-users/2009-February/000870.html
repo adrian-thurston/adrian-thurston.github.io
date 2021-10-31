@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Generating code for gcc 2.95
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Generating%20code%20for%20gcc%202.95&In-Reply-To=%3CC2B6FA80-46F7-4E88-88F0-BE749397E7A8%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000869.html">
+   <LINK REL="Next"  HREF="000877.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Generating code for gcc 2.95</H1>
+    <B>Eric Brown</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Generating%20code%20for%20gcc%202.95&In-Reply-To=%3CC2B6FA80-46F7-4E88-88F0-BE749397E7A8%40mac.com%3E"
+       TITLE="[ragel-users] Generating code for gcc 2.95">yogieric at mac.com
+       </A><BR>
+    <I>Wed Feb 18 08:29:15 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000869.html">[ragel-users] A scanner within a scanner?
+</A></li>
+        <LI>Next message: <A HREF="000877.html">[ragel-users] Generating code for gcc 2.95
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#870">[ date ]</a>
+              <a href="thread.html#870">[ thread ]</a>
+              <a href="subject.html#870">[ subject ]</a>
+              <a href="author.html#870">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have a customer still deploying to rather old/stable systems that  
+run on gcc 2.95.
+
+The only problem I'm noticing is that gcc 2.95 wants all variables  
+declared at the top of a scope. Ragel is generating something like  
+this: (which generates a syntax error when it sees const)
+...
+         if ( _msg_eof_trans[cs] &gt; 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- &gt; 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+...
+
+If I add one layer of scope, gcc 2.95 compiles properly:
+         if ( _msg_eof_trans[cs] &gt; 0 ) {
+                 _trans = _msg_eof_trans[cs] - 1;
+                 goto _eof_trans;
+         }
+{
+         const char *__acts = _msg_actions + _msg_eof_actions[cs];
+         unsigned int __nacts = (unsigned int) *__acts++;
+         while ( __nacts-- &gt; 0 ) {
+                 switch ( *__acts++ ) {
+                 case 12:
+                         { p--; {stack[top++] = cs; cs = 176; goto  
+_again;} }
+                         break;
+                 }
+         }
+}
+
+I hate to manually hack the ragel output this way. If there's a ragel  
+or gcc option I'm missing, please let me know.
+
+
+Got around this by using flat table-driven FSM (-F1). Still thought  
+the problems I was having were worth mentioning here.
+
+Cheers,
+Eric
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000869.html">[ragel-users] A scanner within a scanner?
+</A></li>
+	<LI>Next message: <A HREF="000877.html">[ragel-users] Generating code for gcc 2.95
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#870">[ date ]</a>
+              <a href="thread.html#870">[ thread ]</a>
+              <a href="subject.html#870">[ subject ]</a>
+              <a href="author.html#870">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

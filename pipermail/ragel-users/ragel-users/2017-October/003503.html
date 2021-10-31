@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel] Handling non-determinism with backtracking
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel%5D%20Handling%20non-determinism%20with%20backtracking&In-Reply-To=%3C2c3cf86aecc954027492a2736fc12a89%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003501.html">
+   <LINK REL="Next"  HREF="003502.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel] Handling non-determinism with backtracking</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel%5D%20Handling%20non-determinism%20with%20backtracking&In-Reply-To=%3C2c3cf86aecc954027492a2736fc12a89%40mail.colm.net%3E"
+       TITLE="[ragel] Handling non-determinism with backtracking">thurston at colm.net
+       </A><BR>
+    <I>Wed Oct 18 21:41:47 UTC 2017</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003501.html">[ragel] Handling non-determinism with backtracking
+</A></li>
+        <LI>Next message: <A HREF="003502.html">[ragel] Ragel sanitise output - memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3503">[ date ]</a>
+              <a href="thread.html#3503">[ thread ]</a>
+              <a href="subject.html#3503">[ subject ]</a>
+              <a href="author.html#3503">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Rick,
+
+The last time I wrote a mime parser with ragel all the parser had to do 
+was to find the boundaries and possibly emit the parsed sections to a 
+chained to parser. When a boundary match failed the content matched so 
+far became an emitted text line and I could just use the prefix of the 
+boundary that matched so far.
+
+If you need to backtrack to parse see the section in the manual on 
+buffer boundaries and backtracking. It's not straightforward, but if the 
+common case is that you will match the text and only occasionally need 
+to backtrack it can be very fast.
+
+Glad you like the tool!
+
+Best regards,
+  Adrian
+
+On 2017-10-07 16:32, Rick van Rein wrote:
+&gt;<i> Hello,
+</I>&gt;<i> 
+</I>&gt;<i> I finally have a good application of Ragel :-D and really enjoy
+</I>&gt;<i> capturing aspects of email grammar into orthogonal regular expressions!
+</I>&gt;<i> 
+</I>&gt;<i> I am working on a Lenient DKIM extension, and need to detect email
+</I>&gt;<i> headers and MIME structure and body parts for that purpose.  Since MIME
+</I>&gt;<i> bodies are the only recursive bits in email syntax, Ragel appears to be
+</I>&gt;<i> an excellent tool.
+</I>&gt;<i> 
+</I>&gt;<i> MIME body parts are separated with --boundary, which I have expressed 
+</I>&gt;<i> as
+</I>&gt;<i> the following form, where the boundary_string will become a comparison
+</I>&gt;<i> with a previously collected string.  At any point in a message, there 
+</I>&gt;<i> is
+</I>&gt;<i> no more than one candidate boundary_string to compare to.
+</I>&gt;<i> 
+</I>&gt;<i> mime_multipart_boundary =
+</I>&gt;<i>     crlf
+</I>&gt;<i>     '-'{2}
+</I>&gt;<i>     boundary_string
+</I>&gt;<i>     lin_wsp*
+</I>&gt;<i>     crlf ;
+</I>&gt;<i> 
+</I>&gt;<i> I would like to backtrack when the boundary_string or other parts of
+</I>&gt;<i> this rule mismatch.  In my current syntax there is a
+</I>&gt;<i> non-deterministically combining alternative for the last boundary
+</I>&gt;<i> string, which I expect to merge with the one above without further
+</I>&gt;<i> problems, and otherwise I might do it manually,
+</I>&gt;<i> 
+</I>&gt;<i> mime_multipart_terminal =
+</I>&gt;<i>     crlf
+</I>&gt;<i>     '-'{2}
+</I>&gt;<i>     boundary_string
+</I>&gt;<i>     '-'{2}
+</I>&gt;<i>     lin_wsp*
+</I>&gt;<i>     crlf ;
+</I>&gt;<i> 
+</I>&gt;<i> But when these get together with normal text (that might follow the 
+</I>&gt;<i> same
+</I>&gt;<i> format) I get uncertain about how to arrange backtracking when the
+</I>&gt;<i> boundary_string or other parts of the mime_multipart_boundary or
+</I>&gt;<i> _terminal mismatch:
+</I>&gt;<i> 
+</I>&gt;<i> mime_multipart_content =
+</I>&gt;<i>     mime_illegal_text?
+</I>&gt;<i>     ( mime_multipart_boundary . mime_bodypart ) +
+</I>&gt;<i>     mime_multipart_terminal
+</I>&gt;<i>     mime_illegal_text? ;
+</I>&gt;<i> 
+</I>&gt;<i> Ideally, at least if Ragel is intended as I understand it, the
+</I>&gt;<i> alternative recongition as mime_bodypart should be orthogonal, and so I
+</I>&gt;<i> would like to have a way of backtracking into it.  My reading of the
+</I>&gt;<i> manual says this is not possible in an orthogonal way, but only through
+</I>&gt;<i> in-situ cross-links and structural changes.
+</I>&gt;<i> 
+</I>&gt;<i> If this is indeed not orthogonal, then I would suggest a feature to 
+</I>&gt;<i> make
+</I>&gt;<i> this possible -- such as an action to execute on mismatches, and a way
+</I>&gt;<i> to rerun a parallel expression without involving the current one,
+</I>&gt;<i> perhaps.  That might bring about a state explosion, so it may need some
+</I>&gt;<i> cleverness :)
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Other than this, I found Ragel to be really, really helpful by allowing
+</I>&gt;<i> me to add constraints orthogonally, like in
+</I>&gt;<i> 
+</I>&gt;<i> whatever_content_wants &amp; utf8char* ;
+</I>&gt;<i> 
+</I>&gt;<i> where utf8char bans illegal and longer-than-usual sequences,
+</I>&gt;<i> 
+</I>&gt;<i> utf8char =
+</I>&gt;<i>     0x00..0x7f |
+</I>&gt;<i>     0xc2..0xdf . 0x80..0xbf |
+</I>&gt;<i>     0xe0       . 0xa0..0xbf . 0x80..0xbf |
+</I>&gt;<i>     0xe1..0xef . 0x80..0xbf . 0x80..0xbf |
+</I>&gt;<i>     0xf4..0xff . 0x80..0xbf . 0x80..0xbf | 0x80..0xbf ;
+</I>&gt;<i> 
+</I>&gt;<i> Thank you for that bright approach!
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i>  -Rick
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">http://www.colm.net/cgi-bin/mailman/listinfo/ragel</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003501.html">[ragel] Handling non-determinism with backtracking
+</A></li>
+	<LI>Next message: <A HREF="003502.html">[ragel] Ragel sanitise output - memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3503">[ date ]</a>
+              <a href="thread.html#3503">[ thread ]</a>
+              <a href="subject.html#3503">[ subject ]</a>
+              <a href="author.html#3503">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

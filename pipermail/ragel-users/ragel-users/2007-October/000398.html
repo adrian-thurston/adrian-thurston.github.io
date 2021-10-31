@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] parsing a netstring
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20parsing%20a%20netstring&In-Reply-To=%3C470BEE5C.3020901%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000397.html">
+   <LINK REL="Next"  HREF="000399.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] parsing a netstring</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20parsing%20a%20netstring&In-Reply-To=%3C470BEE5C.3020901%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] parsing a netstring">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Tue Oct  9 21:10:52 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000397.html">parsing a netstring
+</A></li>
+        <LI>Next message: <A HREF="000399.html">[ragel-users] Re: parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#398">[ date ]</a>
+              <a href="thread.html#398">[ thread ]</a>
+              <a href="subject.html#398">[ subject ]</a>
+              <a href="author.html#398">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Chuck,
+
+Yes, using fnext to call out of the string consuming machine is one way
+to do it. The code looks good to me.
+
+As you said you can use conditions as well. I think one of the examples
+in the manual deals with variable length fields. So there is that route.
+
+And also yes, you can modify p to jump ahead of the area. Just be
+mindful of jumping past pe. If you have all the data at once this isn't
+a problem, but if you get your data in blocks then you have to watch out
+and hack in some solution.
+
+With error actions you have to keep in mind that the operators have
+slightly different meanings because they select states as opposed to
+transitions. The error action embedding operators let you handle the
+case of 'no transition' in the states they select.
+
+Adrian
+
+Chuck Remes wrote:
+&gt;<i> I'm suddenly finding all sorts of uses for ragel!
+</I>&gt;<i> 
+</I>&gt;<i> I want to write a parser for netstrings. The definition of a  
+</I>&gt;<i> netstring is pretty simple. It comes in the following format:
+</I>&gt;<i> 
+</I>&gt;<i> size_in_decimal':''string array size_in_decimal bytes long'','
+</I>&gt;<i> 
+</I>&gt;<i> I wrote a machine to parse through this and capture every byte, but  
+</I>&gt;<i> I'm unclear how to terminate my get_string machine. Right now I have  
+</I>&gt;<i> it call the action store_string as a finishing action for each byte  
+</I>&gt;<i> processed. The action stores the byte and increments a counter  
+</I>&gt;<i> variable. When the counter variable exceeds the number of bytes to be  
+</I>&gt;<i> processed, I want to advance out of that machine and move to the next  
+</I>&gt;<i> machine to confirm the byte array was terminated properly.
+</I>&gt;<i> 
+</I>&gt;<i> I'm not sure I'm doing this correctly. From the docs (section 6.5) it  
+</I>&gt;<i> appears using a 'semantic condition' would make sense here, but that  
+</I>&gt;<i> part of the documentation is unclear to me so I'm using this  
+</I>&gt;<i> alternate methodology. Am I on the right track? Also, is there a way  
+</I>&gt;<i> to skip 'N' bytes forward instead of copying them one by one into a  
+</I>&gt;<i> new array (super slow!)? I'm thinking I can directly modify the 'p'  
+</I>&gt;<i> variable but I'm not sure this is the right way.
+</I>&gt;<i> 
+</I>&gt;<i> Secondly, I'm not sure how to capture errors. I'm already using the  
+</I>&gt;<i> form '@action' to do some work in a machine. Can I specify an error  
+</I>&gt;<i> action using the same operator in the same machine? E.g - get_size =  
+</I>&gt;<i> ( digit @store_size @err(size_error) )+;
+</I>&gt;<i> 
+</I>&gt;<i> Thanks for any input. My sample machine is listed below.
+</I>&gt;<i> 
+</I>&gt;<i> %%{
+</I>&gt;<i> 	machine parse_netstring;
+</I>&gt;<i> 
+</I>&gt;<i> 	# snipped out some actions for the sake of brevity
+</I>&gt;<i> 
+</I>&gt;<i> 	action store_size {
+</I>&gt;<i> 		size = ( size * 10 ) + fc; # accumulate string length
+</I>&gt;<i> 	};
+</I>&gt;<i> 
+</I>&gt;<i> 	action alloc_buffer {
+</I>&gt;<i> 		buffer = Array.new(size);
+</I>&gt;<i> 		i = 0;
+</I>&gt;<i> 	};
+</I>&gt;<i> 
+</I>&gt;<i> 	action store_string {
+</I>&gt;<i> 		buffer[i] = fc;
+</I>&gt;<i> 		i = i + 1;
+</I>&gt;<i> 		fnext get_string_terminator if i &gt; size;
+</I>&gt;<i> 	};
+</I>&gt;<i> 
+</I>&gt;<i> 	get_size = ( digit &gt;validate_not_zero ) . ( digit @store_size )*;
+</I>&gt;<i> 
+</I>&gt;<i> 	get_delimeter = ( ':' @alloc_buffer );
+</I>&gt;<i> 
+</I>&gt;<i> 	get_string = ( any @store_string )*;
+</I>&gt;<i> 
+</I>&gt;<i> 	get_netstring_terminator = ',' @finalize;
+</I>&gt;<i> 
+</I>&gt;<i> 	main := get_size . get_delimeter . get_string;
+</I>&gt;<i> }%%
+</I>&gt;<i> 
+</I>&gt;<i> --~--~---------~--~----~------------~-------~--~----~
+</I>&gt;<i> You received this message because you are subscribed to the Google Groups &quot;ragel-users&quot; group.
+</I>&gt;<i> To post to this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at googlegroups.com</A>
+</I>&gt;<i> To unsubscribe from this group, send email to <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users-unsubscribe at googlegroups.com</A>
+</I>&gt;<i> For more options, visit this group at <A HREF="http://groups.google.com/group/ragel-users?hl=en">http://groups.google.com/group/ragel-users?hl=en</A>
+</I>&gt;<i> -~----------~----~----~----~------~----~------~--~---
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 252 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel/attachments/20071009/fa1fcd96/attachment.sig">http://www.colm.net/pipermail/ragel/attachments/20071009/fa1fcd96/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000397.html">parsing a netstring
+</A></li>
+	<LI>Next message: <A HREF="000399.html">[ragel-users] Re: parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#398">[ date ]</a>
+              <a href="thread.html#398">[ thread ]</a>
+              <a href="subject.html#398">[ subject ]</a>
+              <a href="author.html#398">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

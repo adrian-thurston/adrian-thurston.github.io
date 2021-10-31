@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Problem generating code.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20generating%20code.&In-Reply-To=%3Cs2z64dcd4df1005091413w64b668e4s8bff251adffc24c3%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002879.html">
+   <LINK REL="Next"  HREF="002881.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Problem generating code.</H1>
+    <B>Brian Pane</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Problem%20generating%20code.&In-Reply-To=%3Cs2z64dcd4df1005091413w64b668e4s8bff251adffc24c3%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Problem generating code.">brianp at brianp.net
+       </A><BR>
+    <I>Sun May  9 21:13:18 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002879.html">[ragel-users] Problem generating code.
+</A></li>
+        <LI>Next message: <A HREF="002881.html">[ragel-users] Problem generating code.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2880">[ date ]</a>
+              <a href="thread.html#2880">[ thread ]</a>
+              <a href="subject.html#2880">[ subject ]</a>
+              <a href="author.html#2880">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sun, May 9, 2010 at 1:43 PM, Husam Senussi &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">husam at senussi.com</A>&gt; wrote:
+
+&gt;<i> I'm trying to create RFC2822 parer but I'm having problem generating the code for
+</I>&gt;<i> some reason ragel keep running until I press CTRL C &quot;was running for 20 minutes&quot;,
+</I>&gt;<i> below the grammar I'm trying to use.
+</I>
+Whenever I've encountered very long Ragel processing times with my own
+grammars, the reason usually has been nondeterminism. For example, with
+a grammar like this:
+
+word = space* alpha+ space*;
+number = space* digit+ space*;
+main = ( space+ | word | number )*;
+
+there is an ambiguity: if the first input character is a space, it might
+be the start of the &quot;space*&quot; option in main, but it might also be the
+start of the &quot;word&quot; option in main or the start of the &quot;number&quot; option
+in main, since those can start with a space also.
+
+Internally, Ragel has to build a state graph that models those
+nondeterministic states.  The more ambiguity there is in the
+grammar, the bigger this graph becomes, and the longer it
+takes for Ragel to run.  With my own grammars, I've found
+that the run time of Ragel and the subsequent C compilation
+is a good estimator of how nondeterministic my grammar is.
+
+I've found that it helps, when using the &quot;|&quot; operator, to make
+the different options start with distinct prefix strings.  In
+the case of my example grammar above, a less ambiguous
+alternative would be:
+
+word: alpha+;
+number: digit+;
+main := ( space+ | word | number )+;
+
+For more complicated languages, another good pattern I've
+learned from other people's grammars is to put optional space
+at the end of each rule and never at the start.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002879.html">[ragel-users] Problem generating code.
+</A></li>
+	<LI>Next message: <A HREF="002881.html">[ragel-users] Problem generating code.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2880">[ date ]</a>
+              <a href="thread.html#2880">[ thread ]</a>
+              <a href="subject.html#2880">[ subject ]</a>
+              <a href="author.html#2880">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

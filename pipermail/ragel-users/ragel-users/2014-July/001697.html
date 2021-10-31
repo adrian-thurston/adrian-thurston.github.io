@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Conditional parsing
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Conditional%20parsing&In-Reply-To=%3CCALiegfkYWWSDSBxzWArZ9Q8KKeLbVVsw14n%2BdZ3gd-q0bWC-tg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001696.html">
+   <LINK REL="Next"  HREF="001698.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Conditional parsing</H1>
+    <B>Iñaki Baz Castillo</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Conditional%20parsing&In-Reply-To=%3CCALiegfkYWWSDSBxzWArZ9Q8KKeLbVVsw14n%2BdZ3gd-q0bWC-tg%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Conditional parsing">ibc at aliax.net
+       </A><BR>
+    <I>Tue Jul  1 10:23:49 UTC 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001696.html">[ragel-users] Conditional parsing
+</A></li>
+        <LI>Next message: <A HREF="001698.html">[ragel-users] closing down the mailing list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1697">[ date ]</a>
+              <a href="thread.html#1697">[ thread ]</a>
+              <a href="subject.html#1697">[ subject ]</a>
+              <a href="author.html#1697">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Great! thanks a lot.
+
+2014-06-30 4:49 GMT+02:00 William Ahern &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">william at 25thandclement.com</A>&gt;:
+&gt;<i> 2014-04-10 22:08 GMT+02:00 I?aki Baz Castillo &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;:
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm building a parser for a protocol message similar to HTTP (let's
+</I>&gt;&gt;<i> say: a main header and N key: value separated by CRLF until a final
+</I>&gt;&gt;<i> double CRLF). My concern is:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> - I parse the messages in a &quot;Dispatcher&quot; module that just needs to
+</I>&gt;&gt;<i> parse a few fields in each message.
+</I>&gt;&gt;<i> - Then the Dispatcher passes the message to a Worker thread via UNIX
+</I>&gt;&gt;<i> Socket. - And the Worker must parse it again, but in this case I need all
+</I>&gt;&gt;<i> the fields parsed.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Note that during the Worker's parsing, a C++ complex object is build
+</I>&gt;&gt;<i> with all the parsed fields mapped into member variables, so I don't
+</I>&gt;&gt;<i> want to play with those complex objects in the Dispatcher module.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> How could I reuse the same Ragel machine for both cases?
+</I>&gt;<i> &lt;snip&gt;
+</I>&gt;<i>
+</I>&gt;<i> Here's an example from my own code. For various reasons (expediency,
+</I>&gt;<i> simplicity) I used different machines to parse individual headers. But they
+</I>&gt;<i> all use the same library of tokenization sub-machines.
+</I>&gt;<i>
+</I>&gt;<i> The first machine is the basic library. You could put this in a separate
+</I>&gt;<i> file, but mine is in the same file as everything else HTTP/RTSP-related. The
+</I>&gt;<i> second and third machines are parser examples. Note that most of the context
+</I>&gt;<i> is missing, so you won't be able to copy+paste this. For example, I have a
+</I>&gt;<i> basic tokenizer written in pure C (which follows DJB's algorithm for
+</I>&gt;<i> structured MIME header parsing) which emits tagged characters as short
+</I>&gt;<i> integers (e.g. an escaped or quoted character will have a high bit set).
+</I>&gt;<i> This made it easier for me to handle things like quoted strings and
+</I>&gt;<i> parenthetical comments. Although, I wrote this years ago and today I might
+</I>&gt;<i> find it easier to handle those problems with Ragel's fcall and fgoto
+</I>&gt;<i> statments. But the truly beautiful thing about Ragel is how it allows you to
+</I>&gt;<i> mix-and-match approaches. So there's really no wrong way. And I would
+</I>&gt;<i> counsel a novice to avoid attempts at Ragel-purity--i.e. trying to do
+</I>&gt;<i> everything in Ragel, such as handle recursive structures directly in Ragel.
+</I>&gt;<i> You can do it (and I do it in some other stuff, like my Flash FLV, Microsoft
+</I>&gt;<i> ASF, and SMTP parsers), but it's not something worth struggling over.
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i>         machine tokenizer;
+</I>&gt;<i>
+</I>&gt;<i>         crlf = [\r\n];
+</I>&gt;<i>         lwsp = [ \t];
+</I>&gt;<i>
+</I>&gt;<i>         qdigit  = (0x0130 - 0x0139);
+</I>&gt;<i>         qxdigit = (0x0141 - 0x0146) | (0x0161 - 0x0166) | qdigit;
+</I>&gt;<i>
+</I>&gt;<i>         digits  = digit | qdigit;
+</I>&gt;<i>         xdigits = xdigit | qxdigit;
+</I>&gt;<i>
+</I>&gt;<i>         qalpha = (0x0141 - 0x015a) | (0x0161 | 0x017a);
+</I>&gt;<i>
+</I>&gt;<i>         action num_begin { num = 0; }
+</I>&gt;<i>         action num_write { num *= 10; num += (0xff &amp; fc) - '0'; }
+</I>&gt;<i>
+</I>&gt;<i>         action hex_begin { num = 0; }
+</I>&gt;<i>         action hex_write { num &lt;&lt;= 4; num += ((0xff &amp; fc) &gt; '9')? (10 + (tolower((0xff &amp; fc)) - 'a')) : (0xff &amp; fc) - '0'; }
+</I>&gt;<i>
+</I>&gt;<i>         action str_begin {
+</I>&gt;<i>                 str = 0;
+</I>&gt;<i>                 if ((error = obs_new(obs, 0)))
+</I>&gt;<i>                         goto error;
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         action str_write {
+</I>&gt;<i>                 if ((error = obs_putc(obs, 0xff &amp; fc)))
+</I>&gt;<i>                         goto error;
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         action str_end { str = obs_top(obs); }
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i>         machine x_sessioncookie_parser;
+</I>&gt;<i>         alphtype short;
+</I>&gt;<i>
+</I>&gt;<i>         include tokenizer;
+</I>&gt;<i>
+</I>&gt;<i>         action oops {
+</I>&gt;<i>                 rtsp_badparse(&quot;x-sessioncookie&quot;, src, len, p);
+</I>&gt;<i>                 error = EINVAL;
+</I>&gt;<i>                 goto error;
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         token = (alnum | &quot;+&quot; | &quot;/&quot;)+ &gt;str_begin $str_write %str_end %{ hdr-&gt;token = str; };
+</I>&gt;<i>
+</I>&gt;<i>         main := (token lwsp*) $!oops;
+</I>&gt;<i>
+</I>&gt;<i>         write data;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> %%{
+</I>&gt;<i>         machine content_type_parser;
+</I>&gt;<i>         alphtype short;
+</I>&gt;<i>
+</I>&gt;<i>         getkey (0xff &amp; (*fpc)); # Mask high-order bits.
+</I>&gt;<i>
+</I>&gt;<i>         include tokenizer;
+</I>&gt;<i>
+</I>&gt;<i>         action oops {
+</I>&gt;<i>                 rtsp_badparse(&quot;Content-Type&quot;, src, len, p);
+</I>&gt;<i>                 error = EINVAL;
+</I>&gt;<i>                 goto error;
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>         equal = lwsp** &quot;=&quot; lwsp**;
+</I>&gt;<i>
+</I>&gt;<i>         reg_name = (alnum | [!#$&amp;.+\-\^_]){1,127}; # RFC 4288 4.2
+</I>&gt;<i>
+</I>&gt;<i>         charset = &quot;charset&quot; equal reg_name &gt;str_begin $str_write %str_end %{ hdr-&gt;charset = str; };
+</I>&gt;<i>         boundary = &quot;boundary&quot; equal reg_name &gt;str_begin $str_write %str_end %{ hdr-&gt;boundary = str; };
+</I>&gt;<i>
+</I>&gt;<i>         attrib = (charset | boundary)? &lt;: ^&quot;;&quot;**;
+</I>&gt;<i>
+</I>&gt;<i>         type = reg_name &gt;str_begin $str_write %str_end %{ hdr-&gt;type = str; };
+</I>&gt;<i>         subtype = reg_name &gt;str_begin $str_write %str_end %{ hdr-&gt;subtype = str; };
+</I>&gt;<i>
+</I>&gt;<i>         main := (type &quot;/&quot; subtype lwsp** (&quot;;&quot; lwsp** attrib)*) $!oops;
+</I>&gt;<i>
+</I>&gt;<i>         write data;
+</I>&gt;<i> }%%
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>
+
+
+-- 
+Iñaki Baz Castillo
+&lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ibc at aliax.net</A>&gt;
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001696.html">[ragel-users] Conditional parsing
+</A></li>
+	<LI>Next message: <A HREF="001698.html">[ragel-users] closing down the mailing list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1697">[ date ]</a>
+              <a href="thread.html#1697">[ thread ]</a>
+              <a href="subject.html#1697">[ subject ]</a>
+              <a href="author.html#1697">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

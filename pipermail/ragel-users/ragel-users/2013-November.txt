@@ -1,0 +1,3776 @@
+From thurston at complang.org  Sat Nov  2 14:52:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 2 Nov 2013 10:52:37 -0400
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+Message-ID: <20131102145237.GA3882@xform.complang.org>
+
+Definitely a bug. We take the min and max values for the type from CHAR_MIN and
+CHAR_MAX, which should be set appropriately for the architecture.
+
+However, there is an isSigned bit that is not drawn from the compilation
+environment. We should be doing that somehow.
+
+This code is in common.{h,cc}
+
+-Adrian
+
+On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> Hello folks,
+> 
+> 
+> 
+> we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS TXT record data. Some time ago, we expanded the allowed inputs for this parser to the full 8 bit 'extended ASCII' range (which Ragel calls 'extend').
+> 
+> This works well on most platforms - but it failed for us on Debian/s390x.
+> 
+> After a lot of digging I found that char is unsigned on s390x, while it is signed on amd64, i386 and many other platforms.
+> 
+> I have added 'alphtype unsigned char' to our Ragel file. This makes the parser work reliably on both amd64 and s390x (and,  hopefully, many other platforms).
+> 
+> However, I feel something is wrong. It seems that on s390x, Ragel is mostly confused about the type of char. It generates a parser that treats extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This discrepancy feels like a Ragel issue to me.
+> 
+> A much longer version of this story is at https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> 
+> My question: is this a Ragel bug? Regardless of yes/no, is what I did (alphtype unsigned char) the best workaround?
+> 
+> I did most of the debugging with ragel 6.7-1 (Debian version number), but verified that the problem is identical in 6.8-1.
+> 
+> Kind regards,
+> -- 
+> Peter van Dijk
+> Netherlabs Computer Consulting BV - http://www.netherlabs.nl/
+> 
+
+
+
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov  2 14:55:50 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 2 Nov 2013 10:55:50 -0400
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <20131024195312.GA14263@wilbur.25thandClement.com>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+	<20131024195312.GA14263@wilbur.25thandClement.com>
+Message-ID: <20131102145550.GB3882@xform.complang.org>
+
+We need ragel's internal data structures to match the signedness of the input
+array, and sometimes you just need a signed type because you're parsing a
+stream of integers.
+
+Perhaps what might be better is defaulting the C alphtype to unsigned char, if
+that's the more common case.
+
+-Adrian
+
+On Thu, Oct 24, 2013 at 12:53:12PM -0700, William Ahern wrote:
+> On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> > Hello folks,
+> > 
+> > we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS
+> > TXT record data. Some time ago, we expanded the allowed inputs for this
+> > parser to the full 8 bit 'extended ASCII' range (which Ragel calls
+> > 'extend').
+> > 
+> > This works well on most platforms - but it failed for us on Debian/s390x.
+> > 
+> > After a lot of digging I found that char is unsigned on s390x, while it is
+> > signed on amd64, i386 and many other platforms.
+> > 
+> > I have added 'alphtype unsigned char' to our Ragel file. This makes the
+> > parser work reliably on both amd64 and s390x (and, hopefully, many other
+> > platforms).
+> > 
+> > However, I feel something is wrong. It seems that on s390x, Ragel is
+> > mostly confused about the type of char. It generates a parser that treats
+> > extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This
+> > discrepancy feels like a Ragel issue to me.
+> > 
+> > A much longer version of this story is at
+> > https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> > 
+> > My question: is this a Ragel bug? Regardless of yes/no, is what I did
+> > (alphtype unsigned char) the best workaround?
+> 
+> IMHO it would probably be better for Ragel to use unsigned char arithmetic
+> for both char and unsigned char. Off the top of my head it even seems like
+> Ragel should treat all input as unsigned.
+> 
+> FWIW, I always use unsigned arithmetic, for Ragel and most everything else.
+> Signed arithmetic is for mathematical formulas, not bit twiddling and string
+> processing. At the very least, it quickly leads to undefined behavior,
+> whereas signed->unsigned conversions in C are always well defined.
+> 
+> Does anybody on the list actually use or depend on signed behavior in their
+> machines?
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Nov 11 23:57:04 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 12 Nov 2013 00:57:04 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write first_final;
+	}%%
+Message-ID: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+
+The following code in Go:
+
+-----------------
+  if cs != %%{ write first_final; }%% {
+-----------------
+
+generates the following lines in the .go file:
+
+-----------------
+  if cs !=
+// line 12549 "SDP.go"
+461
+// line 79 "SDP.rl"
+ {
+-----------------
+
+This produces, of course, a syntax error in Go:
+
+sdp/SDP.go:12549: missing condition in if statement
+sdp/SDP.go:12549: cs != 461 evaluated but not used
+
+
+
+$ ragel -v
+Ragel State Machine Compiler version 6.8 Feb 2013
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Tue Nov 12 00:28:21 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Tue, 12 Nov 2013 04:28:21 +0400
+Subject: [ragel-users] Bug in Go language when using %%{ write
+ first_final; }%%
+In-Reply-To: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+Message-ID: <CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+
+Ragel defines constant "[machine name]_first_final" (where "[machine name]"
+is a name specified in directive "machine [machine name]").
+
+You could rewrite the code to use this constant:
+
+%%{
+  machine sdp;
+
+// the machine definitions are here
+....
+}%%
+
+...
+// go code
+
+if cs != sdp_first_final {
+...
+}
+
+
+
+
+On Tue, Nov 12, 2013 at 3:57 AM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+
+> The following code in Go:
+>
+> -----------------
+>   if cs != %%{ write first_final; }%% {
+> -----------------
+>
+> generates the following lines in the .go file:
+>
+> -----------------
+>   if cs !=
+> // line 12549 "SDP.go"
+> 461
+> // line 79 "SDP.rl"
+>  {
+> -----------------
+>
+> This produces, of course, a syntax error in Go:
+>
+> sdp/SDP.go:12549: missing condition in if statement
+> sdp/SDP.go:12549: cs != 461 evaluated but not used
+>
+>
+>
+> $ ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+>
+>
+>
+> --
+> Iñaki Baz Castillo
+> <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131112/a5cbae2f/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From daniel.salzman at nic.cz  Thu Nov 14 08:29:48 2013
+From: daniel.salzman at nic.cz (Daniel Salzman)
+Date: Thu, 14 Nov 2013 09:29:48 +0100
+Subject: [ragel-users] Difference between generated C code using -G0 and
+ -T0
+In-Reply-To: <51C97C71.7060802@nic.cz>
+References: <51C97C71.7060802@nic.cz>
+Message-ID: <528489FC.70806@nic.cz>
+
+Hi,
+
+I have reduced the problematic code which behaves differently in G mode 
+comparing to T or F.
+Please, is there anybody who can fix it?
+
+T: output is "A"
+G: output is "B"
+
+=======================================
+#include <stdio.h>
+
+%%{
+          machine foo;
+
+          sep = ( [ ]
+                | ';' when { 0 }
+)+;
+
+          cmt = ^[ ;] >!{ printf("A\n"); } . 'x' >!{ printf("B\n"); };
+
+          main := sep . cmt;
+}%%
+
+%% write data;
+
+void main()
+{
+          char buffer[] = " ;";
+
+          char *p = buffer;
+          char *pe = buffer + sizeof(buffer);
+          char *eof = pe;
+          int  cs = foo_start;
+
+          %% write exec;
+}
+=======================================
+
+Thanks
+
+
+On 06/25/2013 01:18 PM, Daniel Salzman wrote:
+> Hi,
+>
+> At the beginning I would like to thank you for the great project Ragel.
+> It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone 
+> files.
+>
+> But I have recently noticed that there is a small bug in C code 
+> generation with G{0,1,2},
+> because there is different behaviour between G and T, F modes.
+>
+> Meaningless and very pruned snippet of code which can demonstrate the 
+> problem:
+>
+> == test.rl ==
+> #include <stdlib.h>
+> #include <stdio.h>
+>
+> %%{
+>         machine zone_scanner;
+>
+>         newline = '\n';
+>         comment = ';' . (^newline)*;
+>         wchar = [ \t\n;];
+>
+>         sep = ( [ \t]
+>               | (comment? . newline) when { 0 }
+> )+;
+>
+>         err_line := (^newline)* . newline @{ fgoto main; };
+>
+>         action _text_char_error {
+> printf("!TXT_ERROR!\n");
+>                 fhold; fgoto err_line;
+> }
+>
+>         text = ^wchar . (alpha $!_text_char_error)+;
+>
+>         main := "$INCLUDE" . sep . text . newline;
+> }%%
+>
+> %% write data;
+>
+> int main(int argc, char **argv)
+> {
+>         char buffer[4096];
+>         FILE* f;
+>         long numbytes;
+>
+>         f = fopen(argv[1], "r");
+>         fseek(f, 0, SEEK_END);
+>         numbytes = ftell(f);
+>         fseek(f, 0, SEEK_SET);
+>         fread(buffer, 1, numbytes, f);
+>
+>         char *p = buffer;
+>         char *pe = buffer + numbytes;
+>         char *eof = pe;
+>         int stack[16];
+>         int  cs = zone_scanner_start;
+>         int top;
+>
+>         %% write exec;
+>
+>         if (cs == zone_scanner_error) {
+> printf("!MISC_ERROR!\n");
+>                 return -1;
+> }
+>
+>         return 0;
+> }
+>
+> == input.txt ==
+> $INCLUDE        ; Missing filename
+> ==========
+>
+> ragel -T0 test.rl -o testT.c
+> gcc testT.c -o testT
+> ./testT ./input.txt
+> !MISC_ERROR!
+>
+> ragel -G0 test.rl -o testG.c
+> gcc testG.c -o testG
+> ./testG ./input.txt
+> !TXT_ERROR!
+>
+> Here you can see the state machines stop in different states.
+>
+> Although this problem is marginal in our project, it would be nice if 
+> Ragel is absolute perfect :-)
+>
+> Best regards,
+> Dan
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Nov 18 09:41:26 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 18 Nov 2013 10:41:26 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write
+ first_final; }%%
+In-Reply-To: <CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+	<CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+Message-ID: <CALiegf=xFLKXN2QkgYd81kwHC++fD2K48jWbyMKy-f1-UU=NxA@mail.gmail.com>
+
+2013/11/12 Anton Ageev <antage at gmail.com>:
+> Ragel defines constant "[machine name]_first_final" (where "[machine name]"
+> is a name specified in directive "machine [machine name]").
+>
+> You could rewrite the code to use this constant:
+
+Yes, I know that and use that. Anyhow my bug report is valid :)
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ivan.ristic at gmail.com  Fri Nov 22 11:12:52 2013
+From: ivan.ristic at gmail.com (=?UTF-8?B?SXZhbiBSaXN0acSH?=)
+Date: Fri, 22 Nov 2013 11:12:52 +0000
+Subject: [ragel-users] The best way to stop and force error state?
+Message-ID: <528F3C34.2060101@gmail.com>
+
+What is the best way to stop the parser from within an action and force
+the error state at the same time?
+
+At the moment I am doing this:
+
+%%machine foo
+
+action bar {
+    do_some_work();
+    if (error) {
+        fnext *foo_error;
+        fbreak;
+    }
+}
+
+I was expecting something like:
+
+action bar {
+    do_some_work();
+    if (error) ferror;
+}
+
+I like this because it's succinct and does not reference the machine
+error state (which simplifies the code reduces the chance of mistakes in
+the copy & paste scenarios).
+
+-- 
+Ivan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ivan.ristic at gmail.com  Fri Nov 22 11:16:52 2013
+From: ivan.ristic at gmail.com (=?UTF-8?B?SXZhbiBSaXN0acSH?=)
+Date: Fri, 22 Nov 2013 11:16:52 +0000
+Subject: [ragel-users] How to suppress generation of foo_en_main?
+Message-ID: <528F3D24.6030604@gmail.com>
+
+Is it possible to suppress the generation of the foo_en_main variable?
+In my case, the variable isn't used, and results with a compile error
+later on.
+
+For example:
+
+htp_http_parsers.c:114:18: fatal error: unused variable
+'content_range_en_main' [-Wunused-variable]
+
+Thanks.
+
+-- 
+Ivan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov 23 14:17:12 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 09:17:12 -0500
+Subject: [ragel-users] Need help using ragel with ObjC
+In-Reply-To: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+References: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+Message-ID: <5290B8E8.9040104@complang.org>
+
+Grep the test directory for '@LANG: obj-c'.
+
+-Adrian
+
+On 13-06-15 02:15 PM, AquarHEAD Lou wrote:
+> I'm writing a scanner for a compiler course work, and trying to use
+> ragel with ObjC,
+>
+> The question is is there any example using ragel with ObjC, or how
+> should I set the
+> `p` and `pe` ?
+>
+> Thanks.
+>
+> 楼洵(AquarHEAD)
+> ----------
+> Blossoms which were the joys that fell,
+> And leaves, the hopes that yet remain.
+>
+> Learn, Code, Debug and Share.
+> ----------
+> http://about.AquarHEAD.me <http://about.aquarhead.me/>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Nov 23 14:55:20 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 09:55:20 -0500
+Subject: [ragel-users] Keywords and actions in a minimal example
+In-Reply-To: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+References: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+Message-ID: <5290C1D8.6010709@complang.org>
+
+Hi Lane,
+
+The simplest way to do it is to exclude the keywords from the 
+identifiers using set difference. You can use (vars - keys).
+
+You can also prioritize actions appropriately (keywords referenced 
+before idents) and break out of the action processing loop when you 
+execute the higher priority action.
+
+You can also use a scanner.
+
+-Adrian
+
+On 13-06-25 02:20 PM, Lane Schwartz wrote:
+> I have a minimal example, where tokens are separated by spaces. In
+> this example "a" is one allowed pattern, and alpha+ is the other.
+>
+> I would like to trigger one particular action (let's say it prints
+> "keyword") when the pattern "a" has been recognized, and a different
+> action when the alpha+ pattern has been recognized (let's say it
+> prints "variable").
+>
+> I've worked through most of the samples in the tutorial, but I'm still
+> stumped on this basic question:
+>
+> How can I trigger these actions such that the action that prints
+> "keyword" is triggered for the input "a" but not for the input "abc",
+> and the action that prints "variable" is triggered for the input "abc"
+> but not for the input "a"?
+>
+> Given the input "a bc abc def a gh a", I would like to see the following output:
+> keyword
+> variable
+> variable
+> variable
+> keyword
+> variable
+> keyword
+>
+> My exact example is below. This is my first time posting to this list.
+> I appreciate any help or tips, and if this isn't the right place to
+> post please let me know. FWIW, I've tried using key @keyword, key
+> %keyword, key %*keyword, var @name, var %name, var %*name, and several
+> other user action triggers from chapter 3 of the manual.
+>
+> #include<iostream>
+> #include<sstream>
+> #include<string.h>
+> #include<stdio.h>
+>
+> void parse() {
+>
+>       char *p   = "a bc abc def a gh a";
+>       char *pe  = p + strlen(p);
+>       char *eof = p + strlen(p);
+>       int cs;
+>
+>       %%{
+>
+> 	machine minimal;
+> 	write data;
+>
+> 	action keyword {
+> 	       std::cerr<<  "keyword"<<  std::endl;
+> 	}
+>
+> 	action name {
+> 	       std::cerr<<  "variable"<<  std::endl;
+> 	}
+>
+> 	key = "a";
+>
+> 	var = alpha+;
+>
+> 	whitespace = ' '*;
+>
+> 	main := (( key | var ) whitespace )* ;
+>
+> 	write init;
+> 	write exec;
+>
+>       }%%
+>
+> }
+>
+> int main() {
+>      parse();
+> }
+>
+>
+> Thanks,
+> Lane
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov 23 15:27:18 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 10:27:18 -0500
+Subject: [ragel-users] Difference between generated C code using -G0 and
+ -T0
+In-Reply-To: <528489FC.70806@nic.cz>
+References: <51C97C71.7060802@nic.cz> <528489FC.70806@nic.cz>
+Message-ID: <5290C956.5030407@complang.org>
+
+Hi Dan,
+
+Thank you for submitting this. It is definitely a bug in the condition 
+implementation.
+
+I haven't dug into the details yet, but I can say the difference is 
+resolved in ragel 7, which has a completely new implementation of 
+conditions in the NFA to DFA algorithm, as well as the code generation step.
+
+Ragel 7 is on the master branch. It is still experimental. Currently 
+only the C and D code generators work. Quite a bit has changed. Building 
+it requires the the master branch of colm.
+
+I'm not sure if a workaround will be possible for ragel 6.
+
+Thank you for your attention to detail!
+
+Adrian
+
+On 13-11-14 03:29 AM, Daniel Salzman wrote:
+> Hi,
+>
+> I have reduced the problematic code which behaves differently in G mode
+> comparing to T or F.
+> Please, is there anybody who can fix it?
+>
+> T: output is "A"
+> G: output is "B"
+>
+> =======================================
+> #include <stdio.h>
+>
+> %%{
+> machine foo;
+>
+> sep = ( [ ]
+> | ';' when { 0 }
+> )+;
+>
+> cmt = ^[ ;] >!{ printf("A\n"); } . 'x' >!{ printf("B\n"); };
+>
+> main := sep . cmt;
+> }%%
+>
+> %% write data;
+>
+> void main()
+> {
+> char buffer[] = " ;";
+>
+> char *p = buffer;
+> char *pe = buffer + sizeof(buffer);
+> char *eof = pe;
+> int cs = foo_start;
+>
+> %% write exec;
+> }
+> =======================================
+>
+> Thanks
+>
+>
+> On 06/25/2013 01:18 PM, Daniel Salzman wrote:
+>> Hi,
+>>
+>> At the beginning I would like to thank you for the great project Ragel.
+>> It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone
+>> files.
+>>
+>> But I have recently noticed that there is a small bug in C code
+>> generation with G{0,1,2},
+>> because there is different behaviour between G and T, F modes.
+>>
+>> Meaningless and very pruned snippet of code which can demonstrate the
+>> problem:
+>>
+>> == test.rl ==
+>> #include <stdlib.h>
+>> #include <stdio.h>
+>>
+>> %%{
+>> machine zone_scanner;
+>>
+>> newline = '\n';
+>> comment = ';' . (^newline)*;
+>> wchar = [ \t\n;];
+>>
+>> sep = ( [ \t]
+>> | (comment? . newline) when { 0 }
+>> )+;
+>>
+>> err_line := (^newline)* . newline @{ fgoto main; };
+>>
+>> action _text_char_error {
+>> printf("!TXT_ERROR!\n");
+>> fhold; fgoto err_line;
+>> }
+>>
+>> text = ^wchar . (alpha $!_text_char_error)+;
+>>
+>> main := "$INCLUDE" . sep . text . newline;
+>> }%%
+>>
+>> %% write data;
+>>
+>> int main(int argc, char **argv)
+>> {
+>> char buffer[4096];
+>> FILE* f;
+>> long numbytes;
+>>
+>> f = fopen(argv[1], "r");
+>> fseek(f, 0, SEEK_END);
+>> numbytes = ftell(f);
+>> fseek(f, 0, SEEK_SET);
+>> fread(buffer, 1, numbytes, f);
+>>
+>> char *p = buffer;
+>> char *pe = buffer + numbytes;
+>> char *eof = pe;
+>> int stack[16];
+>> int cs = zone_scanner_start;
+>> int top;
+>>
+>> %% write exec;
+>>
+>> if (cs == zone_scanner_error) {
+>> printf("!MISC_ERROR!\n");
+>> return -1;
+>> }
+>>
+>> return 0;
+>> }
+>>
+>> == input.txt ==
+>> $INCLUDE ; Missing filename
+>> ==========
+>>
+>> ragel -T0 test.rl -o testT.c
+>> gcc testT.c -o testT
+>> ./testT ./input.txt
+>> !MISC_ERROR!
+>>
+>> ragel -G0 test.rl -o testG.c
+>> gcc testG.c -o testG
+>> ./testG ./input.txt
+>> !TXT_ERROR!
+>>
+>> Here you can see the state machines stop in different states.
+>>
+>> Although this problem is marginal in our project, it would be nice if
+>> Ragel is absolute perfect :-)
+>>
+>> Best regards,
+>> Dan
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 15:29:59 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 10:29:59 -0500
+Subject: [ragel-users] When does Ragel mark a state as 'Final'?
+In-Reply-To: <CANGO4PadXh+xh2aPRkE0kZ7gD0M7t9zyVXpG6+dSziV0MLkFmA@mail.gmail.com>
+References: <CANGO4PadXh+xh2aPRkE0kZ7gD0M7t9zyVXpG6+dSziV0MLkFmA@mail.gmail.com>
+Message-ID: <52921B77.5010305@complang.org>
+
+Every sub-expression has a set of final states. An FSM operation may add 
+or remove final-state status as it builds new machines. So your main 
+machine may not have any final states, but they were present as the 
+machine was built up, and so you see variations in how the eof embedding 
+operators affect the result.
+
+Arian
+
+On 13-07-25 12:31 AM, Solomon Gibbs wrote:
+> Hello,
+>
+> I'm not sure I understand what Ragel considers a "final" state. IIRC
+> the User's Guide says that states that are final before machine
+> simplification remain final thereafter.
+>
+>     When exactly is a state final, and how does one recognize this?
+>
+> I'm using the state machine syntax to implement a string finder --
+> find ASCII strings with length greater than n, and print them. This
+> means implementing a maximum length matcher, as below.
+>
+> Despite the fact that the dot output shows no final states, the EOF
+> transitions behave differently depending on which flavor of {$%@}eof
+> is used. I do not understand why this should be. For example, in the
+> "has_string" state below, using %eof instead of @eof causes both the
+> "commit_nonstring_eof" and "commit_string_eof" actions to be called
+> from one of the generated/synthetic states terminating the matching
+> state.
+>
+> (State graphics for this machine are are available via
+> http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof)
+>
+> action commit_string {    }
+>
+> action commit_string_eof { }
+>
+> action commit_nonstring_eof { }
+>
+> action set_mark { }
+>
+> action reset {
+>     /* Force the machine back into state 1. This happens after
+>      * an incomplete match when some graphical characters are
+>      * consumed, but not enough for use to keep the string. */
+>     fgoto start;
+> }
+>
+> # Matching classes union to 0x00 .. 0xFF
+> graphic = (0x09 | 0x20 .. 0x7E);
+> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+>
+> collector = (
+>
+>     start: (
+>        # Set the mark if we have a graphic character,
+>        # otherwise go to non_graphic state and consume input
+>        graphic @set_mark ->  has_glyph |
+>        non_graphic ->  no_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     no_glyph: (
+>           # Consume input until a graphic character is encountered
+>           non_graphic ->  no_glyph |
+>           graphic @set_mark ->  has_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     has_glyph: (
+>            # We already matched one graphic character to get here
+>            # from start or no_glyph. Try to match N-1 before allowing
+>                # the string to be committed. If we don't get to N-1,
+>                # drop back to the start state
+>                graphic{3} $lerr(reset) ->  has_string
+>     ) @eof(commit_nonstring_eof),
+>
+>     has_string: (
+>                 # Already consumed our quota of N graphic characters;
+>                 # consume input until we run out of graphic characters
+>                 # then reset the machine. All exiting edges should commit
+>                 # the string. We diferentiate between exiting on a non-graphic
+>                 # input that shouldn't be added to the string and exiting
+>                 # on a (graphic) EOF that should be added.
+>                 graphic* non_graphic ->  start
+>     ) %from(commit_string) @eof(commit_string_eof)
+>     #) %from(commit_string) %eof(commit_string_eof) // bad
+>
+> ); #$debug;
+>
+> main := (collector)+;Hello,
+>
+> I'm not sure I understand what Ragel considers a "final" state. IIRC
+> the User's Guide says that states that are final before machine
+> simplification remain final thereafter.
+>
+>     When exactly is a state final, and how does one recognize this?
+>
+> I'm using the state machine syntax to implement a string finder --
+> find ASCII strings with length greater than n, and print them. This
+> means implementing a maximum length matcher, as below.
+>
+> Despite the fact that the dot output shows no final states, the EOF
+> transitions behave differently depending on which flavor of {$%@}eof
+> is used. I do not understand why this should be. For example, in the
+> "has_string" state below, using %eof instead of @eof causes both the
+> "commit_nonstring_eof" and "commit_string_eof" actions to be called
+> from one of the generated/synthetic states terminating the matching
+> state.
+>
+> (State graphics for this machine are are available via
+> http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof)
+>
+> action commit_string {    }
+>
+> action commit_string_eof { }
+>
+> action commit_nonstring_eof { }
+>
+> action set_mark { }
+>
+> action reset {
+>     /* Force the machine back into state 1. This happens after
+>      * an incomplete match when some graphical characters are
+>      * consumed, but not enough for use to keep the string. */
+>     fgoto start;
+> }
+>
+> # Matching classes union to 0x00 .. 0xFF
+> graphic = (0x09 | 0x20 .. 0x7E);
+> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+>
+> collector = (
+>
+>     start: (
+>        # Set the mark if we have a graphic character,
+>        # otherwise go to non_graphic state and consume input
+>        graphic @set_mark ->  has_glyph |
+>        non_graphic ->  no_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     no_glyph: (
+>           # Consume input until a graphic character is encountered
+>           non_graphic ->  no_glyph |
+>           graphic @set_mark ->  has_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     has_glyph: (
+>            # We already matched one graphic character to get here
+>            # from start or no_glyph. Try to match N-1 before allowing
+>                # the string to be committed. If we don't get to N-1,
+>                # drop back to the start state
+>                graphic{3} $lerr(reset) ->  has_string
+>     ) @eof(commit_nonstring_eof),
+>
+>     has_string: (
+>                 # Already consumed our quota of N graphic characters;
+>                 # consume input until we run out of graphic characters
+>                 # then reset the machine. All exiting edges should commit
+>                 # the string. We diferentiate between exiting on a non-graphic
+>                 # input that shouldn't be added to the string and exiting
+>                 # on a (graphic) EOF that should be added.
+>                 graphic* non_graphic ->  start
+>     ) %from(commit_string) @eof(commit_string_eof)
+>     #) %from(commit_string) %eof(commit_string_eof) // bad
+>
+> ); #$debug;
+>
+> main := (collector)+;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/r
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 15:35:54 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 10:35:54 -0500
+Subject: [ragel-users] Some clarifications needed
+In-Reply-To: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+References: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+Message-ID: <52921CDA.6020509@complang.org>
+
+Usually an incremental approach to parser writing is the best.
+
+* Machine definition creates a named regular expression that can be 
+referenced in other expressions.
+
+* Machine instantiation creates a state machine from an expression.
+
+The |* *| syntax is a scanner. You can find it in the manual.
+
+-Adrian
+
+On 13-09-14 09:44 AM, Etienne Samson wrote:
+> Hello ragel-users !
+>
+> I'm trying to build a C parser for IMAP (RFC3501), but since I'm a complete beginner at ragel *and* I want to do it the best way I can think of, I'm having a hard time ;-). Please tell me what you think of the approach I'm aiming for, if I'm a little heavy-handed or whatever…
+>
+> So, I'm trying to split parts of the ABNF for IMAP in different ragel machines for easy reuse. I already have :
+> - abnf.rl that contains machine definitions for basic ABNF tokens (ALPHA, BIT, …),
+> - rfc3501.rl which contains basic "common" things between what will become my different machines (tag, address, …),
+> - rfc3501_response.rl which contains stuff relating to server replies, (response, response_tagged, …)
+> - imap_parser.rl that is supposed to be in charge of parsing a server's response into my own "message" C structure. This is the only one I'm "write"ing directly.
+>
+> My previous attempt was to copy/paste the whole ABNF from the RFC, convert it to ragel syntax and pray that it works. Luckily, it didn't, and since I ended up as the happy owner of a ragel state machine that has 3070 transitions and that I couldn't understand why it fails and where, I'm scaling back, and switching to divide-and-conquer (the only thing gained is that I can now look up a rule in my old file and integrate it pretty quickly after more thorough testing).
+>
+> So, here's a list of the questions I have :
+>
+> - I feel a little lost at the difference between a machine definition and a machine instantiation. It seems it works like C functions, definition = prototype and instantiation = actual function ? But even though they're different, you can attach actions to both of them. I understand that you can use definition to have a single place to tell ragel what actual syntax to parse (example from rfc3501_response, 'response_untagged = "tag SP resp_cond_state CRLF";'). But I can't use instantiations from one of my including files.
+>
+> - What does "main := |* stuff *|" mean ? I haven't been able to grasp what ragel does with it, I've seen no explanation in the user guide, and quite a few examples I found use that. In fact, I was thinking it was part of the instantiation syntax until I found examples that weren't using that (like mailbox.rl).
+>
+> Cordialement,
+> Etienne Samson
+> --
+> samson.etienne at gmail.com
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ra
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 16:34:15 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 11:34:15 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+Message-ID: <52922A87.7040505@complang.org>
+
+Hi Jan,
+
+Apparently, on Android ARM char is unsigned. Ragel assumes it is signed 
+on all architectures. What's needed is a configure check and the 
+appropriate information to make it into the descriptors in common.cc.
+
+A few others have encountered this bug lately.
+
+I'm currently pretty busy with Ragel 7, as soon as that's done I'm going 
+to sweep for the various bugs that have been reported.
+
+Regards,
+  Adrian
+
+On 13-09-18 10:05 AM, Jan Kundrát wrote:
+> Hi Adrian,
+> I'm using Ragel for parsing of e-mail headers as per RFC5322. When
+> porting this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed
+> that it fails to build after I enable C++11 features using clang 3.3.
+> Here is the error message:
+>
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+> error: constant expression evaluates to -128 which cannot be narrowed to
+> type 'char' [-Wc++11-narrowing]
+> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+> note: override this message by inserting an explicit cast
+> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+> static_cast<char>( )
+>
+> So the problem is that the signedness rules for the host (machine
+> running ragel producing the .cpp file with parser) and target (the
+> target platform of the C++ compiler which is producing Ragel's output)
+> do not match. That's a big problem, and it isn't limited just to chars,
+> actually -- because Ragel's code uses platform's native types instead of
+> the portable ones, there's no guarantee that ragel's int can fit the
+> data of the target's size, etc. I've solved this by patching ragel to
+> use C's int<num>_t types, please see the commit at [1]. That patch fixes
+> my problem.
+>
+> In addition, before I realized that I'm actually looking for the ragel-6
+> branch, I spent some time playing with master before I finding out that
+> it's some kind of a rewrite. The same bug applies there as well. Before
+> I was able to get the master branch to build on my system, I had to make
+> the following changes:
+>
+> * Fixing a build failure due to a bug in colm's headers [2]. I see
+> you're upstream for that project, too, perhaps you can fix it in there
+> as well.
+>
+> * Making sure that version.h is generated [3].
+>
+> After that, I simply added a rule to always treat chars as signed [4].
+> That's arguably a wrong change; the code shall probably do the same
+> thing as [1]. I don't have time for this now.
+>
+> And finally, when I tried the patched master, I found out that my ragel
+> parser won't compile anymore -- please see the file at [5]. The error
+> message I get is that it cannot find the "CRLF" symbol which is defined
+> in the included .rl file [6]. That looks like a regression in the rewrite.
+>
+> Thanks for a cool software -- I hope these patches are OK and that
+> you'll merge them.
+>
+> Cheers,
+> Jan
+>
+> [1]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+>
+> [2]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+>
+> [3]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+>
+> [4]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+>
+> [5]
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+>
+> [6]
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 17:59:11 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 12:59:11 -0500
+Subject: [ragel-users] Question on ragel
+In-Reply-To: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+References: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+Message-ID: <52923E6F.3080203@complang.org>
+
+You're right it won't work because the fcall transfers control 
+immediately. The fbreak is unreachable.
+
+Try saving the return point to a var using the scanner name, changing 
+the fcall to fnext and then use fgoto (return_point) in place of the fret.
+
+Adrian
+
+On 13-10-13 03:14 PM, eric at makechip.com wrote:
+>
+> Hi -
+>
+> I would like to construct a scanner like the following:
+>
+> main := |*
+>      A { fcall m1; fbreak; }
+>   *|;
+>
+> m1 := |*
+>     B { fcall m2; fbreak; }
+> *|;
+>
+> m2 := |*
+>     C { fret; fret; fbreak; }
+> *|;
+>
+> Although ragel will  compile this, the generated C-code looks
+> like it will not work like I intend.  There are two problems.
+> One I would like machine C to return back to main, but I don't
+> want to use fgoto because in the general case it may be a different
+> scanner that needs to be returned to.   The other problem
+> is that I don't think the fbreaks will work.  I really want to
+> return a token, then perform the fcall, or fret.  Is this
+> even possible?
+>
+> Thanks,
+>
+> Eric West
+>
+>
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 18:03:41 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 13:03:41 -0500
+Subject: [ragel-users] How to specify where to stop when scanning a
+	string
+In-Reply-To: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+References: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+Message-ID: <52923F7D.4000905@complang.org>
+
+The null character is specified in the grammar.
+
+On 13-10-15 06:27 PM, dinesh rtp wrote:
+> I have a struct,
+>
+> typedef struct {
+>    char* start_add;
+>    char* end_add;
+> } string_def;
+>
+> I used the example from the documentation,
+>
+> #include <string.h>
+> #include <stdio.h>
+>
+> %%{
+>     machine foo;
+>     main :=
+>          ( 'foo' | 'bar' )
+>          0 @{ res = 1; };
+> }%%
+>
+> %% write data;
+>
+>
+> int main()
+> {
+>    int cs, res = 0;
+> char *p = "foo";
+>    char *pe = p + strlen(p) + 1;
+>    %% write init;
+>    %% write exec;
+>    printf("result = %i\n", res );
+>    return 0;
+> }
+>
+> This works fine : " result = 1" is the output.
+>
+> If I tweak this a little to work the way my struct is.
+>
+> extern string_def new_string(char* str, int len) {
+>    string_def s;
+>    s.start_add = str;
+>    s.end_add = str + len;
+>    return s;
+> }
+>
+> int main()
+> {
+>    string_def str = new_string("foo\0", 4); ==> Works
+>    // string_def str = new_string("foo", 3); ==> does not work, I WANT
+> THIS TO WORK
+>    int cs, res = 0;
+>    char *p = str.start_add;
+>    char *pe = str.end_add;
+>    %% write init;
+>    %% write exec;
+>    printf("result = %i\n", res );
+>    return 0;
+> }
+>
+> Is ragel looking for a null character? How to override this behavior??
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 18:09:17 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 13:09:17 -0500
+Subject: [ragel-users] Suggested patch for ravel-6.8 (clang error)
+In-Reply-To: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+References: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+Message-ID: <529240CD.6090104@complang.org>
+
+Thank you for the patch. This has been fixed and will go out with ragel 6.9.
+
+Adrian
+
+On 13-10-20 08:57 AM, romain.bossart at free.fr wrote:
+> Hi,
+>
+> I'd like to suggest a tiny patch for ravel-6.8. Without this, clang cannot build (I only tested this with the latest clang).
+>
+> --> https://gist.github.com/romainbossart/7068665/raw/
+>
+> If any better way exists for suggesting this patch, thanks in advance for pointing me to it.
+>
+> Regards,
+> Romain
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 19:17:36 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:17:36 -0500
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+Message-ID: <529250D0.1020103@complang.org>
+
+Hi, which architecture is this one?
+
+On 13-10-21 11:15 AM, Iñaki Baz Castillo wrote:
+> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>
+>    # Any byte except NULL, CR or LF.
+>    main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>
+> When compiling the grammar it generates the following error:
+>
+>    1:36: lower end of range is greater then upper en
+>
+> Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+> that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+>
+> Thanks a lot.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Sun Nov 24 19:20:59 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 24 Nov 2013 20:20:59 +0100
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <529250D0.1020103@complang.org>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<529250D0.1020103@complang.org>
+Message-ID: <CALiegfkGUEW-y3=y=-SExTdnkph8MpjXTjN30qeuOTX3fbxGEQ@mail.gmail.com>
+
+Linux Ubuntu 64 bits
+
+--
+Iñaki Baz Castillo
+<ibc at aliax.net>
+On Nov 24, 2013 8:17 PM, "Adrian Thurston" <thurston at complang.org> wrote:
+
+> Hi, which architecture is this one?
+>
+> On 13-10-21 11:15 AM, Iñaki Baz Castillo wrote:
+>
+>> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>>
+>>    # Any byte except NULL, CR or LF.
+>>    main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>>
+>> When compiling the grammar it generates the following error:
+>>
+>>    1:36: lower end of range is greater then upper en
+>>
+>> Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+>> that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+>>
+>> Thanks a lot.
+>>
+>>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel/attachments/20131124/6d5414a1/attachment.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:25:04 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:25:04 -0500
+Subject: [ragel-users] The best way to stop and force error state?
+In-Reply-To: <528F3C34.2060101@gmail.com>
+References: <528F3C34.2060101@gmail.com>
+Message-ID: <52925290.4000103@complang.org>
+
+Hi Ivan, this is noted in issues/3.txt.
+
+On 13-11-22 06:12 AM, Ivan Ristić wrote:
+> What is the best way to stop the parser from within an action and force
+> the error state at the same time?
+>
+> At the moment I am doing this:
+>
+> %%machine foo
+>
+> action bar {
+>      do_some_work();
+>      if (error) {
+>          fnext *foo_error;
+>          fbreak;
+>      }
+> }
+>
+> I was expecting something like:
+>
+> action bar {
+>      do_some_work();
+>      if (error) ferror;
+> }
+>
+> I like this because it's succinct and does not reference the machine
+> error state (which simplifies the code reduces the chance of mistakes in
+> the copy & paste scenarios).
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:27:22 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:27:22 -0500
+Subject: [ragel-users] How to suppress generation of foo_en_main?
+In-Reply-To: <528F3D24.6030604@gmail.com>
+References: <528F3D24.6030604@gmail.com>
+Message-ID: <5292531A.2050904@complang.org>
+
+Sorry, not at present. It should be an option to 'write data'.
+
+On 13-11-22 06:16 AM, Ivan Ristić wrote:
+> Is it possible to suppress the generation of the foo_en_main variable?
+> In my case, the variable isn't used, and results with a compile error
+> later on.
+>
+> For example:
+>
+> htp_http_parsers.c:114:18: fatal error: unused variable
+> 'content_range_en_main' [-Wunused-variable]
+>
+> Thanks.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:32:45 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:32:45 -0500
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+	<CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+Message-ID: <5292545D.9050503@complang.org>
+
+You've got it. Just use unsigned char. The breakdown you specified 
+avoids a range (pos ... neg).
+
+I asked about the architecture in case you're on an architecture where 
+char is unsigned by default. There is a bug in that case.
+
+On 13-10-25 11:39 AM, Iñaki Baz Castillo wrote:
+> 2013/10/21 Jan Kundrát <jkt at flaska.net>:
+>> On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+>>>
+>>> The following modification in the grammar fixes it:
+>>>
+>>>    ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>>>
+>>> but I don't understand wht it is required to split the last range into
+>>> two ranges.
+>>
+>>
+>> Seems like ragel treats this as a signed char, i.e. -128..127. Your code
+>> appears to be a nice and portable workaround.
+>
+>
+> I've realized that setting:
+>
+>    alphtype unsigned char;
+> or
+>    alphtype unsigned int;
+>
+> also fixes the problem. Section 5.2 of the doc says that "The default
+> is char for all languages except Go where the default is byte" so it
+> makes sense.
+>
+> Thanks a lot.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Sun Nov 24 23:01:06 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 25 Nov 2013 00:01:06 +0100
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <5292545D.9050503@complang.org>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+	<CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+	<5292545D.9050503@complang.org>
+Message-ID: <CALiegfnSMoOe6_DfzsYgy1RoF_ZfYMGrT9H6YTRP_t-z1hQyQA@mail.gmail.com>
+
+2013/11/24 Adrian Thurston <thurston at complang.org>:
+> You've got it. Just use unsigned char. The breakdown you specified avoids a
+> range (pos ... neg).
+>
+> I asked about the architecture in case you're on an architecture where char
+> is unsigned by default. There is a bug in that case.
+
+Clear. Thansk a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Mon Nov 25 08:57:25 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Mon, 25 Nov 2013 09:57:25 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <52922A87.7040505@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+Message-ID: <9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+
+On Sunday, 24 November 2013 17:34:15 CEST, Adrian Thurston wrote:
+> Apparently, on Android ARM char is unsigned. Ragel assumes it 
+> is signed on all architectures. What's needed is a configure 
+> check and the appropriate information to make it into the 
+> descriptors in common.cc.
+
+Hi Adrian,
+how is a configure check going to help when cross-compiling? How would that 
+account for a pregenerated file (i.e. people running ragel as a part of 
+preparation of the release tarball)?
+
+Cheers,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Nov 25 19:47:52 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 25 Nov 2013 20:47:52 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write
+	first_final; }%%
+In-Reply-To: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+Message-ID: <CALiegfkT0RHwmsOZbtdYDXhKmkqsYPM4Ji0E87seQXsk0zxrAw@mail.gmail.com>
+
+Hi, just a reminder of this bug as I expect it is just a minor detail :)
+
+2013/11/12 Iñaki Baz Castillo <ibc at aliax.net>:
+> The following code in Go:
+>
+> -----------------
+>   if cs != %%{ write first_final; }%% {
+> -----------------
+>
+> generates the following lines in the .go file:
+>
+> -----------------
+>   if cs !=
+> // line 12549 "SDP.go"
+> 461
+> // line 79 "SDP.rl"
+>  {
+> -----------------
+>
+> This produces, of course, a syntax error in Go:
+>
+> sdp/SDP.go:12549: missing condition in if statement
+> sdp/SDP.go:12549: cs != 461 evaluated but not used
+>
+>
+>
+> $ ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+>
+>
+>
+> --
+> Iñaki Baz Castillo
+> <ibc at aliax.net>
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Nov 26 00:19:24 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 25 Nov 2013 19:19:24 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+Message-ID: <5293E90C.2090407@complang.org>
+
+Hmmm,
+
+Perhaps some explicit configure options specifying target architecture 
+is the way to go.
+
+Adrian
+
+On 13-11-25 03:57 AM, Jan Kundrát wrote:
+> On Sunday, 24 November 2013 17:34:15 CEST, Adrian Thurston wrote:
+>> Apparently, on Android ARM char is unsigned. Ragel assumes it is
+>> signed on all architectures. What's needed is a configure check and
+>> the appropriate information to make it into the descriptors in common.cc.
+>
+> Hi Adrian,
+> how is a configure check going to help when cross-compiling? How would
+> that account for a pregenerated file (i.e. people running ragel as a
+> part of preparation of the release tarball)?
+>
+> Cheers,
+> Jan
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Tue Nov 26 00:47:58 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Tue, 26 Nov 2013 01:47:58 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5293E90C.2090407@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+Message-ID: <9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+
+On Tuesday, 26 November 2013 01:19:24 CEST, Adrian Thurston wrote:
+> Perhaps some explicit configure options specifying target 
+> architecture is the way to go.
+
+That breaks the goal of providing platform-agnostic release tarballs.
+
+What drawbacks of using uint8_t etc do you see?
+
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Nov 27 01:57:32 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 26 Nov 2013 20:57:32 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+Message-ID: <5295518C.7080305@complang.org>
+
+You mean allow the set of
+
+u?int(8|16|32|64)_t
+
+as alphtypes?
+
+Only downside I can think of is that it requires an include. User would 
+need to do that, since there is no suitable write statement. I don't 
+like that aspect of it, but if it's the best solution for portability 
+then we should go with it.
+
+On 13-11-25 07:47 PM, Jan Kundrát wrote:
+> On Tuesday, 26 November 2013 01:19:24 CEST, Adrian Thurston wrote:
+>> Perhaps some explicit configure options specifying target architecture
+>> is the way to go.
+>
+> That breaks the goal of providing platform-agnostic release tarballs.
+>
+> What drawbacks of using uint8_t etc do you see?
+>
+> Jan
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Wed Nov 27 11:17:01 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Wed, 27 Nov 2013 12:17:01 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5295518C.7080305@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+	<5295518C.7080305@complang.org>
+Message-ID: <381d8bb6-8e0b-4031-aa02-4c6e0922c53a@flaska.net>
+
+On Wednesday, 27 November 2013 02:57:32 CEST, Adrian Thurston wrote:
+> You mean allow the set of
+>
+> u?int(8|16|32|64)_t
+>
+> as alphtypes?
+
+Yes.
+
+> Only downside I can think of is that it requires an include. 
+> User would need to do that, since there is no suitable write 
+> statement. I don't like that aspect of it, but if it's the best 
+> solution for portability then we should go with it.
+
+True. I don't see a better fix, though.
+
+With kind regards,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graceindustries at gmail.com  Wed Nov 27 14:17:52 2013
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 27 Nov 2013 09:17:52 -0500
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5295518C.7080305@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+	<5295518C.7080305@complang.org>
+Message-ID: <CAOuGh88oiqJdoPkA3jtzd3EqvMZ_aXk-F2R5jGKcpXmyKqgtgQ@mail.gmail.com>
+
+On Tue, Nov 26, 2013 at 8:57 PM, Adrian Thurston <thurston at complang.org> wrote:
+> You mean allow the set of
+>
+> u?int(8|16|32|64)_t
+>
+> as alphtypes?
+>
+> Only downside I can think of is that it requires an include.
+
+<inttypes.h> includes <stdint.h>.  inttypes has the advantage of
+defining the parameters for things like printf().
+Makes things more portable between compilers.  See:
+
+http://embeddedgurus.com/stack-overflow/2011/02/formatted-output-when-using-c99-data-types/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov  2 14:52:37 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 2 Nov 2013 10:52:37 -0400
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+Message-ID: <20131102145237.GA3882@xform.complang.org>
+
+Definitely a bug. We take the min and max values for the type from CHAR_MIN and
+CHAR_MAX, which should be set appropriately for the architecture.
+
+However, there is an isSigned bit that is not drawn from the compilation
+environment. We should be doing that somehow.
+
+This code is in common.{h,cc}
+
+-Adrian
+
+On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> Hello folks,
+> 
+> 
+> 
+> we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS TXT record data. Some time ago, we expanded the allowed inputs for this parser to the full 8 bit 'extended ASCII' range (which Ragel calls 'extend').
+> 
+> This works well on most platforms - but it failed for us on Debian/s390x.
+> 
+> After a lot of digging I found that char is unsigned on s390x, while it is signed on amd64, i386 and many other platforms.
+> 
+> I have added 'alphtype unsigned char' to our Ragel file. This makes the parser work reliably on both amd64 and s390x (and,  hopefully, many other platforms).
+> 
+> However, I feel something is wrong. It seems that on s390x, Ragel is mostly confused about the type of char. It generates a parser that treats extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This discrepancy feels like a Ragel issue to me.
+> 
+> A much longer version of this story is at https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> 
+> My question: is this a Ragel bug? Regardless of yes/no, is what I did (alphtype unsigned char) the best workaround?
+> 
+> I did most of the debugging with ragel 6.7-1 (Debian version number), but verified that the problem is identical in 6.8-1.
+> 
+> Kind regards,
+> -- 
+> Peter van Dijk
+> Netherlabs Computer Consulting BV - http://www.netherlabs.nl/
+> 
+
+
+
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov  2 14:55:50 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 2 Nov 2013 10:55:50 -0400
+Subject: [ragel-users] signed/unsigned portability issue
+In-Reply-To: <20131024195312.GA14263@wilbur.25thandClement.com>
+References: <1BA5ECC7-B0AC-4958-BE80-95977BD817C2@netherlabs.nl>
+	<20131024195312.GA14263@wilbur.25thandClement.com>
+Message-ID: <20131102145550.GB3882@xform.complang.org>
+
+We need ragel's internal data structures to match the signedness of the input
+array, and sometimes you just need a signed type because you're parsing a
+stream of integers.
+
+Perhaps what might be better is defaulting the C alphtype to unsigned char, if
+that's the more common case.
+
+-Adrian
+
+On Thu, Oct 24, 2013 at 12:53:12PM -0700, William Ahern wrote:
+> On Thu, Oct 24, 2013 at 08:52:17PM +0200, Peter van Dijk wrote:
+> > Hello folks,
+> > 
+> > we (PowerDNS) have a small Ragel parser for segmenting and unescaping DNS
+> > TXT record data. Some time ago, we expanded the allowed inputs for this
+> > parser to the full 8 bit 'extended ASCII' range (which Ragel calls
+> > 'extend').
+> > 
+> > This works well on most platforms - but it failed for us on Debian/s390x.
+> > 
+> > After a lot of digging I found that char is unsigned on s390x, while it is
+> > signed on amd64, i386 and many other platforms.
+> > 
+> > I have added 'alphtype unsigned char' to our Ragel file. This makes the
+> > parser work reliably on both amd64 and s390x (and, hopefully, many other
+> > platforms).
+> > 
+> > However, I feel something is wrong. It seems that on s390x, Ragel is
+> > mostly confused about the type of char. It generates a parser that treats
+> > extend as -128..127, but maps non-ASCII inputs in the 128..255 range. This
+> > discrepancy feels like a Ragel issue to me.
+> > 
+> > A much longer version of this story is at
+> > https://www.evernote.com/shard/s344/sh/cb968134-4d58-4e46-8b5e-47366a129038/60fafaf56d5a350edf891cf82cefc66d
+> > 
+> > My question: is this a Ragel bug? Regardless of yes/no, is what I did
+> > (alphtype unsigned char) the best workaround?
+> 
+> IMHO it would probably be better for Ragel to use unsigned char arithmetic
+> for both char and unsigned char. Off the top of my head it even seems like
+> Ragel should treat all input as unsigned.
+> 
+> FWIW, I always use unsigned arithmetic, for Ragel and most everything else.
+> Signed arithmetic is for mathematical formulas, not bit twiddling and string
+> processing. At the very least, it quickly leads to undefined behavior,
+> whereas signed->unsigned conversions in C are always well defined.
+> 
+> Does anybody on the list actually use or depend on signed behavior in their
+> machines?
+> 
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Nov 11 23:57:04 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Tue, 12 Nov 2013 00:57:04 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write first_final;
+	}%%
+Message-ID: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+
+The following code in Go:
+
+-----------------
+  if cs != %%{ write first_final; }%% {
+-----------------
+
+generates the following lines in the .go file:
+
+-----------------
+  if cs !=
+// line 12549 "SDP.go"
+461
+// line 79 "SDP.rl"
+ {
+-----------------
+
+This produces, of course, a syntax error in Go:
+
+sdp/SDP.go:12549: missing condition in if statement
+sdp/SDP.go:12549: cs != 461 evaluated but not used
+
+
+
+$ ragel -v
+Ragel State Machine Compiler version 6.8 Feb 2013
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From antage at gmail.com  Tue Nov 12 00:28:21 2013
+From: antage at gmail.com (Anton Ageev)
+Date: Tue, 12 Nov 2013 04:28:21 +0400
+Subject: [ragel-users] Bug in Go language when using %%{ write
+ first_final; }%%
+In-Reply-To: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+Message-ID: <CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+
+Ragel defines constant "[machine name]_first_final" (where "[machine name]"
+is a name specified in directive "machine [machine name]").
+
+You could rewrite the code to use this constant:
+
+%%{
+  machine sdp;
+
+// the machine definitions are here
+....
+}%%
+
+...
+// go code
+
+if cs != sdp_first_final {
+...
+}
+
+
+
+
+On Tue, Nov 12, 2013 at 3:57 AM, Iñaki Baz Castillo <ibc at aliax.net> wrote:
+
+> The following code in Go:
+>
+> -----------------
+>   if cs != %%{ write first_final; }%% {
+> -----------------
+>
+> generates the following lines in the .go file:
+>
+> -----------------
+>   if cs !=
+> // line 12549 "SDP.go"
+> 461
+> // line 79 "SDP.rl"
+>  {
+> -----------------
+>
+> This produces, of course, a syntax error in Go:
+>
+> sdp/SDP.go:12549: missing condition in if statement
+> sdp/SDP.go:12549: cs != 461 evaluated but not used
+>
+>
+>
+> $ ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+>
+>
+>
+> --
+> Iñaki Baz Castillo
+> <ibc at aliax.net>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+
+
+-- 
+WBR, Anton
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131112/a5cbae2f/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From daniel.salzman at nic.cz  Thu Nov 14 08:29:48 2013
+From: daniel.salzman at nic.cz (Daniel Salzman)
+Date: Thu, 14 Nov 2013 09:29:48 +0100
+Subject: [ragel-users] Difference between generated C code using -G0 and
+ -T0
+In-Reply-To: <51C97C71.7060802@nic.cz>
+References: <51C97C71.7060802@nic.cz>
+Message-ID: <528489FC.70806@nic.cz>
+
+Hi,
+
+I have reduced the problematic code which behaves differently in G mode 
+comparing to T or F.
+Please, is there anybody who can fix it?
+
+T: output is "A"
+G: output is "B"
+
+=======================================
+#include <stdio.h>
+
+%%{
+          machine foo;
+
+          sep = ( [ ]
+                | ';' when { 0 }
+)+;
+
+          cmt = ^[ ;] >!{ printf("A\n"); } . 'x' >!{ printf("B\n"); };
+
+          main := sep . cmt;
+}%%
+
+%% write data;
+
+void main()
+{
+          char buffer[] = " ;";
+
+          char *p = buffer;
+          char *pe = buffer + sizeof(buffer);
+          char *eof = pe;
+          int  cs = foo_start;
+
+          %% write exec;
+}
+=======================================
+
+Thanks
+
+
+On 06/25/2013 01:18 PM, Daniel Salzman wrote:
+> Hi,
+>
+> At the beginning I would like to thank you for the great project Ragel.
+> It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone 
+> files.
+>
+> But I have recently noticed that there is a small bug in C code 
+> generation with G{0,1,2},
+> because there is different behaviour between G and T, F modes.
+>
+> Meaningless and very pruned snippet of code which can demonstrate the 
+> problem:
+>
+> == test.rl ==
+> #include <stdlib.h>
+> #include <stdio.h>
+>
+> %%{
+>         machine zone_scanner;
+>
+>         newline = '\n';
+>         comment = ';' . (^newline)*;
+>         wchar = [ \t\n;];
+>
+>         sep = ( [ \t]
+>               | (comment? . newline) when { 0 }
+> )+;
+>
+>         err_line := (^newline)* . newline @{ fgoto main; };
+>
+>         action _text_char_error {
+> printf("!TXT_ERROR!\n");
+>                 fhold; fgoto err_line;
+> }
+>
+>         text = ^wchar . (alpha $!_text_char_error)+;
+>
+>         main := "$INCLUDE" . sep . text . newline;
+> }%%
+>
+> %% write data;
+>
+> int main(int argc, char **argv)
+> {
+>         char buffer[4096];
+>         FILE* f;
+>         long numbytes;
+>
+>         f = fopen(argv[1], "r");
+>         fseek(f, 0, SEEK_END);
+>         numbytes = ftell(f);
+>         fseek(f, 0, SEEK_SET);
+>         fread(buffer, 1, numbytes, f);
+>
+>         char *p = buffer;
+>         char *pe = buffer + numbytes;
+>         char *eof = pe;
+>         int stack[16];
+>         int  cs = zone_scanner_start;
+>         int top;
+>
+>         %% write exec;
+>
+>         if (cs == zone_scanner_error) {
+> printf("!MISC_ERROR!\n");
+>                 return -1;
+> }
+>
+>         return 0;
+> }
+>
+> == input.txt ==
+> $INCLUDE        ; Missing filename
+> ==========
+>
+> ragel -T0 test.rl -o testT.c
+> gcc testT.c -o testT
+> ./testT ./input.txt
+> !MISC_ERROR!
+>
+> ragel -G0 test.rl -o testG.c
+> gcc testG.c -o testG
+> ./testG ./input.txt
+> !TXT_ERROR!
+>
+> Here you can see the state machines stop in different states.
+>
+> Although this problem is marginal in our project, it would be nice if 
+> Ragel is absolute perfect :-)
+>
+> Best regards,
+> Dan
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ibc at aliax.net  Mon Nov 18 09:41:26 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 18 Nov 2013 10:41:26 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write
+ first_final; }%%
+In-Reply-To: <CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+	<CAFygSNnfJ5HxcCMZHcQ=N6=sVLUF4BkEzN_KP0JZQZmTnY3Opw@mail.gmail.com>
+Message-ID: <CALiegf=xFLKXN2QkgYd81kwHC++fD2K48jWbyMKy-f1-UU=NxA@mail.gmail.com>
+
+2013/11/12 Anton Ageev <antage at gmail.com>:
+> Ragel defines constant "[machine name]_first_final" (where "[machine name]"
+> is a name specified in directive "machine [machine name]").
+>
+> You could rewrite the code to use this constant:
+
+Yes, I know that and use that. Anyhow my bug report is valid :)
+
+Thanks a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ivan.ristic at gmail.com  Fri Nov 22 11:12:52 2013
+From: ivan.ristic at gmail.com (=?UTF-8?B?SXZhbiBSaXN0acSH?=)
+Date: Fri, 22 Nov 2013 11:12:52 +0000
+Subject: [ragel-users] The best way to stop and force error state?
+Message-ID: <528F3C34.2060101@gmail.com>
+
+What is the best way to stop the parser from within an action and force
+the error state at the same time?
+
+At the moment I am doing this:
+
+%%machine foo
+
+action bar {
+    do_some_work();
+    if (error) {
+        fnext *foo_error;
+        fbreak;
+    }
+}
+
+I was expecting something like:
+
+action bar {
+    do_some_work();
+    if (error) ferror;
+}
+
+I like this because it's succinct and does not reference the machine
+error state (which simplifies the code reduces the chance of mistakes in
+the copy & paste scenarios).
+
+-- 
+Ivan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From ivan.ristic at gmail.com  Fri Nov 22 11:16:52 2013
+From: ivan.ristic at gmail.com (=?UTF-8?B?SXZhbiBSaXN0acSH?=)
+Date: Fri, 22 Nov 2013 11:16:52 +0000
+Subject: [ragel-users] How to suppress generation of foo_en_main?
+Message-ID: <528F3D24.6030604@gmail.com>
+
+Is it possible to suppress the generation of the foo_en_main variable?
+In my case, the variable isn't used, and results with a compile error
+later on.
+
+For example:
+
+htp_http_parsers.c:114:18: fatal error: unused variable
+'content_range_en_main' [-Wunused-variable]
+
+Thanks.
+
+-- 
+Ivan
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov 23 14:17:12 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 09:17:12 -0500
+Subject: [ragel-users] Need help using ragel with ObjC
+In-Reply-To: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+References: <0F23AA2A1DA34ADF900633EEE3FA7EF8@gmail.com>
+Message-ID: <5290B8E8.9040104@complang.org>
+
+Grep the test directory for '@LANG: obj-c'.
+
+-Adrian
+
+On 13-06-15 02:15 PM, AquarHEAD Lou wrote:
+> I'm writing a scanner for a compiler course work, and trying to use
+> ragel with ObjC,
+>
+> The question is is there any example using ragel with ObjC, or how
+> should I set the
+> `p` and `pe` ?
+>
+> Thanks.
+>
+> 楼洵(AquarHEAD)
+> ----------
+> Blossoms which were the joys that fell,
+> And leaves, the hopes that yet remain.
+>
+> Learn, Code, Debug and Share.
+> ----------
+> http://about.AquarHEAD.me <http://about.aquarhead.me/>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sat Nov 23 14:55:20 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 09:55:20 -0500
+Subject: [ragel-users] Keywords and actions in a minimal example
+In-Reply-To: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+References: <CABv3vZk_pOSnxeNNt_aFQo5K9Mf8frY_hcMZx70vjn4smLPMRQ@mail.gmail.com>
+Message-ID: <5290C1D8.6010709@complang.org>
+
+Hi Lane,
+
+The simplest way to do it is to exclude the keywords from the 
+identifiers using set difference. You can use (vars - keys).
+
+You can also prioritize actions appropriately (keywords referenced 
+before idents) and break out of the action processing loop when you 
+execute the higher priority action.
+
+You can also use a scanner.
+
+-Adrian
+
+On 13-06-25 02:20 PM, Lane Schwartz wrote:
+> I have a minimal example, where tokens are separated by spaces. In
+> this example "a" is one allowed pattern, and alpha+ is the other.
+>
+> I would like to trigger one particular action (let's say it prints
+> "keyword") when the pattern "a" has been recognized, and a different
+> action when the alpha+ pattern has been recognized (let's say it
+> prints "variable").
+>
+> I've worked through most of the samples in the tutorial, but I'm still
+> stumped on this basic question:
+>
+> How can I trigger these actions such that the action that prints
+> "keyword" is triggered for the input "a" but not for the input "abc",
+> and the action that prints "variable" is triggered for the input "abc"
+> but not for the input "a"?
+>
+> Given the input "a bc abc def a gh a", I would like to see the following output:
+> keyword
+> variable
+> variable
+> variable
+> keyword
+> variable
+> keyword
+>
+> My exact example is below. This is my first time posting to this list.
+> I appreciate any help or tips, and if this isn't the right place to
+> post please let me know. FWIW, I've tried using key @keyword, key
+> %keyword, key %*keyword, var @name, var %name, var %*name, and several
+> other user action triggers from chapter 3 of the manual.
+>
+> #include<iostream>
+> #include<sstream>
+> #include<string.h>
+> #include<stdio.h>
+>
+> void parse() {
+>
+>       char *p   = "a bc abc def a gh a";
+>       char *pe  = p + strlen(p);
+>       char *eof = p + strlen(p);
+>       int cs;
+>
+>       %%{
+>
+> 	machine minimal;
+> 	write data;
+>
+> 	action keyword {
+> 	       std::cerr<<  "keyword"<<  std::endl;
+> 	}
+>
+> 	action name {
+> 	       std::cerr<<  "variable"<<  std::endl;
+> 	}
+>
+> 	key = "a";
+>
+> 	var = alpha+;
+>
+> 	whitespace = ' '*;
+>
+> 	main := (( key | var ) whitespace )* ;
+>
+> 	write init;
+> 	write exec;
+>
+>       }%%
+>
+> }
+>
+> int main() {
+>      parse();
+> }
+>
+>
+> Thanks,
+> Lane
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sat Nov 23 15:27:18 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sat, 23 Nov 2013 10:27:18 -0500
+Subject: [ragel-users] Difference between generated C code using -G0 and
+ -T0
+In-Reply-To: <528489FC.70806@nic.cz>
+References: <51C97C71.7060802@nic.cz> <528489FC.70806@nic.cz>
+Message-ID: <5290C956.5030407@complang.org>
+
+Hi Dan,
+
+Thank you for submitting this. It is definitely a bug in the condition 
+implementation.
+
+I haven't dug into the details yet, but I can say the difference is 
+resolved in ragel 7, which has a completely new implementation of 
+conditions in the NFA to DFA algorithm, as well as the code generation step.
+
+Ragel 7 is on the master branch. It is still experimental. Currently 
+only the C and D code generators work. Quite a bit has changed. Building 
+it requires the the master branch of colm.
+
+I'm not sure if a workaround will be possible for ragel 6.
+
+Thank you for your attention to detail!
+
+Adrian
+
+On 13-11-14 03:29 AM, Daniel Salzman wrote:
+> Hi,
+>
+> I have reduced the problematic code which behaves differently in G mode
+> comparing to T or F.
+> Please, is there anybody who can fix it?
+>
+> T: output is "A"
+> G: output is "B"
+>
+> =======================================
+> #include <stdio.h>
+>
+> %%{
+> machine foo;
+>
+> sep = ( [ ]
+> | ';' when { 0 }
+> )+;
+>
+> cmt = ^[ ;] >!{ printf("A\n"); } . 'x' >!{ printf("B\n"); };
+>
+> main := sep . cmt;
+> }%%
+>
+> %% write data;
+>
+> void main()
+> {
+> char buffer[] = " ;";
+>
+> char *p = buffer;
+> char *pe = buffer + sizeof(buffer);
+> char *eof = pe;
+> int cs = foo_start;
+>
+> %% write exec;
+> }
+> =======================================
+>
+> Thanks
+>
+>
+> On 06/25/2013 01:18 PM, Daniel Salzman wrote:
+>> Hi,
+>>
+>> At the beginning I would like to thank you for the great project Ragel.
+>> It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone
+>> files.
+>>
+>> But I have recently noticed that there is a small bug in C code
+>> generation with G{0,1,2},
+>> because there is different behaviour between G and T, F modes.
+>>
+>> Meaningless and very pruned snippet of code which can demonstrate the
+>> problem:
+>>
+>> == test.rl ==
+>> #include <stdlib.h>
+>> #include <stdio.h>
+>>
+>> %%{
+>> machine zone_scanner;
+>>
+>> newline = '\n';
+>> comment = ';' . (^newline)*;
+>> wchar = [ \t\n;];
+>>
+>> sep = ( [ \t]
+>> | (comment? . newline) when { 0 }
+>> )+;
+>>
+>> err_line := (^newline)* . newline @{ fgoto main; };
+>>
+>> action _text_char_error {
+>> printf("!TXT_ERROR!\n");
+>> fhold; fgoto err_line;
+>> }
+>>
+>> text = ^wchar . (alpha $!_text_char_error)+;
+>>
+>> main := "$INCLUDE" . sep . text . newline;
+>> }%%
+>>
+>> %% write data;
+>>
+>> int main(int argc, char **argv)
+>> {
+>> char buffer[4096];
+>> FILE* f;
+>> long numbytes;
+>>
+>> f = fopen(argv[1], "r");
+>> fseek(f, 0, SEEK_END);
+>> numbytes = ftell(f);
+>> fseek(f, 0, SEEK_SET);
+>> fread(buffer, 1, numbytes, f);
+>>
+>> char *p = buffer;
+>> char *pe = buffer + numbytes;
+>> char *eof = pe;
+>> int stack[16];
+>> int cs = zone_scanner_start;
+>> int top;
+>>
+>> %% write exec;
+>>
+>> if (cs == zone_scanner_error) {
+>> printf("!MISC_ERROR!\n");
+>> return -1;
+>> }
+>>
+>> return 0;
+>> }
+>>
+>> == input.txt ==
+>> $INCLUDE ; Missing filename
+>> ==========
+>>
+>> ragel -T0 test.rl -o testT.c
+>> gcc testT.c -o testT
+>> ./testT ./input.txt
+>> !MISC_ERROR!
+>>
+>> ragel -G0 test.rl -o testG.c
+>> gcc testG.c -o testG
+>> ./testG ./input.txt
+>> !TXT_ERROR!
+>>
+>> Here you can see the state machines stop in different states.
+>>
+>> Although this problem is marginal in our project, it would be nice if
+>> Ragel is absolute perfect :-)
+>>
+>> Best regards,
+>> Dan
+>>
+>>
+>>
+>> _______________________________________________
+>> ragel-users mailing list
+>> ragel-users at complang.org
+>> http://www.complang.org/mailman/listinfo/ragel-users
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 15:29:59 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 10:29:59 -0500
+Subject: [ragel-users] When does Ragel mark a state as 'Final'?
+In-Reply-To: <CANGO4PadXh+xh2aPRkE0kZ7gD0M7t9zyVXpG6+dSziV0MLkFmA@mail.gmail.com>
+References: <CANGO4PadXh+xh2aPRkE0kZ7gD0M7t9zyVXpG6+dSziV0MLkFmA@mail.gmail.com>
+Message-ID: <52921B77.5010305@complang.org>
+
+Every sub-expression has a set of final states. An FSM operation may add 
+or remove final-state status as it builds new machines. So your main 
+machine may not have any final states, but they were present as the 
+machine was built up, and so you see variations in how the eof embedding 
+operators affect the result.
+
+Arian
+
+On 13-07-25 12:31 AM, Solomon Gibbs wrote:
+> Hello,
+>
+> I'm not sure I understand what Ragel considers a "final" state. IIRC
+> the User's Guide says that states that are final before machine
+> simplification remain final thereafter.
+>
+>     When exactly is a state final, and how does one recognize this?
+>
+> I'm using the state machine syntax to implement a string finder --
+> find ASCII strings with length greater than n, and print them. This
+> means implementing a maximum length matcher, as below.
+>
+> Despite the fact that the dot output shows no final states, the EOF
+> transitions behave differently depending on which flavor of {$%@}eof
+> is used. I do not understand why this should be. For example, in the
+> "has_string" state below, using %eof instead of @eof causes both the
+> "commit_nonstring_eof" and "commit_string_eof" actions to be called
+> from one of the generated/synthetic states terminating the matching
+> state.
+>
+> (State graphics for this machine are are available via
+> http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof)
+>
+> action commit_string {    }
+>
+> action commit_string_eof { }
+>
+> action commit_nonstring_eof { }
+>
+> action set_mark { }
+>
+> action reset {
+>     /* Force the machine back into state 1. This happens after
+>      * an incomplete match when some graphical characters are
+>      * consumed, but not enough for use to keep the string. */
+>     fgoto start;
+> }
+>
+> # Matching classes union to 0x00 .. 0xFF
+> graphic = (0x09 | 0x20 .. 0x7E);
+> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+>
+> collector = (
+>
+>     start: (
+>        # Set the mark if we have a graphic character,
+>        # otherwise go to non_graphic state and consume input
+>        graphic @set_mark ->  has_glyph |
+>        non_graphic ->  no_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     no_glyph: (
+>           # Consume input until a graphic character is encountered
+>           non_graphic ->  no_glyph |
+>           graphic @set_mark ->  has_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     has_glyph: (
+>            # We already matched one graphic character to get here
+>            # from start or no_glyph. Try to match N-1 before allowing
+>                # the string to be committed. If we don't get to N-1,
+>                # drop back to the start state
+>                graphic{3} $lerr(reset) ->  has_string
+>     ) @eof(commit_nonstring_eof),
+>
+>     has_string: (
+>                 # Already consumed our quota of N graphic characters;
+>                 # consume input until we run out of graphic characters
+>                 # then reset the machine. All exiting edges should commit
+>                 # the string. We diferentiate between exiting on a non-graphic
+>                 # input that shouldn't be added to the string and exiting
+>                 # on a (graphic) EOF that should be added.
+>                 graphic* non_graphic ->  start
+>     ) %from(commit_string) @eof(commit_string_eof)
+>     #) %from(commit_string) %eof(commit_string_eof) // bad
+>
+> ); #$debug;
+>
+> main := (collector)+;Hello,
+>
+> I'm not sure I understand what Ragel considers a "final" state. IIRC
+> the User's Guide says that states that are final before machine
+> simplification remain final thereafter.
+>
+>     When exactly is a state final, and how does one recognize this?
+>
+> I'm using the state machine syntax to implement a string finder --
+> find ASCII strings with length greater than n, and print them. This
+> means implementing a maximum length matcher, as below.
+>
+> Despite the fact that the dot output shows no final states, the EOF
+> transitions behave differently depending on which flavor of {$%@}eof
+> is used. I do not understand why this should be. For example, in the
+> "has_string" state below, using %eof instead of @eof causes both the
+> "commit_nonstring_eof" and "commit_string_eof" actions to be called
+> from one of the generated/synthetic states terminating the matching
+> state.
+>
+> (State graphics for this machine are are available via
+> http://stackoverflow.com/questions/17848941/ragel-final-states-and-eof)
+>
+> action commit_string {    }
+>
+> action commit_string_eof { }
+>
+> action commit_nonstring_eof { }
+>
+> action set_mark { }
+>
+> action reset {
+>     /* Force the machine back into state 1. This happens after
+>      * an incomplete match when some graphical characters are
+>      * consumed, but not enough for use to keep the string. */
+>     fgoto start;
+> }
+>
+> # Matching classes union to 0x00 .. 0xFF
+> graphic = (0x09 | 0x20 .. 0x7E);
+> non_graphic =  (0x00 .. 0x08 | 0x0A .. 0x1F | 0x7F .. 0xFF);
+>
+> collector = (
+>
+>     start: (
+>        # Set the mark if we have a graphic character,
+>        # otherwise go to non_graphic state and consume input
+>        graphic @set_mark ->  has_glyph |
+>        non_graphic ->  no_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     no_glyph: (
+>           # Consume input until a graphic character is encountered
+>           non_graphic ->  no_glyph |
+>           graphic @set_mark ->  has_glyph
+>     ) $eof(commit_nonstring_eof),
+>
+>     has_glyph: (
+>            # We already matched one graphic character to get here
+>            # from start or no_glyph. Try to match N-1 before allowing
+>                # the string to be committed. If we don't get to N-1,
+>                # drop back to the start state
+>                graphic{3} $lerr(reset) ->  has_string
+>     ) @eof(commit_nonstring_eof),
+>
+>     has_string: (
+>                 # Already consumed our quota of N graphic characters;
+>                 # consume input until we run out of graphic characters
+>                 # then reset the machine. All exiting edges should commit
+>                 # the string. We diferentiate between exiting on a non-graphic
+>                 # input that shouldn't be added to the string and exiting
+>                 # on a (graphic) EOF that should be added.
+>                 graphic* non_graphic ->  start
+>     ) %from(commit_string) @eof(commit_string_eof)
+>     #) %from(commit_string) %eof(commit_string_eof) // bad
+>
+> ); #$debug;
+>
+> main := (collector)+;
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/r
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 15:35:54 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 10:35:54 -0500
+Subject: [ragel-users] Some clarifications needed
+In-Reply-To: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+References: <7BE2E1C1-0E97-46DE-94CA-8D07B3B8AB49@gmail.com>
+Message-ID: <52921CDA.6020509@complang.org>
+
+Usually an incremental approach to parser writing is the best.
+
+* Machine definition creates a named regular expression that can be 
+referenced in other expressions.
+
+* Machine instantiation creates a state machine from an expression.
+
+The |* *| syntax is a scanner. You can find it in the manual.
+
+-Adrian
+
+On 13-09-14 09:44 AM, Etienne Samson wrote:
+> Hello ragel-users !
+>
+> I'm trying to build a C parser for IMAP (RFC3501), but since I'm a complete beginner at ragel *and* I want to do it the best way I can think of, I'm having a hard time ;-). Please tell me what you think of the approach I'm aiming for, if I'm a little heavy-handed or whatever…
+>
+> So, I'm trying to split parts of the ABNF for IMAP in different ragel machines for easy reuse. I already have :
+> - abnf.rl that contains machine definitions for basic ABNF tokens (ALPHA, BIT, …),
+> - rfc3501.rl which contains basic "common" things between what will become my different machines (tag, address, …),
+> - rfc3501_response.rl which contains stuff relating to server replies, (response, response_tagged, …)
+> - imap_parser.rl that is supposed to be in charge of parsing a server's response into my own "message" C structure. This is the only one I'm "write"ing directly.
+>
+> My previous attempt was to copy/paste the whole ABNF from the RFC, convert it to ragel syntax and pray that it works. Luckily, it didn't, and since I ended up as the happy owner of a ragel state machine that has 3070 transitions and that I couldn't understand why it fails and where, I'm scaling back, and switching to divide-and-conquer (the only thing gained is that I can now look up a rule in my old file and integrate it pretty quickly after more thorough testing).
+>
+> So, here's a list of the questions I have :
+>
+> - I feel a little lost at the difference between a machine definition and a machine instantiation. It seems it works like C functions, definition = prototype and instantiation = actual function ? But even though they're different, you can attach actions to both of them. I understand that you can use definition to have a single place to tell ragel what actual syntax to parse (example from rfc3501_response, 'response_untagged = "tag SP resp_cond_state CRLF";'). But I can't use instantiations from one of my including files.
+>
+> - What does "main := |* stuff *|" mean ? I haven't been able to grasp what ragel does with it, I've seen no explanation in the user guide, and quite a few examples I found use that. In fact, I was thinking it was part of the instantiation syntax until I found examples that weren't using that (like mailbox.rl).
+>
+> Cordialement,
+> Etienne Samson
+> --
+> samson.etienne at gmail.com
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ra
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 16:34:15 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 11:34:15 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+Message-ID: <52922A87.7040505@complang.org>
+
+Hi Jan,
+
+Apparently, on Android ARM char is unsigned. Ragel assumes it is signed 
+on all architectures. What's needed is a configure check and the 
+appropriate information to make it into the descriptors in common.cc.
+
+A few others have encountered this bug lately.
+
+I'm currently pretty busy with Ragel 7, as soon as that's done I'm going 
+to sweep for the various bugs that have been reported.
+
+Regards,
+  Adrian
+
+On 13-09-18 10:05 AM, Jan Kundrát wrote:
+> Hi Adrian,
+> I'm using Ragel for parsing of e-mail headers as per RFC5322. When
+> porting this project to ARM (MeeGo Harmattan, Nokia N9), I've noticed
+> that it fails to build after I enable C++11 features using clang 3.3.
+> Here is the error message:
+>
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+> error: constant expression evaluates to -128 which cannot be narrowed to
+> type 'char' [-Wc++11-narrowing]
+> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+> /home/jkt/work/prog/trojita/_build_harmattan/Rfc5322HeaderParser.generated.cpp:164:26:
+> note: override this message by inserting an explicit cast
+> 39, 42, 127, 10, 9, 32, -128, -1, ^~~~
+> static_cast<char>( )
+>
+> So the problem is that the signedness rules for the host (machine
+> running ragel producing the .cpp file with parser) and target (the
+> target platform of the C++ compiler which is producing Ragel's output)
+> do not match. That's a big problem, and it isn't limited just to chars,
+> actually -- because Ragel's code uses platform's native types instead of
+> the portable ones, there's no guarantee that ragel's int can fit the
+> data of the target's size, etc. I've solved this by patching ragel to
+> use C's int<num>_t types, please see the commit at [1]. That patch fixes
+> my problem.
+>
+> In addition, before I realized that I'm actually looking for the ragel-6
+> branch, I spent some time playing with master before I finding out that
+> it's some kind of a rewrite. The same bug applies there as well. Before
+> I was able to get the master branch to build on my system, I had to make
+> the following changes:
+>
+> * Fixing a build failure due to a bug in colm's headers [2]. I see
+> you're upstream for that project, too, perhaps you can fix it in there
+> as well.
+>
+> * Making sure that version.h is generated [3].
+>
+> After that, I simply added a rule to always treat chars as signed [4].
+> That's arguably a wrong change; the code shall probably do the same
+> thing as [1]. I don't have time for this now.
+>
+> And finally, when I tried the patched master, I found out that my ragel
+> parser won't compile anymore -- please see the file at [5]. The error
+> message I get is that it cannot find the "CRLF" symbol which is defined
+> in the included .rl file [6]. That looks like a regression in the rewrite.
+>
+> Thanks for a cool software -- I hope these patches are OK and that
+> you'll merge them.
+>
+> Cheers,
+> Jan
+>
+> [1]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/dc238e78cd3024889b6fb2618fe5bbc20179a132
+>
+> [2]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/faee23876c6b5abde368355e14d786aba2300d4c
+>
+> [3]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/a980ec473ee66ecb6dd3cc972819c33da8d1a8d7
+>
+> [4]
+> http://repo.or.cz/w/ragel-jkt.git/commitdiff/06fab1367f2b3d6df6d51aa2cfeb97737617fa19
+>
+> [5]
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=efb0307c829d1c0c7939a556dd40427779221651&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/Rfc5322HeaderParser.cpp
+>
+> [6]
+> http://quickgit.kde.org/?p=trojita.git&a=blob&h=65e67a87c727714783bd793b43824795d0e94ef6&hb=e6dd1668fbebd3f3e676f17a5ac2acde99629ca7&f=src/Imap/Parser/rfc5322.rl
+>
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 17:59:11 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 12:59:11 -0500
+Subject: [ragel-users] Question on ragel
+In-Reply-To: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+References: <20131013121418.59b80ba095f37c14c12d753ca02b175f.8f0d1993da.wbe@email21.secureserver.net>
+Message-ID: <52923E6F.3080203@complang.org>
+
+You're right it won't work because the fcall transfers control 
+immediately. The fbreak is unreachable.
+
+Try saving the return point to a var using the scanner name, changing 
+the fcall to fnext and then use fgoto (return_point) in place of the fret.
+
+Adrian
+
+On 13-10-13 03:14 PM, eric at makechip.com wrote:
+>
+> Hi -
+>
+> I would like to construct a scanner like the following:
+>
+> main := |*
+>      A { fcall m1; fbreak; }
+>   *|;
+>
+> m1 := |*
+>     B { fcall m2; fbreak; }
+> *|;
+>
+> m2 := |*
+>     C { fret; fret; fbreak; }
+> *|;
+>
+> Although ragel will  compile this, the generated C-code looks
+> like it will not work like I intend.  There are two problems.
+> One I would like machine C to return back to main, but I don't
+> want to use fgoto because in the general case it may be a different
+> scanner that needs to be returned to.   The other problem
+> is that I don't think the fbreaks will work.  I really want to
+> return a token, then perform the fcall, or fret.  Is this
+> even possible?
+>
+> Thanks,
+>
+> Eric West
+>
+>
+>
+>
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 18:03:41 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 13:03:41 -0500
+Subject: [ragel-users] How to specify where to stop when scanning a
+	string
+In-Reply-To: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+References: <BAY175-W4102182D4D97208A3695E5801B0@phx.gbl>
+Message-ID: <52923F7D.4000905@complang.org>
+
+The null character is specified in the grammar.
+
+On 13-10-15 06:27 PM, dinesh rtp wrote:
+> I have a struct,
+>
+> typedef struct {
+>    char* start_add;
+>    char* end_add;
+> } string_def;
+>
+> I used the example from the documentation,
+>
+> #include <string.h>
+> #include <stdio.h>
+>
+> %%{
+>     machine foo;
+>     main :=
+>          ( 'foo' | 'bar' )
+>          0 @{ res = 1; };
+> }%%
+>
+> %% write data;
+>
+>
+> int main()
+> {
+>    int cs, res = 0;
+> char *p = "foo";
+>    char *pe = p + strlen(p) + 1;
+>    %% write init;
+>    %% write exec;
+>    printf("result = %i\n", res );
+>    return 0;
+> }
+>
+> This works fine : " result = 1" is the output.
+>
+> If I tweak this a little to work the way my struct is.
+>
+> extern string_def new_string(char* str, int len) {
+>    string_def s;
+>    s.start_add = str;
+>    s.end_add = str + len;
+>    return s;
+> }
+>
+> int main()
+> {
+>    string_def str = new_string("foo\0", 4); ==> Works
+>    // string_def str = new_string("foo", 3); ==> does not work, I WANT
+> THIS TO WORK
+>    int cs, res = 0;
+>    char *p = str.start_add;
+>    char *pe = str.end_add;
+>    %% write init;
+>    %% write exec;
+>    printf("result = %i\n", res );
+>    return 0;
+> }
+>
+> Is ragel looking for a null character? How to override this behavior??
+>
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 18:09:17 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 13:09:17 -0500
+Subject: [ragel-users] Suggested patch for ravel-6.8 (clang error)
+In-Reply-To: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+References: <385324116.272613789.1382273848380.JavaMail.root@zimbra63-e11.priv.proxad.net>
+Message-ID: <529240CD.6090104@complang.org>
+
+Thank you for the patch. This has been fixed and will go out with ragel 6.9.
+
+Adrian
+
+On 13-10-20 08:57 AM, romain.bossart at free.fr wrote:
+> Hi,
+>
+> I'd like to suggest a tiny patch for ravel-6.8. Without this, clang cannot build (I only tested this with the latest clang).
+>
+> --> https://gist.github.com/romainbossart/7068665/raw/
+>
+> If any better way exists for suggesting this patch, thanks in advance for pointing me to it.
+>
+> Regards,
+> Romain
+>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun Nov 24 19:17:36 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:17:36 -0500
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+Message-ID: <529250D0.1020103@complang.org>
+
+Hi, which architecture is this one?
+
+On 13-10-21 11:15 AM, Iñaki Baz Castillo wrote:
+> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>
+>    # Any byte except NULL, CR or LF.
+>    main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>
+> When compiling the grammar it generates the following error:
+>
+>    1:36: lower end of range is greater then upper en
+>
+> Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+> that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+>
+> Thanks a lot.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Sun Nov 24 19:20:59 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Sun, 24 Nov 2013 20:20:59 +0100
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <529250D0.1020103@complang.org>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<529250D0.1020103@complang.org>
+Message-ID: <CALiegfkGUEW-y3=y=-SExTdnkph8MpjXTjN30qeuOTX3fbxGEQ@mail.gmail.com>
+
+Linux Ubuntu 64 bits
+
+--
+Iñaki Baz Castillo
+<ibc at aliax.net>
+On Nov 24, 2013 8:17 PM, "Adrian Thurston" <thurston at complang.org> wrote:
+
+> Hi, which architecture is this one?
+>
+> On 13-10-21 11:15 AM, Iñaki Baz Castillo wrote:
+>
+>> Hi, using Ragel 6.7 in C with this simple grammar rule:
+>>
+>>    # Any byte except NULL, CR or LF.
+>>    main := ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0xFF )+;
+>>
+>> When compiling the grammar it generates the following error:
+>>
+>>    1:36: lower end of range is greater then upper en
+>>
+>> Column 36 points to the beginning of "0x0E..0xFF". What is wrong with
+>> that? AFAIK 0x0E is *less* than 0xFF, am I wrong?
+>>
+>> Thanks a lot.
+>>
+>>
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.colm.net/pipermail/ragel-users/attachments/20131124/6d5414a1/attachment-0001.html>
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:25:04 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:25:04 -0500
+Subject: [ragel-users] The best way to stop and force error state?
+In-Reply-To: <528F3C34.2060101@gmail.com>
+References: <528F3C34.2060101@gmail.com>
+Message-ID: <52925290.4000103@complang.org>
+
+Hi Ivan, this is noted in issues/3.txt.
+
+On 13-11-22 06:12 AM, Ivan Ristić wrote:
+> What is the best way to stop the parser from within an action and force
+> the error state at the same time?
+>
+> At the moment I am doing this:
+>
+> %%machine foo
+>
+> action bar {
+>      do_some_work();
+>      if (error) {
+>          fnext *foo_error;
+>          fbreak;
+>      }
+> }
+>
+> I was expecting something like:
+>
+> action bar {
+>      do_some_work();
+>      if (error) ferror;
+> }
+>
+> I like this because it's succinct and does not reference the machine
+> error state (which simplifies the code reduces the chance of mistakes in
+> the copy & paste scenarios).
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:27:22 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:27:22 -0500
+Subject: [ragel-users] How to suppress generation of foo_en_main?
+In-Reply-To: <528F3D24.6030604@gmail.com>
+References: <528F3D24.6030604@gmail.com>
+Message-ID: <5292531A.2050904@complang.org>
+
+Sorry, not at present. It should be an option to 'write data'.
+
+On 13-11-22 06:16 AM, Ivan Ristić wrote:
+> Is it possible to suppress the generation of the foo_en_main variable?
+> In my case, the variable isn't used, and results with a compile error
+> later on.
+>
+> For example:
+>
+> htp_http_parsers.c:114:18: fatal error: unused variable
+> 'content_range_en_main' [-Wunused-variable]
+>
+> Thanks.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Sun Nov 24 19:32:45 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 24 Nov 2013 14:32:45 -0500
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+	<CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+Message-ID: <5292545D.9050503@complang.org>
+
+You've got it. Just use unsigned char. The breakdown you specified 
+avoids a range (pos ... neg).
+
+I asked about the architecture in case you're on an architecture where 
+char is unsigned by default. There is a bug in that case.
+
+On 13-10-25 11:39 AM, Iñaki Baz Castillo wrote:
+> 2013/10/21 Jan Kundrát <jkt at flaska.net>:
+>> On Monday, 21 October 2013 17:17:57 CEST, Iñaki Baz Castillo wrote:
+>>>
+>>> The following modification in the grammar fixes it:
+>>>
+>>>    ( 0x01..0x09 | 0x0B..0x0C | 0x0E..0x7F | 0x80..0xFF)+;
+>>>
+>>> but I don't understand wht it is required to split the last range into
+>>> two ranges.
+>>
+>>
+>> Seems like ragel treats this as a signed char, i.e. -128..127. Your code
+>> appears to be a nice and portable workaround.
+>
+>
+> I've realized that setting:
+>
+>    alphtype unsigned char;
+> or
+>    alphtype unsigned int;
+>
+> also fixes the problem. Section 5.2 of the doc says that "The default
+> is char for all languages except Go where the default is byte" so it
+> makes sense.
+>
+> Thanks a lot.
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Sun Nov 24 23:01:06 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 25 Nov 2013 00:01:06 +0100
+Subject: [ragel-users] 0x0E..0xFF produces "lower end of range is
+ greater then upper end"
+In-Reply-To: <5292545D.9050503@complang.org>
+References: <CALiegfm0KeFBTeNrfP=h7rOQzee26KT6_K=GXzfzOXuJ3O0PmQ@mail.gmail.com>
+	<CALiegfkpib4ZK9pwUR+KSMqx49seGz3LkFpb=W682+5fhV=Qfw@mail.gmail.com>
+	<d0684827-6575-4136-81a5-43b38fbb9cc6@flaska.net>
+	<CALiegf=SeBz8n_1=tSdb-fCj3tJYj2O6R8d2=dGVaxPamEvwqw@mail.gmail.com>
+	<5292545D.9050503@complang.org>
+Message-ID: <CALiegfnSMoOe6_DfzsYgy1RoF_ZfYMGrT9H6YTRP_t-z1hQyQA@mail.gmail.com>
+
+2013/11/24 Adrian Thurston <thurston at complang.org>:
+> You've got it. Just use unsigned char. The breakdown you specified avoids a
+> range (pos ... neg).
+>
+> I asked about the architecture in case you're on an architecture where char
+> is unsigned by default. There is a bug in that case.
+
+Clear. Thansk a lot.
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Mon Nov 25 08:57:25 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Mon, 25 Nov 2013 09:57:25 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <52922A87.7040505@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+Message-ID: <9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+
+On Sunday, 24 November 2013 17:34:15 CEST, Adrian Thurston wrote:
+> Apparently, on Android ARM char is unsigned. Ragel assumes it 
+> is signed on all architectures. What's needed is a configure 
+> check and the appropriate information to make it into the 
+> descriptors in common.cc.
+
+Hi Adrian,
+how is a configure check going to help when cross-compiling? How would that 
+account for a pregenerated file (i.e. people running ragel as a part of 
+preparation of the release tarball)?
+
+Cheers,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From ibc at aliax.net  Mon Nov 25 19:47:52 2013
+From: ibc at aliax.net (=?UTF-8?Q?I=C3=B1aki_Baz_Castillo?=)
+Date: Mon, 25 Nov 2013 20:47:52 +0100
+Subject: [ragel-users] Bug in Go language when using %%{ write
+	first_final; }%%
+In-Reply-To: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+References: <CALiegfkXwnaOOuc1z0pM42XrR9A8sfGjdYWP630pme1uE6cbpA@mail.gmail.com>
+Message-ID: <CALiegfkT0RHwmsOZbtdYDXhKmkqsYPM4Ji0E87seQXsk0zxrAw@mail.gmail.com>
+
+Hi, just a reminder of this bug as I expect it is just a minor detail :)
+
+2013/11/12 Iñaki Baz Castillo <ibc at aliax.net>:
+> The following code in Go:
+>
+> -----------------
+>   if cs != %%{ write first_final; }%% {
+> -----------------
+>
+> generates the following lines in the .go file:
+>
+> -----------------
+>   if cs !=
+> // line 12549 "SDP.go"
+> 461
+> // line 79 "SDP.rl"
+>  {
+> -----------------
+>
+> This produces, of course, a syntax error in Go:
+>
+> sdp/SDP.go:12549: missing condition in if statement
+> sdp/SDP.go:12549: cs != 461 evaluated but not used
+>
+>
+>
+> $ ragel -v
+> Ragel State Machine Compiler version 6.8 Feb 2013
+>
+>
+>
+> --
+> Iñaki Baz Castillo
+> <ibc at aliax.net>
+
+
+
+-- 
+Iñaki Baz Castillo
+<ibc at aliax.net>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Tue Nov 26 00:19:24 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Mon, 25 Nov 2013 19:19:24 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+Message-ID: <5293E90C.2090407@complang.org>
+
+Hmmm,
+
+Perhaps some explicit configure options specifying target architecture 
+is the way to go.
+
+Adrian
+
+On 13-11-25 03:57 AM, Jan Kundrát wrote:
+> On Sunday, 24 November 2013 17:34:15 CEST, Adrian Thurston wrote:
+>> Apparently, on Android ARM char is unsigned. Ragel assumes it is
+>> signed on all architectures. What's needed is a configure check and
+>> the appropriate information to make it into the descriptors in common.cc.
+>
+> Hi Adrian,
+> how is a configure check going to help when cross-compiling? How would
+> that account for a pregenerated file (i.e. people running ragel as a
+> part of preparation of the release tarball)?
+>
+> Cheers,
+> Jan
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Tue Nov 26 00:47:58 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Tue, 26 Nov 2013 01:47:58 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5293E90C.2090407@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+Message-ID: <9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+
+On Tuesday, 26 November 2013 01:19:24 CEST, Adrian Thurston wrote:
+> Perhaps some explicit configure options specifying target 
+> architecture is the way to go.
+
+That breaks the goal of providing platform-agnostic release tarballs.
+
+What drawbacks of using uint8_t etc do you see?
+
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From thurston at complang.org  Wed Nov 27 01:57:32 2013
+From: thurston at complang.org (Adrian Thurston)
+Date: Tue, 26 Nov 2013 20:57:32 -0500
+Subject: [ragel-users] C++11,
+ new narrowing rules and unsigned char on ARM
+In-Reply-To: <9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+Message-ID: <5295518C.7080305@complang.org>
+
+You mean allow the set of
+
+u?int(8|16|32|64)_t
+
+as alphtypes?
+
+Only downside I can think of is that it requires an include. User would 
+need to do that, since there is no suitable write statement. I don't 
+like that aspect of it, but if it's the best solution for portability 
+then we should go with it.
+
+On 13-11-25 07:47 PM, Jan Kundrát wrote:
+> On Tuesday, 26 November 2013 01:19:24 CEST, Adrian Thurston wrote:
+>> Perhaps some explicit configure options specifying target architecture
+>> is the way to go.
+>
+> That breaks the goal of providing platform-agnostic release tarballs.
+>
+> What drawbacks of using uint8_t etc do you see?
+>
+> Jan
+>
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From jkt at flaska.net  Wed Nov 27 11:17:01 2013
+From: jkt at flaska.net (=?iso-8859-1?Q?Jan_Kundr=E1t?=)
+Date: Wed, 27 Nov 2013 12:17:01 +0100
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5295518C.7080305@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+	<5295518C.7080305@complang.org>
+Message-ID: <381d8bb6-8e0b-4031-aa02-4c6e0922c53a@flaska.net>
+
+On Wednesday, 27 November 2013 02:57:32 CEST, Adrian Thurston wrote:
+> You mean allow the set of
+>
+> u?int(8|16|32|64)_t
+>
+> as alphtypes?
+
+Yes.
+
+> Only downside I can think of is that it requires an include. 
+> User would need to do that, since there is no suitable write 
+> statement. I don't like that aspect of it, but if it's the best 
+> solution for portability then we should go with it.
+
+True. I don't see a better fix, though.
+
+With kind regards,
+Jan
+
+-- 
+Trojitá, a fast Qt IMAP e-mail client -- http://trojita.flaska.net/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+From graceindustries at gmail.com  Wed Nov 27 14:17:52 2013
+From: graceindustries at gmail.com (Bob Paddock)
+Date: Wed, 27 Nov 2013 09:17:52 -0500
+Subject: [ragel-users] C++11,
+	new narrowing rules and unsigned char on ARM
+In-Reply-To: <5295518C.7080305@complang.org>
+References: <618b1fcd-3948-4881-a83a-88789dab2743@flaska.net>
+	<52922A87.7040505@complang.org>
+	<9494b8e6-09b0-4ece-ab2a-6665353bea3e@flaska.net>
+	<5293E90C.2090407@complang.org>
+	<9aa7da0a-8017-4a8c-97fe-3784028dbaae@flaska.net>
+	<5295518C.7080305@complang.org>
+Message-ID: <CAOuGh88oiqJdoPkA3jtzd3EqvMZ_aXk-F2R5jGKcpXmyKqgtgQ@mail.gmail.com>
+
+On Tue, Nov 26, 2013 at 8:57 PM, Adrian Thurston <thurston at complang.org> wrote:
+> You mean allow the set of
+>
+> u?int(8|16|32|64)_t
+>
+> as alphtypes?
+>
+> Only downside I can think of is that it requires an include.
+
+<inttypes.h> includes <stdint.h>.  inttypes has the advantage of
+defining the parameters for things like printf().
+Makes things more portable between compilers.  See:
+
+http://embeddedgurus.com/stack-overflow/2011/02/formatted-output-when-using-c99-data-types/
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

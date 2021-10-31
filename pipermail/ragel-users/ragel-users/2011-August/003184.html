@@ -1,0 +1,310 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] confused about scanning
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20confused%20about%20scanning&In-Reply-To=%3CCALBzPR%3D3O7tX2M-WFLwB2p6E7oPrdmOED_a6W8f3_TYbUNHk%3Dg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003179.html">
+   <LINK REL="Next"  HREF="003180.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] confused about scanning</H1>
+    <B>Kevin T. Ryan</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20confused%20about%20scanning&In-Reply-To=%3CCALBzPR%3D3O7tX2M-WFLwB2p6E7oPrdmOED_a6W8f3_TYbUNHk%3Dg%40mail.gmail.com%3E"
+       TITLE="[ragel-users] confused about scanning">kevin.t.ryan at gmail.com
+       </A><BR>
+    <I>Fri Aug 12 02:45:12 UTC 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003179.html">[ragel-users] confused about scanning
+</A></li>
+        <LI>Next message: <A HREF="003180.html">[ragel-users] Parsing date strings
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3184">[ date ]</a>
+              <a href="thread.html#3184">[ thread ]</a>
+              <a href="subject.html#3184">[ subject ]</a>
+              <a href="author.html#3184">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I took what I think you were trying to accomplish (at least to some
+degree) and tried to develop a state machine based on the
+specifications as I understood them.  I did this partially to help me
+understand Ragel a little bit better, so I hope you don't mind that I
+didn't use much of what you provided in your original email.  Some
+notes related to your email though:
+
+- I don't think you want a scanner for what you are trying to
+accomplish.  A scanner spits out things like &quot;number&quot; or &quot;string&quot; or
+&quot;operator&quot; without regards to how those things are put together.  I
+think you want something that understands the structure of what can
+happen where (e.g., udp:foo = true &quot;sets&quot; udp:foo equal to true ... a
+scanner might kick out &quot;identifer&quot; [for udp:foo], &quot;operator&quot; or
+&quot;equals&quot; for '=' and &quot;keyword&quot; or &quot;identifier&quot; for 'true'.).
+- I think you might be able to accomplish some of what you were
+intending (even with a scanner) by using fgoto instead of fcall
+(although I'm not entirely sure as I didn't fully grasp your code).
+
+The following is in C (not C++), but I think should be easy to follow.
+ Note that the last section of my 'main' (checking for errors) was
+very helpful in letting me know when I screwed something up (e.g.,
+forgot a specific char in a machine, etc.).  All I'm doing is printing
+stuff out, but you could adapt it to your needs.  Hope this helps (PS
+- you may want to read
+<A HREF="http://zedshaw.com/essays/ragel_state_charts.html">http://zedshaw.com/essays/ragel_state_charts.html</A> - I also found it
+very helpful in getting started with Ragel):
+
+
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+%%{
+    machine sas_scanner;
+
+    action init {
+        printf(&quot;group: &quot;);
+        start = fpc+1;
+    }
+    action args {
+        printf(&quot;call: %.*s\n&quot;, fpc-start, start);
+        start = fpc+1;
+    }
+    action pr {
+        printf(&quot;%.*s\n&quot;, fpc-start, start);
+        start = fpc+1;
+    }
+    action kwd {
+        printf(&quot;  %.*s = &quot;, fpc-start, start);
+        start = fpc+1;
+    }
+    action nl {
+        printf(&quot;\n&quot;);
+        start = fpc+1;
+    }
+    action reset { start = fpc; }
+    action chain {
+        printf(&quot;- Chained call -\n&quot;);
+        start = fpc+1;
+    }
+    action prset {
+        printf(&quot; Set: %.*s -&gt;&quot;, fpc-start, start);
+        start = fpc+1;
+    }
+
+    main := (
+        start: (
+            &quot;group &quot; @init -&gt; group_name
+        ),
+
+        group_name: (
+            alpha+ -&gt; group_name |
+            &quot; &quot; @pr -&gt; group_name |
+            &quot;{&quot; -&gt; details
+        ),
+
+        details: (
+            '('  @args  -&gt; arguments |
+            [:.]        -&gt; details |
+            '&gt;'  @chain -&gt; details |
+            alpha+      -&gt; details |
+            '\n' @reset -&gt; details |
+            ';'  @reset -&gt; details |
+            '='  @prset -&gt; set     |
+            ' '         -&gt; details |
+            digit+      -&gt; details |
+            '}'         -&gt; final
+        ),
+
+        arguments: (
+            ',' @pr    -&gt; arguments |
+            alpha+     -&gt; arguments |
+            ':' @kwd   -&gt; arguments |
+            ' '        -&gt; arguments |
+            digit+     -&gt; arguments |
+            ')' @pr    -&gt; details
+        ),
+
+        set: (
+            alpha+  -&gt; set |
+            ' '     -&gt; set |
+            ';' @pr -&gt; details
+        )
+    );
+}%%
+
+%% write data;
+
+int main () {
+    char* to_parse =
+        &quot;group MyGroup {\n&quot;
+        &quot;   tcpclient( host: foo, port: 49152 );\n&quot;
+        &quot;   udp( host: bar, port: 49152 ) &gt; tcpserver( port: 11111 );\n&quot;
+        &quot;   udp:foo:49152.nonblocking = true;\n&quot;
+        &quot;}&quot;;
+
+    int cs, act;
+    const char* p = to_parse;
+    const char* pe = to_parse + strlen(to_parse);
+
+    const char* start;
+    const char* end;
+
+    %% write init;
+    %% write exec;
+
+    if (cs == sas_scanner_error) {
+        printf(&quot;Error parsing @ %s\n&quot;, p);
+    }
+    return 0;
+}
+
+---------------------
+Kevin T. Ryan
+<A HREF="http://blog.gridmule.com/">http://blog.gridmule.com/</A>
+
+
+
+On Fri, Aug 5, 2011 at 9:13 AM, 𝄆 Rob Harris 𝄇 &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">rob.harris at gmail.com</A>&gt; wrote:
+&gt;<i>
+</I>&gt;<i> All, help. I've R'd TFM all week trying to figure this out, but am still
+</I>&gt;<i> confused (so please pardon the potential n00bness.)
+</I>&gt;<i>
+</I>&gt;<i> I have to parse a config file for an app I'm working on, whose format is
+</I>&gt;<i> basically of the format:
+</I>&gt;<i> group MyGroup {
+</I>&gt;<i>   tcpclient( host: foo, port: 49152 );
+</I>&gt;<i>   udp( host: bar, port: 49152 ) &gt; tcpserver( port: 11111 );
+</I>&gt;<i>   udp:foo:49152.nonblocking = true;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> From what I've read on the Intertubes, it seems that the SOP for processing
+</I>&gt;<i> this is to define a main := which will match a particular line of the text
+</I>&gt;<i> and then upon matching call a another machine to &quot;scan&quot; the message.
+</I>&gt;<i> However, I'm not sure how to do that because it seem that regardless of
+</I>&gt;<i> whether I define main as a matcher or a scanner, executing the parser always
+</I>&gt;<i> seems to consume the text as it matches. For instance, when I parse the
+</I>&gt;<i> group definition, I can simply match on the word &quot;group&quot; and then pass the
+</I>&gt;<i> rest of the line (up to the {) in to the scanner and I can get 'MyGroup' out
+</I>&gt;<i> relatively easily. However, when I try to parse the first encapsulated line,
+</I>&gt;<i> I don't know whether I'm dealing with a string of the first line form or
+</I>&gt;<i> third line form (or if the command is &quot;chained&quot; as in the second line) until
+</I>&gt;<i> I've done a kleene star match of the entire line (up to the ;) at which
+</I>&gt;<i> point it seems that the parser has already consumed the entire line and when
+</I>&gt;<i> I pass it into a scanner the pointers are already at the next line. Do I
+</I>&gt;<i> need the store the starting pointer before the first main scan (and if so,
+</I>&gt;<i> how?) and then how would I tell the downstream scanner where to start? I
+</I>&gt;<i> thought of making a number of nested c++ &quot;parser objects&quot; but that just seem
+</I>&gt;<i> inherently wrong.
+</I>&gt;<i>
+</I>&gt;<i> Below is what I've written so far--just enough to hopefully pass the first
+</I>&gt;<i> two cases. Again, I don't know if I'm only a character or so off or if my
+</I>&gt;<i> mindset is completely off. Any help would be appreciated.
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Rob Harris
+</I>&gt;<i>   Technological Pragmatist
+</I>&gt;<i>   rob period harris shift-2 gmail decimal-point com
+</I>&gt;<i>   &quot;The universe tends towards maximum irony.&quot; --Jamie Zawinsky
+</I>&gt;<i>
+</I>&gt;<i>  %%{
+</I>&gt;<i>     machine sas_scanner;
+</I>&gt;<i>     ml_comment = '/*' ( any )* :&gt;&gt; '*/';
+</I>&gt;<i>     sl_comment = '//' [^\n]* '\n';
+</I>&gt;<i>     comment    = ml_comment | sl_comment;
+</I>&gt;<i>     wspace     = comment | space+ ;
+</I>&gt;<i>     integer    = [0-9]*;
+</I>&gt;<i>     float      = [0-9]* '.' [0-9]*;
+</I>&gt;<i>     identifier = [a-zA-Z][a-zA-Z0-9]*;
+</I>&gt;<i>     fqsm       = [a-zA-Z] ( [a-zA-Z0-9:][a-zA-Z0-9_] )*;
+</I>&gt;<i>     sqstring   = '\'' [^\n]* :&gt;&gt; '\'';
+</I>&gt;<i>     dqstring   = '\&quot;' [^\n]* :&gt;&gt; '\&quot;';
+</I>&gt;<i>     strvalue   = ( integer | float | identifier | sqstring | dqstring );
+</I>&gt;<i>     action DEBUG { fprintf( stderr, &quot;state: %4d, char: %c\n&quot;, cs, *p ); }
+</I>&gt;<i>     action RESET { reset(); }
+</I>&gt;<i>     action CRLF  { std::cout &lt;&lt; std::endl &lt;&lt; std::endl; }
+</I>&gt;<i>     action NAME  { m_name.append( 1, fc ); }
+</I>&gt;<i>     action KEY   {  m_key.append( 1, fc ); }
+</I>&gt;<i>     action VAL   {  m_val.append( 1, fc ); }
+</I>&gt;<i>     action QKV
+</I>&gt;<i>     {
+</I>&gt;<i>       printf( &quot;[%s]=&gt;[%s]\n&quot;, m_key.c_str(), m_val.c_str());
+</I>&gt;<i>       m_kvMap[ m_key ] = m_val;
+</I>&gt;<i>       m_key.clear();
+</I>&gt;<i>       m_val.clear();
+</I>&gt;<i>     }
+</I>&gt;<i>     action SNAME { printf( &quot;NAME: [%s]\n&quot;, m_name.c_str() ); }
+</I>&gt;<i>     kvpair = ( identifier space* ':' space* strvalue );
+</I>&gt;<i>     kvlist = ( space+ | kvpair | ',' space+ kvpair );
+</I>&gt;<i>     instantiation = ( identifier '(' kvlist* ')' );
+</I>&gt;<i>
+</I>&gt;<i>     instantiation_chain = (
+</I>&gt;<i>       instantiation $NAME ( space* '&gt;' space* instantiation )*
+</I>&gt;<i>       ) $NAME &gt;RESET ';' @SNAME;
+</I>&gt;<i>
+</I>&gt;<i>     inst_chain_scanner :=
+</I>&gt;<i>     |*
+</I>&gt;<i>       space+;
+</I>&gt;<i>       identifier =&gt; { diff(); };
+</I>&gt;<i>       strvalue =&gt; { diff(); };
+</I>&gt;<i>     *|;
+</I>&gt;<i>
+</I>&gt;<i>     group_name = ( 'g' 'r' 'o' 'u' 'p' );
+</I>&gt;<i>     group_id = ( identifier - group_name ) @NAME;
+</I>&gt;<i>     group_line = ( group_name space+ group_id :&gt;&gt; space* '{' );
+</I>&gt;<i>
+</I>&gt;<i>     group_scanner :=
+</I>&gt;<i>     |*
+</I>&gt;<i>       space+ =&gt; { m_name.clear(); };
+</I>&gt;<i>       group_name;
+</I>&gt;<i>       group_id =&gt; { printf( &quot;&gt;&gt; %s\n&quot;, m_name.c_str() ); };
+</I>&gt;<i>       '{' =&gt; { fret; };
+</I>&gt;<i>     *|;
+</I>&gt;<i>
+</I>&gt;<i>     main :=
+</I>&gt;<i>     |*
+</I>&gt;<i>       wspace+;
+</I>&gt;<i>       group_name =&gt; { fcall group_scanner; };
+</I>&gt;<i>       instantiation_chain =&gt; { fcall inst_chain_scanner; };
+</I>&gt;<i>     *|;
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003179.html">[ragel-users] confused about scanning
+</A></li>
+	<LI>Next message: <A HREF="003180.html">[ragel-users] Parsing date strings
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3184">[ date ]</a>
+              <a href="thread.html#3184">[ thread ]</a>
+              <a href="subject.html#3184">[ subject ]</a>
+              <a href="author.html#3184">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

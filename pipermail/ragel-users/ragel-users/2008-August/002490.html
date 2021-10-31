@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Ragel pointers
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Ragel%20pointers&In-Reply-To=%3Cbeaee1e7-dfc8-48de-948e-4a3b42b458bd%40z6g2000pre.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Ragel pointers</H1>
+    <B>Matt Reynolds</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Ragel%20pointers&In-Reply-To=%3Cbeaee1e7-dfc8-48de-948e-4a3b42b458bd%40z6g2000pre.googlegroups.com%3E"
+       TITLE="Ragel pointers">loopys... at gmail.com
+       </A><BR>
+    <I>Mon Aug 25 23:03:43 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2490">[ date ]</a>
+              <a href="thread.html#2490">[ thread ]</a>
+              <a href="subject.html#2490">[ subject ]</a>
+              <a href="author.html#2490">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>So, I've been struggling on and off for some time with creating a
+lightweight &quot;humane text&quot; parser with Ragel.  Here's what I've got.
+
+%%{
+machine simtex;
+
+	newline = &quot;\n&quot; @ { curline++; newline(); };
+
+	text = (print -- newline)* &gt;{ markTextStart(fpc);} %
+{ captureText(fpc);};
+
+    comment_to_eol = &quot;#!&quot; %{ fire(Token.Type.COMMENT);} ;
+
+    heading = &quot;%&quot; {1,5} % { fire(Token.Type.HEADING); };
+    separator = &quot;-&quot; {5,} % { fire(Token.Type.SEPARATOR); };
+
+    set = &quot;*&quot; {1,5} @ { fire(Token.Type.SET); };
+    list = ([0-9]+ . &quot;.&quot;) {1} @ { fire(Token.Type.LIST); };
+
+    uninterpolated_command_start = &quot;$&lt;{&quot;;
+    uninterpolated_command_end = &quot;}&gt;$&quot;;
+
+    stanzas = (comment_to_eol | heading | separator | set | list);
+
+	main := (stanzas? . text . newline+ )*;
+}%%
+
+I've tried various permutations, with some success, but this is the
+configuration that has yielded the most results.  I'm attempting to
+parse text in two passes, with the first pass catching all line-based
+formatting and the second catching any inter-line formatting.
+
+At this point, I'm just looking for some more general explanation of
+best practices for how to write parsers like this in Ragel.  I've
+followed the examples, and each time I come back to this hobby project
+I understand a little more, but I figured I'd ask if people have
+general tips (or more full fledged examples) of how to write these
+sorts of parsers in Ragel.
+
+I've looked around for other examples of wiki-text parsers and what
+not, but they're generally very complicated and very lengthy, which
+seem to go against the elegance that Ragel embodies.
+
+Anyway, thanks for any help you might be able to give,
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2490">[ date ]</a>
+              <a href="thread.html#2490">[ thread ]</a>
+              <a href="subject.html#2490">[ subject ]</a>
+              <a href="author.html#2490">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

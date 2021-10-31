@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: Error actions and error recovery
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C13f6d2440709050032w637baf25u1e8f1f849be187af%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000335.html">
+   <LINK REL="Next"  HREF="000334.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: Error actions and error recovery</H1>
+    <B>Christer Sandberg</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20Error%20actions%20and%20error%20recovery&In-Reply-To=%3C13f6d2440709050032w637baf25u1e8f1f849be187af%40mail.gmail.com%3E"
+       TITLE="[ragel-users] Re: Error actions and error recovery">chr... at gmail.com
+       </A><BR>
+    <I>Wed Sep  5 07:32:39 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000335.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+        <LI>Next message: <A HREF="000334.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt; pr = alnum+ ';';
+</I>&gt;<i> &gt; se = '{' pr* '}';
+</I>&gt;<i> &gt; main := se+;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; What I would like to accomplish is that if there's an error in pr I
+</I>&gt;<i> &gt; would like to skip to the next ';' or '}'. I there's an error finding
+</I>&gt;<i> &gt; the first '{', I would like to skip to the next '}'.
+</I>&gt;<i>
+</I>&gt;<i> This expression doesn't search for '{' at all - it expects to find one
+</I>&gt;<i> right at the start of the input, and another one immediately after
+</I>&gt;<i> every '}' (with nothing in-between) until you reach the final '}' at
+</I>&gt;<i> the end of the input stream.
+</I>
+I know, it's a good point but I just posted a simplified example to
+keep the example as simple as possible.
+
+&gt;<i>
+</I>&gt;<i> Perhaps you need to make use of an (any* -- se) term to skip any non-
+</I>&gt;<i> matching stuff between the blocks you are interested in...
+</I>&gt;<i>
+</I>
+In my &quot;real&quot; grammar I don't skip anything in between. It's all being handled.
+
+&gt;<i> pr = alnum+ ';';
+</I>&gt;<i> se = '{' pr* '}';
+</I>&gt;<i> other = (any* -- se);
+</I>&gt;<i> main := other (se other)*;
+</I>&gt;<i>
+</I>&gt;<i> Not sure how well this will work in practice - it looks like it needs
+</I>&gt;<i> backtracking and may need to use the scanner construct...
+</I>&gt;<i>
+</I>&gt;<i> pr = alnum+ ';';
+</I>&gt;<i> se = '{' pr* '}';
+</I>&gt;<i> other = (any+ -- '{');
+</I>&gt;<i> main := |* se =&gt; { action };
+</I>&gt;<i>               other =&gt; { do nothing };
+</I>&gt;<i>               '{' =&gt; { last resort step past open brace action };
+</I>&gt;<i>            *|;
+</I>&gt;<i>
+</I>&gt;<i> The idea here is the 'other' shouldn't even accept part of the 'se'
+</I>&gt;<i> pattern. As soon as it spots an open brace, it should stop and give
+</I>&gt;<i> the 'se' token a chance to match. If neither 'se' nor 'other' can
+</I>&gt;<i> accept any characters, you must have an open brace as the next
+</I>&gt;<i> character, so skip past that then continue.
+</I>&gt;<i>
+</I>&gt;<i> For this to work, it is important that neither 'se' nor 'other' can
+</I>&gt;<i> accept a empty match - if they did, I suspect you'd get an infinite
+</I>&gt;<i> loop with the standalone '{' match never firing. Is that right,
+</I>&gt;<i> Adrian?
+</I>&gt;<i>
+</I>
+I've got it half working but not all the way. Here's the simple
+example machine again with some debugging output:
+
+  action _pr {
+    printf(&quot;_pr on '%c'\n&quot;, *p);
+  }
+
+  action pr {
+    printf(&quot;pr on '%c'\n&quot;, *p);
+  }
+
+  action _se {
+    printf(&quot;_se on '%c'\n&quot;, *p);
+  }
+
+  action se {
+    printf(&quot;se on '%c'\n&quot;, *p);
+  }
+
+  action pr_err {
+    printf(&quot;pr_err on '%c'\n&quot;, *p);
+    while (p != pe &amp;&amp; *p != ';' &amp;&amp; *p != '}') {
+      p++;
+    }
+
+    p++;
+    printf(&quot;pr_err skipped to '%c'\n&quot;, *p);
+    fgoto main;
+  }
+
+  pr = alnum+ &gt;_pr ';' @pr;
+  se = '{' &gt;_se pr* $lerr(pr_err) '}' @se;
+
+  main := se+;
+
+If I feed it with this correct string {a1;}{b1;c1;}, the output is the
+following:
+
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+_se on '{'
+_pr on 'b'
+pr on ';'
+_pr on 'c'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+If I feed it with this incorrect string {$;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to '}'
+_se on '{'
+_pr on 'a'
+pr on ';'
+se on '}'
+css_error_first_final: 4
+
+The local error action skips to the closing '}' but then the se action
+is never invoked.
+
+If I feet it with this incorrect string (which has more than one pr
+between the first braces) {$;b1;}{a1;}, the output is this:
+
+_se on '{'
+pr_err on '$'
+pr_err skipped to 'b'
+css_error_error: 0
+
+As you can see the machine exits with an error.
+Any clues of how to solve this?
+
+/Christer
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000335.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+	<LI>Next message: <A HREF="000334.html">[ragel-users] Re: Error actions and error recovery
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

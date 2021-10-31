@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Fixing an edge case
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3Cd56373190701150857m55c30464h584961023b62a012%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Fixing an edge case</H1>
+    <B>Matt Mower</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20Fixing%20an%20edge%20case&In-Reply-To=%3Cd56373190701150857m55c30464h584961023b62a012%40mail.gmail.com%3E"
+       TITLE="Fixing an edge case">s... at mattmower.com
+       </A><BR>
+    <I>Mon Jan 15 16:57:50 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1870">[ date ]</a>
+              <a href="thread.html#1870">[ thread ]</a>
+              <a href="subject.html#1870">[ subject ]</a>
+              <a href="author.html#1870">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi there.
+
+I have come across a case that my &quot;svn diff&quot; parser doesn't handle and
+I'm hoping you can help me in solving it.
+
+The situation is this: It is possible (however unlikely) to &quot;svn add&quot;
+an empty file to a repository (e.g. touch &lt;file&gt;; svn add &lt;file&gt;). If
+you do this the output from &quot;svn diff&quot; contains an imcomplete header
+for the diff and no hunk information. Thus instead of something like:
+
+Index: newfile
+=====================
+--- new file (revision 0)
++++ new file (revision 0)
+@@ .... @@
+content here
+
+you get:
+
+Index: newfile
+=====================
+
+and this can occur in one of two places: either with another diff
+following, or as the last diff so that potentially you can get the
+output of &quot;svn diff&quot; terminate with:
+
+=====================
+
+which previously would have been considered to be an incomplete diff.
+Now it has to be treated as an empty file diff.
+
+Here is my parser machine:
+
+	nbsp = space - '\n' %count_line;
+	lineChar = extend - '\n';
+	
+	diffLine = ( '\\' lineChar* '\n' %count_line ) | ( ' ' | '-' | '+' )
+&gt;<i>mark lineChar* '\n' @add_line %count_line;
+</I>	
+	separator = '='+ '\n' %count_line;
+	
+	oldFile = '---' lineChar+ '\n' %count_line;
+	newFile = '+++' lineChar+ '\n' %count_line;
+	
+	range = ( '-' | '+' ) ( digit+ &gt;mark %push ) ( ' ' %push_zero @{
+fhold; }  | ',' ( digit+ &gt;mark %push ) );
+	
+	hunkHeader = '@@' nbsp* range nbsp+ range nbsp* '@@' '\n'
+@pop_hunk_spec %count_line;
+	
+	hunkBody = diffLine+;
+	
+	hunk = hunkHeader &gt;enter_hunk hunkBody %exit_hunk %/exit_hunk;
+	
+	fileName = ( lineChar+ ) &gt;mark %copy_to_filespec;
+	
+	fileSpec = &quot;Index:&quot; nbsp+ fileName '\n'+ @count_line;
+	
+	diffHeader = fileSpec separator;
+	
+	diffBody = hunk* %exit_diff %/exit_diff;
+	
+	binaryDiff = 'C' lineChar+ '\n' %count_line lineChar+ '\n'
+%binary_diff %count_line;
+	
+	textDiff = oldFile newFile diffBody;
+	
+	diff = diffHeader &gt;enter_diff ( binaryDiff | textDiff );
+	
+	main := diff* $!error;
+
+This machine uses the fact that a diff is ended either by another diff
+starting (a line not beginning ' ' | '-' | '+') or EOF using a %/
+action.
+
+My problem in coming up with a solution has been to come up with
+something that works both when a diff follows an 'empty' diff, when an
+'empty' diff comes at the end and not, in the process, ending up
+generating spurious empty diffs all over the place!
+
+For example I can find the former case with something like:
+
+	emptyDiff = ( any - ['-'|'C'] @{ fhold; } %empty_diff;
+	
+	diff = diffHeader &gt;enter_diff ( binaryDiff | textDiff | emptyDiff );
+
+the problem comes when I try to detect the empty case, my first
+thought being something like:
+
+    emptyDiff = ( ( any - ['-'|'C'] @{ fhold; } ) | zlen ) %empty_diff;
+
+but this kind of formulation (written from memory) ends up with
+machines which detect zlen for every diff (as you'd expect once you
+graph it).
+
+I've tinkered but my lack of ability to reason out the answer suggests
+I am not as comfortable with this as I thought. My next step will be
+to draw out what I think the machine should look like and work
+backwards to the spec but if anyone can guide my thinking or give me
+some pointers that would help immensely. Fixing this edge case is one
+of the last things holding up a first public release of the tool.
+
+Many thanks,
+
+Matt
+
+-- 
+Matt Mower :: <A HREF="http://matt.blogs.it/">http://matt.blogs.it/</A>
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1870">[ date ]</a>
+              <a href="thread.html#1870">[ thread ]</a>
+              <a href="subject.html#1870">[ subject ]</a>
+              <a href="author.html#1870">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

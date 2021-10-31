@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: syntax improvement, new operators
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20syntax%20improvement%2C%20new%20operators&In-Reply-To=%3CE8234DE2-5DA3-48AD-9FDF-F978D48EC0BA%40atlasocean.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001919.html">
+   <LINK REL="Next"  HREF="001921.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: syntax improvement, new operators</H1>
+    <B>Erich Ocean</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20syntax%20improvement%2C%20new%20operators&In-Reply-To=%3CE8234DE2-5DA3-48AD-9FDF-F978D48EC0BA%40atlasocean.com%3E"
+       TITLE="[ragel-users] Re: syntax improvement, new operators">er... at atlasocean.com
+       </A><BR>
+    <I>Fri Feb  9 04:40:11 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001919.html">[ragel-users] syntax improvement, new operators
+</A></li>
+        <LI>Next message: <A HREF="001921.html">[ragel-users] Re: syntax improvement, new operators
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1920">[ date ]</a>
+              <a href="thread.html#1920">[ thread ]</a>
+              <a href="subject.html#1920">[ subject ]</a>
+              <a href="author.html#1920">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Well, take the first User Action example in the Ragel manual on page  
+28: 3.1.1 Entering Action:
+
+action A {}
+main := ( lower* &gt;A ) .  ;
+
+Let's modify it to add a Pending Out (Leaving) Action, and then make  
+that machine optional:
+
+action ENTER_TRANSITION {} # Entering Action
+action LEAVE_TRANSITION {} # Pending Out (Leaving) Action
+
+main := ( lower* &gt;ENTER_TRANSITION %LEAVE_TRANSITION )? . ' ';
+
+If the first character recognized by main happens to be a space, then  
+LEAVE will be executed, but ENTER won't.
+
+I think it's confusing to a user that a machine will execute its  
+Leaving action (to use your terminology) without first executing its  
+Entering.
+
+The confusion goes away if you've learned that the &gt; action will only  
+be executed on the first character.
+
+The % action isn't a character action, it's a machine action (to use  
+my terminology). So a user would naturally reason that it could be  
+executed even though no character was recognized, as is this case:
+
+action FIRST_CHAR {} # Executed on recognition of the first character
+action MACHINE_ACCEPT {} # Executed when the machine accepts a match
+
+main := ( lower* &gt;FIRST_CHAR %MACHINE_ACCEPT )? . ' ';
+
+I use the Match/Accept terminology because any given machine can make  
+a whole bunch of matches while it's recognizing characters, and the @  
+action is executed every single time the machine recognizes a match.  
+The % action, on the other hand, is only executed when the machine  
+finally accepts one of those matches. The @ action (Match) is a  
+character action because it is always and only triggered upon the  
+recognition of a character, whereas the Accept action is a machine  
+action because is only ever executed once, when the machine accepts a  
+match, regardless of whether or not a character has been recognized.  
+It's character-independent.
+
+Hope this explains some of the reasoning behind the categorization  
+and new terminology.
+
+Best, Erich
+
+On Feb 8, 2007, at 7:48 PM, Adrian Thurston wrote:
+
+&gt;<i>
+</I>&gt;<i> Hi Erich,
+</I>&gt;<i>
+</I>&gt;<i> I'm glad to see you are still working with Ragel! By the way, I've
+</I>&gt;<i> updated your name in the CREDITS file and elsewhere.
+</I>&gt;<i>
+</I>&gt;&gt;<i> Character Actions
+</I>&gt;&gt;<i> =============
+</I>&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> aka First -- This action will be executed on the first character  
+</I>&gt;&gt;&gt;<i> the machine recognizes.
+</I>&gt;&gt;<i> $ aka Each -- This action will be executed on each character the
+</I>&gt;&gt;<i> machine recognizes.
+</I>&gt;&gt;<i> @ aka Match -- This action will be executed on characters the machine
+</I>&gt;&gt;<i> recognizes that puts the machine into a match state.
+</I>&gt;&gt;<i> &lt; aka Continue -- (New) This action will be executed on the next
+</I>&gt;&gt;<i> character the machine recognizes when the machine is in a match  
+</I>&gt;&gt;<i> state.
+</I>&gt;<i>
+</I>&gt;<i> So it seems that you prefer to express these operators in terms of the
+</I>&gt;<i> characters of the input string that is processed. This is distinct  
+</I>&gt;<i> from
+</I>&gt;<i> my approach, where I talk about the transitions of a regular
+</I>&gt;<i> expression's corresponding state machine.
+</I>&gt;<i>
+</I>&gt;<i> I prefer to express the operators in terms of transitions because I  
+</I>&gt;<i> find
+</I>&gt;<i> it to be very precise. For example, with &quot;entering transition actions&quot;
+</I>&gt;<i> you can go and look at the graphviz drawing and find the transitions
+</I>&gt;<i> which take you into the machine. That's me though, and I would very  
+</I>&gt;<i> much
+</I>&gt;<i> like to hear what others think. Is it better to talk about the
+</I>&gt;<i> transitions that the actions are put into, or is better to talk about
+</I>&gt;<i> the characters that are moved over when the actions are executed?
+</I>&gt;<i>
+</I>&gt;<i> The &lt; operator you have given I find interesting. As I understand it,
+</I>&gt;<i> this would embed the action on the transitions which leave final  
+</I>&gt;<i> states
+</I>&gt;<i> (but stay in the machine). Could you give an example of when it is  
+</I>&gt;<i> useful?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;&gt;<i> Machine Actions
+</I>&gt;&gt;<i> ============
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> % aka Accept -- This action will only be executed when the machine
+</I>&gt;&gt;<i> accepts a match.
+</I>&gt;<i>
+</I>&gt;<i> The word &quot;accept&quot; I find to be somewhat ambiguous. It doesn't  
+</I>&gt;<i> strike me
+</I>&gt;<i> that it means only one of &quot;on the last character&quot; or &quot;on the next
+</I>&gt;<i> character.&quot; It seems to me that it could easily be interpreted as  
+</I>&gt;<i> either
+</I>&gt;<i> of those. I chose the word &quot;leaving&quot; for this operator because it's
+</I>&gt;<i> clear to me that it means on the next character.
+</I>&gt;<i>
+</I>&gt;&gt;<i> %\ aka Fail -- (New) This action will only be executed when the
+</I>&gt;&gt;<i> machine fails to either: (a) recognize a character, or (b) accept a
+</I>&gt;&gt;<i> match.
+</I>&gt;<i>
+</I>&gt;<i> I'm not quite sure what you mean with (b). I would assume you mean the
+</I>&gt;<i> same as above, what is currently known as the leaving (or pending out)
+</I>&gt;<i> operator. But then I believe this new operator would be the same as  
+</I>&gt;<i> the
+</I>&gt;<i> $! operator. Could you clarify?
+</I>&gt;<i>
+</I>&gt;&gt;<i> %? aka Skip -- (New) This action will be executed instead of Fail  
+</I>&gt;&gt;<i> when
+</I>&gt;&gt;<i> either the Optional operator or the Kleene Star operator is  
+</I>&gt;&gt;<i> applied to
+</I>&gt;&gt;<i> the machine.
+</I>&gt;<i>
+</I>&gt;<i> I'm not sure I understand this operator. If you write:
+</I>&gt;<i>
+</I>&gt;<i> ( expr %? skip_act )?
+</I>&gt;<i>
+</I>&gt;<i> Is it the same as writing the following?
+</I>&gt;<i>
+</I>&gt;<i> ( expr | &quot;&quot; %skip_act )
+</I>&gt;<i>
+</I>&gt;<i> Could you give us an example of the kind of problem that motivated  
+</I>&gt;<i> these
+</I>&gt;<i> operators? Especially the part about setting and clearing external  
+</I>&gt;<i> state
+</I>&gt;<i> flags to do proper resource acquisition and release. An example would
+</I>&gt;<i> really help me to understand the issue.
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i>   Adrian
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001919.html">[ragel-users] syntax improvement, new operators
+</A></li>
+	<LI>Next message: <A HREF="001921.html">[ragel-users] Re: syntax improvement, new operators
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1920">[ date ]</a>
+              <a href="thread.html#1920">[ thread ]</a>
+              <a href="subject.html#1920">[ subject ]</a>
+              <a href="author.html#1920">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,2112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 5/6] Replace custom makefiles with automake.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%205/6%5D%20Replace%20custom%20makefiles%20with%20automake.&In-Reply-To=%3C20081001143739.22980.34660.stgit%40yamato%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 5/6] Replace custom makefiles with automake.</H1>
+    <B>Diego 'Flameeyes' Pettenò</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5BPATCH%205/6%5D%20Replace%20custom%20makefiles%20with%20automake.&In-Reply-To=%3C20081001143739.22980.34660.stgit%40yamato%3E"
+       TITLE="[PATCH 5/6] Replace custom makefiles with automake.">flamee... at gmail.com
+       </A><BR>
+    <I>Wed Oct  1 14:37:39 UTC 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2502">[ date ]</a>
+              <a href="thread.html#2502">[ thread ]</a>
+              <a href="subject.html#2502">[ subject ]</a>
+              <a href="author.html#2502">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Since there are a lot of limitations with the current custon
+makefiles, move to use proper GNU automake, that will allow for a
+quite easier life for package maintainers too.
+---
+
+ Makefile.am               |   21 +++++
+ Makefile.in               |   76 -------------------
+ common/Makefile.am        |   12 +++
+ common/Makefile.in        |   68 -----------------
+ configure.in              |    8 +-
+ doc/Makefile.am           |   13 +++
+ doc/Makefile.in           |   71 -----------------
+ examples/Makefile         |  142 -----------------------------------
+ examples/Makefile.am      |   38 +++++++++
+ examples/cppscan.lex      |  143 -----------------------------------
+ examples/cppscan.rec      |  183 ---------------------------------------------
+ examples/lex-cppscan.l    |  143 +++++++++++++++++++++++++++++++++++
+ examples/re2c-cppscan.rec |  183 +++++++++++++++++++++++++++++++++++++++++++++
+ ragel/Makefile.am         |   38 +++++++++
+ ragel/Makefile.in         |  101 -------------------------
+ redfsm/Makefile.am        |   29 +++++++
+ redfsm/Makefile.in        |   85 ---------------------
+ rlgen-cd/Makefile.am      |   12 +++
+ rlgen-cd/Makefile.in      |   69 -----------------
+ rlgen-csharp/Makefile.am  |   12 +++
+ rlgen-csharp/Makefile.in  |   69 -----------------
+ rlgen-dot/Makefile.am     |    7 ++
+ rlgen-dot/Makefile.in     |   66 ----------------
+ rlgen-java/Makefile.am    |    8 ++
+ rlgen-java/Makefile.in    |   66 ----------------
+ rlgen-ruby/Makefile.am    |   11 +++
+ rlgen-ruby/Makefile.in    |   67 ----------------
+ test/Makefile.am          |   23 ++++++
+ test/Makefile.in          |   30 -------
+ 29 files changed, 555 insertions(+), 1239 deletions(-)
+ create mode 100644 Makefile.am
+ delete mode 100644 Makefile.in
+ create mode 100644 common/Makefile.am
+ delete mode 100644 common/Makefile.in
+ create mode 100644 doc/Makefile.am
+ delete mode 100644 doc/Makefile.in
+ delete mode 100644 examples/Makefile
+ create mode 100644 examples/Makefile.am
+ delete mode 100644 examples/cppscan.lex
+ delete mode 100644 examples/cppscan.rec
+ create mode 100644 examples/lex-cppscan.l
+ create mode 100644 examples/re2c-cppscan.rec
+ create mode 100644 ragel/Makefile.am
+ delete mode 100644 ragel/Makefile.in
+ create mode 100644 redfsm/Makefile.am
+ delete mode 100644 redfsm/Makefile.in
+ create mode 100644 rlgen-cd/Makefile.am
+ delete mode 100644 rlgen-cd/Makefile.in
+ create mode 100644 rlgen-csharp/Makefile.am
+ delete mode 100644 rlgen-csharp/Makefile.in
+ create mode 100644 rlgen-dot/Makefile.am
+ delete mode 100644 rlgen-dot/Makefile.in
+ create mode 100644 rlgen-java/Makefile.am
+ delete mode 100644 rlgen-java/Makefile.in
+ create mode 100644 rlgen-ruby/Makefile.am
+ delete mode 100644 rlgen-ruby/Makefile.in
+ create mode 100644 test/Makefile.am
+ delete mode 100644 test/Makefile.in
+
+diff --git a/Makefile.am b/Makefile.am
+new file mode 100644
+index 0000000..3dd8634
+--- /dev/null
++++ b/Makefile.am
+@@ -0,0 +1,21 @@
++# aapl headers and docs
++noinst_HEADERS = aapl/avlbasic.h aapl/avlimel.h aapl/avlmap.h		\
++	aapl/bstcommon.h aapl/compare.h aapl/insertsort.h		\
++	aapl/sbstset.h aapl/avlcommon.h aapl/avlimelkey.h		\
++	aapl/avlmel.h aapl/bstmap.h aapl/dlcommon.h aapl/mergesort.h	\
++	aapl/sbsttable.h aapl/avlibasic.h aapl/avliset.h		\
++	aapl/avlmelkey.h aapl/bstset.h aapl/dlist.h aapl/quicksort.h	\
++	aapl/svector.h aapl/avlikeyless.h aapl/avlitree.h		\
++	aapl/avlset.h aapl/bsttable.h aapl/dlistmel.h aapl/resize.h	\
++	aapl/table.h aapl/avlimap.h aapl/avlkeyless.h aapl/avltree.h	\
++	aapl/bubblesort.h aapl/dlistval.h aapl/sbstmap.h aapl/vector.h
++EXTRA_DIST = aapl/README aapl/COPYING
++
++BUILD_COMMON = common redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-csharp rlgen-dot
++BUILD_SUBDIRS = ragel 
++ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
++
++SUBDIRS = common redfsm \
++	rlgen-cd rlgen-java rlgen-ruby rlgen-csharp rlgen-dot \
++	ragel \
++	test examples doc
+diff --git a/Makefile.in b/Makefile.in
+deleted file mode 100644
+index 4619bb5..0000000
+--- a/Makefile.in
++++ /dev/null
+@@ -1,76 +0,0 @@
+-#
+-#   Copyright 2001-2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-BUILD_COMMON = common redfsm rlgen-cd rlgen-java rlgen-ruby rlgen-csharp rlgen-dot
+-BUILD_SUBDIRS = ragel 
+-ALL_SUBDIRS = $(BUILD_COMMON) $(BUILD_SUBDIRS) test examples doc
+-
+-#*************************************
+-
+-# Programs
+-CXX = @CXX@
+-
+-
+-# build targets
+-all: $(BUILD_SUBDIRS)
+-
+-.PHONY: $(ALL_SUBDIRS)
+-
+-$(BUILD_COMMON):
+-	@cd $@ &amp;&amp; $(MAKE)
+-
+-$(BUILD_SUBDIRS): $(BUILD_COMMON)
+-	@cd $@ &amp;&amp; $(MAKE)
+-
+-# clean targets.
+-
+-CLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-clean)
+-
+-.PHONY: $(CLEAN_SUBDIRS)
+-
+-$(CLEAN_SUBDIRS):
+-	@cd $(@:%-clean=%) &amp;&amp; $(MAKE) clean
+-
+-clean: $(CLEAN_SUBDIRS)
+-	rm -f tags
+-
+-# distcleaan targets
+-
+-DISTCLEAN_SUBDIRS = $(ALL_SUBDIRS:%=%-distclean)
+-
+-.PHONY: $(DISTCLEAN_SUBDIRS)
+-
+-$(DISTCLEAN_SUBDIRS):
+-	@cd $(@:%-distclean=%) &amp;&amp; $(MAKE) distclean
+-
+-distclean: $(DISTCLEAN_SUBDIRS)
+-	rm -f Makefile config.cache config.status config.log
+-
+-#install targets
+-
+-INSTALL_SUBDIRS = $(BUILD_SUBDIRS:%=%-install)
+-
+-.PHONY: $(INSTALL_SUBDIRS)
+-
+-$(INSTALL_SUBDIRS):
+-	@cd $(@:%-install=%) &amp;&amp; $(MAKE) install
+-
+-install: $(INSTALL_SUBDIRS)
+-
+diff --git a/common/Makefile.am b/common/Makefile.am
+new file mode 100644
+index 0000000..5a82a1b
+--- /dev/null
++++ b/common/Makefile.am
+@@ -0,0 +1,12 @@
++INCLUDES = -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = libcommon.a
++
++libcommon_a_SOURCES = common.h common.cpp version.h buffer.h pcheck.h
++
++BUILT_SOURCES = version.h
++
++version.h:
++	echo '#define PREFIX &quot;$(prefix)&quot;' &gt;&gt; version.h
+diff --git a/common/Makefile.in b/common/Makefile.in
+deleted file mode 100644
+index e79d6a4..0000000
+--- a/common/Makefile.in
++++ /dev/null
+@@ -1,68 +0,0 @@
+-#
+-#   Copyright 2001-2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = common.cpp
+-
+-GEN_SRC = version.h
+-
+-#*************************************
+-prefix = @prefix@
+-
+-# Programs
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# rules
+-
+-all: common.a
+-
+-common.a: $(GEN_SRC) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-version.h:
+-	echo '#define PREFIX &quot;$(prefix)&quot;' &gt;&gt; version.h
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile config.h
+-
+-clean:
+-	rm -f tags version.h .*.d *.o common.a
+-
+-install:
+-	@true
+-
+--include $(DEPS)
+diff --git a/configure.in b/configure.in
+index 85e93b0..0b9fa44 100644
+--- a/configure.in
++++ b/configure.in
+@@ -21,6 +21,8 @@ dnl   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ AC_INIT(ragel/main.cpp, 6.3)
+ AC_CONFIG_HEADER(common/config.h)
+ 
++AM_INIT_AUTOMAKE([1.10 foreign])
++
+ PACKAGE_PUBDATE=&quot;August 2008&quot;
+ AC_SUBST(PACKAGE_PUBDATE)
+ AC_DEFINE_UNQUOTED([PACKAGE_PUBDATE], [&quot;$PACKAGE_PUBDATE&quot;], [Package publication date])
+@@ -30,13 +32,13 @@ dnl and don't need to be built.
+ AC_ARG_ENABLE([parsers],
+   AS_HELP_STRING([--disable-parsers], [Disable building of parsers with ragel, kelbt and gperf]),
+   [], [enable_parsers=yes])
+-AC_SUBST([enable_parsers])
++AM_CONDITIONAL([BUILD_PARSERS], [test &quot;x$enable_parsers&quot; = &quot;xyes&quot;])
+ 
+ dnl Checks for programs.
+ AC_PROG_CC
+ AC_PROG_CXX
+-AC_CHECK_TOOL(AR, ar)
+ AC_PROG_RANLIB
++AM_PROG_LEX
+ 
+ dnl Set test on c++ compiler.
+ AC_LANG_CPLUSPLUS
+@@ -111,6 +113,6 @@ AC_CHECK_PROG(GMCS, gmcs, gmcs)
+ AC_SUBST(GMCS)
+ 
+ dnl write output files
+-AC_OUTPUT(Makefile common/Makefile ragel/Makefile redfsm/Makefile rlgen-cd/Makefile rlgen-java/Makefile rlgen-ruby/Makefile rlgen-dot/Makefile rlgen-csharp/Makefile doc/Makefile test/Makefile test/runtests doc/ragel.1 doc/rlgen-cd.1 doc/rlgen-java.1 doc/rlgen-ruby.1 doc/rlgen-dot.1 doc/version.tex)
++AC_OUTPUT(Makefile common/Makefile ragel/Makefile redfsm/Makefile rlgen-cd/Makefile rlgen-java/Makefile rlgen-ruby/Makefile rlgen-dot/Makefile rlgen-csharp/Makefile doc/Makefile test/Makefile examples/Makefile test/runtests doc/ragel.1 doc/rlgen-cd.1 doc/rlgen-java.1 doc/rlgen-ruby.1 doc/rlgen-dot.1 doc/version.tex)
+ 
+ echo &quot;configuration of ragel complete&quot;
+diff --git a/doc/Makefile.am b/doc/Makefile.am
+new file mode 100644
+index 0000000..816a279
+--- /dev/null
++++ b/doc/Makefile.am
+@@ -0,0 +1,13 @@
++.fig.pdf:
++	fig2dev -L pdf $&lt; $@
++
++.tex.pdf:
++	pdflatex -interaction=nonstopmode $&lt;
++	pdflatex -interaction=nonstopmode $&lt;
++	pdflatex -interaction=nonstopmode $&lt;
++
++man_MANS = ragel.1 rlgen-cd.1 rlgen-java.1 rlgen-ruby.1 rlgen-dot.1
++
++#dist_doc_DATA = ragel-guide.pdf
++
++doc_DATA = ../ChangeLog
+diff --git a/doc/Makefile.in b/doc/Makefile.in
+deleted file mode 100644
+index 6178f0d..0000000
+--- a/doc/Makefile.in
++++ /dev/null
+@@ -1,71 +0,0 @@
+-#
+-#   Copyright 2001-2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INPUT = version.tex ragel-guide.tex
+-
+-# Pick up all the figures in the current dir.
+-FIGURES = $(wildcard *.fig)
+-PDFFIGS = $(FIGURES:%.fig=%.pdf)
+-
+-
+-# Installation locations.
+-PACKAGE     = ragel
+-prefix      = @prefix@
+-datarootdir = @datarootdir@
+-docdir      = @docdir@
+-mandir      = @mandir@
+-
+-MANPAGES = ragel.1 rlgen-cd.1 rlgen-java.1 rlgen-ruby.1 rlgen-dot.1
+-
+-# Rules.
+-all: ragel-guide.pdf $(MANPAGES)
+-
+-ragel-guide.pdf: $(PDFFIGS) $(INPUT)
+-
+-%.pdf: %.fig
+-	fig2dev -L pdf $&lt; $@
+-
+-%.pdf: %.tex
+-	pdflatex -interaction=nonstopmode $&lt; &gt;/dev/null
+-	pdflatex -interaction=nonstopmode $&lt; &gt;/dev/null
+-	pdflatex -interaction=nonstopmode $&lt; &gt;/dev/null
+-
+-clean:
+-	rm -f *.bak *.aux *.dvi *.log *.toc *.pdf
+-
+-distclean: clean
+-	rm -f Makefile $(MANPAGES) version.tex
+-
+-man: $(MANPAGES)
+-
+-man-install: man
+-	install -d $(DESTDIR)$(mandir)/man1
+-	install -m 644 ragel.1      (DESTDIR)$(mandir)/man1/ragel.1
+-	install -m 644 rlgen-dot.1  (DESTDIR)$(mandir)/man1/rlgen-dot.1
+-	install -m 644 rlgen-cd.1   (DESTDIR)$(mandir)/man1/rlgen-cd.1
+-	install -m 644 rlgen-java.1 (DESTDIR)$(mandir)/man1/rlgen-java.1
+-	install -m 644 rlgen-ruby.1 (DESTDIR)$(mandir)/man1/rlgen-ruby.1
+-
+-install: all man-install
+-	install -d $(DESTDIR)$(docdir)
+-	install -m 644 ragel-guide.pdf $(DESTDIR)$(docdir)/ragel-guide.pdf
+-	gzip -c ../ChangeLog &gt; ChangeLog.gz
+-	install -m 644 ChangeLog.gz $(DESTDIR)$(docdir)/ChangeLog.gz
+-	rm ChangeLog.gz
+diff --git a/examples/Makefile b/examples/Makefile
+deleted file mode 100644
+index b9fcc21..0000000
+--- a/examples/Makefile
++++ /dev/null
+@@ -1,142 +0,0 @@
+-#
+-#   Copyright 2002-2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-RAGEL = ../ragel/ragel
+-FLEX = flex
+-RE2C = re2c
+-
+-TARGS = \
+-	atoi awkemu clang concurrent cppscan format gotocallret mailbox params \
+-	pullscan rlscan statechart 
+-
+-#########################################
+-
+-all: $(TARGS)
+-
+-distclean clean:
+-	rm -Rf *.o *.c *.cpp $(TARGS)
+-
+-%.o: %.c
+-	gcc $(CFLAGS) -Wall -g -c -O3 -o $@ $&lt;
+-
+-%.o: %.cpp
+-	g++ $(CXXFLAGS) -Wall -g -c -O3 -o $@ $&lt;
+-
+-#########################################
+-
+-gotocallret: gotocallret.o
+-	g++ -g -o gotocallret gotocallret.o 
+-
+-gotocallret.cpp: gotocallret.rl
+-	$(RAGEL) -G2 -o gotocallret.cpp gotocallret.rl 
+-
+-gotocallret.o: gotocallret.cpp
+-	g++ -Wall -g -c -O3 -o $@ $&lt;
+-
+-
+-pullscan: pullscan.o
+-	gcc -g -o $@ $&lt;
+-
+-pullscan.c: pullscan.rl $(RAGEL) 
+-	$(RAGEL) -G2 -o $@ pullscan.rl
+-
+-concurrent: concurrent.o
+-	g++ -g -o concurrent concurrent.o 
+-
+-concurrent.cpp: concurrent.rl $(RAGEL)
+-	$(RAGEL) -G2 -o concurrent.cpp concurrent.rl
+-
+-rlscan: rlscan.o
+-	g++ -g -o rlscan rlscan.o 
+-
+-rlscan.cpp: rlscan.rl 
+-	$(RAGEL) -G2 -o rlscan.cpp rlscan.rl
+-
+-statechart: statechart.o
+-	g++ -g -o statechart statechart.o 
+-
+-statechart.cpp: statechart.rl 
+-	$(RAGEL) -G2 -o statechart.cpp statechart.rl
+-
+-statechart.o: statechart.cpp
+-	g++ -Wall -g -c -O3 -o $@ $&lt;
+-
+-params: params.o 
+-	gcc -g -o params params.o
+-
+-params.c: params.rl
+-	$(RAGEL) -G2 -o params.c params.rl
+-
+-clang: clang.o 
+-	gcc -g -o clang clang.o
+-
+-clang.c: clang.rl 
+-	$(RAGEL) -G2 -o clang.c clang.rl
+-
+-optional: lex-cppscan re2c-cppscan
+-
+-cppscan: cppscan.o
+-	g++ -g -o $@ $&lt;
+-
+-lex-cppscan: lex-cppscan.o
+-	g++ -g -o $@ $&lt;
+-	
+-re2c-cppscan: re2c-cppscan.o
+-	g++ -g -o $@ $&lt;
+-	
+-cppscan.cpp: cppscan.rl 
+-	$(RAGEL) -G2 -o $@ cppscan.rl
+-
+-lex-cppscan.cpp: cppscan.lex
+-	$(FLEX) -f -o $@ $&lt;
+-
+-re2c-cppscan.cpp: cppscan.rec
+-	$(RE2C) -s $&lt; &gt; $@
+-
+-example.cpp: example.rec
+-	$(RE2C) -s $&lt; &gt; $@
+-
+-format: format.o 
+-	gcc -g -o format format.o
+-
+-format.c: format.rl
+-	$(RAGEL) -G2 -o format.c format.rl
+-
+-awkemu: awkemu.o
+-	gcc -g -o awkemu awkemu.o
+-
+-awkemu.c: awkemu.rl
+-	$(RAGEL) -G2 -o awkemu.c awkemu.rl
+-
+-
+-mailbox: mailbox.o
+-	g++ -g -o mailbox mailbox.o 
+-
+-mailbox.cpp: mailbox.rl
+-	$(RAGEL) -G2 -o mailbox.cpp mailbox.rl
+-
+-atoi: atoi.o
+-	g++ -g -o atoi atoi.o 
+-
+-atoi.cpp: atoi.rl
+-	$(RAGEL) -G2 -o atoi.cpp atoi.rl
+-
+-atoi.o: atoi.cpp
+-	g++ -Wall -g -c -O3 -o $@ $&lt;
+diff --git a/examples/Makefile.am b/examples/Makefile.am
+new file mode 100644
+index 0000000..3950fc6
+--- /dev/null
++++ b/examples/Makefile.am
+@@ -0,0 +1,38 @@
++.rl.cpp:
++	../ragel/ragel -G2 -o $@ $&lt;
++
++.rl.c:
++	../ragel/ragel -G2 -o $@ $&lt;
++
++.rec.cpp:
++	re2c -s $&lt; &gt; $@
++
++RAGEL_EXAMPLES = atoi awkemu clang concurrent cppscan format	\
++	gotocallret mailbox params pullscan rlscan statechart
++
++EXTRA_PROGRAMS = $(RAGEL_EXAMPLES) lex-cppscan re2c-cppscan
++
++examples: $(RAGEL_EXAMPLES)
++
++atoi_SOURCES = atoi.cpp
++awkemu_SOURCES = awkemu.c
++clang_SOURCES = clang.c
++concurrent_SOURCES = concurrent.cpp
++cppscan_SOURCES = cppscan.cpp
++format_SOURCES = format.c
++gotocallret_SOURCES = gotocallret.cpp
++mailbox_SOURCES = mailbox.cpp
++params_SOURCES = params.c
++pullscan_SOURCES = pullscan.c
++rlscan_SOURCES = rlscan.cpp
++statechart_SOURCES = statechart.cpp
++
++lex_cppscan_SOURCES = lex-cppscan.l
++re2c_cppscan_SOURCES = re2c-cppscan.cpp
++
++BUILT_SOURCES = $(atoi_SOURCES) $(awkemu_SOURCES) $(clang_SOURCES)	\
++	$(concurrent_SOURCES) $(cppscan_SOURCES) $(format_SOURCES)	\
++	$(gotocallret_SOURCES) $(mailbox_SOURCES) $(params_SOURCES)	\
++	$(pullscan_SOURCES) $(rlscan_SOURCES) $(statechart_SOURCES)	\
++	$(lex_cppscan_SOURCES) $(re2c_cppscan_SOURCES)
++
+diff --git a/examples/cppscan.lex b/examples/cppscan.lex
+deleted file mode 100644
+index fb66253..0000000
+--- a/examples/cppscan.lex
++++ /dev/null
+@@ -1,143 +0,0 @@
+-/*
+- * flex equivalent to cppscan.rl
+- */
+-
+-%{
+-
+-#include &lt;stdio.h&gt;
+-
+-#define TK_Dlit 256
+-#define TK_Slit 257
+-#define TK_Float 258
+-#define TK_Id 259
+-#define TK_NameSep 260
+-#define TK_Arrow 261
+-#define TK_PlusPlus 262
+-#define TK_MinusMinus 263
+-#define TK_ArrowStar 264
+-#define TK_DotStar 265
+-#define TK_ShiftLeft 266
+-#define TK_ShiftRight 267
+-#define TK_IntegerDecimal 268
+-#define TK_IntegerOctal 269
+-#define TK_IntegerHex 270
+-#define TK_EqualsEquals 271
+-#define TK_NotEquals 272
+-#define TK_AndAnd 273
+-#define TK_OrOr 274
+-#define TK_MultAssign 275
+-#define TK_DivAssign 276
+-#define TK_PercentAssign 277
+-#define TK_PlusAssign 278
+-#define TK_MinusAssign 279
+-#define TK_AmpAssign 280
+-#define TK_CaretAssign 281
+-#define TK_BarAssign 282
+-#define TK_DotDotDot 283
+-#define TK_Whitespace 284
+-#define TK_Comment 285
+-
+-int line = 1, col = 1;
+-
+-void token( int tok, char *data, int len )
+-{
+-	printf( &quot;&lt;%i&gt; &quot;, tok );
+-	for ( int i = 0; i &lt; len; i++ )
+-		fputc( data[i], stdout );
+-	fputc( '\n', stdout );
+-
+-	/* Count newlines and columns. This code is here mainly for having some
+-	 * code in the token routine when commenting out the above output during
+-	 * performance testing. */
+-	for ( int i = 0; i &lt; len; i ++ ) {
+-		if ( data[i] == '\n' ) {
+-			line += 1;
+-			col = 1;
+-		}
+-		else {
+-			col += 1;
+-		}
+-	}
+-}
+-
+-
+-%}
+-
+-%x COMMENT
+-
+-FRACT_CONST		[0-9]*\.[0-9]+|[0-9]+\.
+-EXPONENT		[eE][+\-]?[0-9]+
+-FLOAT_SUFFIX	[flFL]
+-
+-%%
+-
+-	/* Single and double literals. */
+-L?\'([^\'\\\n]|\\.)*\' {
+-	token( TK_Slit, yytext, yyleng );
+-}
+-
+-L?\&quot;([^\&quot;\\\n]|\\.)*\&quot; {
+-	token( TK_Dlit, yytext, yyleng );
+-}
+-
+-[a-zA-Z_][a-zA-Z0-9_]* {
+-	token( TK_Id, yytext, yyleng );
+-}
+-
+-{FRACT_CONST}{EXPONENT}?{FLOAT_SUFFIX}?|[0-9]+{EXPONENT}{FLOAT_SUFFIX}? {
+-	token( TK_Float, yytext, yyleng );
+-}
+-
+-(0|[1-9][0-9]*)[ulUL]{0,3} {
+-	token( TK_IntegerDecimal, yytext, yyleng );
+-}
+-
+-0[0-9]+[ulUL]{0,2} {
+-	token( TK_IntegerOctal, yytext, yyleng );
+-}
+-
+-0x[0-9a-fA-F]+[ulUL]{0,2} {
+-	token( TK_IntegerHex, yytext, yyleng );
+-}
+-
+-:: token( TK_NameSep, yytext, yyleng );
+-== token( TK_EqualsEquals, yytext, yyleng );
+-!= token( TK_NotEquals, yytext, yyleng );
+-&amp;&amp; token( TK_AndAnd, yytext, yyleng );
+-\|\| token( TK_OrOr, yytext, yyleng );
+-\*= token( TK_MultAssign, yytext, yyleng );
+-\/= token( TK_DivAssign, yytext, yyleng );
+-%= token( TK_PercentAssign, yytext, yyleng );
+-\+= token( TK_PlusAssign, yytext, yyleng );
+--= token( TK_MinusAssign, yytext, yyleng );
+-&amp;= token( TK_AmpAssign, yytext, yyleng );
+-^= token( TK_CaretAssign, yytext, yyleng );
+-\|= token( TK_BarAssign, yytext, yyleng );
+-\+\+ token( TK_PlusPlus, yytext, yyleng );
+--- token( TK_MinusMinus, yytext, yyleng );
+--&gt; token( TK_Arrow, yytext, yyleng );
+--&gt;\* token( TK_ArrowStar, yytext, yyleng );
+-\.\* token( TK_DotStar, yytext, yyleng );
+-\.\.\. token( TK_DotDotDot, yytext, yyleng );
+-
+-\/\*				BEGIN(COMMENT);
+-&lt;COMMENT&gt;\*\/		BEGIN(INITIAL);
+-&lt;COMMENT&gt;(.|\n)		{ }
+-
+-\/\/.*\n			{}
+-[^!-~]+				{}
+-
+-[!-/:-@\[-`{-~] token( yytext[0], yytext, yyleng );
+-	
+-%%
+-
+-int yywrap()
+-{
+-	/* Once the input is done, no more. */
+-	return 1;
+-}
+-
+-int main()
+-{
+-	yylex();
+-}
+diff --git a/examples/cppscan.rec b/examples/cppscan.rec
+deleted file mode 100644
+index 43f297d..0000000
+--- a/examples/cppscan.rec
++++ /dev/null
+@@ -1,183 +0,0 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;string.h&gt;
+-#include &lt;stdlib.h&gt;
+-
+-#define TK_Dlit 256
+-#define TK_Slit 257
+-#define TK_Float 258
+-#define TK_Id 259
+-#define TK_NameSep 260
+-#define TK_Arrow 261
+-#define TK_PlusPlus 262
+-#define TK_MinusMinus 263
+-#define TK_ArrowStar 264
+-#define TK_DotStar 265
+-#define TK_ShiftLeft 266
+-#define TK_ShiftRight 267
+-#define TK_IntegerDecimal 268
+-#define TK_IntegerOctal 269
+-#define TK_IntegerHex 270
+-#define TK_EqualsEquals 271
+-#define TK_NotEquals 272
+-#define TK_AndAnd 273
+-#define TK_OrOr 274
+-#define TK_MultAssign 275
+-#define TK_DivAssign 276
+-#define TK_PercentAssign 277
+-#define TK_PlusAssign 278
+-#define TK_MinusAssign 279
+-#define TK_AmpAssign 280
+-#define TK_CaretAssign 281
+-#define TK_BarAssign 282
+-#define TK_DotDotDot 283
+-#define TK_Whitespace 284
+-#define TK_Comment 285
+-
+-int line = 1, col = 1;
+-
+-void token( int tok, char *data, int len )
+-{
+-	printf( &quot;&lt;%i&gt; &quot;, tok );
+-	for ( int i = 0; i &lt; len; i++ )
+-		fputc( data[i], stdout );
+-	fputc( '\n', stdout );
+-
+-	/* Count newlines and columns. This code is here mainly for having some
+-	 * code in the token routine when commenting out the above output during
+-	 * performance testing. */
+-	for ( int i = 0; i &lt; len; i ++ ) {
+-		if ( data[i] == '\n' ) {
+-			line += 1;
+-			col = 1;
+-		}
+-		else {
+-			col += 1;
+-		}
+-	}
+-}
+-
+-#define BUFSIZE 8192
+-char buf[BUFSIZE];
+-
+-void fill( int n )
+-{
+-	printf(&quot;fill(%i)\n&quot;, n);
+-	exit(1);
+-}
+-
+-int main()
+-{
+-	char *start, *p = buf, *lim = buf, *marker;
+-	int len, have, want, shift;
+-	int done = 0;
+-	
+-#define YYCTYPE         char
+-
+-#define YYCURSOR        p
+-#define YYLIMIT         lim
+-#define YYMARKER        marker
+-
+-#define YYFILL(n)      { \
+-		if ( ! done ) { \
+-			have = lim-start; \
+-			if ( start &gt; buf ) { \
+-				shift = start-buf; \
+-				memmove( buf, start, have ); \
+-				start -= shift; \
+-				p -= shift; \
+-				lim -= shift; \
+-				marker -= shift; \
+-			} \
+-			want = BUFSIZE - have - 1; \
+-			len = fread( lim, 1, want, stdin ); \
+-			lim += len; \
+-			if ( len &lt; want ) { \
+-				*lim++ = 0; \
+-				done = 1; \
+-			} \
+-		} \
+-	}
+-
+-again:
+-	start = p;
+-
+-/*!re2c
+-
+-ANY				= [\000-\377];
+-FRACTCONST		= ( [0-9]* &quot;.&quot; [0-9]+ ) | [0-9]+ &quot;.&quot;;
+-EXPONENT		= [eE] [+\-]? [0-9]+;
+-FLOATSUFFIX		= [flFL];
+-
+-	&quot;L&quot;? &quot;\'&quot; ( ANY \ [\'\\\n] | &quot;\\&quot; ANY )* &quot;\'&quot; {
+-		token( TK_Slit, start, p-start );
+-		goto again;
+-	}
+-
+-	&quot;L&quot;? &quot;\&quot;&quot; ( ANY \ [\&quot;\\\n] | &quot;\\&quot; ANY )* &quot;\&quot;&quot; {
+-		token( TK_Dlit, start, p-start );
+-		goto again;
+-	}
+-
+-	[a-zA-Z_][a-zA-Z0-9_]* {
+-		token( TK_Id, start, p-start );
+-		goto again;
+-	}
+-
+-	( FRACTCONST EXPONENT? FLOATSUFFIX? ) | ( [0-9]+ EXPONENT FLOATSUFFIX? ) {
+-		token( TK_Float, start, p-start );
+-		goto again;
+-	}
+-
+-
+-	( &quot;0&quot; | [1-9][0-9]* ) [ulUL]* {
+-		token( TK_IntegerDecimal, start, p-start );
+-		goto again;
+-	}
+-
+-	&quot;0&quot; [0-9]+ [ulUL]* {
+-		token( TK_IntegerOctal, start, p-start );
+-		goto again;
+-	}
+-
+-	&quot;0x&quot; [0-9a-fA-F]+[ulUL]* {
+-		token( TK_IntegerHex, start, p-start );
+-		goto again;
+-	}
+-
+-	&quot;::&quot;	{ token( TK_NameSep, start, p-start ); goto again; }
+-	&quot;==&quot;	{ token( TK_EqualsEquals, start, p-start ); goto again; }
+-	&quot;!=&quot;	{ token( TK_NotEquals, start, p-start ); goto again; }
+-	&quot;&amp;&amp;&quot;	{ token( TK_AndAnd, start, p-start ); goto again; }
+-	&quot;||&quot;	{ token( TK_OrOr, start, p-start ); goto again; }
+-	&quot;*=&quot;	{ token( TK_MultAssign, start, p-start ); goto again; }
+-	&quot;/=&quot;	{ token( TK_DivAssign, start, p-start ); goto again; }
+-	&quot;%=&quot;	{ token( TK_PercentAssign, start, p-start ); goto again; }
+-	&quot;+=&quot;	{ token( TK_PlusAssign, start, p-start ); goto again; }
+-	&quot;-=&quot;	{ token( TK_MinusAssign, start, p-start ); goto again; }
+-	&quot;&amp;=&quot;	{ token( TK_AmpAssign, start, p-start ); goto again; }
+-	&quot;^=&quot;	{ token( TK_CaretAssign, start, p-start ); goto again; }
+-	&quot;|=&quot;	{ token( TK_BarAssign, start, p-start ); goto again; }
+-	&quot;++&quot;	{ token( TK_PlusPlus, start, p-start ); goto again; }
+-	&quot;--&quot;	{ token( TK_MinusMinus, start, p-start ); goto again; }
+-	&quot;-&gt;&quot;	{ token( TK_Arrow, start, p-start ); goto again; }
+-	&quot;-&gt;*&quot;	{ token( TK_ArrowStar, start, p-start ); goto again; }
+-	&quot;.*&quot;	{ token( TK_DotStar, start, p-start ); goto again; }
+-	&quot;...&quot;	{ token( TK_DotDotDot, start, p-start ); goto again; }
+-
+-	&quot;/*&quot; { goto comment; }
+-	&quot;//&quot; (ANY\&quot;\n&quot;)* &quot;\n&quot;	{ goto again; }
+-	[\001-\040\177]+		{ goto again; }
+-
+-	[\041-\057\072-\100\133-\140\173-\176]	{
+-		token( *start, start, p-start );
+-		goto again;
+-	}
+-	&quot;\000&quot;					{ return 0; }
+-*/
+-
+-comment:
+-/*!re2c
+-	&quot;*/&quot;					{ goto again; }
+-	ANY						{ goto comment; }
+-*/
+-}
+diff --git a/examples/lex-cppscan.l b/examples/lex-cppscan.l
+new file mode 100644
+index 0000000..fb66253
+--- /dev/null
++++ b/examples/lex-cppscan.l
+@@ -0,0 +1,143 @@
++/*
++ * flex equivalent to cppscan.rl
++ */
++
++%{
++
++#include &lt;stdio.h&gt;
++
++#define TK_Dlit 256
++#define TK_Slit 257
++#define TK_Float 258
++#define TK_Id 259
++#define TK_NameSep 260
++#define TK_Arrow 261
++#define TK_PlusPlus 262
++#define TK_MinusMinus 263
++#define TK_ArrowStar 264
++#define TK_DotStar 265
++#define TK_ShiftLeft 266
++#define TK_ShiftRight 267
++#define TK_IntegerDecimal 268
++#define TK_IntegerOctal 269
++#define TK_IntegerHex 270
++#define TK_EqualsEquals 271
++#define TK_NotEquals 272
++#define TK_AndAnd 273
++#define TK_OrOr 274
++#define TK_MultAssign 275
++#define TK_DivAssign 276
++#define TK_PercentAssign 277
++#define TK_PlusAssign 278
++#define TK_MinusAssign 279
++#define TK_AmpAssign 280
++#define TK_CaretAssign 281
++#define TK_BarAssign 282
++#define TK_DotDotDot 283
++#define TK_Whitespace 284
++#define TK_Comment 285
++
++int line = 1, col = 1;
++
++void token( int tok, char *data, int len )
++{
++	printf( &quot;&lt;%i&gt; &quot;, tok );
++	for ( int i = 0; i &lt; len; i++ )
++		fputc( data[i], stdout );
++	fputc( '\n', stdout );
++
++	/* Count newlines and columns. This code is here mainly for having some
++	 * code in the token routine when commenting out the above output during
++	 * performance testing. */
++	for ( int i = 0; i &lt; len; i ++ ) {
++		if ( data[i] == '\n' ) {
++			line += 1;
++			col = 1;
++		}
++		else {
++			col += 1;
++		}
++	}
++}
++
++
++%}
++
++%x COMMENT
++
++FRACT_CONST		[0-9]*\.[0-9]+|[0-9]+\.
++EXPONENT		[eE][+\-]?[0-9]+
++FLOAT_SUFFIX	[flFL]
++
++%%
++
++	/* Single and double literals. */
++L?\'([^\'\\\n]|\\.)*\' {
++	token( TK_Slit, yytext, yyleng );
++}
++
++L?\&quot;([^\&quot;\\\n]|\\.)*\&quot; {
++	token( TK_Dlit, yytext, yyleng );
++}
++
++[a-zA-Z_][a-zA-Z0-9_]* {
++	token( TK_Id, yytext, yyleng );
++}
++
++{FRACT_CONST}{EXPONENT}?{FLOAT_SUFFIX}?|[0-9]+{EXPONENT}{FLOAT_SUFFIX}? {
++	token( TK_Float, yytext, yyleng );
++}
++
++(0|[1-9][0-9]*)[ulUL]{0,3} {
++	token( TK_IntegerDecimal, yytext, yyleng );
++}
++
++0[0-9]+[ulUL]{0,2} {
++	token( TK_IntegerOctal, yytext, yyleng );
++}
++
++0x[0-9a-fA-F]+[ulUL]{0,2} {
++	token( TK_IntegerHex, yytext, yyleng );
++}
++
++:: token( TK_NameSep, yytext, yyleng );
++== token( TK_EqualsEquals, yytext, yyleng );
++!= token( TK_NotEquals, yytext, yyleng );
++&amp;&amp; token( TK_AndAnd, yytext, yyleng );
++\|\| token( TK_OrOr, yytext, yyleng );
++\*= token( TK_MultAssign, yytext, yyleng );
++\/= token( TK_DivAssign, yytext, yyleng );
++%= token( TK_PercentAssign, yytext, yyleng );
++\+= token( TK_PlusAssign, yytext, yyleng );
++-= token( TK_MinusAssign, yytext, yyleng );
++&amp;= token( TK_AmpAssign, yytext, yyleng );
++^= token( TK_CaretAssign, yytext, yyleng );
++\|= token( TK_BarAssign, yytext, yyleng );
++\+\+ token( TK_PlusPlus, yytext, yyleng );
++-- token( TK_MinusMinus, yytext, yyleng );
++-&gt; token( TK_Arrow, yytext, yyleng );
++-&gt;\* token( TK_ArrowStar, yytext, yyleng );
++\.\* token( TK_DotStar, yytext, yyleng );
++\.\.\. token( TK_DotDotDot, yytext, yyleng );
++
++\/\*				BEGIN(COMMENT);
++&lt;COMMENT&gt;\*\/		BEGIN(INITIAL);
++&lt;COMMENT&gt;(.|\n)		{ }
++
++\/\/.*\n			{}
++[^!-~]+				{}
++
++[!-/:-@\[-`{-~] token( yytext[0], yytext, yyleng );
++	
++%%
++
++int yywrap()
++{
++	/* Once the input is done, no more. */
++	return 1;
++}
++
++int main()
++{
++	yylex();
++}
+diff --git a/examples/re2c-cppscan.rec b/examples/re2c-cppscan.rec
+new file mode 100644
+index 0000000..43f297d
+--- /dev/null
++++ b/examples/re2c-cppscan.rec
+@@ -0,0 +1,183 @@
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++
++#define TK_Dlit 256
++#define TK_Slit 257
++#define TK_Float 258
++#define TK_Id 259
++#define TK_NameSep 260
++#define TK_Arrow 261
++#define TK_PlusPlus 262
++#define TK_MinusMinus 263
++#define TK_ArrowStar 264
++#define TK_DotStar 265
++#define TK_ShiftLeft 266
++#define TK_ShiftRight 267
++#define TK_IntegerDecimal 268
++#define TK_IntegerOctal 269
++#define TK_IntegerHex 270
++#define TK_EqualsEquals 271
++#define TK_NotEquals 272
++#define TK_AndAnd 273
++#define TK_OrOr 274
++#define TK_MultAssign 275
++#define TK_DivAssign 276
++#define TK_PercentAssign 277
++#define TK_PlusAssign 278
++#define TK_MinusAssign 279
++#define TK_AmpAssign 280
++#define TK_CaretAssign 281
++#define TK_BarAssign 282
++#define TK_DotDotDot 283
++#define TK_Whitespace 284
++#define TK_Comment 285
++
++int line = 1, col = 1;
++
++void token( int tok, char *data, int len )
++{
++	printf( &quot;&lt;%i&gt; &quot;, tok );
++	for ( int i = 0; i &lt; len; i++ )
++		fputc( data[i], stdout );
++	fputc( '\n', stdout );
++
++	/* Count newlines and columns. This code is here mainly for having some
++	 * code in the token routine when commenting out the above output during
++	 * performance testing. */
++	for ( int i = 0; i &lt; len; i ++ ) {
++		if ( data[i] == '\n' ) {
++			line += 1;
++			col = 1;
++		}
++		else {
++			col += 1;
++		}
++	}
++}
++
++#define BUFSIZE 8192
++char buf[BUFSIZE];
++
++void fill( int n )
++{
++	printf(&quot;fill(%i)\n&quot;, n);
++	exit(1);
++}
++
++int main()
++{
++	char *start, *p = buf, *lim = buf, *marker;
++	int len, have, want, shift;
++	int done = 0;
++	
++#define YYCTYPE         char
++
++#define YYCURSOR        p
++#define YYLIMIT         lim
++#define YYMARKER        marker
++
++#define YYFILL(n)      { \
++		if ( ! done ) { \
++			have = lim-start; \
++			if ( start &gt; buf ) { \
++				shift = start-buf; \
++				memmove( buf, start, have ); \
++				start -= shift; \
++				p -= shift; \
++				lim -= shift; \
++				marker -= shift; \
++			} \
++			want = BUFSIZE - have - 1; \
++			len = fread( lim, 1, want, stdin ); \
++			lim += len; \
++			if ( len &lt; want ) { \
++				*lim++ = 0; \
++				done = 1; \
++			} \
++		} \
++	}
++
++again:
++	start = p;
++
++/*!re2c
++
++ANY				= [\000-\377];
++FRACTCONST		= ( [0-9]* &quot;.&quot; [0-9]+ ) | [0-9]+ &quot;.&quot;;
++EXPONENT		= [eE] [+\-]? [0-9]+;
++FLOATSUFFIX		= [flFL];
++
++	&quot;L&quot;? &quot;\'&quot; ( ANY \ [\'\\\n] | &quot;\\&quot; ANY )* &quot;\'&quot; {
++		token( TK_Slit, start, p-start );
++		goto again;
++	}
++
++	&quot;L&quot;? &quot;\&quot;&quot; ( ANY \ [\&quot;\\\n] | &quot;\\&quot; ANY )* &quot;\&quot;&quot; {
++		token( TK_Dlit, start, p-start );
++		goto again;
++	}
++
++	[a-zA-Z_][a-zA-Z0-9_]* {
++		token( TK_Id, start, p-start );
++		goto again;
++	}
++
++	( FRACTCONST EXPONENT? FLOATSUFFIX? ) | ( [0-9]+ EXPONENT FLOATSUFFIX? ) {
++		token( TK_Float, start, p-start );
++		goto again;
++	}
++
++
++	( &quot;0&quot; | [1-9][0-9]* ) [ulUL]* {
++		token( TK_IntegerDecimal, start, p-start );
++		goto again;
++	}
++
++	&quot;0&quot; [0-9]+ [ulUL]* {
++		token( TK_IntegerOctal, start, p-start );
++		goto again;
++	}
++
++	&quot;0x&quot; [0-9a-fA-F]+[ulUL]* {
++		token( TK_IntegerHex, start, p-start );
++		goto again;
++	}
++
++	&quot;::&quot;	{ token( TK_NameSep, start, p-start ); goto again; }
++	&quot;==&quot;	{ token( TK_EqualsEquals, start, p-start ); goto again; }
++	&quot;!=&quot;	{ token( TK_NotEquals, start, p-start ); goto again; }
++	&quot;&amp;&amp;&quot;	{ token( TK_AndAnd, start, p-start ); goto again; }
++	&quot;||&quot;	{ token( TK_OrOr, start, p-start ); goto again; }
++	&quot;*=&quot;	{ token( TK_MultAssign, start, p-start ); goto again; }
++	&quot;/=&quot;	{ token( TK_DivAssign, start, p-start ); goto again; }
++	&quot;%=&quot;	{ token( TK_PercentAssign, start, p-start ); goto again; }
++	&quot;+=&quot;	{ token( TK_PlusAssign, start, p-start ); goto again; }
++	&quot;-=&quot;	{ token( TK_MinusAssign, start, p-start ); goto again; }
++	&quot;&amp;=&quot;	{ token( TK_AmpAssign, start, p-start ); goto again; }
++	&quot;^=&quot;	{ token( TK_CaretAssign, start, p-start ); goto again; }
++	&quot;|=&quot;	{ token( TK_BarAssign, start, p-start ); goto again; }
++	&quot;++&quot;	{ token( TK_PlusPlus, start, p-start ); goto again; }
++	&quot;--&quot;	{ token( TK_MinusMinus, start, p-start ); goto again; }
++	&quot;-&gt;&quot;	{ token( TK_Arrow, start, p-start ); goto again; }
++	&quot;-&gt;*&quot;	{ token( TK_ArrowStar, start, p-start ); goto again; }
++	&quot;.*&quot;	{ token( TK_DotStar, start, p-start ); goto again; }
++	&quot;...&quot;	{ token( TK_DotDotDot, start, p-start ); goto again; }
++
++	&quot;/*&quot; { goto comment; }
++	&quot;//&quot; (ANY\&quot;\n&quot;)* &quot;\n&quot;	{ goto again; }
++	[\001-\040\177]+		{ goto again; }
++
++	[\041-\057\072-\100\133-\140\173-\176]	{
++		token( *start, start, p-start );
++		goto again;
++	}
++	&quot;\000&quot;					{ return 0; }
++*/
++
++comment:
++/*!re2c
++	&quot;*/&quot;					{ goto again; }
++	ANY						{ goto comment; }
++*/
++}
+diff --git a/ragel/Makefile.am b/ragel/Makefile.am
+new file mode 100644
+index 0000000..bbe85ce
+--- /dev/null
++++ b/ragel/Makefile.am
+@@ -0,0 +1,38 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++BUILT_SOURCES = rlscan.cpp rlparse.h rlparse.cpp
++EXTRA_DIST = $(BUILT_SOURCES) rlscan.rl rlparse.kl rlparse.kh
++
++bin_PROGRAMS = ragel
++
++ragel_SOURCES = ragel.h main.cpp parsetree.h parsetree.cpp parsedata.h	\
++	parsedata.cpp fsmstate.cpp fsmbase.cpp fsmattach.cpp		\
++	fsmmin.cpp fsmgraph.h fsmgraph.cpp fsmap.cpp xmlcodegen.h	\
++	xmlcodegen.cpp rlscan.h $(BUILT_SOURCES)
++
++ragel_LDADD = ../common/libcommon.a \
++	../redfsm/libredfsm.a \
++	../rlgen-cd/librlgen-cd.a \
++	../rlgen-java/librlgen-java.a \
++	../rlgen-ruby/librlgen-ruby.a \
++	../rlgen-csharp/librlgen-csharp.a \
++	../rlgen-dot/librlgen-dot.a
++
++if BUILD_PARSERS
++rlparse.h: rlparse.kh
++	kelbt -o $@ $&lt;
++
++rlparse.cpp: rlparse.kl rlparse.kh
++	(cd &quot;${srcdir}&quot;; kelbt -o &quot;${abs_builddir}&quot;/$@ &quot;${abs_builddir}&quot;/$&lt;; )
++
++# This dependency comes from the import of the parser defines
++# into the scanner.
++rlscan.cpp: rlparse.h
++
++rlscan.cpp: rlscan.rl
++	ragel -G2 -I. -o $@ $&lt;
++
++CLEANFILES = $(BUILT_SOURCES)
++endif
+diff --git a/ragel/Makefile.in b/ragel/Makefile.in
+deleted file mode 100644
+index 2a6b5da..0000000
+--- a/ragel/Makefile.in
++++ /dev/null
+@@ -1,101 +0,0 @@
+-#
+-#   Copyright 2001-2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../aapl -I../redfsm
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = \
+-	main.cpp parsetree.cpp parsedata.cpp fsmstate.cpp fsmbase.cpp \
+-	fsmattach.cpp fsmmin.cpp fsmgraph.cpp fsmap.cpp xmlcodegen.cpp \
+-	rlscan.cpp rlparse.cpp
+-
+-GEN_SRC = rlscan.cpp rlparse.h rlparse.cpp
+-
+-RAGEL_LIBS = ../common/common.a \
+-	../redfsm/redfsm.a \
+-	../rlgen-cd/rlgen-cd.a \
+-	../rlgen-java/rlgen-java.a \
+-	../rlgen-ruby/rlgen-ruby.a \
+-	../rlgen-csharp/rlgen-csharp.a \
+-	../rlgen-dot/rlgen-dot.a
+-
+-LIBS = $(RAGEL_LIBS)
+-MINGW_LIBS = -lpsapi
+-
+-#*************************************
+-
+-prefix = @prefix@
+-BUILD_PARSERS = @enable_parsers@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-
+-ifeq ($(EXEEXT), .exe)
+-LIBS += $(MINGW_LIBS)
+-endif
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-# Rules.
+-all: ragel$(EXEEXT)
+-
+-ragel$(EXEEXT): $(GEN_SRC) $(OBJS) $(RAGEL_LIBS)
+-	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+-
+-ifeq ($(BUILD_PARSERS),yes)
+-
+-rlparse.h: rlparse.kh
+-	kelbt -o $@ $&lt;
+-
+-rlparse.cpp: rlparse.kl rlparse.kh
+-	kelbt -o $@ $&lt;
+-
+-# This dependency comes from the import of the parser defines
+-# into the scanner.
+-rlscan.cpp: rlparse.h
+-
+-rlscan.cpp: rlscan.rl
+-	ragel -G2 -o $@ $&lt;
+-
+-endif
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile 
+-
+-ifeq ($(BUILD_PARSERS),yes)
+-EXTRA_CLEAN = $(GEN_SRC)
+-endif
+-
+-clean:
+-	rm -f tags .*.d *.o ragel $(EXTRA_CLEAN)
+-
+-install: all
+-	install -d $(DESTDIR)$(prefix)/bin
+-	install ragel $(DESTDIR)$(prefix)/bin/ragel
+-
+--include $(DEPS)
+diff --git a/redfsm/Makefile.am b/redfsm/Makefile.am
+new file mode 100644
+index 0000000..ae625d9
+--- /dev/null
++++ b/redfsm/Makefile.am
+@@ -0,0 +1,29 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = libredfsm.a
++
++BUILT_SOURCES = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
++EXTRA_DIST = $(BUILT_SOURCES) xmltags.gperf xmlscan.rl xmlparse.kl	\
++	xmlparse.kh
++
++libredfsm_a_SOURCES = redfsm.h redfsm.cpp gendata.h gendata.cpp	\
++	xmltags.cpp xmlscan.cpp xmlparse.cpp $(BUILT_SOURCES)
++
++if BUILD_PARSERS
++xmlparse.h: xmlparse.kh
++	kelbt -o $@ $&lt;
++
++xmlparse.cpp: xmlparse.kl xmlparse.kh
++	(cd &quot;${srcdir}&quot;; kelbt -o &quot;${abs_builddir}&quot;/$@ &quot;${abs_builddir}&quot;/$&lt;; )
++
++xmlscan.cpp: xmlscan.rl
++	ragel -G2 -o $@ $&lt;
++
++xmltags.cpp: xmltags.gperf
++	gperf -L C++ -t $&lt; &gt; $@
++
++
++CLEANFILES = $(BUILT_SOURCES)
++endif
+diff --git a/redfsm/Makefile.in b/redfsm/Makefile.in
+deleted file mode 100644
+index 8e67233..0000000
+--- a/redfsm/Makefile.in
++++ /dev/null
+@@ -1,85 +0,0 @@
+-#
+-#   Copyright 2001-2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = redfsm.cpp gendata.cpp xmltags.cpp xmlscan.cpp xmlparse.cpp
+-
+-GEN_SRC = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
+-
+-BUILD_PARSERS = @enable_parsers@
+-
+-#*************************************
+-
+-# Programs
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: redfsm.a
+-
+-redfsm.a: $(GEN_SRC) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-ifeq ($(BUILD_PARSERS),true)
+-
+-xmlparse.h: xmlparse.kh
+-	kelbt -o $@ $&lt;
+-
+-xmlparse.cpp: xmlparse.kl xmlparse.kh
+-	kelbt -o $@ $&lt;
+-
+-xmlscan.cpp: xmlscan.rl
+-	ragel -G2 -o xmlscan.cpp xmlscan.rl
+-
+-xmltags.cpp: xmltags.gperf
+-	gperf -L C++ -t $&lt; &gt; $@
+-
+-endif
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-ifeq ($(BUILD_PARSERS),true)
+-EXTRA_CLEAN = $(GEN_SRC)
+-endif
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-cd $(EXTRA_CLEAN)
+-
+-install:
+-	@true
+-
+--include $(DEPS)
+diff --git a/rlgen-cd/Makefile.am b/rlgen-cd/Makefile.am
+new file mode 100644
+index 0000000..cd5e46f
+--- /dev/null
++++ b/rlgen-cd/Makefile.am
+@@ -0,0 +1,12 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = librlgen-cd.a
++
++librlgen_cd_a_SOURCES = rlgen-cd.h main.cpp fsmcodegen.h		\
++	fsmcodegen.cpp tabcodegen.h tabcodegen.cpp ftabcodegen.h	\
++	ftabcodegen.cpp flatcodegen.h flatcodegen.cpp fflatcodegen.h	\
++	fflatcodegen.cpp gotocodegen.h gotocodegen.cpp fgotocodegen.h	\
++	fgotocodegen.cpp ipgotocodegen.h ipgotocodegen.cpp		\
++	splitcodegen.h splitcodegen.cpp
+diff --git a/rlgen-cd/Makefile.in b/rlgen-cd/Makefile.in
+deleted file mode 100644
+index 7b06285..0000000
+--- a/rlgen-cd/Makefile.in
++++ /dev/null
+@@ -1,69 +0,0 @@
+-#
+-#   Copyright 2001-2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../redfsm -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = main.cpp fsmcodegen.cpp \
+-	tabcodegen.cpp ftabcodegen.cpp flatcodegen.cpp \
+-	fflatcodegen.cpp gotocodegen.cpp fgotocodegen.cpp \
+-	ipgotocodegen.cpp splitcodegen.cpp 
+-
+-GEN_SRC = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
+-
+-LIBS = ../common/common.a ../redfsm/redfsm.a
+-
+-#*************************************
+-
+-prefix = @prefix@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: rlgen-cd.a
+-
+-rlgen-cd.a: $(LIBS) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-cd.a $(EXTRA_CLEAN)
+-
+-install:
+-	@true
+-
+--include $(DEPS)
+diff --git a/rlgen-csharp/Makefile.am b/rlgen-csharp/Makefile.am
+new file mode 100644
+index 0000000..ebdf08c
+--- /dev/null
++++ b/rlgen-csharp/Makefile.am
+@@ -0,0 +1,12 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = librlgen-csharp.a
++
++librlgen_csharp_a_SOURCES = rlgen-csharp.h main.cpp fsmcodegen.h	\
++	fsmcodegen.cpp tabcodegen.h tabcodegen.cpp ftabcodegen.h	\
++	ftabcodegen.cpp flatcodegen.h flatcodegen.cpp fflatcodegen.h	\
++	fflatcodegen.cpp gotocodegen.h gotocodegen.cpp fgotocodegen.h	\
++	fgotocodegen.cpp ipgotocodegen.h ipgotocodegen.cpp		\
++	splitcodegen.h splitcodegen.cpp
+diff --git a/rlgen-csharp/Makefile.in b/rlgen-csharp/Makefile.in
+deleted file mode 100644
+index fc5380f..0000000
+--- a/rlgen-csharp/Makefile.in
++++ /dev/null
+@@ -1,69 +0,0 @@
+-#
+-#   Copyright 2001-2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../redfsm -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = main.cpp fsmcodegen.cpp \
+-	tabcodegen.cpp ftabcodegen.cpp flatcodegen.cpp \
+-	fflatcodegen.cpp gotocodegen.cpp fgotocodegen.cpp \
+-	ipgotocodegen.cpp splitcodegen.cpp 
+-
+-GEN_SRC = xmltags.cpp xmlscan.cpp xmlparse.cpp xmlparse.h
+-
+-LIBS = ../common/common.a ../redfsm/redfsm.a
+-
+-#*************************************
+-
+-prefix = @prefix@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: rlgen-csharp.a
+-
+-rlgen-csharp.a: $(LIBS) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-csharp.a $(EXTRA_CLEAN)
+-
+-install:
+-	@true
+-
+--include $(DEPS)
+diff --git a/rlgen-dot/Makefile.am b/rlgen-dot/Makefile.am
+new file mode 100644
+index 0000000..025d6f3
+--- /dev/null
++++ b/rlgen-dot/Makefile.am
+@@ -0,0 +1,7 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = librlgen-dot.a
++
++librlgen_dot_a_SOURCES = rlgen-dot.h main.cpp gvdotgen.h gvdotgen.cpp
+diff --git a/rlgen-dot/Makefile.in b/rlgen-dot/Makefile.in
+deleted file mode 100644
+index c5611c2..0000000
+--- a/rlgen-dot/Makefile.in
++++ /dev/null
+@@ -1,66 +0,0 @@
+-#
+-#   Copyright 2001-2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../redfsm -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = main.cpp gvdotgen.cpp 
+-
+-LIBS = ../common/common.a ../redfsm/redfsm.a
+-
+-
+-#*************************************
+-
+-prefix = @prefix@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: rlgen-dot.a
+-
+-rlgen-dot.a: $(LIBS) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-dot $(EXTRA_CLEAN)
+-
+-install: all
+-	install -d $(DESTDIR)$(prefix)/bin
+-	install rlgen-dot $(DESTDIR)$(prefix)/bin/rlgen-dot
+-
+--include $(DEPS)
+diff --git a/rlgen-java/Makefile.am b/rlgen-java/Makefile.am
+new file mode 100644
+index 0000000..c15b720
+--- /dev/null
++++ b/rlgen-java/Makefile.am
+@@ -0,0 +1,8 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = librlgen-java.a
++
++librlgen_java_a_SOURCES = rlgen-java.h main.cpp javacodegen.h	\
++	javacodegen.cpp
+diff --git a/rlgen-java/Makefile.in b/rlgen-java/Makefile.in
+deleted file mode 100644
+index c429dde..0000000
+--- a/rlgen-java/Makefile.in
++++ /dev/null
+@@ -1,66 +0,0 @@
+-#
+-#   Copyright 2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../redfsm -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = main.cpp javacodegen.cpp
+-
+-LIBS = ../common/common.a ../redfsm/redfsm.a
+-
+-LIBS += @LIBS@
+-
+-#*************************************
+-
+-prefix = @prefix@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: rlgen-java.a
+-
+-rlgen-java.a: $(LIBS) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-java.a
+-
+-install: all
+-	@true
+-
+--include $(DEPS)
+diff --git a/rlgen-ruby/Makefile.am b/rlgen-ruby/Makefile.am
+new file mode 100644
+index 0000000..a64f2c6
+--- /dev/null
++++ b/rlgen-ruby/Makefile.am
+@@ -0,0 +1,11 @@
++INCLUDES = -I$(top_srcdir)/common -I$(top_srcdir)/redfsm -I$(top_builddir)/redfsm -I$(top_srcdir)/aapl
++
++AM_CXXFLAGS = -g -Wall
++
++noinst_LIBRARIES = librlgen-ruby.a
++
++librlgen_ruby_a_SOURCES = rlgen-ruby.h main.cpp ruby-codegen.h		\
++	ruby-codegen.cpp ruby-tabcodegen.h ruby-tabcodegen.cpp		\
++	ruby-ftabcodegen.h ruby-ftabcodegen.cpp ruby-flatcodegen.h	\
++	ruby-flatcodegen.cpp ruby-fflatcodegen.h ruby-fflatcodegen.cpp	\
++	rbx-gotocodegen.h rbx-gotocodegen.cpp
+diff --git a/rlgen-ruby/Makefile.in b/rlgen-ruby/Makefile.in
+deleted file mode 100644
+index 96d5399..0000000
+--- a/rlgen-ruby/Makefile.in
++++ /dev/null
+@@ -1,67 +0,0 @@
+-#
+-#   Copyright 2007 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-INCS += -I../common -I../redfsm -I../aapl
+-DEFS +=
+-
+-CXXFLAGS += -g -Wall
+-LDFLAGS +=
+-
+-CC_SRCS = main.cpp ruby-codegen.cpp ruby-tabcodegen.cpp ruby-ftabcodegen.cpp \
+-	ruby-flatcodegen.cpp ruby-fflatcodegen.cpp rbx-gotocodegen.cpp
+-
+-LIBS = ../common/common.a ../redfsm/redfsm.a
+-
+-LIBS += @LIBS@
+-
+-#*************************************
+-
+-prefix = @prefix@
+-EXEEXT = @EXEEXT@
+-CXX = @CXX@
+-AR = @AR@
+-RANLIB = @RANLIB@
+-
+-# Get objects and dependencies from sources.
+-OBJS = $(CC_SRCS:%.cpp=%.o)
+-DEPS = $(CC_SRCS:%.cpp=.%.d)
+-
+-
+-# Rules.
+-all: rlgen-ruby.a
+-
+-rlgen-ruby.a: $(LIBS) $(OBJS)
+-	$(AR) -cr $@ $(OBJS) 
+-	$(RANLIB) $@
+-
+-%.o: %.cpp
+-	@$(CXX) -M $(DEFS) $(INCS) $&lt; &gt; .$*.d
+-	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCS) -o $@ $&lt;
+-
+-distclean: clean
+-	rm -f Makefile
+-
+-clean:
+-	rm -f tags .*.d *.o rlgen-ruby.a
+-
+-install:
+-	@true
+-
+--include $(DEPS)
+diff --git a/test/Makefile.am b/test/Makefile.am
+new file mode 100644
+index 0000000..7689bf7
+--- /dev/null
++++ b/test/Makefile.am
+@@ -0,0 +1,23 @@
++#TESTS = runtests
++
++EXTRA_DIST = atoi1.rl cppscan1.rl export2.rl langtrans_c.txl		\
++	repetition.rl atoi2.rl cppscan2.rl export3.rl langtrans_d.sh	\
++	rlscan.rl atoi3.rl cppscan3.rl export4.rl langtrans_d.txl	\
++	ruby1.rl awkemu.rl cppscan4.rl fnext1.rl langtrans_java.sh	\
++	builtin.rl cppscan5.rl forder1.rl langtrans_java.txl scan1.rl	\
++	call1.rl cppscan6.rl forder2.rl langtrans_ruby.sh scan2.rl	\
++	call2.rl element1.rl forder3.rl langtrans_ruby.txl scan3.rl	\
++	call3.rl element2.rl gotocallret1.rl lmgoto.rl scan4.rl		\
++	checkeofact.txl element3.rl gotocallret2.rl mailbox1.h		\
++	stateact1.rl clang1.rl eofact.h high1.rl mailbox1.rl		\
++	statechart1.rl clang2.rl eofact.rl high2.rl mailbox2.rl		\
++	strings1.rl clang3.rl erract1.rl high3.rl mailbox3.rl		\
++	strings2.h clang4.rl erract2.rl import1.rl strings2.rl		\
++	cond1.rl erract3.rl include1.rl testcase.txl cond2.rl		\
++	erract4.rl include2.rl minimize1.rl tokstart1.rl cond3.rl	\
++	erract5.rl java1.rl patact.rl union.rl cond4.rl erract6.rl	\
++	java2.rl range.rl xmlcommon.rl cond5.rl erract7.rl keller1.rl	\
++	README xml.rl cond6.rl erract8.rl langtrans_c.sh		\
++	recdescent1.rl cond7.rl erract9.rl langtrans_csharp.sh		\
++	recdescent2.rl cppscan1.h export1.rl langtrans_csharp.txl	\
++	recdescent3.rl
+\ No newline at end of file
+diff --git a/test/Makefile.in b/test/Makefile.in
+deleted file mode 100644
+index fe49856..0000000
+--- a/test/Makefile.in
++++ /dev/null
+@@ -1,30 +0,0 @@
+-#
+-#   Copyright 2002-2006 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">thurs... at cs.queensu.ca</A>&gt;
+-#
+-
+-#   This file is part of Ragel.
+-#
+-#   Ragel is free software; you can redistribute it and/or modify
+-#   it under the terms of the GNU General Public License as published by
+-#   the Free Software Foundation; either version 2 of the License, or
+-#   (at your option) any later version.
+-#
+-#   Ragel is distributed in the hope that it will be useful,
+-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-#   GNU General Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License
+-#   along with Ragel; if not, write to the Free Software
+-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+-
+-
+-test:
+-	@./runtests
+-
+-clean:
+-	rm -f *.c *.cpp *.m *.d *.java *.bin *.class *.exp \
+-		*.out *_c.rl *_d.rl *_java.rl *_ruby.rl *_csharp.rl *.cs *.exe
+-
+-distclean: clean
+-	rm -f Makefile
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2502">[ date ]</a>
+              <a href="thread.html#2502">[ thread ]</a>
+              <a href="subject.html#2502">[ subject ]</a>
+              <a href="author.html#2502">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

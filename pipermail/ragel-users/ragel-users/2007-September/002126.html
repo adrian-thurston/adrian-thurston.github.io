@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> IrDA IrPHY/Byte Stuffing  in Ragel?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20IrDA%20IrPHY/Byte%20Stuffing%20%20in%20Ragel%3F&In-Reply-To=%3Cop.ty7r7cpiocf...%40grace002.graceinc.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>IrDA IrPHY/Byte Stuffing  in Ragel?</H1>
+    <B>Bob Paddock</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20IrDA%20IrPHY/Byte%20Stuffing%20%20in%20Ragel%3F&In-Reply-To=%3Cop.ty7r7cpiocf...%40grace002.graceinc.com%3E"
+       TITLE="IrDA IrPHY/Byte Stuffing  in Ragel?">graceindustr... at gmail.com
+       </A><BR>
+    <I>Tue Sep 25 14:36:38 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2126">[ date ]</a>
+              <a href="thread.html#2126">[ thread ]</a>
+              <a href="subject.html#2126">[ subject ]</a>
+              <a href="author.html#2126">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Before I go off an reinvent the wheel, I was wondering
+if anyone has done anything with IrDA or Byte Stuffing
+Protocols in Ragel?
+
+I need to write some code to handel the IrDA IrPHY (Physical)
+Layer.
+
+Anyone already have a State Chart already in Ragel?
+
+Frame Format:
+
+All payload data is packed into IrPHY frames where each frame consists of:
+
+XBOF (0xFF *or* 0xC0), typically ten, but can be more or less, transmitted,
+ignored by receiving end beyond getting the hardware synced up.
+0xC0 followed by 0xC0 is XBOF, 0xC0 followed by something else is BOF.
+
+BOF (0xC0), Beginning of Frame
+Data Payload data, variable length
+FCS 16 bit Frame Check Sequence (CITT-CRC)
+EOF (0xC1) End of Frame.
+
+Between the BOF and EOF flags, so that the receiver may easily determine
+the start and end of each frame, no payload data or
+FCS character may have the same value as the BOF,
+EOF or control escape (CE) flags.
+If so, these characters are escaped, ie byte-stuffed,
+using the CE character (0x7D):
+
+0xC0 -&gt; (0x7D, 0xE0) [^Bit 5]
+0xC1 -&gt; (0x7D, 0xE1) ..
+0x7D -&gt; (0x7D, 0x5D) ..
+
+Receiving 0x7D 0x7D is an error and you start over.
+
+After the buffer is destuffed it needs parsed.
+
+
+
+
+
+
+
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2126">[ date ]</a>
+              <a href="thread.html#2126">[ thread ]</a>
+              <a href="subject.html#2126">[ subject ]</a>
+              <a href="author.html#2126">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

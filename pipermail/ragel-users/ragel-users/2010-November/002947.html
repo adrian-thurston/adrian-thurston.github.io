@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] nondeterminism problem
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20nondeterminism%20problem&In-Reply-To=%3CAANLkTinob%3DzWjy3P6o7rVhYuszuoDYL8rvuO2bB6MHfP%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002943.html">
+   <LINK REL="Next"  HREF="002942.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] nondeterminism problem</H1>
+    <B>hongbin kou</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20nondeterminism%20problem&In-Reply-To=%3CAANLkTinob%3DzWjy3P6o7rVhYuszuoDYL8rvuO2bB6MHfP%40mail.gmail.com%3E"
+       TITLE="[ragel-users] nondeterminism problem">hongbin.kou at gmail.com
+       </A><BR>
+    <I>Wed Nov 10 02:48:05 UTC 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002943.html">[ragel-users] nondeterminism problem
+</A></li>
+        <LI>Next message: <A HREF="002942.html">[ragel-users] Local error actions examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2947">[ date ]</a>
+              <a href="thread.html#2947">[ thread ]</a>
+              <a href="subject.html#2947">[ subject ]</a>
+              <a href="author.html#2947">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It works after I specified the priority!
+
+Thanks.
+
+2010/11/10 Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">adrian.thurston at esentire.com</A>&gt;
+
+&gt;<i> Define:
+</I>&gt;<i>
+</I>&gt;<i> colon = ':' @(colon, 1);
+</I>&gt;<i> else_colon = ':' @(colon, 0);
+</I>&gt;<i>
+</I>&gt;<i> Then use colon in the named headers and else_colon in the final case.
+</I>&gt;<i>
+</I>&gt;<i> -Adrian
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On 10-11-09 12:07 AM, hongbin kou wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Now I’m using ragel to build a http parser.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> One requirement of the parser is to parse all the http headers, which
+</I>&gt;&gt;<i> would be used by another module.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For some common headers, the header value would be parsed directly by
+</I>&gt;&gt;<i> ragel.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For other headers, only mark the header name and value.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Here is my ragel script:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> message_header =(
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                   (&quot;Content-Length&quot;i &quot;:&quot; LWS* digit+ $on_content_length)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Transfer-Encoding&quot;i &quot;:&quot; LWS* (&quot;Chunked&quot;i %
+</I>&gt;&gt;<i> {request-&gt;transfer_encoding = HTTP_TE_CHUNKED;} | any* &gt; start_TE %
+</I>&gt;&gt;<i> finish_TE))
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Connection&quot;i &quot;:&quot; LWS* (&quot;Keep-alive&quot;i %
+</I>&gt;&gt;<i> {request-&gt;connection = HTTP_CONNECTION_KEEP_ALIVE;} | &quot;Close&quot;i %
+</I>&gt;&gt;<i> {request-&gt;connection = HTTP_CONNECTION_CLOSE;}))
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Host&quot;i &quot;:&quot; LWS* field_content &gt;start_host
+</I>&gt;&gt;<i> %*finish_host* %/break_host)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Accept&quot;i &quot;:&quot; LWS* field_content &gt;start_accept %
+</I>&gt;&gt;<i> finish_accept %/break_accept)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Accept-Charset&quot;i &quot;:&quot; LWS* field_content
+</I>&gt;&gt;<i>  &gt;start_accept_charset % finish_accept_charset %/break_accept_charset)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Accept-Encoding&quot;i &quot;:&quot; LWS* field_content
+</I>&gt;&gt;<i>  &gt;start_accept_encoding % finish_accept_encoding %/break_accept_encoding)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Accept-Language&quot;i &quot;:&quot; LWS* field_content
+</I>&gt;&gt;<i>  &gt;start_accept_language % finish_accept_language %/break_accept_language)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;User-Agent&quot;i &quot;:&quot; LWS* field_content
+</I>&gt;&gt;<i>  &gt;start_user_agent % finish_user_agent %/break_user_agent)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;Referer&quot;i &quot;:&quot; LWS* field_content &gt;start_referer %
+</I>&gt;&gt;<i> finish_referer %/break_referer)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | (&quot;X-Forward-For&quot;i &quot;:&quot; LWS* field_content
+</I>&gt;&gt;<i>  &gt;start_x_forward_for % finish_x_forward_for %/break_x_forward_for)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>                 | ((token) &gt;start_header_name %finish_header_name
+</I>&gt;&gt;<i> %/break_header_name&quot;:&quot; LWS* field_content % *header_end*)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>             ) :&gt;CRLF;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Here there is a nondeterminism between token and the common header names.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For example, when a Host header value finished, the header’s action
+</I>&gt;&gt;<i> finish_host and the “token” action header_end will be triggered.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> How can I resolve this kind of problem?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Hongbin.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> ragel-users mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> ragel-users mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+</I>&gt;<i> <A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.colm.net/pipermail/ragel-users/attachments/20101110/461a7335/attachment-0001.html">http://www.colm.net/pipermail/ragel-users/attachments/20101110/461a7335/attachment-0001.html</A>&gt;
+-------------- next part --------------
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002943.html">[ragel-users] nondeterminism problem
+</A></li>
+	<LI>Next message: <A HREF="002942.html">[ragel-users] Local error actions examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2947">[ date ]</a>
+              <a href="thread.html#2947">[ thread ]</a>
+              <a href="subject.html#2947">[ subject ]</a>
+              <a href="author.html#2947">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

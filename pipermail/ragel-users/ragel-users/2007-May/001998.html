@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> A bug in Ragel?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20A%20bug%20in%20Ragel%3F&In-Reply-To=%3C1178484043.632012.309220%40l77g2000hsb.googlegroups.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>A bug in Ragel?</H1>
+    <B>DinSoft</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20A%20bug%20in%20Ragel%3F&In-Reply-To=%3C1178484043.632012.309220%40l77g2000hsb.googlegroups.com%3E"
+       TITLE="A bug in Ragel?">dinesh.bolkenst... at epfl.ch
+       </A><BR>
+    <I>Sun May  6 20:40:43 UTC 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1998">[ date ]</a>
+              <a href="thread.html#1998">[ thread ]</a>
+              <a href="subject.html#1998">[ subject ]</a>
+              <a href="author.html#1998">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello everyone,
+
+I don't understand Ragel's behaviour on one point.
+Currently, I am implementing a parser for SPF (RFC 4408).
+
+Everything was fine and working well but this.
+
+Here is a snippet of the grammar rules in Ragel's syntax (full ABNF
+available at <A HREF="http://www.ietf.org/rfc/rfc4408.txt">http://www.ietf.org/rfc/rfc4408.txt</A>):
+
+                qualifier = ([+-?~]) &gt;action_qualifier_1
+@action_qualifier_2;
+
+                all = (&quot;all&quot;i) &gt;action_all_1 @action_all_2;
+                version = (&quot;v=spf1&quot;i) &gt;action_version_1
+@action_version_2;
+
+		name = (alpha ( alpha | digit | &quot;-&quot; | &quot;_&quot; | &quot;.&quot; )*) &gt;action_name_1
+@action_name_2;
+
+		redirect = (&quot;redirect&quot;i &quot;=&quot; domain_spec) &gt;action_redirect_1
+@action_redirect_2;
+		unknown_modifier = (name &quot;=&quot; macro_string)
+&gt;<i>action_unknown_modifier_1 @action_unknown_modifier_2;
+</I>		explanation = (&quot;exp&quot;i &quot;=&quot; domain_spec) &gt;action_explanation_1
+@action_explanation_2;
+
+                mechanism = (all | include2 | A | MX | PTR | IP4 | IP6
+|<i> exists) &gt;action_mechanism_1 @action_mechanism_2;
+</I>		directive = ((qualifier)? mechanism) &gt;action_directive_1
+@action_directive_2;
+
+		terms_spaces = ((' '){1,}) &gt;action_terms_spaces_1
+@action_terms_spaces_2;
+		terms_directive = (terms_spaces directive) &gt;action_terms_directive_1
+@action_terms_directive_2;
+		terms_modifier = (terms_spaces modifier) &gt;action_terms_modifier_1
+@action_terms_modifier_2;
+		terms = (( terms_directive | terms_modifier )*) &gt;action_terms_1
+@action_terms_2;					# May be empty
+
+		record_spaces = ((' ')*) &gt;action_record_spaces_1
+@action_record_spaces_2;						# May be empty
+		record = (version terms record_spaces) &gt;action_record_1
+@action_record_2;
+
+		# Language's starting rule
+		main := record;
+
+With the following user-action for qualifier:
+ 		# qualifier
+		action action_qualifier_1 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_START;
+			element.start = fpc;
+
+			if (doubleLinkedListAddLast(&amp;qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+		action action_qualifier_2 {
+			element.type = PARSE_ELEMENT_TYPE_QUALIFIER_STOP;
+			element.stop = fpc;
+
+			if (doubleLinkedListAddLast(&amp;qualifier, element)) {
+				goto atoi_error;
+			}
+		}
+
+(all rule do have the same kind of user actions).
+
+
+Now I find amazing that, on the input &quot;v=spf1 =all&quot; , I am getting the
+'=' as being considered as a qualifier !
+
+Here is the dump of my doubleLinkedList for qualifier:
+Parsing: v=spf1 =all!
+qualifier list: 2 elements in the list!
+        Start: 134729663 (=)
+        Stop: 134729663 (=)
+
+When I go back to the rule of qualifier, I see:
+ qualifier = ([+-?~]) &gt;action_qualifier_1 @action_qualifier_2;
+
+So how is it possible that Ragel considers '=' as being a qualifier?
+
+I was expecting a parse error (from the rule unknown_modifier ,
+because the rule &quot;name&quot; cannot be empty).
+
+Thanks for your help !
+
+Regards,
+ Dinesh Bolkensteyn
+
+</PRE>
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1998">[ date ]</a>
+              <a href="thread.html#1998">[ thread ]</a>
+              <a href="subject.html#1998">[ subject ]</a>
+              <a href="author.html#1998">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

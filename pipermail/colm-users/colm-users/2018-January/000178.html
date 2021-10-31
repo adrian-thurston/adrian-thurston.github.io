@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [colm] segfault during iter on stdin [noob]
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20segfault%20during%20iter%20on%20stdin%20%5Bnoob%5D&In-Reply-To=%3C30cca42e823d35ff8fad438dbcdbdf71%40mail.colm.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000177.html">
+   <LINK REL="Next"  HREF="000179.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[colm] segfault during iter on stdin [noob]</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:colm-users%40colm.net?Subject=Re%3A%20%5Bcolm%5D%20segfault%20during%20iter%20on%20stdin%20%5Bnoob%5D&In-Reply-To=%3C30cca42e823d35ff8fad438dbcdbdf71%40mail.colm.net%3E"
+       TITLE="[colm] segfault during iter on stdin [noob]">thurston at colm.net
+       </A><BR>
+    <I>Sat Jan 20 19:11:18 UTC 2018</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000177.html">[colm] segfault during iter on stdin [noob]
+</A></li>
+        <LI>Next message: <A HREF="000179.html">[colm] noob question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Peter,
+
+The program is segfaulting because parsing fails, Input comes back nil 
+and the for loop causes a crash. Colm does not handle bad programs 
+gracefully.
+
+If you compile the program using -D PARSE and then run it you'll gain 
+some insight into why parsing failed. Note that when compiling with -D 
+PARSE you also get lots of output concerning the parse of the colm 
+program.
+
+-Adrian
+
+On 2018-01-17 08:08, <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">peter.reijnders at verpeteren.nl</A> wrote:
+&gt;<i> Hello
+</I>&gt;<i> 
+</I>&gt;<i> I tried to pickup colm because I realy like its potential.
+</I>&gt;<i> Due to the lack of examples and documentation I am fiddeling along and
+</I>&gt;<i> I am currently stuck with a simple task.
+</I>&gt;<i> 
+</I>&gt;<i> I try to parse a simple list with bullets and get a segfault.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> A simple markdown file 'input.md':
+</I>&gt;<i> 
+</I>&gt;<i> ```
+</I>&gt;<i> * A list:
+</I>&gt;<i> * thing 1
+</I>&gt;<i> * thing 2:
+</I>&gt;<i> 	* thing 2a
+</I>&gt;<i> * thing 3
+</I>&gt;<i> 
+</I>&gt;<i> * Another list:
+</I>&gt;<i> * thang 1
+</I>&gt;<i> * thang 2:
+</I>&gt;<i> 	* thang 2a
+</I>&gt;<i> * thang 3
+</I>&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> A simple script 'bullets.lm':
+</I>&gt;<i> 
+</I>&gt;<i> ```colm
+</I>&gt;<i> #!/usr/bin/env colm
+</I>&gt;<i> 
+</I>&gt;<i> lex
+</I>&gt;<i> #ignore 			/space+/
+</I>&gt;<i> literal 			`* `: `\n `\t
+</I>&gt;<i> token ws	 		/ ' ' /
+</I>&gt;<i> token bullet		/ '*' /
+</I>&gt;<i> token colon 		/ ':' /
+</I>&gt;<i> token newline 		/ '\n' /
+</I>&gt;<i> token tab 			/ 't' /
+</I>&gt;<i> token indent 		/ tab* /
+</I>&gt;<i> token identifier	/[a-zA-Z_]+/
+</I>&gt;<i> end
+</I>&gt;<i> 
+</I>&gt;<i> def item
+</I>&gt;<i> [bullet ws+ identifier ws* newline]
+</I>&gt;<i> |	[bullet ws+ itemlist]
+</I>&gt;<i> 
+</I>&gt;<i> def itemlist
+</I>&gt;<i> [identifier ws* colon ws* newline itemlist]
+</I>&gt;<i> 
+</I>&gt;<i> def itemlists
+</I>&gt;<i> [itemlist newline+ itemlists]
+</I>&gt;<i> |	[itemlist]
+</I>&gt;<i> |	[]
+</I>&gt;<i> 
+</I>&gt;<i> parse Input: itemlists[ stdin ]
+</I>&gt;<i> 
+</I>&gt;<i> for Id: itemlist in Input {
+</I>&gt;<i> print( Id.identifier )
+</I>&gt;<i> }
+</I>&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> It compiles without problems, but crashes in the for loop.
+</I>&gt;<i> 
+</I>&gt;<i> ```bash
+</I>&gt;<i> $colm bullets.lm
+</I>&gt;<i> $gdb ./bullets
+</I>&gt;<i> ...
+</I>&gt;<i> (gdb) run &lt;input.md
+</I>&gt;<i> Starting program: /redacted/bullets &lt;input.md
+</I>&gt;<i> 
+</I>&gt;<i> Program received signal SIGSEGV, Segmentation fault.
+</I>&gt;<i> 0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+</I>&gt;<i> psp=0x7fffffffbdc8, iter=0x55555576c160, try_first=1)
+</I>&gt;<i>     at iter.c:363
+</I>&gt;<i> 363		if ( try_first &amp;&amp; ( iter-&gt;ref.kid-&gt;tree-&gt;id == iter-&gt;search_id ||
+</I>&gt;<i> any_tree ) ) {
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  0x00007ffff7bafdb3 in iter_find (prg=0x55555575c010,
+</I>&gt;<i> psp=0x7fffffffbdc8, iter=0x55555576c160,
+</I>&gt;<i>     try_first=1) at iter.c:363
+</I>&gt;<i> #1  0x00007ffff7bb0090 in tree_iter_advance (prg=0x55555575c010,
+</I>&gt;<i> psp=0x7fffffffbdc8, iter=0x55555576c160)
+</I>&gt;<i>     at iter.c:401
+</I>&gt;<i> #2  0x00007ffff7bbc0bb in colm_execute_code (prg=0x55555575c010,
+</I>&gt;<i> exec=0x7fffffffe080, sp=0x55555576c160,
+</I>&gt;<i>     instr=0x555555758736 &lt;parser_rootCode+54&gt; &quot;\270\r&quot;) at 
+</I>&gt;<i> bytecode.c:1998
+</I>&gt;<i> #3  0x00007ffff7bb1fbb in colm_execute (prg=0x55555575c010, 
+</I>&gt;<i> exec=0x7fffffffe080,
+</I>&gt;<i>     code=0x555555758700 &lt;parser_rootCode&gt; &quot;\378\b\001&quot;) at 
+</I>&gt;<i> bytecode.c:413
+</I>&gt;<i> #4  0x00007ffff7bcee18 in colm_run_program2 (prg=0x55555575c010,
+</I>&gt;<i> argc=1, argv=0x7fffffffe218, argl=0x0)
+</I>&gt;<i>     at program.c:218
+</I>&gt;<i> #5  0x00007ffff7bcee5f in colm_run_program (prg=0x55555575c010,
+</I>&gt;<i> argc=1, argv=0x7fffffffe218) at program.c:227
+</I>&gt;<i> #6  0x0000555555556d8c in main (argc=1, argv=0x7fffffffe218) at 
+</I>&gt;<i> bullets.c:799
+</I>&gt;<i> (gdb)
+</I>&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> What am I doing wrong?
+</I>&gt;<i> I am using a freshly cloned colm version '83e3cbcb25' and gcc version
+</I>&gt;<i> '(Debian 6.3.0-18) 6.3.0 20170516'.
+</I>&gt;<i> .
+</I>&gt;<i> I'd apreciate some tips.
+</I>&gt;<i> 
+</I>&gt;<i> Peter Reijnders
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> colm mailing list
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">colm at colm.net</A>
+</I>&gt;<i> <A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/colm">http://www.colm.net/cgi-bin/mailman/listinfo/colm</A>
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000177.html">[colm] segfault during iter on stdin [noob]
+</A></li>
+	<LI>Next message: <A HREF="000179.html">[colm] noob question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/colm-users">More information about the colm-users
+mailing list</a><br>
+</body></html>

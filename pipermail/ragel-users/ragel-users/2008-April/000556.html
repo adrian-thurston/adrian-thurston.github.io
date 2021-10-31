@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Error%3A%20need%20explicit%20cast%20to%20convert%20from%3A%20int%0A%20%28%2AC%20func%29%28int%20%29%20to%20%3A%20char%20const%20%2A&In-Reply-To=%3C47FCFC53.7080008%40cs.queensu.ca%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000555.html">
+   <LINK REL="Next"  HREF="000557.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Error: need explicit cast to convert from: int (*C func)(int ) to : char const *</H1>
+    <B>Adrian Thurston</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Error%3A%20need%20explicit%20cast%20to%20convert%20from%3A%20int%0A%20%28%2AC%20func%29%28int%20%29%20to%20%3A%20char%20const%20%2A&In-Reply-To=%3C47FCFC53.7080008%40cs.queensu.ca%3E"
+       TITLE="[ragel-users] Error: need explicit cast to convert from: int (*C func)(int ) to : char const *">thurs... at cs.queensu.ca
+       </A><BR>
+    <I>Wed Apr  9 17:26:43 UTC 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000555.html">Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+</A></li>
+        <LI>Next message: <A HREF="000557.html">[ragel-users] Re: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#556">[ date ]</a>
+              <a href="thread.html#556">[ thread ]</a>
+              <a href="subject.html#556">[ subject ]</a>
+              <a href="author.html#556">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Do you have
+
+using std::eof;
+
+or something similar in your program? The compiler seems to be resolving
+&quot;eof&quot; to something other than the char* that is needed in 6.X. You
+should just be able to add:
+
+const char *eof = 0;
+
+after the declaration of pe and make the error go away.
+
+-Adrian
+
+Bob Paddock wrote:
+&gt;<i>  
+</I>&gt;<i> I  assume I have something wrong in my Ragel source file,
+</I>&gt;<i> but no idea where to look from this error message.
+</I>&gt;<i> 
+</I>&gt;<i> Can anyone shed any light on what this error message means?:
+</I>&gt;<i> 
+</I>&gt;<i>  if ( p == eof )
+</I>&gt;<i>                ^
+</I>&gt;<i> BootLoaderStateChart.cpp(713) : Error: need explicit cast to convert
+</I>&gt;<i> from: int (*C func)(int ) to  : char const *
+</I>&gt;<i> --- errorlevel 1
+</I>&gt;<i> 1 error, 0 warnings
+</I>&gt;<i> 
+</I>&gt;<i> [p or eof are pointers to functions??  I did not declare eof, was not
+</I>&gt;<i> using it.]
+</I>&gt;<i> 
+</I>&gt;<i> If I leave out &quot;%% write exec;&quot; I don't get the error.
+</I>&gt;<i> 
+</I>&gt;<i> The line number of cpp(713) seems to be completely bogus.
+</I>&gt;<i> My Ragel file is not that long, and line 713 of .cpp
+</I>&gt;<i> isn't anywhere near the offending &quot;p == eof&quot;.
+</I>&gt;<i>  
+</I>&gt;<i> My Code:
+</I>&gt;<i> 
+</I>&gt;<i> int BootLoaderStateChart::Execute( const uint8_t *data )
+</I>&gt;<i> {
+</I>&gt;<i>   const char *p  = (const char *) data;
+</I>&gt;<i>   const char *pe = p+1;
+</I>&gt;<i> 
+</I>&gt;<i>   if( (cs == BootLoaderStateChart_error) ||
+</I>&gt;<i>       (cs == BootLoaderStateChart_first_final)
+</I>&gt;<i>     )
+</I>&gt;<i>     {
+</I>&gt;<i>       return -1; /* Error */
+</I>&gt;<i>     }
+</I>&gt;<i> 
+</I>&gt;<i>   %% write exec;
+</I>&gt;<i> 
+</I>&gt;<i>     if ( cs == BootLoaderStateChart_error )
+</I>&gt;<i>      {
+</I>&gt;<i>       return -1; /* Error */
+</I>&gt;<i>      }
+</I>&gt;<i> 
+</I>&gt;<i>     if( cs &gt;= BootLoaderStateChart_first_final )
+</I>&gt;<i>      {
+</I>&gt;<i>       return 1; /* Matched */
+</I>&gt;<i>      }
+</I>&gt;<i> 
+</I>&gt;<i>     return 0; /* No Match */
+</I>&gt;<i> }
+</I>&gt;<i>  
+</I>&gt;<i> Ragels Code:
+</I>&gt;<i> 
+</I>&gt;<i> #line 479 &quot;BootLoaderStateChart.rl&quot;
+</I>&gt;<i>  {EEPROMFileSize_u16 = 4096;}
+</I>&gt;<i>  break;
+</I>&gt;<i> #line 708 &quot;BootLoaderStateChart.cpp&quot;
+</I>&gt;<i>   }
+</I>&gt;<i>  }
+</I>&gt;<i> 
+</I>&gt;<i> _again:
+</I>&gt;<i>  if ( cs == 0 )
+</I>&gt;<i>   goto _out;
+</I>&gt;<i>  if ( ++p != pe )
+</I>&gt;<i>   goto _resume;
+</I>&gt;<i>  _test_eof: {}
+</I>&gt;<i>  if ( p == eof )
+</I>&gt;<i>  {
+</I>&gt;<i>  const char *__acts = _BootLoaderStateChart_actions +
+</I>&gt;<i> _BootLoaderStateChart_eof_actions[cs];
+</I>&gt;<i>  unsigned int __nacts = (unsigned int) *__acts++;
+</I>&gt;<i>  while ( __nacts-- &gt; 0 ) {
+</I>&gt;<i>   switch ( *__acts++ ) {
+</I>&gt;<i>  case 1:
+</I>&gt;<i> #line 193 &quot;BootLoaderStateChart.rl&quot;
+</I>&gt;<i>  {
+</I>&gt;<i>   }
+</I>&gt;<i>  break;
+</I>&gt;<i>  case 10:
+</I>&gt;<i> #line 363 &quot;BootLoaderStateChart.rl&quot;
+</I>&gt;<i>  {
+</I>&gt;<i>   }
+</I>&gt;<i>  break;
+</I>&gt;<i> 
+</I>&gt;<i>  
+</I>&gt;<i> 
+</I>&gt;<i> Digital Mars Compiler command when building the above:
+</I>&gt;<i> dmc.exe -c -oDMCDebug\BootLoaderStateChart.obj -D__WXMSW__
+</I>&gt;<i> -D__WXDEBUG__ -g -o+none -mn -Ar -Ae -HP299 -w-
+</I>&gt;<i> -I&quot;G:\wx287/include&quot; -I&quot;G:\wx287/contrib/include&quot;
+</I>&gt;<i> -I&quot;G:\wx287/lib/dmc_lib/mswd&quot; -I&quot; \DM\STLPORT\STLPORT&quot;
+</I>&gt;<i> BootLoaderStateChart.cpp
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> &gt; 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000555.html">Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+</A></li>
+	<LI>Next message: <A HREF="000557.html">[ragel-users] Re: Error: need explicit cast to convert from: int (*C func)(int ) to : char const *
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#556">[ date ]</a>
+              <a href="thread.html#556">[ thread ]</a>
+              <a href="subject.html#556">[ subject ]</a>
+              <a href="author.html#556">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

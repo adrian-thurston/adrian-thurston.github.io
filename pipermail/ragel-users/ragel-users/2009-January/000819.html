@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] ragel hex codes on x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20ragel%20hex%20codes%20on%20x86_64&In-Reply-To=%3C20090116190322.GK67343%40orleans.hobix.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000818.html">
+   <LINK REL="Next"  HREF="000820.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] ragel hex codes on x86_64</H1>
+    <B>_why</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20ragel%20hex%20codes%20on%20x86_64&In-Reply-To=%3C20090116190322.GK67343%40orleans.hobix.com%3E"
+       TITLE="[ragel-users] ragel hex codes on x86_64">why at whytheluckystiff.net
+       </A><BR>
+    <I>Fri Jan 16 19:03:22 UTC 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000818.html">[ragel-users] interpreting ragel visualization
+</A></li>
+        <LI>Next message: <A HREF="000820.html">[ragel-users] ragel hex codes on x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#819">[ date ]</a>
+              <a href="thread.html#819">[ thread ]</a>
+              <a href="subject.html#819">[ subject ]</a>
+              <a href="author.html#819">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello, Adrian and fellow accomplices.
+
+I've been doing some UTF-8 scanning with Ragel, using hex codes (as
+previously recommended on this list.) This works fine if I compile
+the state machine on 32-bit architecture. I can then build on either
+32-bit or 64-bit without trouble.
+
+However, on x86_64 (Ubuntu 8.10,) multi-byte UTF-8 characters aren't
+accepted by my expression. Again, this isn't too alarming since I'm
+able to produce a working machine by generating everything using the
+32-bit executable, but I figured you'd want to hear about this.
+
+I'm attaching a simple test case. If you want to see the full thing
+in context: &lt;<A HREF="http://github.com/why/potion">http://github.com/why/potion</A>&gt;.
+
+With fond feelings in the extreme,
+
+_why
+-------------- next part --------------
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+%%{
+  machine utf8;
+  utf8        = 0x09 | 0x0a | 0x0d | (0x20..0x7e) |
+                (0xc2..0xdf) (0x80..0xbf) |
+                (0xe0..0xef 0x80..0xbf 0x80..0xbf) |
+                (0xf0..0xf4 0x80..0xbf 0x80..0xbf 0x80..0xbf);
+
+  main := |*
+    utf8 =&gt; { printf(&quot;TOKEN: %.*s\n&quot;, (int)(te - ts), ts); };
+  *|;
+
+  write data nofinal;
+}%%
+
+int main()
+{
+  int cs, act;
+  char str[] = &quot;naïve&quot;;
+  char *p = str, *pe = str + strlen(str);
+  char *ts, *te, *eof = 0;
+
+  %% write init;
+  %% write exec;
+
+  return 0;
+}
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000818.html">[ragel-users] interpreting ragel visualization
+</A></li>
+	<LI>Next message: <A HREF="000820.html">[ragel-users] ragel hex codes on x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#819">[ date ]</a>
+              <a href="thread.html#819">[ thread ]</a>
+              <a href="subject.html#819">[ subject ]</a>
+              <a href="author.html#819">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,784 @@
+From thurston at complang.org  Sun May  9 16:13:04 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 09 May 2010 12:13:04 -0400
+Subject: [ragel-users] Breaking out of a scanner
+In-Reply-To: <53e14d891003081555j2aa755aq8c2713029824c88b@mail.gmail.com>
+References: <53e14d891002171346j695ec33uab37fb7595bfde74@mail.gmail.com>
+	<4B819242.1030200@complang.org>	<53e14d891002211348ieb4a578ye38a3583cda75aff@mail.gmail.com>
+	<4B81B139.7030905@complang.org>	<53e14d891002221617p486dbc1dyab740ca9a7c76c44@mail.gmail.com>
+	<4B83E50C.6050106@esentire.com>	<53e14d891002231226w65f257f7u89194e3ee3efa12b@mail.gmail.com>
+	<4B8694E9.2060505@esentire.com>
+	<53e14d891003081555j2aa755aq8c2713029824c88b@mail.gmail.com>
+Message-ID: <4BE6DF10.4080105@complang.org>
+
+
+
+Matthieu Tourne wrote:
+> But I run into other problems, for example if a tag is split across two 
+> different buffers, it won't be correctly identified.
+> For instance if </body> is across two buffers, it'll go into tag_start 
+> on the '<', but when the next buffer comes in it will try to match 'dy>' 
+> as an email.
+
+Sorry for the delay!
+
+So this is something that you have to sort out yourself in Ragel. The 
+reasoning is that there are many different ways to deal with tokens when 
+they can cross buffer boundaries and rather than commit to a particular 
+one, ragel lets you choose. This approach lets Ragel be useful in a 
+restricted environments. Please see section 6.3 in the manual for more 
+info on the problem.
+
+Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Sun May  9 20:43:02 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Sun, 9 May 2010 21:43:02 +0100
+Subject: [ragel-users] Problem generating code.
+Message-ID: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+
+Hi,
+
+I'm trying to create RFC2822 parer but I'm having problem generating the code for some reason ragel keep running until I press CTRL C "was running for 20 minutes", below
+the grammar I'm trying to use.
+
+
+%%{
+	machine rfc2822_header;
+	
+	# Common ABNF rules
+	cr				= "\r";
+	lf				= "\n";
+	crlf				= cr lf;
+	sp  				= " ";
+	tab 				= "\t";
+	wsp				= (sp | tab);
+	obs_fws     		= wsp+ ( crlf wsp+ )*;
+	fws         			= ( ( wsp* crlf )? wsp+ ) | obs_fws;
+	NO_WS_CTL 	= 0x01..0x08 | "\v" | "\f" | 0x0e..0x1f | 0x7f;
+	
+	# Rules to consume comments
+	consumeAny       = any - (")" | ")") | "(" @{fcall consumeComments;};
+	consumeComments := consumeAny+ ")" $!{fhold; fret; };			
+	startComment     = "(" @{fcall consumeComments;};
+	CFWS             = ( fws? startComment )* ( ( fws? startComment ) | fws ); 
+
+	ctext 			= NO_WS_CTL | 0x21..0x27 | 0x2a..0x5b;
+	obs_char 		= 0x00..0x09 | "\v" | "\f" | 0x0e..0x7f;
+	obs_text 		= "\n"* "\r"* ( obs_char "\n"* "\r"* )*;
+	text 				= 0x01..0x09 | "\v" | "\f" | 0x0e..0x7f | obs_text;
+	obs_qp 			= "\\" 0x00..0x7f;
+	quoted_pair 		= ( "\\" text ) | obs_qp;
+	dtext 			= NO_WS_CTL | 0x21..0x5a;
+	dcontent 		= dtext | quoted_pair;
+	
+	atext 			= alpha | digit | "!" | "#" | "$" | "%" | "&" | "'" | "*" | "+" | "-" | "/" | "=" | "?" | "^" | "_" | "`" | "{" | "|" | "}" | "~";
+	dot_atom_text 	= atext+ ( "." atext+ )*;
+	dot_atom 		= CFWS? dot_atom_text CFWS?;
+	qtext 			= NO_WS_CTL | "!" | 0x23..0x5b | 0x5d..0x7e;
+	qcontent 		= qtext | quoted_pair;
+	quoted_string 	= CFWS? "\"" ( fws? qcontent )* fws? "\"" CFWS?;
+	atom 			= CFWS? atext+ CFWS?;
+	word 			= atom | quoted_string;
+	
+	# Return-Path field.
+	domain_literal 	= CFWS? "[" ( fws? dcontent )* fws? "]" CFWS?;
+	obs_domain 		= atom ( "." atom )*;
+	domain 			= dot_atom | domain_literal | obs_domain;
+	obs_domain_list = "@" domain ( ( CFWS | "," )* CFWS? "@" domain )*;
+	obs_route 		= CFWS? obs_domain_list ":" CFWS?;
+	obs_local_part 	= word ( "." word )*;
+	local_part 		= dot_atom | quoted_string | obs_local_part;
+	addr_spec 		= local_part "@" domain;
+	obs_angle_addr 	= CFWS? "<" obs_route? addr_spec ">" CFWS?;
+	obs_path 		= obs_angle_addr;
+	path 	   		= ( CFWS? "<" ( CFWS? | addr_spec ) ">" CFWS? ) | obs_path;
+	obs_return 		= "Return-Path" wsp* ":" path crlf;
+	
+	obs_fields	 = obs_return;
+	main  		:= obs_fields;
+}%%
+
+Thanks
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brianp at brianp.net  Sun May  9 21:13:18 2010
+From: brianp at brianp.net (Brian Pane)
+Date: Sun, 9 May 2010 14:13:18 -0700
+Subject: [ragel-users] Problem generating code.
+In-Reply-To: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+References: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+Message-ID: <s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+
+On Sun, May 9, 2010 at 1:43 PM, Husam Senussi <husam at senussi.com> wrote:
+
+> I'm trying to create RFC2822 parer but I'm having problem generating the code for
+> some reason ragel keep running until I press CTRL C "was running for 20 minutes",
+> below the grammar I'm trying to use.
+
+Whenever I've encountered very long Ragel processing times with my own
+grammars, the reason usually has been nondeterminism. For example, with
+a grammar like this:
+
+word = space* alpha+ space*;
+number = space* digit+ space*;
+main = ( space+ | word | number )*;
+
+there is an ambiguity: if the first input character is a space, it might
+be the start of the "space*" option in main, but it might also be the
+start of the "word" option in main or the start of the "number" option
+in main, since those can start with a space also.
+
+Internally, Ragel has to build a state graph that models those
+nondeterministic states.  The more ambiguity there is in the
+grammar, the bigger this graph becomes, and the longer it
+takes for Ragel to run.  With my own grammars, I've found
+that the run time of Ragel and the subsequent C compilation
+is a good estimator of how nondeterministic my grammar is.
+
+I've found that it helps, when using the "|" operator, to make
+the different options start with distinct prefix strings.  In
+the case of my example grammar above, a less ambiguous
+alternative would be:
+
+word: alpha+;
+number: digit+;
+main := ( space+ | word | number )+;
+
+For more complicated languages, another good pattern I've
+learned from other people's grammars is to put optional space
+at the end of each rule and never at the start.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Mon May 10 17:23:49 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Mon, 10 May 2010 18:23:49 +0100
+Subject: [ragel-users] Problem generating code.
+In-Reply-To: <s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+References: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+	<s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+Message-ID: <8C2BDADE-3DDF-4863-B7C6-09255B155BB2@senussi.com>
+
+Thanks for the pointer Brian for the pointer looking  again at the RFC2822 grammar looks like there is ambiguity,
+I will need to see if I can fix it and keeping the parser complaint with the spec
+
+On 9 May 2010, at 22:13, Brian Pane wrote:
+
+> On Sun, May 9, 2010 at 1:43 PM, Husam Senussi <husam at senussi.com> wrote:
+> 
+>> I'm trying to create RFC2822 parer but I'm having problem generating the code for
+>> some reason ragel keep running until I press CTRL C "was running for 20 minutes",
+>> below the grammar I'm trying to use.
+> 
+> Whenever I've encountered very long Ragel processing times with my own
+> grammars, the reason usually has been nondeterminism. For example, with
+> a grammar like this:
+> 
+> word = space* alpha+ space*;
+> number = space* digit+ space*;
+> main = ( space+ | word | number )*;
+> 
+> there is an ambiguity: if the first input character is a space, it might
+> be the start of the "space*" option in main, but it might also be the
+> start of the "word" option in main or the start of the "number" option
+> in main, since those can start with a space also.
+> 
+> Internally, Ragel has to build a state graph that models those
+> nondeterministic states.  The more ambiguity there is in the
+> grammar, the bigger this graph becomes, and the longer it
+> takes for Ragel to run.  With my own grammars, I've found
+> that the run time of Ragel and the subsequent C compilation
+> is a good estimator of how nondeterministic my grammar is.
+> 
+> I've found that it helps, when using the "|" operator, to make
+> the different options start with distinct prefix strings.  In
+> the case of my example grammar above, a less ambiguous
+> alternative would be:
+> 
+> word: alpha+;
+> number: digit+;
+> main := ( space+ | word | number )+;
+> 
+> For more complicated languages, another good pattern I've
+> learned from other people's grammars is to put optional space
+> at the end of each rule and never at the start.
+> 
+> -Brian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Tue May 25 21:49:21 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Tue, 25 May 2010 22:49:21 +0100
+Subject: [ragel-users] Solving ambiguity
+Message-ID: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+
+Hi,
+
+I'm trying to use ragel to write parser for RFC2822 but I found some ambiguity in the grammar  so just want to see if
+is solve it using priories.
+
+Below is sample I found in the grammar with ambiguity
+
+wsp           = [ \t];
+fws             = ( ( wsp* crlf )? wsp+ ) 
+field		   = (fws? alpha+ fws?);
+host		   = (field ('.' field)*) >mark %print;
+main        := host (fws host)*;
+
+The problem I found with input like this "a.mydomain.com  b.mydomain.com" end up calling print 3 times
+
+1. "a.mydomain.com"
+2. "a.mydomain.com "
+3. "b.mydomain.com"
+
+where I was expecting:
+
+2. "a.mydomain.com "
+3. "b.mydomain.com"
+
+
+I'm assuming the problem is having fws? in end of field and one in main between host, so is there
+anyway  solve this without breaking the grammar.
+
+
+Sorry if this sounds  like basic question I just started using Ragel.
+
+Thanks  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Tue May 25 22:06:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 25 May 2010 18:06:38 -0400
+Subject: [ragel-users] Solving ambiguity
+In-Reply-To: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+References: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+Message-ID: <4BFC49EE.80806@esentire.com>
+
+It's because of the fws in between hosts and the fws? inside field. You 
+could lower the priority of the inner one and raise the priority of the 
+outer one to resolve the ambiguity.
+
+     wsp            = [ \t];
+     fws            = ( ( wsp* crlf )? wsp+ ) ;
+
+     opt_fws        = ( fws? )$(fws,0);
+     sep_fws        = ( fws )$(fws,1);
+
+     field          = (opt_fws alpha+ opt_fws);
+     host           = (field ('.' field)*) >mark %print;
+     main          := host (sep_fws host)*;
+
+-Adrian
+
+Husam Senussi wrote:
+> Hi,
+> 
+> I'm trying to use ragel to write parser for RFC2822 but I found some ambiguity in the grammar  so just want to see if
+> is solve it using priories.
+> 
+> Below is sample I found in the grammar with ambiguity
+> 
+> wsp           = [ \t];
+> fws             = ( ( wsp* crlf )? wsp+ ) 
+> field		   = (fws? alpha+ fws?);
+> host		   = (field ('.' field)*) >mark %print;
+> main        := host (fws host)*;
+> 
+> The problem I found with input like this "a.mydomain.com  b.mydomain.com" end up calling print 3 times
+> 
+> 1. "a.mydomain.com"
+> 2. "a.mydomain.com "
+> 3. "b.mydomain.com"
+> 
+> where I was expecting:
+> 
+> 2. "a.mydomain.com "
+> 3. "b.mydomain.com"
+> 
+> 
+> I'm assuming the problem is having fws? in end of field and one in main between host, so is there
+> anyway  solve this without breaking the grammar.
+> 
+> 
+> Sorry if this sounds  like basic question I just started using Ragel.
+> 
+> Thanks  
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Wed May 26 01:59:56 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Wed, 26 May 2010 02:59:56 +0100
+Subject: [ragel-users] Solving ambiguity
+In-Reply-To: <4BFC49EE.80806@esentire.com>
+References: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+	<4BFC49EE.80806@esentire.com>
+Message-ID: <A710FE77-591C-4A04-85A1-458753AF7412@senussi.com>
+
+Hi,
+
+Thanks fot the response it seems now the grammar having problem matching "a.mydomain.com  b.mydomain.com " where I would expect
+
+1. "a.mydomain.com"
+2. "b.mydomain.com "
+
+instead I'm getting
+
+1. "a.mydomain.com"
+2. "b.mydomain.com"
+
+and the parser not reaching the end for example if having "(host (sep_fws host)*) %{printf("Done\n");};" in the grammar
+I would expect to see "Done" but with the above example I don't see it until I remove the space at the end.
+
+
+Thanks.
+
+On 25 May 2010, at 23:06, Adrian Thurston wrote:
+
+> opt_fws        = ( fws? )$(fws,0);
+>    sep_fws        = ( fws )$(fws,1);
+> 
+>    field          = (opt_fws alpha+ opt_fws);
+>    host           = (field ('.' field)*) >mark %print;
+>    main          := host (sep_fws host)*;
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From thurston at complang.org  Sun May  9 16:13:04 2010
+From: thurston at complang.org (Adrian Thurston)
+Date: Sun, 09 May 2010 12:13:04 -0400
+Subject: [ragel-users] Breaking out of a scanner
+In-Reply-To: <53e14d891003081555j2aa755aq8c2713029824c88b@mail.gmail.com>
+References: <53e14d891002171346j695ec33uab37fb7595bfde74@mail.gmail.com>
+	<4B819242.1030200@complang.org>	<53e14d891002211348ieb4a578ye38a3583cda75aff@mail.gmail.com>
+	<4B81B139.7030905@complang.org>	<53e14d891002221617p486dbc1dyab740ca9a7c76c44@mail.gmail.com>
+	<4B83E50C.6050106@esentire.com>	<53e14d891002231226w65f257f7u89194e3ee3efa12b@mail.gmail.com>
+	<4B8694E9.2060505@esentire.com>
+	<53e14d891003081555j2aa755aq8c2713029824c88b@mail.gmail.com>
+Message-ID: <4BE6DF10.4080105@complang.org>
+
+
+
+Matthieu Tourne wrote:
+> But I run into other problems, for example if a tag is split across two 
+> different buffers, it won't be correctly identified.
+> For instance if </body> is across two buffers, it'll go into tag_start 
+> on the '<', but when the next buffer comes in it will try to match 'dy>' 
+> as an email.
+
+Sorry for the delay!
+
+So this is something that you have to sort out yourself in Ragel. The 
+reasoning is that there are many different ways to deal with tokens when 
+they can cross buffer boundaries and rather than commit to a particular 
+one, ragel lets you choose. This approach lets Ragel be useful in a 
+restricted environments. Please see section 6.3 in the manual for more 
+info on the problem.
+
+Adrian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Sun May  9 20:43:02 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Sun, 9 May 2010 21:43:02 +0100
+Subject: [ragel-users] Problem generating code.
+Message-ID: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+
+Hi,
+
+I'm trying to create RFC2822 parer but I'm having problem generating the code for some reason ragel keep running until I press CTRL C "was running for 20 minutes", below
+the grammar I'm trying to use.
+
+
+%%{
+	machine rfc2822_header;
+	
+	# Common ABNF rules
+	cr				= "\r";
+	lf				= "\n";
+	crlf				= cr lf;
+	sp  				= " ";
+	tab 				= "\t";
+	wsp				= (sp | tab);
+	obs_fws     		= wsp+ ( crlf wsp+ )*;
+	fws         			= ( ( wsp* crlf )? wsp+ ) | obs_fws;
+	NO_WS_CTL 	= 0x01..0x08 | "\v" | "\f" | 0x0e..0x1f | 0x7f;
+	
+	# Rules to consume comments
+	consumeAny       = any - (")" | ")") | "(" @{fcall consumeComments;};
+	consumeComments := consumeAny+ ")" $!{fhold; fret; };			
+	startComment     = "(" @{fcall consumeComments;};
+	CFWS             = ( fws? startComment )* ( ( fws? startComment ) | fws ); 
+
+	ctext 			= NO_WS_CTL | 0x21..0x27 | 0x2a..0x5b;
+	obs_char 		= 0x00..0x09 | "\v" | "\f" | 0x0e..0x7f;
+	obs_text 		= "\n"* "\r"* ( obs_char "\n"* "\r"* )*;
+	text 				= 0x01..0x09 | "\v" | "\f" | 0x0e..0x7f | obs_text;
+	obs_qp 			= "\\" 0x00..0x7f;
+	quoted_pair 		= ( "\\" text ) | obs_qp;
+	dtext 			= NO_WS_CTL | 0x21..0x5a;
+	dcontent 		= dtext | quoted_pair;
+	
+	atext 			= alpha | digit | "!" | "#" | "$" | "%" | "&" | "'" | "*" | "+" | "-" | "/" | "=" | "?" | "^" | "_" | "`" | "{" | "|" | "}" | "~";
+	dot_atom_text 	= atext+ ( "." atext+ )*;
+	dot_atom 		= CFWS? dot_atom_text CFWS?;
+	qtext 			= NO_WS_CTL | "!" | 0x23..0x5b | 0x5d..0x7e;
+	qcontent 		= qtext | quoted_pair;
+	quoted_string 	= CFWS? "\"" ( fws? qcontent )* fws? "\"" CFWS?;
+	atom 			= CFWS? atext+ CFWS?;
+	word 			= atom | quoted_string;
+	
+	# Return-Path field.
+	domain_literal 	= CFWS? "[" ( fws? dcontent )* fws? "]" CFWS?;
+	obs_domain 		= atom ( "." atom )*;
+	domain 			= dot_atom | domain_literal | obs_domain;
+	obs_domain_list = "@" domain ( ( CFWS | "," )* CFWS? "@" domain )*;
+	obs_route 		= CFWS? obs_domain_list ":" CFWS?;
+	obs_local_part 	= word ( "." word )*;
+	local_part 		= dot_atom | quoted_string | obs_local_part;
+	addr_spec 		= local_part "@" domain;
+	obs_angle_addr 	= CFWS? "<" obs_route? addr_spec ">" CFWS?;
+	obs_path 		= obs_angle_addr;
+	path 	   		= ( CFWS? "<" ( CFWS? | addr_spec ) ">" CFWS? ) | obs_path;
+	obs_return 		= "Return-Path" wsp* ":" path crlf;
+	
+	obs_fields	 = obs_return;
+	main  		:= obs_fields;
+}%%
+
+Thanks
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From brianp at brianp.net  Sun May  9 21:13:18 2010
+From: brianp at brianp.net (Brian Pane)
+Date: Sun, 9 May 2010 14:13:18 -0700
+Subject: [ragel-users] Problem generating code.
+In-Reply-To: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+References: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+Message-ID: <s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+
+On Sun, May 9, 2010 at 1:43 PM, Husam Senussi <husam at senussi.com> wrote:
+
+> I'm trying to create RFC2822 parer but I'm having problem generating the code for
+> some reason ragel keep running until I press CTRL C "was running for 20 minutes",
+> below the grammar I'm trying to use.
+
+Whenever I've encountered very long Ragel processing times with my own
+grammars, the reason usually has been nondeterminism. For example, with
+a grammar like this:
+
+word = space* alpha+ space*;
+number = space* digit+ space*;
+main = ( space+ | word | number )*;
+
+there is an ambiguity: if the first input character is a space, it might
+be the start of the "space*" option in main, but it might also be the
+start of the "word" option in main or the start of the "number" option
+in main, since those can start with a space also.
+
+Internally, Ragel has to build a state graph that models those
+nondeterministic states.  The more ambiguity there is in the
+grammar, the bigger this graph becomes, and the longer it
+takes for Ragel to run.  With my own grammars, I've found
+that the run time of Ragel and the subsequent C compilation
+is a good estimator of how nondeterministic my grammar is.
+
+I've found that it helps, when using the "|" operator, to make
+the different options start with distinct prefix strings.  In
+the case of my example grammar above, a less ambiguous
+alternative would be:
+
+word: alpha+;
+number: digit+;
+main := ( space+ | word | number )+;
+
+For more complicated languages, another good pattern I've
+learned from other people's grammars is to put optional space
+at the end of each rule and never at the start.
+
+-Brian
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Mon May 10 17:23:49 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Mon, 10 May 2010 18:23:49 +0100
+Subject: [ragel-users] Problem generating code.
+In-Reply-To: <s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+References: <0443D29E-9840-4917-A04A-C37C3CEAF842@senussi.com>
+	<s2z64dcd4df1005091413w64b668e4s8bff251adffc24c3@mail.gmail.com>
+Message-ID: <8C2BDADE-3DDF-4863-B7C6-09255B155BB2@senussi.com>
+
+Thanks for the pointer Brian for the pointer looking  again at the RFC2822 grammar looks like there is ambiguity,
+I will need to see if I can fix it and keeping the parser complaint with the spec
+
+On 9 May 2010, at 22:13, Brian Pane wrote:
+
+> On Sun, May 9, 2010 at 1:43 PM, Husam Senussi <husam at senussi.com> wrote:
+> 
+>> I'm trying to create RFC2822 parer but I'm having problem generating the code for
+>> some reason ragel keep running until I press CTRL C "was running for 20 minutes",
+>> below the grammar I'm trying to use.
+> 
+> Whenever I've encountered very long Ragel processing times with my own
+> grammars, the reason usually has been nondeterminism. For example, with
+> a grammar like this:
+> 
+> word = space* alpha+ space*;
+> number = space* digit+ space*;
+> main = ( space+ | word | number )*;
+> 
+> there is an ambiguity: if the first input character is a space, it might
+> be the start of the "space*" option in main, but it might also be the
+> start of the "word" option in main or the start of the "number" option
+> in main, since those can start with a space also.
+> 
+> Internally, Ragel has to build a state graph that models those
+> nondeterministic states.  The more ambiguity there is in the
+> grammar, the bigger this graph becomes, and the longer it
+> takes for Ragel to run.  With my own grammars, I've found
+> that the run time of Ragel and the subsequent C compilation
+> is a good estimator of how nondeterministic my grammar is.
+> 
+> I've found that it helps, when using the "|" operator, to make
+> the different options start with distinct prefix strings.  In
+> the case of my example grammar above, a less ambiguous
+> alternative would be:
+> 
+> word: alpha+;
+> number: digit+;
+> main := ( space+ | word | number )+;
+> 
+> For more complicated languages, another good pattern I've
+> learned from other people's grammars is to put optional space
+> at the end of each rule and never at the start.
+> 
+> -Brian
+> 
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Tue May 25 21:49:21 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Tue, 25 May 2010 22:49:21 +0100
+Subject: [ragel-users] Solving ambiguity
+Message-ID: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+
+Hi,
+
+I'm trying to use ragel to write parser for RFC2822 but I found some ambiguity in the grammar  so just want to see if
+is solve it using priories.
+
+Below is sample I found in the grammar with ambiguity
+
+wsp           = [ \t];
+fws             = ( ( wsp* crlf )? wsp+ ) 
+field		   = (fws? alpha+ fws?);
+host		   = (field ('.' field)*) >mark %print;
+main        := host (fws host)*;
+
+The problem I found with input like this "a.mydomain.com  b.mydomain.com" end up calling print 3 times
+
+1. "a.mydomain.com"
+2. "a.mydomain.com "
+3. "b.mydomain.com"
+
+where I was expecting:
+
+2. "a.mydomain.com "
+3. "b.mydomain.com"
+
+
+I'm assuming the problem is having fws? in end of field and one in main between host, so is there
+anyway  solve this without breaking the grammar.
+
+
+Sorry if this sounds  like basic question I just started using Ragel.
+
+Thanks  
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From adrian.thurston at esentire.com  Tue May 25 22:06:38 2010
+From: adrian.thurston at esentire.com (Adrian Thurston)
+Date: Tue, 25 May 2010 18:06:38 -0400
+Subject: [ragel-users] Solving ambiguity
+In-Reply-To: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+References: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+Message-ID: <4BFC49EE.80806@esentire.com>
+
+It's because of the fws in between hosts and the fws? inside field. You 
+could lower the priority of the inner one and raise the priority of the 
+outer one to resolve the ambiguity.
+
+     wsp            = [ \t];
+     fws            = ( ( wsp* crlf )? wsp+ ) ;
+
+     opt_fws        = ( fws? )$(fws,0);
+     sep_fws        = ( fws )$(fws,1);
+
+     field          = (opt_fws alpha+ opt_fws);
+     host           = (field ('.' field)*) >mark %print;
+     main          := host (sep_fws host)*;
+
+-Adrian
+
+Husam Senussi wrote:
+> Hi,
+> 
+> I'm trying to use ragel to write parser for RFC2822 but I found some ambiguity in the grammar  so just want to see if
+> is solve it using priories.
+> 
+> Below is sample I found in the grammar with ambiguity
+> 
+> wsp           = [ \t];
+> fws             = ( ( wsp* crlf )? wsp+ ) 
+> field		   = (fws? alpha+ fws?);
+> host		   = (field ('.' field)*) >mark %print;
+> main        := host (fws host)*;
+> 
+> The problem I found with input like this "a.mydomain.com  b.mydomain.com" end up calling print 3 times
+> 
+> 1. "a.mydomain.com"
+> 2. "a.mydomain.com "
+> 3. "b.mydomain.com"
+> 
+> where I was expecting:
+> 
+> 2. "a.mydomain.com "
+> 3. "b.mydomain.com"
+> 
+> 
+> I'm assuming the problem is having fws? in end of field and one in main between host, so is there
+> anyway  solve this without breaking the grammar.
+> 
+> 
+> Sorry if this sounds  like basic question I just started using Ragel.
+> 
+> Thanks  
+> _______________________________________________
+> ragel-users mailing list
+> ragel-users at complang.org
+> http://www.complang.org/mailman/listinfo/ragel-users
+> 
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+
+From husam at senussi.com  Wed May 26 01:59:56 2010
+From: husam at senussi.com (Husam Senussi)
+Date: Wed, 26 May 2010 02:59:56 +0100
+Subject: [ragel-users] Solving ambiguity
+In-Reply-To: <4BFC49EE.80806@esentire.com>
+References: <4B18ED80-203A-4DE4-84F4-758EFE577B14@senussi.com>
+	<4BFC49EE.80806@esentire.com>
+Message-ID: <A710FE77-591C-4A04-85A1-458753AF7412@senussi.com>
+
+Hi,
+
+Thanks fot the response it seems now the grammar having problem matching "a.mydomain.com  b.mydomain.com " where I would expect
+
+1. "a.mydomain.com"
+2. "b.mydomain.com "
+
+instead I'm getting
+
+1. "a.mydomain.com"
+2. "b.mydomain.com"
+
+and the parser not reaching the end for example if having "(host (sep_fws host)*) %{printf("Done\n");};" in the grammar
+I would expect to see "Done" but with the above example I don't see it until I remove the space at the end.
+
+
+Thanks.
+
+On 25 May 2010, at 23:06, Adrian Thurston wrote:
+
+> opt_fws        = ( fws? )$(fws,0);
+>    sep_fws        = ( fws )$(fws,1);
+> 
+>    field          = (opt_fws alpha+ opt_fws);
+>    host           = (field ('.' field)*) >mark %print;
+>    main          := host (sep_fws host)*;
+
+
+_______________________________________________
+ragel-users mailing list
+ragel-users at complang.org
+http://www.complang.org/mailman/listinfo/ragel-users
+
+

@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] getNextToken() : how to return ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20getNextToken%28%29%20%3A%20how%20to%20return%20%3F&In-Reply-To=%3Cop.v7mh8zb3ah38gt%40osangar.int.intellitree.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="003241.html">
+   <LINK REL="Next"  HREF="003243.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] getNextToken() : how to return ?</H1>
+    <B>M Conrad</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20getNextToken%28%29%20%3A%20how%20to%20return%20%3F&In-Reply-To=%3Cop.v7mh8zb3ah38gt%40osangar.int.intellitree.com%3E"
+       TITLE="[ragel-users] getNextToken() : how to return ?">silverdirk-rgl at silverdirk.com
+       </A><BR>
+    <I>Thu Jan  5 18:13:37 UTC 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="003241.html">[ragel-users] getNextToken() : how to return ?
+</A></li>
+        <LI>Next message: <A HREF="003243.html">[ragel-users] Failed to convert URL parser regular expression to	Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3242">[ date ]</a>
+              <a href="thread.html#3242">[ thread ]</a>
+              <a href="subject.html#3242">[ subject ]</a>
+              <a href="author.html#3242">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> On 5 January 2012 16:20, Maël Nison &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">nison.mael at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i> I would like to write a very basic function taking a c++ char const *
+</I>&gt;&gt;<i> &amp;, and returning the first token type.
+</I>&gt;&gt;<i> The reference would imply that the cstring pointer's target is, after
+</I>&gt;&gt;<i> the function call, the very next character of the returned token.
+</I>...
+&gt;&gt;<i> I've tried to use something like that (example, probably does not
+</I>&gt;&gt;<i> compile),  but the value of 'p' is not modified when returning
+</I>&gt;&gt;<i> (infinite loop) :
+</I>
+&quot;p&quot; works exactly like you expect it should.  i.e. it is always
+pointing to the next character that will be consumed by the state
+machine.  If &quot;p&quot; didn't get modified, it means the state machine
+didn't consume any characters.
+
+&gt;<i> It seems to work if I manually set p = te; just before returning, but I
+</I>&gt;<i> don't really know if it's a good practice.
+</I>
+The only reason to modify &quot;p&quot; is if you intend to skip characters.
+
+&gt;&gt;<i>   %%{
+</I>&gt;&gt;<i>     foo = &quot;foo&quot;;
+</I>&gt;&gt;<i>     main := |* foo =&gt; { return Foo; }; *|;
+</I>&gt;&gt;<i>   }%%;
+</I>
+I've never tried &quot;return&quot; from inside the action code... that is
+likely your problem.  Try &quot;tok= Foo; fbreak;&quot; (and define a local
+var named &quot;tok&quot;)
+
+Also, since &quot;p&quot; is used quite often in the generated code, you
+might consider the following, so that the compiler can optimize
+it into a register:
+
+     int getNextToken( const char **pos ) {
+       int tok= -1;
+       const char* p= *pos;
+       ...
+       ...
+       ...
+       *pos= p;
+       return tok;
+     }
+
+Whether to use references or pointers is a style preference, but
+with a pointer you make it clear to the caller that they need to
+pass an lvalue.
+
+Also, since you're doing this in C++, you might consider wrapping
+it all in a class and using fields instead of a parameter.
+
+-Mike
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="003241.html">[ragel-users] getNextToken() : how to return ?
+</A></li>
+	<LI>Next message: <A HREF="003243.html">[ragel-users] Failed to convert URL parser regular expression to	Ragel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3242">[ date ]</a>
+              <a href="thread.html#3242">[ thread ]</a>
+              <a href="subject.html#3242">[ subject ]</a>
+              <a href="author.html#3242">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>

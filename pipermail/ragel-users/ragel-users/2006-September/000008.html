@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Minimisation question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="000007.html">
+   <LINK REL="Next"  HREF="000009.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Minimisation question</H1>
+    <B>Colin Fleming</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20Minimisation%20question&In-Reply-To=%3C2d4d6bd0609141249m33e99b0cn709ff5d4bdde3b5e%40mail.gmail.com%3E"
+       TITLE="Minimisation question">colin.flem... at coreproc.com
+       </A><BR>
+    <I>Thu Sep 14 19:49:59 UTC 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000007.html">Minimisation question
+</A></li>
+        <LI>Next message: <A HREF="000009.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#8">[ date ]</a>
+              <a href="thread.html#8">[ thread ]</a>
+              <a href="subject.html#8">[ subject ]</a>
+              <a href="author.html#8">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Great, thanks! The patch works well for the grammar I sent:
+
+time ragel asciixml.rl -s -M doctypedecl | rlcodegen -V &gt; test.dot
+fsm name  : AsciiXml
+num states: 269
+
+real    0m0.087s
+user    0m0.079s
+sys     0m0.011s
+
+But the full Unicode grammar still takes a while:
+
+time ragel xml.rl -s | rlcodegen -V &gt; test.dot
+fsm name  : Xml
+num states: 445
+
+real    0m43.829s
+user    0m43.293s
+sys     0m0.565s
+
+I guess there's another production creating unreachable states. It's a
+vast improvement though, it never even got close to compiling
+beforehand. Is there some way I can diagnose what's happening myself?
+
+On 9/14/06, Adrian Thurston &lt;<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">thurs... at cs.queensu.ca</A>&gt; wrote:
+&gt;<i> Pretty much every operation can cause unreachable states. For example,
+</I>&gt;<i> during union a new start state is created with epsilon transitions drawn to
+</I>&gt;<i> the old start states. The epsilon operation effectively copies transition
+</I>&gt;<i> lists from the destination state to the source state. If the old start
+</I>&gt;<i> states don't have any transitions in from elsewhere in the machine then they
+</I>&gt;<i> become unreachable. The on-the-fly cleanup will reap states with no external
+</I>&gt;<i> entry points. This gets most unreachables, but just like in garbage
+</I>&gt;<i> collection, cycles cause problems.
+</I>&gt;<i>
+</I>&gt;<i> In your ragel file the subtraction operation is leaving behind unreachables.
+</I>&gt;<i> Subtraction may in fact need a full mark and sweep (I had thought the
+</I>&gt;<i> on-the-fly was sufficient). The attached patch will allow you to compile
+</I>&gt;<i> without -e.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i>   Adrian
+</I>&gt;<i>
+</I>&gt;<i> Colin Fleming wrote:
+</I>&gt;<i> &gt; Ok, thanks for the help! What causes unreachable states? Can I change
+</I>&gt;<i> &gt; something about the grammar to avoid them (apart from -e, of course)?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Cheers,
+</I>&gt;<i> &gt; Colin
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>&gt;<i>
+</I>&gt;<i> Index: ragel/fsmgraph.cpp
+</I>&gt;<i> ===================================================================
+</I>&gt;<i> --- ragel/fsmgraph.cpp  (revision 3586)
+</I>&gt;<i> +++ ragel/fsmgraph.cpp  (working copy)
+</I>&gt;<i> @@ -496,6 +496,7 @@
+</I>&gt;<i>
+</I>&gt;<i>         /* Remove states that have no path to a final state. */
+</I>&gt;<i>         removeDeadEndStates();
+</I>&gt;<i> +       removeUnreachableStates();
+</I>&gt;<i>  }
+</I>&gt;<i>
+</I>&gt;<i>  bool FsmAp::inEptVect( EptVect *eptVect, StateAp *state )
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000007.html">Minimisation question
+</A></li>
+	<LI>Next message: <A HREF="000009.html">Minimisation question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#8">[ date ]</a>
+              <a href="thread.html#8">[ thread ]</a>
+              <a href="subject.html#8">[ subject ]</a>
+              <a href="author.html#8">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

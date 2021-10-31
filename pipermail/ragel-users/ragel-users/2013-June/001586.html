@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Difference between generated C code using -G0 and -T0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Difference%20between%20generated%20C%20code%20using%20-G0%20and%20-T0&In-Reply-To=%3C51C97C71.7060802%40nic.cz%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="001585.html">
+   <LINK REL="Next"  HREF="001587.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Difference between generated C code using -G0 and -T0</H1>
+    <B>Daniel Salzman</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Difference%20between%20generated%20C%20code%20using%20-G0%20and%20-T0&In-Reply-To=%3C51C97C71.7060802%40nic.cz%3E"
+       TITLE="[ragel-users] Difference between generated C code using -G0 and -T0">daniel.salzman at nic.cz
+       </A><BR>
+    <I>Tue Jun 25 11:18:09 UTC 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001585.html">[ragel-users] Basic question on use of grouping in Ragel
+</A></li>
+        <LI>Next message: <A HREF="001587.html">[ragel-users] Keywords and actions in a minimal example
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1586">[ date ]</a>
+              <a href="thread.html#1586">[ thread ]</a>
+              <a href="subject.html#1586">[ subject ]</a>
+              <a href="author.html#1586">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+At the beginning I would like to thank you for the great project Ragel.
+It allows us (www.knot-dns.cz) to have realy fast parser for DNS zone files.
+
+But I have recently noticed that there is a small bug in C code 
+generation with G{0,1,2},
+because there is different behaviour between G and T, F modes.
+
+Meaningless and very pruned snippet of code which can demonstrate the 
+problem:
+
+== test.rl ==
+#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+
+%%{
+         machine zone_scanner;
+
+         newline = '\n';
+         comment = ';' . (^newline)*;
+         wchar = [ \t\n;];
+
+         sep = ( [ \t]
+               | (comment? . newline) when { 0 }
+)+;
+
+         err_line := (^newline)* . newline @{ fgoto main; };
+
+         action _text_char_error {
+printf(&quot;!TXT_ERROR!\n&quot;);
+                 fhold; fgoto err_line;
+}
+
+         text = ^wchar . (alpha $!_text_char_error)+;
+
+         main := &quot;$INCLUDE&quot; . sep . text . newline;
+}%%
+
+%% write data;
+
+int main(int argc, char **argv)
+{
+         char buffer[4096];
+         FILE* f;
+         long numbytes;
+
+         f = fopen(argv[1], &quot;r&quot;);
+         fseek(f, 0, SEEK_END);
+         numbytes = ftell(f);
+         fseek(f, 0, SEEK_SET);
+         fread(buffer, 1, numbytes, f);
+
+         char *p = buffer;
+         char *pe = buffer + numbytes;
+         char *eof = pe;
+         int stack[16];
+         int  cs = zone_scanner_start;
+         int top;
+
+         %% write exec;
+
+         if (cs == zone_scanner_error) {
+printf(&quot;!MISC_ERROR!\n&quot;);
+                 return -1;
+}
+
+         return 0;
+}
+
+== input.txt ==
+$INCLUDE        ; Missing filename
+==========
+
+ragel -T0 test.rl -o testT.c
+gcc testT.c -o testT
+./testT ./input.txt
+!MISC_ERROR!
+
+ragel -G0 test.rl -o testG.c
+gcc testG.c -o testG
+./testG ./input.txt
+!TXT_ERROR!
+
+Here you can see the state machines stop in different states.
+
+Although this problem is marginal in our project, it would be nice if 
+Ragel is absolute perfect :-)
+
+Best regards,
+Dan
+
+
+
+_______________________________________________
+ragel-users mailing list
+<A HREF="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">ragel-users at complang.org</A>
+<A HREF="http://www.complang.org/mailman/listinfo/ragel-users">http://www.complang.org/mailman/listinfo/ragel-users</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001585.html">[ragel-users] Basic question on use of grouping in Ragel
+</A></li>
+	<LI>Next message: <A HREF="001587.html">[ragel-users] Keywords and actions in a minimal example
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1586">[ date ]</a>
+              <a href="thread.html#1586">[ thread ]</a>
+              <a href="subject.html#1586">[ subject ]</a>
+              <a href="author.html#1586">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

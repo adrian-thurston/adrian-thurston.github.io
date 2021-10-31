@@ -1,0 +1,105 @@
+From wlund at iki.fi  Wed Feb 27 07:58:42 2019
+From: wlund at iki.fi (Wictor Lund)
+Date: Wed, 27 Feb 2019 14:58:42 +0200
+Subject: [colm-users] Off by one error in pdarun.c
+Message-ID: <20190227125842.sf2l3hllnethdidk@klein.local>
+
+Hi colm users!
+
+I started getting some garbage after the parse error message so I
+investigated and found that the error string is cut off just before the '\0'
+character.
+
+I made a patch that addresses this and  uses snprintf instead of sprintf.
+
+--
+Wictor Lund
+
+diff --git a/src/pdarun.c b/src/pdarun.c
+index ab0de7eb..3914bc65 100644
+--- a/src/pdarun.c
++++ b/src/pdarun.c
+@@ -436,9 +436,15 @@ static void report_parse_error( program_t *prg, tree_t **sp, struct pda_run *pda                                                                                        
+
+                if ( name == 0 )
+                        name = "<input>";
+-               char *formatted = malloc( strlen( name ) + 128 );
+-               sprintf( formatted, "%s:%ld:%ld: parse error", name, line, column );
+-               error_head = string_alloc_full( prg, formatted, strlen(formatted) );
++               size_t formatted_s = strlen( name ) + 128;
++               char *formatted = malloc( formatted_s );
++               size_t fmt_s = snprintf( formatted, formatted_s,
++                                        "%s:%ld:%ld: parse error",
++                                        name, line, column );
++               if ( fmt_s >= formatted_s ) {
++                       fmt_s = formatted_s - 1;
++               }
++               error_head = string_alloc_full( prg, formatted, fmt_s + 1 );
+                free( formatted );
+
+                error_head->location = location_allocate( prg );
+
+
+From thurston at colm.net  Thu Feb 28 11:28:54 2019
+From: thurston at colm.net (Adrian Thurston)
+Date: Thu, 28 Feb 2019 18:28:54 +0200
+Subject: [colm-users] Off by one error in pdarun.c
+In-Reply-To: <20190227125842.sf2l3hllnethdidk@klein.local>
+References: <20190227125842.sf2l3hllnethdidk@klein.local>
+Message-ID: <5301adb09ce25c8653c37142ca8d88e4@mail.colm.net>
+
+Hi Wictor,
+
+Strings in colm are not normally null terminated. Probably the error 
+you're seeing originates from when the string is printed. Can you share 
+some code that exhibits the problem?
+
+On 2019-02-27 14:58, Wictor Lund wrote:
+> Hi colm users!
+> 
+> I started getting some garbage after the parse error message so I
+> investigated and found that the error string is cut off just before the 
+> '\0'
+> character.
+> 
+> I made a patch that addresses this and  uses snprintf instead of 
+> sprintf.
+> 
+> --
+> Wictor Lund
+> 
+> diff --git a/src/pdarun.c b/src/pdarun.c
+> index ab0de7eb..3914bc65 100644
+> --- a/src/pdarun.c
+> +++ b/src/pdarun.c
+> @@ -436,9 +436,15 @@ static void report_parse_error( program_t *prg,
+> tree_t **sp, struct pda_run *pda
+> 
+> 
+>                 if ( name == 0 )
+>                         name = "<input>";
+> -               char *formatted = malloc( strlen( name ) + 128 );
+> -               sprintf( formatted, "%s:%ld:%ld: parse error", name,
+> line, column );
+> -               error_head = string_alloc_full( prg, formatted,
+> strlen(formatted) );
+> +               size_t formatted_s = strlen( name ) + 128;
+> +               char *formatted = malloc( formatted_s );
+> +               size_t fmt_s = snprintf( formatted, formatted_s,
+> +                                        "%s:%ld:%ld: parse error",
+> +                                        name, line, column );
+> +               if ( fmt_s >= formatted_s ) {
+> +                       fmt_s = formatted_s - 1;
+> +               }
+> +               error_head = string_alloc_full( prg, formatted, fmt_s + 
+> 1 );
+>                 free( formatted );
+> 
+>                 error_head->location = location_allocate( prg );
+> 
+> _______________________________________________
+> colm-users mailing list
+> colm-users at colm.net
+> http://www.colm.net/cgi-bin/mailman/listinfo/colm-users
+
+

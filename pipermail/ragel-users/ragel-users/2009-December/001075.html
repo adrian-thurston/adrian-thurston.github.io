@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] properties list
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20properties%20list&In-Reply-To=%3C6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+   <LINK REL="Next"  HREF="001076.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] properties list</H1>
+    <B>Torsten Curdt</B> 
+    <A HREF="mailto:ragel%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20properties%20list&In-Reply-To=%3C6c59d89a0911301746q4fae5c54ta8c10c1d3b62f99%40mail.gmail.com%3E"
+       TITLE="[ragel-users] properties list">tcurdt at vafer.org
+       </A><BR>
+    <I>Tue Dec  1 01:46:29 UTC 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001076.html">[ragel-users] properties list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1075">[ date ]</a>
+              <a href="thread.html#1075">[ thread ]</a>
+              <a href="subject.html#1075">[ subject ]</a>
+              <a href="author.html#1075">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hey folks,
+
+I just stumbled across Ragel. In order to get a bit into it I though I
+give it a try to parse some properties files looking like this:
+
+--
+  /* general comment */
+  // another comment
+
+  /* comment for the next property (key1) */
+  &quot;key1&quot; = &quot;value1&quot;
+
+  // comment for the next property (key2)
+  &quot;key2&quot; = &quot;value2&quot;
+--
+
+I got something working but it's not even fully working to parse the
+above. It would be great if you could point me into the right
+direction. I will tomorrow continue to read up in the docs but here
+are a couple of question that I did not immediately find.
+
+1. Are actions the right way to access/extract the content of the
+tokens? I would love to have the key/value pair available in the
+machine definition of the assignment.
+2. I've had a look at the C grammar but did not really understand how
+the comment rules worked. I tried with that approach but I could not
+capture and access the comment text.
+3. Does whitespace has to be handled just as any other input? No
+special treatment?
+4. What about unicode support? I've read that UTF8 should be possible.
+What about UTF16?
+
+Sorry for the newbie questions. Here is my first try (of course
+knowing that this still needs work)
+
+--
+  #include &lt;stdio.h&gt;
+  #include &lt;string.h&gt;
+  #include &lt;stdlib.h&gt;
+
+  %%{
+  	machine strings;
+    alphtype char;
+
+  	newline = '\n' @{
+  	  curline += 1;
+  	};
+
+    action key {
+      printf(&quot;KEY: %c\n&quot;, fc);
+    }
+
+    action value {
+      printf(&quot;VALUE: %c\n&quot;, fc);
+    }
+
+    action comment {
+      printf(&quot;COMMENT: %c\n&quot;, fc);
+    }
+
+    # single line comment
+    comment_line = '//' [^\n]* @comment '\n';
+
+  	# quoted string
+  	quoted_char = [^&quot;\\] | newline;
+
+    # assignment
+    assignment = '&quot;' quoted_char* @key '&quot;' &quot; &quot;* &quot;=&quot; &quot; &quot;* '&quot;'
+quoted_char* @value '&quot;';
+
+  	main := comment_line? ( comment_line? assignment newline )*;
+
+  }%%
+
+  %% write data nofinal;
+
+  void scanner()
+  {
+    char *s = &quot;\&quot;a\&quot;=\&quot;b\&quot;\n \&quot;c\&quot; = \&quot;d\&quot; \n&quot;;
+
+  	int act, curline = 1;
+  	char *ts, *te = 0;
+
+    int cs;
+  	char *p = s;
+  	char *pe = p + strlen(p) + 1;
+  	char *eof = pe;
+
+  	%% write init;
+  	%% write exec;
+  }
+
+  int main()
+  {
+  	scanner();
+  	return 0;
+  }
+--
+
+Any comments appreciated.
+
+cheers
+--
+Torsten
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001076.html">[ragel-users] properties list
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1075">[ date ]</a>
+              <a href="thread.html#1075">[ thread ]</a>
+              <a href="subject.html#1075">[ subject ]</a>
+              <a href="author.html#1075">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel">More information about the ragel
+mailing list</a><br>
+</body></html>

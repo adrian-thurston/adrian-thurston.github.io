@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [ragel-users] Re: parsing a netstring
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20parsing%20a%20netstring&In-Reply-To=%3C9064A031-F86F-4F59-B779-1CCE6808BF5B%40mac.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <LINK REL="Previous"  HREF="002161.html">
+   <LINK REL="Next"  HREF="002163.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[ragel-users] Re: parsing a netstring</H1>
+    <B>Chuck Remes</B> 
+    <A HREF="mailto:ragel-users%40colm.net?Subject=Re%3A%20%5Bragel-users%5D%20Re%3A%20parsing%20a%20netstring&In-Reply-To=%3C9064A031-F86F-4F59-B779-1CCE6808BF5B%40mac.com%3E"
+       TITLE="[ragel-users] Re: parsing a netstring">cremes.devl... at mac.com
+       </A><BR>
+    <I>Wed Oct 10 15:49:48 UTC 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002161.html">[ragel-users] parsing a netstring
+</A></li>
+        <LI>Next message: <A HREF="002163.html">[ragel-users] Re: parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2162">[ date ]</a>
+              <a href="thread.html#2162">[ thread ]</a>
+              <a href="subject.html#2162">[ subject ]</a>
+              <a href="author.html#2162">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Adrian,
+
+thanks for the reply. It's encouraging to have my guesses confirmed.
+
+I'm still a bit fuzzy on the last piece regarding error actions.
+
+Let's use the example I contrived from the original email:
+
+
+&gt;<i> get_size = ( digit @store_size @err(size_error) )+;
+</I>&gt;<i>
+</I>
+I'm interpreting your comment to mean that @err(size_error) will  
+*only* get called if the get_size machine receives an input it isn't  
+configured to handle. For example, if it receives an alphanumeric  
+then action size_error will be called to handle it.
+
+cr
+
+On Oct 9, 2007, at 4:10 PM, Adrian Thurston wrote:
+
+&gt;<i> Hi Chuck,
+</I>&gt;<i>
+</I>&gt;<i> Yes, using fnext to call out of the string consuming machine is one  
+</I>&gt;<i> way
+</I>&gt;<i> to do it. The code looks good to me.
+</I>&gt;<i>
+</I>&gt;<i> As you said you can use conditions as well. I think one of the  
+</I>&gt;<i> examples
+</I>&gt;<i> in the manual deals with variable length fields. So there is that  
+</I>&gt;<i> route.
+</I>&gt;<i>
+</I>&gt;<i> And also yes, you can modify p to jump ahead of the area. Just be
+</I>&gt;<i> mindful of jumping past pe. If you have all the data at once this  
+</I>&gt;<i> isn't
+</I>&gt;<i> a problem, but if you get your data in blocks then you have to  
+</I>&gt;<i> watch out
+</I>&gt;<i> and hack in some solution.
+</I>&gt;<i>
+</I>&gt;<i> With error actions you have to keep in mind that the operators have
+</I>&gt;<i> slightly different meanings because they select states as opposed to
+</I>&gt;<i> transitions. The error action embedding operators let you handle the
+</I>&gt;<i> case of 'no transition' in the states they select.
+</I>&gt;<i>
+</I>&gt;<i> Adrian
+</I>&gt;<i>
+</I>&gt;<i> Chuck Remes wrote:
+</I>&gt;&gt;<i> I'm suddenly finding all sorts of uses for ragel!
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I want to write a parser for netstrings. The definition of a
+</I>&gt;&gt;<i> netstring is pretty simple. It comes in the following format:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> size_in_decimal':''string array size_in_decimal bytes long'','
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I wrote a machine to parse through this and capture every byte, but
+</I>&gt;&gt;<i> I'm unclear how to terminate my get_string machine. Right now I have
+</I>&gt;&gt;<i> it call the action store_string as a finishing action for each byte
+</I>&gt;&gt;<i> processed. The action stores the byte and increments a counter
+</I>&gt;&gt;<i> variable. When the counter variable exceeds the number of bytes to be
+</I>&gt;&gt;<i> processed, I want to advance out of that machine and move to the next
+</I>&gt;&gt;<i> machine to confirm the byte array was terminated properly.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm not sure I'm doing this correctly. From the docs (section 6.5) it
+</I>&gt;&gt;<i> appears using a 'semantic condition' would make sense here, but that
+</I>&gt;&gt;<i> part of the documentation is unclear to me so I'm using this
+</I>&gt;&gt;<i> alternate methodology. Am I on the right track? Also, is there a way
+</I>&gt;&gt;<i> to skip 'N' bytes forward instead of copying them one by one into a
+</I>&gt;&gt;<i> new array (super slow!)? I'm thinking I can directly modify the 'p'
+</I>&gt;&gt;<i> variable but I'm not sure this is the right way.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Secondly, I'm not sure how to capture errors. I'm already using the
+</I>&gt;&gt;<i> form '@action' to do some work in a machine. Can I specify an error
+</I>&gt;&gt;<i> action using the same operator in the same machine? E.g - get_size =
+</I>&gt;&gt;<i> ( digit @store_size @err(size_error) )+;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks for any input. My sample machine is listed below.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> %%{
+</I>&gt;&gt;<i> 	machine parse_netstring;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	# snipped out some actions for the sake of brevity
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	action store_size {
+</I>&gt;&gt;<i> 		size = ( size * 10 ) + fc; # accumulate string length
+</I>&gt;&gt;<i> 	};
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	action alloc_buffer {
+</I>&gt;&gt;<i> 		buffer = Array.new(size);
+</I>&gt;&gt;<i> 		i = 0;
+</I>&gt;&gt;<i> 	};
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	action store_string {
+</I>&gt;&gt;<i> 		buffer[i] = fc;
+</I>&gt;&gt;<i> 		i = i + 1;
+</I>&gt;&gt;<i> 		fnext get_string_terminator if i &gt; size;
+</I>&gt;&gt;<i> 	};
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	get_size = ( digit &gt;validate_not_zero ) . ( digit @store_size )*;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	get_delimeter = ( ':' @alloc_buffer );
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	get_string = ( any @store_string )*;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	get_netstring_terminator = ',' @finalize;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 	main := get_size . get_delimeter . get_string;
+</I>&gt;&gt;<i> }%%
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> &gt;&gt;
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002161.html">[ragel-users] parsing a netstring
+</A></li>
+	<LI>Next message: <A HREF="002163.html">[ragel-users] Re: parsing a netstring
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2162">[ date ]</a>
+              <a href="thread.html#2162">[ thread ]</a>
+              <a href="subject.html#2162">[ subject ]</a>
+              <a href="author.html#2162">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.colm.net/cgi-bin/mailman/listinfo/ragel-users">More information about the ragel-users
+mailing list</a><br>
+</body></html>
